@@ -1,11 +1,14 @@
 {
   "name": "mdtidy",
   "version": "0.0.0",
-  "private": true,
   "description": "A fast Markdown formatter that streams, with Prettier's style by default",
   "license": "MIT",
   "author": "Luke Edwards <luke.edwards05@gmail.com> (https://lukeed.com)",
-  "repository": "lukeed/mdtidy",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lukeed/mdtidy.git",
+    "directory": "crates/mdtidy_napi"
+  },
   "type": "module",
   "main": "index.js",
   "types": "index.d.ts",
@@ -27,6 +30,9 @@
       "x86_64-apple-darwin",
       "aarch64-unknown-linux-gnu",
       "x86_64-unknown-linux-gnu",
+      "aarch64-unknown-linux-musl",
+      "x86_64-unknown-linux-musl",
+      "aarch64-pc-windows-msvc",
       "x86_64-pc-windows-msvc"
     ]
   },
@@ -36,5 +42,8 @@
   },
   "devDependencies": {
     "@napi-rs/cli": "3.10.9"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

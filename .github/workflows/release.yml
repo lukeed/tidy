@@ -1,0 +1,98 @@
+name: release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+
+env:
+  CARGO_TERM_COLOR: always
+  MISE_TRUSTED_CONFIG_PATHS: ${{ github.workspace }}
+
+jobs:
+  build:
+    name: build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { os: macos-latest, target: aarch64-apple-darwin, test: true }
+          - { os: macos-latest, target: x86_64-apple-darwin }
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, flags: --use-napi-cross, test: true }
+          - { os: ubuntu-latest, target: aarch64-unknown-linux-gnu, flags: --use-napi-cross }
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-musl, flags: -x }
+          - { os: ubuntu-latest, target: aarch64-unknown-linux-musl, flags: -x }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc, test: true }
+          - { os: windows-latest, target: aarch64-pc-windows-msvc }
+    defaults:
+      run:
+        shell: bash
+        working-directory: crates/mdtidy_napi
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        if: contains(matrix.target, 'musl')
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          key: ${{ matrix.target }}
+      - run: rustup target add ${{ matrix.target }}
+      - run: bun install --frozen-lockfile
+      - run: bunx napi build --platform --release --esm --target ${{ matrix.target }} ${{ matrix.flags }}
+      - run: bun test
+        if: matrix.test
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: addon-${{ matrix.target }}
+          path: crates/mdtidy_napi/mdtidy.*.node
+          if-no-files-found: error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        with:
+          name: loader
+          path: |
+            crates/mdtidy_napi/index.js
+            crates/mdtidy_napi/index.d.ts
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: crates/mdtidy_napi
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: bun install --frozen-lockfile
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: addon-*
+          path: crates/mdtidy_napi/artifacts
+          merge-multiple: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: loader
+          path: crates/mdtidy_napi
+      - run: bunx napi create-npm-dirs
+      - run: bunx napi artifacts --output-dir artifacts
+      - run: bunx napi pre-publish -t npm --no-gh-release
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
