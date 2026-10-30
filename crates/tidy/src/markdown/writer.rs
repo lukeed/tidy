@@ -57,6 +57,7 @@ pub(crate) fn format(
     definitions,
     next: 0,
     adjacent: None,
+    last: 0,
   };
   let mut events = Events { iter: parser.into_offset_iter(), ahead: VecDeque::new() };
   while let Some((event, range)) = events.next() {
@@ -96,6 +97,8 @@ enum Gap {
   None,
   Line,
   Blank,
+  /// Inside a list item: a blank line only where the source had one.
+  Source,
 }
 
 enum Container {
@@ -113,7 +116,8 @@ enum Container {
 }
 
 struct List {
-  tight: bool,
+  /// The current item has a blank line between its blocks, so a blank line follows it.
+  spread: bool,
   items: usize,
   ordered: bool,
   /// How many lists of the same kind directly precede this one, which alternates its marker.
@@ -121,6 +125,8 @@ struct List {
   start: u64,
   /// Every item after the first repeats one number, as in `1.`, `1.`, `1.`.
   repeats: bool,
+  /// Prettier pads the markers of an ordered list whose content sits on tab stops.
+  aligned: bool,
 }
 
 /// The list that ended last, while nothing else followed it at the same depth.
@@ -165,6 +171,8 @@ struct Writer<'s, 'o> {
   definitions: Vec<Range<usize>>,
   next: usize,
   adjacent: Option<Adjacent>,
+  /// Where the last block ended in the source.
+  last: usize,
 }
 
 impl<'s> Writer<'s, '_> {
@@ -182,7 +190,10 @@ impl<'s> Writer<'s, '_> {
     }
     match event {
       Event::Start(tag) => self.open(tag, range, events),
-      Event::End(tag) => self.close(tag),
+      Event::End(tag) => {
+        self.close(tag);
+        self.last = range.end;
+      }
       Event::Text(text) => match &mut self.block {
         Some(Block::Fenced { text: code, .. } | Block::Front { text: code, .. }) => {
           code.push_str(&text);
@@ -245,18 +256,7 @@ impl<'s> Writer<'s, '_> {
   }
 
   fn open(&mut self, tag: Tag<'s>, range: Range<usize>, events: &mut Events<'s>) {
-    let block = matches!(
-      tag,
-      Tag::Paragraph
-        | Tag::Heading { .. }
-        | Tag::BlockQuote(_)
-        | Tag::CodeBlock(_)
-        | Tag::HtmlBlock
-        | Tag::List(_)
-        | Tag::Table(_)
-        | Tag::FootnoteDefinition(_)
-        | Tag::MetadataBlock(_)
-    );
+    let block = is_block(&tag);
     if block && self.verbatim(range.start, &range) {
       self.skip = 1;
       return;
@@ -319,26 +319,37 @@ impl<'s> Writer<'s, '_> {
         };
         self.block(range.start);
         self.adjacent = None;
-        let (tight, numbers) = self.scan(events, ordered);
+        let items = self.scan(events, ordered);
+        let numbers: Vec<u64> = items.iter().map(|item| item.number).collect();
         let repeats = match numbers[..] {
-          [0, second, third, ..] if numbers.len() > 2 => second == 1 && third == 1,
+          [0, second, third, ..] => second == 1 && third == 1,
           [_, second, ..] => second == 1,
           _ => false,
         };
+        let aligned = self.options.numbering == Numbering::Auto
+          && self.lists.iter().all(|list| list.aligned)
+          && aligned(&items);
         let start = first.unwrap_or(1);
-        self.lists.push(List { tight, items: 0, ordered, nth, start, repeats });
+        self.lists.push(List { spread: false, items: 0, ordered, nth, start, repeats, aligned });
       }
       Tag::Item => {
         let list = self.lists.last_mut().expect("an item is inside a list");
         if list.items > 0 {
-          self.gap = if list.tight { Gap::Line } else { Gap::Blank };
+          let blank = list.spread || blank(self.source, self.last.min(range.start), range.start);
+          self.gap = if blank { Gap::Blank } else { Gap::Line };
         }
+        list.spread = false;
         let index = list.items;
         list.items += 1;
+        let aligned = list.aligned;
         self.separate();
-        let marker = self.marker(range.start, index);
-        let width = marker.len() + 1;
-        self.containers.push(Container::Item { width, marker: Some(format!("{marker} ")) });
+        self.adjacent = None;
+        let mut marker = self.marker(range.start, index);
+        marker.push(' ');
+        if aligned && !marker.len().is_multiple_of(TAB) {
+          marker.extend(std::iter::repeat_n(' ', TAB - marker.len() % TAB));
+        }
+        self.containers.push(Container::Item { width: marker.len(), marker: Some(marker) });
       }
       Tag::FootnoteDefinition(label) => {
         self.block(range.start);
@@ -439,6 +450,7 @@ impl<'s> Writer<'s, '_> {
       TagEnd::BlockQuote(_) => {
         self.finish();
         self.containers.pop();
+        self.adjacent = None;
         self.end();
       }
       TagEnd::CodeBlock | TagEnd::MetadataBlock(_) => {
@@ -463,6 +475,7 @@ impl<'s> Writer<'s, '_> {
       }
       TagEnd::Item | TagEnd::FootnoteDefinition => {
         self.finish();
+        self.adjacent = None;
         let marker = match self.containers.pop() {
           Some(Container::Item { marker, .. } | Container::Footnote { marker }) => marker,
           _ => None,
@@ -520,41 +533,44 @@ impl<'s> Writer<'s, '_> {
     true
   }
 
-  /// Read ahead through the list that just started: whether it's tight, and the numbers of its
-  /// first items when it's ordered. A loose list wraps every item's text in a paragraph.
-  fn scan(&self, events: &mut Events<'s>, ordered: bool) -> (bool, Vec<u64>) {
-    let mut numbers = Vec::new();
-    let mut tight = None;
+  /// Read ahead through the ordered list that just started, for the first items' numbers.
+  fn scan(&self, events: &mut Events<'s>, ordered: bool) -> Vec<Item> {
+    let mut items = Vec::new();
     let mut depth = 0usize;
     let mut index = 0;
-    while let Some((event, range)) = events.peek(index) {
+    while ordered && items.len() < 3 {
+      let Some((event, range)) = events.peek(index) else { break };
       index += 1;
       match event {
-        Event::Start(tag) => {
-          if depth == 0 && ordered && numbers.len() < 3 {
-            let digits = self.source[range.start..].trim_start();
-            let end = digits.bytes().take_while(u8::is_ascii_digit).count();
-            numbers.push(digits[..end].parse().unwrap_or(0));
-          }
-          if depth == 1 && tight.is_none() {
-            if *tag == Tag::Paragraph {
-              tight = Some(false);
-            } else if !is_block(tag) {
-              tight = Some(true);
-            }
+        Event::Start(_) => {
+          if depth == 0 {
+            items.push(self.item(range.start));
           }
           depth += 1;
         }
         Event::End(_) if depth == 0 => break,
         Event::End(_) => depth -= 1,
-        _ if depth == 1 && tight.is_none() => tight = Some(true),
         _ => {}
       }
-      if tight.is_some() && (!ordered || numbers.len() >= 3) {
-        break;
-      }
     }
-    (tight.unwrap_or(true), numbers)
+    items
+  }
+
+  /// The number of the ordered item whose marker is at `at`, and where its content starts.
+  fn item(&self, at: usize) -> Item {
+    let line = self.source[..at].rfind('\n').map_or(0, |index| index + 1);
+    let rest = &self.source[at..];
+    let indent = rest.len() - rest.trim_start_matches([' ', '\t']).len();
+    let rest = &rest[indent..];
+    let digits = rest.bytes().take_while(u8::is_ascii_digit).count();
+    let after = rest.get(digits + 1..).unwrap_or("");
+    let spaces = after.bytes().take_while(|&byte| byte == b' ').count();
+    let empty = after[spaces..].starts_with(['\n', '\r']) || after[spaces..].is_empty();
+    Item {
+      number: rest[..digits].parse().unwrap_or(0),
+      spaces,
+      column: (!empty).then_some(at - line + indent + digits + 1 + spaces),
+    }
   }
 
   fn marker(&self, at: usize, index: usize) -> String {
@@ -583,9 +599,8 @@ impl<'s> Writer<'s, '_> {
   }
 
   fn fenced(&mut self, info: &str, original: String, mut text: String) {
-    let mut words = info.split_whitespace();
-    let lang = words.next().unwrap_or("");
-    let meta: Vec<&str> = words.collect();
+    let (lang, meta) = info.trim().split_once(char::is_whitespace).unwrap_or((info.trim(), ""));
+    let meta = meta.trim_start();
     let width = self.options.width.saturating_sub(self.indent());
     if !lang.is_empty()
       && let Some(mut formatted) = (self.code)(Code { lang, text: &text, width })
@@ -613,7 +628,7 @@ impl<'s> Writer<'s, '_> {
       self.write(lang);
       if !meta.is_empty() {
         self.write(" ");
-        self.write(&meta.join(" "));
+        self.write(meta);
       }
     }
     self.newline();
@@ -647,6 +662,13 @@ impl<'s> Writer<'s, '_> {
     if self.adjacent.as_ref().is_some_and(|adjacent| adjacent.depth == self.containers.len()) {
       self.adjacent = None;
     }
+    if self.gap == Gap::Source {
+      let blank = blank(self.source, self.last.min(at), at);
+      self.gap = if blank { Gap::Blank } else { Gap::Line };
+      if blank && let Some(list) = self.lists.last_mut() {
+        list.spread = true;
+      }
+    }
     self.separate();
   }
 
@@ -660,11 +682,11 @@ impl<'s> Writer<'s, '_> {
     self.gap = Gap::None;
   }
 
-  /// A block ended: the next one needs a blank line, or only a line break inside a tight item.
+  /// A block ended: the next one needs a blank line, except inside a list item, where Prettier
+  /// keeps blocks together unless the source had a blank line between them.
   fn end(&mut self) {
-    let tight = matches!(self.containers.last(), Some(Container::Item { .. }))
-      && self.lists.last().is_some_and(|list| list.tight);
-    self.gap = if tight { Gap::Line } else { Gap::Blank };
+    let item = matches!(self.containers.last(), Some(Container::Item { .. }));
+    self.gap = if item { Gap::Source } else { Gap::Blank };
   }
 
   /// Write out a collected paragraph, and end the line.
@@ -828,6 +850,7 @@ fn is_block(tag: &Tag<'_>) -> bool {
       | Tag::List(_)
       | Tag::Table(_)
       | Tag::FootnoteDefinition(_)
+      | Tag::MetadataBlock(_)
   )
 }
 
@@ -848,4 +871,41 @@ fn longest(text: &str, char: char) -> usize {
     longest = longest.max(run);
   }
   longest
+}
+
+/// The tab width that Prettier aligns ordered list content to.
+const TAB: usize = 2;
+
+/// An ordered list item as written.
+struct Item {
+  number: u64,
+  /// Spaces between the marker and the content.
+  spaces: usize,
+  /// The column the content starts at, unless the item starts empty.
+  column: Option<usize>,
+}
+
+/// Prettier's `isAligned`: whether an ordered list keeps its content on tab stops.
+fn aligned(items: &[Item]) -> bool {
+  let Some(first) = items.first() else { return false };
+  if first.spaces > 1 {
+    return true;
+  }
+  let Some(column) = first.column else { return false };
+  match items.get(1) {
+    None => column.is_multiple_of(TAB),
+    Some(second) if second.column != Some(column) => false,
+    Some(_) if column.is_multiple_of(TAB) => true,
+    Some(second) => second.spaces > 1,
+  }
+}
+
+/// Whether a blank line, holding nothing but whitespace and block quote markers, separates the
+/// block that ended at `last` from the one starting at `at`.
+fn blank(source: &str, last: usize, at: usize) -> bool {
+  let end = source[..last].trim_end_matches(['\n', '\r', ' ', '\t', '>']).len();
+  let from = source[end..].find('\n').map_or(source.len(), |index| end + index + 1);
+  let to = source[..at].rfind('\n').map_or(0, |index| index + 1);
+  from < to
+    && source[from..to].lines().any(|line| line.trim_matches([' ', '\t', '\r', '>']).is_empty())
 }

@@ -3,6 +3,9 @@ use std::str::FromStr;
 use napi::bindgen_prelude::{FnArgs, Function};
 use napi_derive::napi;
 
+/// Called with a code block's language, text, and width; returns its formatted text.
+type Callback<'a> = Function<'a, FnArgs<(String, String, u32)>, Option<String>>;
+
 /// Options for `format` and `check`. A `preset` sets every choice; the other fields override it.
 #[napi(object)]
 #[derive(Default)]
@@ -55,7 +58,7 @@ pub struct FormatOptions {
 pub fn format(
   source: String,
   options: Option<FormatOptions>,
-  code: Option<Function<FnArgs<(String, String, u32)>, Option<String>>>,
+  code: Option<Callback<'_>>,
 ) -> napi::Result<String> {
   let options = resolve(options.unwrap_or_default())?;
   let Some(code) = code else {
