@@ -662,11 +662,22 @@ impl<'p, 'a> Printer<'p, 'a> {
 
   fn print_attribute(&mut self, id: Id, index: usize) {
     let attr = &self.tree.attrs(id)[index];
-    if let Some((text, size)) = self.verbatim(attr) {
+    let name = &attr.name[..];
+    let embeds = self.options.parser == Parser::Vue
+      || matches!(name, b"srcset" | b"allow" | b"style")
+      || embed::is_event_handler(name);
+    let written = self.written(attr);
+    if let Some((text, size, printable)) = written
+      && !embeds
+      && (name != b"class" || (printable && attr.value.is_some_and(is_collapsed)))
+    {
       return self.docs.sized(text, size);
     }
     if embed::attribute(self, id, index) {
       return;
+    }
+    if let Some((text, size, _)) = written {
+      return self.docs.sized(text, size);
     }
     let raw = raw_name(attr.raw_name());
     let Some(value) = attr.value else {
@@ -690,36 +701,37 @@ impl<'p, 'a> Printer<'p, 'a> {
     self.bytes(quote);
   }
 
-  /// The source of an attribute that prints as it is written, `name="value"` with nothing to escape, collapse, or
-  /// format, and its width.
-  fn verbatim(&self, attr: &ast::Attribute<'_>) -> Option<(&'a str, u32)> {
+  /// The source of an attribute that the plain printer prints as it is written, its width, and whether its value is
+  /// printable ASCII. That is a quoted value with no line break and nothing to unescape,
+  /// whose quotes are the ones the printer prefers.
+  fn written(&self, attr: &ast::Attribute<'_>) -> Option<(&'a str, u32, bool)> {
     let (value, span) = (attr.value?, attr.value_span?);
     let name = &attr.name[..];
     let start = attr.span.start as usize;
-    let plain = self.options.parser != Parser::Vue
-      && attr.namespace.is_empty()
+    let source = self.source.as_bytes();
+    let quoted = attr.namespace.is_empty()
       && span.start as usize == start + name.len() + 1
       && span.len() as usize == value.len() + 2
-      && self
-        .source
-        .as_bytes()
-        .get(start..span.start as usize + 1)
-        .is_some_and(|written| written.starts_with(name) && written.ends_with(b"=\""))
-      && !matches!(name, b"srcset" | b"allow" | b"style")
-      && !embed::is_event_handler(name);
-    if !plain {
+      && source.get(start..start + name.len()) == Some(name)
+      && source.get(span.start as usize - 1) == Some(&b'=');
+    if !quoted {
       return None;
     }
-    let (special, printable) = scan(value);
-    if special || (name == b"class" && !(printable && is_collapsed(value))) {
+    let scan = scan(value);
+    let quote = source[span.start as usize];
+    let preferred = quote == b'"' || (quote == b'\'' && scan.double);
+    let escapes = scan.amp
+      && (memchr::memmem::find(value, b"&quot;").is_some()
+        || memchr::memmem::find(value, b"&apos;").is_some());
+    if scan.newline || escapes || !preferred {
       return None;
     }
     let text = &self.source[start..span.end as usize];
-    let size = match printable && name.is_ascii() {
+    let size = match scan.printable && name.is_ascii() {
       true => text.len(),
       false => crate::doc::width(text),
     };
-    Some((text, size as u32))
+    Some((text, size as u32, scan.printable))
   }
 
   // ───────────────────────────── `embed.js` ─────────────────────────────
@@ -800,15 +812,30 @@ pub(crate) fn raw_name<'t>((namespace, name): (&'t [u8], &'t [u8])) -> Cow<'t, [
   }
 }
 
-/// Whether an attribute value has `&` or a line break, and whether it is all printable ASCII, in one pass that the
-/// compiler can vectorize.
-fn scan(value: &[u8]) -> (bool, bool) {
-  let (chunks, rest) = value.as_chunks::<16>();
-  let fold = |(special, printable): (bool, bool), &byte: &u8| {
-    (special | (byte == b'&') | (byte == b'\n'), printable & (byte.wrapping_sub(0x20) < 0x60))
+/// What [`Printer::written`] needs to know of an attribute value.
+#[derive(Clone, Copy)]
+struct Scan {
+  amp: bool,
+  newline: bool,
+  double: bool,
+  printable: bool,
+}
+
+/// Scans an attribute value in one pass that the compiler can vectorize.
+fn scan(value: &[u8]) -> Scan {
+  let (mut amp, mut newline, mut double, mut other) = (0u8, 0u8, 0u8, 0u8);
+  let mut add = |bytes: &[u8]| {
+    for &byte in bytes {
+      amp |= u8::from(byte == b'&');
+      newline |= u8::from(byte == b'\n');
+      double |= u8::from(byte == b'"');
+      other |= u8::from(byte.wrapping_sub(0x20) >= 0x60);
+    }
   };
-  let state = chunks.iter().fold((false, true), |state, chunk| chunk.iter().fold(state, fold));
-  rest.iter().fold(state, fold)
+  let (chunks, rest) = value.as_chunks::<16>();
+  chunks.iter().for_each(|chunk| add(chunk));
+  add(rest);
+  Scan { amp: amp != 0, newline: newline != 0, double: double != 0, printable: other == 0 }
 }
 
 /// True if trimming the printable ASCII class names and joining them with single spaces gives them back.
