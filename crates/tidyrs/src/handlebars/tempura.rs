@@ -5,8 +5,8 @@
 
 use super::Error;
 use super::ast::{Kind, NodeId, Range, Text, Tree};
-use super::error::{Message, Rejection};
 use super::parser::{Statement, StatementKind};
+use crate::syntax::{Message, Rejection};
 
 /// A tag: `{{ inner }}`, or `{{{ inner }}}` if it's raw.
 #[derive(Copy, Clone)]
@@ -234,8 +234,16 @@ pub(crate) fn is_tempura(source: &[u8]) -> bool {
     None => open.push((source_name(source, name), change)),
   };
   let mut from = 0;
-  while let Ok(Some(tag)) = next_tag(source, from) {
+  while let Ok(Some(mut tag)) = next_tag(source, from) {
     from = tag.end;
+    // Handlebars' whitespace control, `{{~#a~}}`, which tempura doesn't have.
+    let (start, end) = trimmed(source, tag.inner);
+    if source.get(start) == Some(&b'~') {
+      tag.inner.0 = start + 1;
+    }
+    if end > tag.inner.0 && source[end - 1] == b'~' {
+      tag.inner.1 = end - 1;
+    }
     match form(source, tag) {
       Form::Open { name, rest } => {
         let rest = &source[rest.0..rest.1];
@@ -249,13 +257,23 @@ pub(crate) fn is_tempura(source: &[u8]) -> bool {
         if matches!(name, b"expect" | b"var" | b"elif" | b"else") || is_each_as {
           return true;
         }
-        count(name, 1);
+        count(word(source, name), 1);
       }
-      Form::Close { name } => count(name, -1),
+      Form::Close { name } => count(word(source, name), -1),
       _ => {}
     }
   }
   open.iter().any(|(_, count)| *count > 0)
+}
+
+/// The block's whole name, as Handlebars reads it: what follows the start of `name` up to whitespace or the tag's end.
+fn word<'s>(source: &'s [u8], name: &[u8]) -> &'s [u8] {
+  let start = name.as_ptr() as usize - source.as_ptr() as usize;
+  let len = source[start..]
+    .iter()
+    .take_while(|byte| !is_space(**byte) && !matches!(byte, b'}' | b'~'))
+    .count();
+  &source[start..start + len]
 }
 
 /// `name`, which is a part of `source`.
