@@ -239,10 +239,11 @@ impl<'p, 'a> Printer<'p, 'a> {
   fn end_location(&self, id: Id) -> u32 {
     let node = &self.tree[id];
     let end = node.span.end;
-    if node.kind == Kind::Element && node.end_span().is_none() {
-      if let Some(last) = self.tree.last_child(id) {
-        return end.max(self.end_location(last));
-      }
+    if node.kind == Kind::Element
+      && node.end_span().is_none()
+      && let Some(last) = self.tree.last_child(id)
+    {
+      return end.max(self.end_location(last));
     }
     end
   }
@@ -355,7 +356,7 @@ impl<'p, 'a> Printer<'p, 'a> {
       next = self.tree.next(child);
       let prev = self.tree.prev(child);
       let group = self.docs.group_id();
-      let current = std::mem::replace(&mut previous, Some(group));
+      let current = previous.replace(group);
       if is_text_like(&self.tree[child]) {
         if let Some(prev) = prev.filter(|&prev| is_text_like(&self.tree[prev])) {
           let between = self.between(prev, child);

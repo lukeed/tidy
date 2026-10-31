@@ -3,9 +3,7 @@
 //! Prettier walks the tree ten times. Each of its steps only looks at a node and its children, so here all steps run on
 //! a node, in the same order, before its children are visited. Only the last step runs after them.
 
-use super::Whitespace as HtmlWhitespaceSensitivity;
 use super::ast::{Flags, Id, Kind, Node, Span, Tree};
-use super::data::Display;
 use super::strings;
 use super::utilities::{is_pre_like, is_script_like_tag};
 use super::{Options, Parser};

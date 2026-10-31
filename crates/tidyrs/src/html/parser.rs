@@ -12,9 +12,11 @@ pub(crate) struct Options<'f> {
   pub(crate) lexer: lexer::Options,
   pub(crate) is_tag_name_case_sensitive: bool,
   /// Prettier's `shouldParseAsRawText(tagName, prefix, hasParent, attrs)`
-  pub(crate) should_parse_as_raw_text:
-    Option<&'f dyn Fn(&[u8], bool, &[LexedAttribute<'_>]) -> bool>,
+  pub(crate) should_parse_as_raw_text: Option<&'f RawText>,
 }
+
+/// `shouldParseAsRawText`
+pub(crate) type RawText = dyn Fn(&[u8], bool, &[LexedAttribute<'_>]) -> bool;
 
 pub(crate) struct ParseResult<'a> {
   /// Its children are the `rootNodes`.

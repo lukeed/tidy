@@ -100,13 +100,12 @@ impl<'a> Context<'a, '_> {
     options: &ParseOptions,
     decides_on_raw_text: bool,
   ) -> Result<'a, parser::ParseResult<'a>> {
-    let should_parse_as_raw_text: Option<&dyn Fn(&[u8], bool, &[LexedAttribute<'_>]) -> bool> =
-      match options.name {
-        _ if !decides_on_raw_text => None,
-        Parser::Mjml => Some(&should_parse_as_raw_text_in_mjml),
-        Parser::Vue => Some(&should_parse_as_raw_text_in_vue),
-        _ => None,
-      };
+    let should_parse_as_raw_text: Option<&parser::RawText> = match options.name {
+      _ if !decides_on_raw_text => None,
+      Parser::Mjml => Some(&should_parse_as_raw_text_in_mjml),
+      Parser::Vue => Some(&should_parse_as_raw_text_in_vue),
+      _ => None,
+    };
     let result = parser::parse(
       self.tree,
       self.text.get(..range.end as usize).unwrap_or(self.text),
