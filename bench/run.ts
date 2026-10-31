@@ -39,7 +39,7 @@ for (let [name, list] of Object.entries(sources)) {
 		let patterns = extensions.map((extension) => `*.${extension}`);
 		let files = (await $`git -C ${join(oss, repo)} ls-files -- ${patterns}`.text()).split("\n").filter(Boolean);
 		for (let file of files) {
-			if (/node_modules|\/dist\/|\/build\//.test(file)) continue;
+			if (/node_modules|\/dist\/|\/build\/|(^|\/)\./.test(file)) continue;
 			let to = join(corpus, name, repo, file);
 			if (name === "handlebars") {
 				let source = await Bun.file(join(oss, repo, file)).text();
