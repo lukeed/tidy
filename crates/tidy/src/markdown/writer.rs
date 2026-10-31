@@ -215,7 +215,7 @@ impl<'s> Writer<'s, '_> {
         Some(Block::Fenced { text: code, .. } | Block::Front { text: code, .. }) => {
           code.push_str(&text);
         }
-        Some(Block::Indented) => self.lines(&text),
+        Some(Block::Indented) => self.lines(&text, true),
         None if range.is_empty() => {}
         None => {
           let bytes = self.source.as_bytes();
@@ -237,7 +237,7 @@ impl<'s> Writer<'s, '_> {
       | Event::FootnoteReference(_)
       | Event::InlineMath(_)
       | Event::DisplayMath(_) => self.atom(&self.source[range]),
-      Event::Html(text) => self.lines(&text),
+      Event::Html(text) => self.lines(&text, false),
       Event::SoftBreak => {
         if self.table.is_some() || (self.heading.is_some() && self.options.heading == Heading::Atx)
         {
@@ -671,7 +671,7 @@ impl<'s> Writer<'s, '_> {
       }
     }
     self.newline();
-    self.lines(&text);
+    self.lines(&text, true);
     self.finish();
     self.write(&fence);
     self.newline();
@@ -866,18 +866,23 @@ impl<'s> Writer<'s, '_> {
     self.start = true;
   }
 
-  /// Verbatim lines of code or HTML, each behind the container prefix.
-  fn lines(&mut self, text: &str) {
+  /// Verbatim lines of code or HTML, each behind the container prefix. Code loses the spaces and
+  /// tabs at the end of its lines, as in Prettier.
+  fn lines(&mut self, text: &str, trim: bool) {
     for line in text.split_inclusive('\n') {
-      if line == "\n" || line == "\r\n" {
+      let body = line.trim_end_matches(['\n', '\r']);
+      let ending = &line[body.len()..];
+      let body = if trim { body.trim_end_matches([' ', '\t']) } else { body };
+      if body.is_empty() && !ending.is_empty() {
         self.blank();
         continue;
       }
       if self.start {
         self.prefix();
       }
-      self.out.push_str(line);
-      self.start = line.ends_with('\n');
+      self.out.push_str(body);
+      self.out.push_str(ending);
+      self.start = !ending.is_empty();
     }
   }
 }

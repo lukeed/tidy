@@ -90,9 +90,11 @@ fn fences_code_longer_than_its_content() {
 }
 
 #[test]
-fn keeps_code_whitespace() {
-  assert_eq!(prettier("```\na\n   \nb\n```\n"), "```\na\n   \nb\n```\n");
-  assert_eq!(prettier("> ```\n> a\n>\n> b\n> ```\n"), "> ```\n> a\n>\n> b\n> ```\n");
+fn trims_code_line_ends() {
+  assert_eq!(prettier("```\na  \n   \n\tb\t\n```\n"), "```\na\n\n\tb\n```\n");
+  assert_eq!(prettier("> ```\n> a \n>\n> b\n> ```\n"), "> ```\n> a\n>\n> b\n> ```\n");
+  assert_eq!(prettier("    a  \n\n    b\n"), "    a\n\n    b\n");
+  assert_eq!(prettier("<div>  \n</div>\n"), "<div>  \n</div>\n");
 }
 
 #[test]
