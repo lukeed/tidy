@@ -147,6 +147,20 @@ fn keeps_definitions_together() {
 }
 
 #[test]
+fn hangs_task_items_after_the_box() {
+  assert_eq!(prettier("- [ ] one\n  two\n- [x] three\n"), "- [ ] one\n      two\n- [x] three\n");
+  assert_eq!(
+    prettier("1. [x] a\n   b\n\n> - [ ] q\n>   r\n"),
+    "1. [x] a\n       b\n\n> - [ ] q\n>       r\n"
+  );
+  assert_eq!(prettier("- [ ]   a\n"), "- [ ] a\n");
+  let source = "- [ ] a\n\n  <div>x\n  y</div>\n\n  p\n  q\n\n  - n\n    m\n";
+  assert_eq!(prettier(source), source);
+  let always = Options { wrap: Wrap::Always, width: 14, ..Options::default() };
+  assert_eq!(mdtidy::format("- [ ] aaa bbb ccc ddd\n", &always), "- [ ] aaa bbb\n      ccc ddd\n");
+}
+
+#[test]
 fn quotes_and_nesting() {
   assert_eq!(prettier(">a\n>\n>b\n"), "> a\n>\n> b\n");
   assert_eq!(prettier("> - a\n>   > b\n"), "> - a\n>   > b\n");

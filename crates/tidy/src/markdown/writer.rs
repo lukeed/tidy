@@ -109,6 +109,9 @@ enum Container {
   Item {
     width: usize,
     marker: Option<String>,
+    /// The lines after the first are indented past a task box too, as Prettier does in the first
+    /// paragraph of a task item.
+    hang: bool,
   },
   Footnote {
     marker: Option<String>,
@@ -116,6 +119,9 @@ enum Container {
   /// An indented code block.
   Code,
 }
+
+/// The width of a task box, `[ ] `.
+const BOX: usize = 4;
 
 struct List {
   /// The current item has a blank line between its blocks, so a blank line follows it.
@@ -277,7 +283,16 @@ impl<'s> Writer<'s, '_> {
         self.newline();
         self.end();
       }
-      Event::TaskListMarker(checked) => self.atom(if checked { "[x] " } else { "[ ] " }),
+      Event::TaskListMarker(checked) => {
+        let mark = if checked { "[x] " } else { "[ ] " };
+        match self.containers.last_mut() {
+          Some(Container::Item { marker: Some(marker), hang, .. }) => {
+            marker.push_str(mark);
+            *hang = true;
+          }
+          _ => self.atom(mark),
+        }
+      }
     }
   }
 
@@ -375,7 +390,8 @@ impl<'s> Writer<'s, '_> {
         if aligned && !marker.len().is_multiple_of(TAB) {
           marker.extend(std::iter::repeat_n(' ', TAB - marker.len() % TAB));
         }
-        self.containers.push(Container::Item { width: marker.len(), marker: Some(marker) });
+        let width = marker.len();
+        self.containers.push(Container::Item { width, marker: Some(marker), hang: false });
       }
       Tag::FootnoteDefinition(label) => {
         self.block(range.start);
@@ -454,6 +470,9 @@ impl<'s> Writer<'s, '_> {
     match tag {
       TagEnd::Paragraph => {
         self.finish();
+        if let Some(Container::Item { hang, .. }) = self.containers.last_mut() {
+          *hang = false;
+        }
         self.end();
       }
       TagEnd::HtmlBlock => {
@@ -823,9 +842,12 @@ impl<'s> Writer<'s, '_> {
       match container {
         Container::Quote => self.out.push_str("> "),
         Container::Code => self.out.push_str("    "),
-        Container::Item { width, marker } => match marker.take() {
+        Container::Item { width, marker, hang, .. } => match marker.take() {
           Some(marker) => self.out.push_str(&marker),
-          None => self.out.extend(std::iter::repeat_n(' ', *width)),
+          None => {
+            let width = if *hang { *width + BOX } else { *width };
+            self.out.extend(std::iter::repeat_n(' ', width));
+          }
         },
         Container::Footnote { marker } => match marker.take() {
           Some(marker) => self.out.push_str(&marker),
@@ -843,6 +865,7 @@ impl<'s> Writer<'s, '_> {
       .iter()
       .map(|container| match container {
         Container::Quote => 2,
+        Container::Item { width, hang: true, .. } => width + BOX,
         Container::Item { width, .. } => *width,
         Container::Footnote { .. } | Container::Code => 4,
       })
