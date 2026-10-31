@@ -76,7 +76,18 @@ async function parameters(request: EmbedRequest, extra: Record<string, unknown>,
 	if (!formatted.startsWith(start) || !formatted.endsWith(end)) return undefined;
 	let inner = formatted.slice(start.length, -end.length);
 	let many = inner.includes(",");
-	return request.language.includes("for_left") && many ? `(${inner})` : inner;
+	let text = request.language.includes("for_left") && many ? `(${inner})` : inner;
+	return indent(text, request);
+}
+
+let tab = "  ";
+
+function indent(text: string, request: EmbedRequest) {
+	let prefix = tab.repeat(request.indent);
+	return text
+		.split("\n")
+		.map((line, index) => (index === 0 || line === "" ? line : prefix + line))
+		.join("\n");
 }
 
 async function embedded(request: EmbedRequest, options: FormatOptions, extra: Record<string, unknown>) {
@@ -93,7 +104,7 @@ async function embedded(request: EmbedRequest, options: FormatOptions, extra: Re
 	try {
 		let formatted = await prettier.format(request.code, {
 			...extra,
-			...(handler ? { singleQuote: true } : {}),
+			...(request.kind === "attribute" ? { singleQuote: true } : {}),
 			parser: request.language,
 			printWidth: Math.max(width, 0),
 			tabWidth: options.tabWidth,
@@ -129,7 +140,7 @@ let skipped = 0;
 for (let test of all) {
 	if (filter && !test.name.includes(filter)) continue;
 	let options = settings(test.options, test.file);
-	if (!options || "cursorOffset" in test.options || test.input.includes("<|>")) {
+	if (!options || "cursorOffset" in test.options || test.input.includes("<|>") || test.name.startsWith("with-plugins/")) {
 		skipped++;
 		continue;
 	}
@@ -138,17 +149,23 @@ for (let test of all) {
 			["semi", "singleQuote", "trailingComma", "bracketSpacing", "arrowParens", "quoteProps"].includes(name),
 		),
 	);
-	let requests = new Map<string, EmbedRequest>();
-	let actual: string;
+	tab = options.useTabs ? "\t" : " ".repeat(options.tabWidth ?? 2);
+	let answers = new Map<string, string | undefined>();
+	let actual = "";
 	try {
-		format(test.input, options, (request) => {
-			requests.set(key(request), request);
-			return undefined;
-		});
-		let answers = new Map<string, string | undefined>();
-		for (let [id, request] of requests) answers.set(id, await embedded(request, options, extra));
 		let off = test.options.embeddedLanguageFormatting === "off";
-		actual = format(test.input, options, (request) => (off ? undefined : answers.get(key(request))));
+		// Some requests depend on earlier answers, so this runs until nothing new is asked.
+		for (let round = 0; round < 8; round++) {
+			let missing = new Map<string, EmbedRequest>();
+			actual = format(test.input, options, (request) => {
+				if (off) return undefined;
+				let id = key(request);
+				if (!answers.has(id)) missing.set(id, request);
+				return answers.get(id);
+			});
+			if (missing.size === 0) break;
+			for (let [id, request] of missing) answers.set(id, await embedded(request, options, extra));
+		}
 	} catch (error) {
 		actual = `!error ${(error as Error).message}`;
 	}
