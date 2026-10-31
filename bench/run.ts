@@ -63,6 +63,7 @@ let tools = (dir: string): Record<string, string> => ({
 	markup_fmt: `${target}/dprint/release/dprint-bench ${dir}`,
 	prettier: `${prettier} --check ${dir} --no-config --embedded-language-formatting off --log-level silent`,
 	naive: `bun ${root}/bench/naive.ts ${dir}`,
+	"naive (1 thread)": `bun ${root}/bench/naive.ts ${dir} --threads 1`,
 });
 
 type Result = { command: string; mean: number };

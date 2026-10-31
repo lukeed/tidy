@@ -1,7 +1,7 @@
 // A naive formatter on @lukeed/html, as a floor for what a JavaScript formatter costs: it parses each file, puts
 // block elements on their own lines with two-space indents, collapses whitespace in text, and keeps the rest as written.
 //
-//   bun bench/naive.ts <dir>
+//   bun bench/naive.ts <dir> [--threads <n>]
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { parse, stringify } from "@lukeed/html";
@@ -43,11 +43,43 @@ function walk(path: string, files: string[]) {
 	for (let name of readdirSync(path)) walk(join(path, name), files);
 }
 
-let files: string[] = [];
-for (let arg of Bun.argv.slice(2)) walk(arg, files);
-let changed = 0;
-for (let file of files) {
-	let source = readFileSync(file, "utf8");
-	if (format(source) !== source) changed++;
+function check(files: string[]) {
+	let changed = 0;
+	for (let file of files) {
+		let source = readFileSync(file, "utf8");
+		if (format(source) !== source) changed++;
+	}
+	return changed;
 }
-process.exit(changed > 0 ? 1 : 0);
+
+if (Bun.isMainThread) {
+	let args = Bun.argv.slice(2);
+	let at = args.indexOf("--threads");
+	let threads = at >= 0 ? Number(args.splice(at, 2)[1]) : navigator.hardwareConcurrency;
+	let files: string[] = [];
+	for (let arg of args) walk(arg, files);
+	threads = Math.max(1, Math.min(threads, files.length));
+	let changed = 0;
+	if (threads === 1) {
+		changed = check(files);
+	} else {
+		// Each worker takes every nth file, which spreads large files out as well as a queue would here.
+		let counts = await Promise.all(
+			Array.from({ length: threads }, (_, index) => {
+				let worker = new Worker(import.meta.url);
+				let mine = files.filter((_, at) => at % threads === index);
+				return new Promise<number>((resolve) => {
+					worker.onmessage = (event) => {
+						resolve(event.data as number);
+						worker.terminate();
+					};
+					worker.postMessage(mine);
+				});
+			}),
+		);
+		changed = counts.reduce((sum, count) => sum + count, 0);
+	}
+	process.exit(changed > 0 ? 1 : 0);
+} else {
+	self.onmessage = (event: MessageEvent<string[]>) => postMessage(check(event.data));
+}
