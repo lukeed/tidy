@@ -109,6 +109,14 @@ fn copies_inline_content_as_written() {
 }
 
 #[test]
+fn fences_code_spans_with_the_fewest_backticks() {
+  assert_eq!(prettier("`` ```ts `` and ``` a``b ```\n"), "` ```ts ` and `a``b`\n");
+  assert_eq!(prettier("` a ` and `` `a` `` and ``a`b``\n"), "`a` and `` `a` `` and ``a`b``\n");
+  assert_eq!(prettier("``  a  ``\n"), "`  a  `\n");
+  assert_eq!(prettier("| `a\\|b` |\n| - |\n"), "| `a\\|b` |\n| ------ |\n");
+}
+
+#[test]
 fn quotes_and_nesting() {
   assert_eq!(prettier(">a\n>\n>b\n"), "> a\n>\n> b\n");
   assert_eq!(prettier("> - a\n>   > b\n"), "> - a\n>   > b\n");

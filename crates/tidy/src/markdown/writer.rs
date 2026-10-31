@@ -208,8 +208,14 @@ impl<'s> Writer<'s, '_> {
           self.text(&self.source[start..range.end]);
         }
       },
-      Event::Code(_)
-      | Event::InlineHtml(_)
+      Event::Code(value) => {
+        let raw = &self.source[range];
+        match span(raw, &value) {
+          Some(span) => self.atom(&span),
+          None => self.atom(raw),
+        }
+      }
+      Event::InlineHtml(_)
       | Event::FootnoteReference(_)
       | Event::InlineMath(_)
       | Event::DisplayMath(_) => self.atom(&self.source[range]),
@@ -871,6 +877,41 @@ fn longest(text: &str, char: char) -> usize {
     longest = longest.max(run);
   }
   longest
+}
+
+/// A code span rewritten as Prettier writes it, or `None` when `raw` already is: the fewest
+/// backticks that no run inside matches, padded with a space only where the content needs one.
+fn span(raw: &str, value: &str) -> Option<String> {
+  let ticks = raw.bytes().take_while(|&byte| byte == b'`').count();
+  let inner = &raw[ticks..raw.len() - ticks];
+  let unpadded = inner
+    .strip_prefix([' ', '\n'])
+    .and_then(|rest| rest.strip_suffix([' ', '\n']))
+    .filter(|_| inner.bytes().any(|byte| !matches!(byte, b' ' | b'\n' | b'\r')))
+    .unwrap_or(inner);
+  let mut fewest = 1;
+  while has_run(value, fewest) {
+    fewest += 1;
+  }
+  let edge = |byte: Option<u8>| matches!(byte, Some(b' ' | b'\n'));
+  let bytes = value.as_bytes();
+  let pad = value.starts_with('`')
+    || value.ends_with('`')
+    || (edge(bytes.first().copied())
+      && edge(bytes.last().copied())
+      && bytes.iter().any(|byte| !matches!(byte, b' ' | b'\n')));
+  let spaced = inner.starts_with(' ') && inner.ends_with(' ');
+  if ticks == fewest && (unpadded.len() < inner.len()) == pad && (!pad || spaced) {
+    return None;
+  }
+  let fence = "`".repeat(fewest);
+  let pad = if pad { " " } else { "" };
+  Some(format!("{fence}{pad}{unpadded}{pad}{fence}"))
+}
+
+/// Whether `text` has a run of exactly `length` backticks.
+fn has_run(text: &str, length: usize) -> bool {
+  text.split(|char| char != '`').any(|run| run.len() == length)
 }
 
 /// The tab width that Prettier aligns ordered list content to.
