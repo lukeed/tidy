@@ -46,10 +46,11 @@ function cases(snapshot: string, directory: string): Case[] {
 
 function settings(options: Record<string, unknown>, file: string): FormatOptions | undefined {
 	let parsers = options.parsers as string[];
-	let parser = parsers?.[0];
-	if (parser !== "html" && parser !== "vue") return undefined;
+	let parser = parsers?.[0] === "glimmer" ? "handlebars" : parsers?.[0];
+	if (parser !== "html" && parser !== "vue" && parser !== "handlebars") return undefined;
 	return {
 		parser,
+		singleQuote: (options.singleQuote as boolean) ?? false,
 		width: (options.printWidth as number) ?? 80,
 		tabWidth: (options.tabWidth as number) ?? 2,
 		useTabs: (options.useTabs as boolean) ?? false,
@@ -140,7 +141,9 @@ let skipped = 0;
 for (let test of all) {
 	if (filter && !test.name.includes(filter)) continue;
 	let options = settings(test.options, test.file);
-	if (!options || "cursorOffset" in test.options || test.input.includes("<|>") || test.name.startsWith("with-plugins/")) {
+	// The TOML fixtures need a plugin from Prettier's test setup.
+	let plugin = test.name.startsWith("with-plugins/") || test.name.startsWith("front-matter/toml/");
+	if (!options || "cursorOffset" in test.options || test.input.includes("<|>") || plugin) {
 		skipped++;
 		continue;
 	}

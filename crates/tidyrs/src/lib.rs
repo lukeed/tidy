@@ -3,6 +3,8 @@
 pub mod doc;
 pub mod embed;
 mod front_matter;
+pub mod handlebars;
 pub mod html;
 mod languages;
+mod stack;
 mod strings;

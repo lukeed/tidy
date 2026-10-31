@@ -1,6 +1,7 @@
 use napi::bindgen_prelude::Function;
 use napi_derive::napi;
 use tidyrs::embed::{Kind, Request};
+use tidyrs::handlebars;
 use tidyrs::html::{Parser, Settings, Whitespace};
 
 /// A piece of embedded code for the host to format.
@@ -23,7 +24,7 @@ type Callback<'a> = Function<'a, EmbedRequest, Option<String>>;
 #[napi(object)]
 #[derive(Default)]
 pub struct FormatOptions {
-  #[napi(ts_type = "'html' | 'vue'")]
+  #[napi(ts_type = "'html' | 'vue' | 'handlebars'")]
   pub parser: Option<String>,
   /// The line width. Default: 80.
   pub width: Option<u32>,
@@ -35,6 +36,8 @@ pub struct FormatOptions {
   pub single_attribute_per_line: Option<bool>,
   pub bracket_same_line: Option<bool>,
   pub vue_indent_script_and_style: Option<bool>,
+  /// Prefer single quotes in Handlebars. Default: false.
+  pub single_quote: Option<bool>,
   /// The file's path, which decides some details.
   pub filepath: Option<String>,
 }
@@ -48,7 +51,10 @@ pub fn format(
   options: Option<FormatOptions>,
   embed: Option<Callback<'_>>,
 ) -> napi::Result<String> {
-  let settings = settings(options.unwrap_or_default())?;
+  let options = options.unwrap_or_default();
+  let is_handlebars = options.parser.as_deref() == Some("handlebars");
+  let single_quote = options.single_quote.unwrap_or_default();
+  let settings = settings(options, is_handlebars)?;
   let mut failure = None;
   let mut hook = |request: Request<'_>| -> Option<String> {
     let embed = embed.as_ref()?;
@@ -76,19 +82,32 @@ pub fn format(
       }
     }
   };
-  let output = tidyrs::html::format(&source, &settings, &mut hook)
-    .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+  let error = |error: &dyn std::fmt::Display| napi::Error::from_reason(error.to_string());
+  let output = match is_handlebars {
+    true => {
+      let settings = handlebars::Settings {
+        width: settings.width,
+        tab_width: settings.tab_width,
+        tabs: settings.tabs,
+        whitespace: settings.whitespace,
+        single_quote,
+        ..handlebars::Settings::default()
+      };
+      handlebars::format(&source, &settings, &mut hook).map_err(|it| error(&it))?
+    }
+    false => tidyrs::html::format(&source, &settings, &mut hook).map_err(|it| error(&it))?,
+  };
   match failure {
     Some(error) => Err(error),
     None => Ok(output),
   }
 }
 
-fn settings(input: FormatOptions) -> napi::Result<Settings> {
+fn settings(input: FormatOptions, is_handlebars: bool) -> napi::Result<Settings> {
   let invalid =
     |name: &str, value: &str| napi::Error::from_reason(format!("unknown {name}: {value}"));
   let mut settings = Settings::default();
-  if let Some(parser) = input.parser {
+  if let Some(parser) = input.parser.filter(|_| !is_handlebars) {
     settings.parser = match parser.as_str() {
       "html" => Parser::Html,
       "vue" => Parser::Vue,

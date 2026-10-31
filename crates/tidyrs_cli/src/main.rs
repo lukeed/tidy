@@ -4,7 +4,8 @@ use std::process::ExitCode;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use tidyrs::embed::Verbatim;
-use tidyrs::html::{Formatter, Parser, Settings, Whitespace};
+use tidyrs::handlebars;
+use tidyrs::html::{self, Parser, Whitespace};
 
 const HELP: &str = "\
 tidyrs: a fast markup formatter
@@ -14,13 +15,13 @@ Usage
 
   Without paths, reads stdin and prints the result.
   With one file, prints the result unless --check or --write is set.
-  Folders are searched for .html, .htm, and .vue files.
+  Folders are searched for .html, .htm, .vue, .hbs, and .handlebars files.
   Code in <script> and <style> is left as it is written.
 
 Options
   --check                         List files that aren't formatted, and exit 1 if any
   -w, --write                     Rewrite files in place
-  --parser <name>                 html or vue, for stdin (default: by extension)
+  --parser <name>                 html, vue, or handlebars, for stdin (default: by extension)
   --width <n>                     Line width (default: 80)
   --tab-width <n>                 Indent width (default: 2)
   --use-tabs                      Indent with tabs
@@ -28,6 +29,7 @@ Options
   --single-attribute-per-line     Put each attribute on its own line
   --bracket-same-line             Keep the > of a multi-line tag on the last line
   --vue-indent-script-and-style   Indent the code in Vue's <script> and <style>
+  --single-quote                  Prefer single quotes in Handlebars
   --threads <n>                   How many files to format at once (default: all cores)
   -v, --version                   Print the version
   -h, --help                      Print this help
@@ -62,10 +64,11 @@ fn run() -> Result<ExitCode, String> {
   let write = args.contains(["-w", "--write"]);
   let threads: Option<usize> =
     args.opt_value_from_str("--threads").map_err(|error| error.to_string())?;
-  let parser = args
+  let language = args
     .opt_value_from_fn("--parser", |name: &str| match name {
-      "html" => Ok(Parser::Html),
-      "vue" => Ok(Parser::Vue),
+      "html" => Ok(Language::Markup(Parser::Html)),
+      "vue" => Ok(Language::Markup(Parser::Vue)),
+      "handlebars" | "glimmer" => Ok(Language::Handlebars),
       other => Err(format!("unknown parser `{other}`")),
     })
     .map_err(|error| error.to_string())?;
@@ -82,9 +85,9 @@ fn run() -> Result<ExitCode, String> {
   if paths.is_empty() || paths == [Path::new("-")] {
     let mut source = String::new();
     std::io::stdin().read_to_string(&mut source).map_err(|error| error.to_string())?;
-    let settings = Settings { parser: parser.unwrap_or(Parser::Html), ..settings };
-    let mut formatter = Formatter::default();
-    let output = format(&mut formatter, &source, &settings)?;
+    let language = language.unwrap_or(Language::Markup(Parser::Html));
+    let mut formatters = Formatters::default();
+    let output = formatters.format(&source, &settings, language, None)?;
     if check {
       return Ok(if output == source { ExitCode::SUCCESS } else { ExitCode::FAILURE });
     }
@@ -96,8 +99,8 @@ fn run() -> Result<ExitCode, String> {
     let path = &paths[0];
     let source =
       std::fs::read_to_string(path).map_err(|error| format!("{}: {error}", path.display()))?;
-    let mut formatter = Formatter::default();
-    let output = format(&mut formatter, &source, &for_path(&settings, path))?;
+    let mut formatters = Formatters::default();
+    let output = formatters.format(&source, &settings, language_of(path), Some(path))?;
     std::io::stdout().write_all(output.as_bytes()).map_err(|error| error.to_string())?;
     return Ok(ExitCode::SUCCESS);
   }
@@ -147,9 +150,32 @@ fn run() -> Result<ExitCode, String> {
   Ok(if check && changed > 0 { ExitCode::FAILURE } else { ExitCode::SUCCESS })
 }
 
+/// What a file is written in.
+#[derive(Clone, Copy)]
+enum Language {
+  Markup(Parser),
+  Handlebars,
+}
+
+/// The language of the file at `path`, by its extension.
+fn language_of(path: &Path) -> Language {
+  match path.extension().and_then(|it| it.to_str()) {
+    Some("vue") => Language::Markup(Parser::Vue),
+    Some("hbs" | "handlebars") => Language::Handlebars,
+    _ => Language::Markup(Parser::Html),
+  }
+}
+
+/// The settings of each formatter.
+#[derive(Clone)]
+struct Settings {
+  html: html::Settings,
+  handlebars: handlebars::Settings,
+}
+
 fn settings(args: &mut pico_args::Arguments) -> Result<Settings, String> {
   let error = |error: pico_args::Error| error.to_string();
-  let mut settings = Settings::default();
+  let mut settings = html::Settings::default();
   if let Some(width) = args.opt_value_from_str("--width").map_err(error)? {
     settings.width = width;
   }
@@ -171,24 +197,44 @@ fn settings(args: &mut pico_args::Arguments) -> Result<Settings, String> {
   settings.single_attribute_per_line = args.contains("--single-attribute-per-line");
   settings.bracket_same_line = args.contains("--bracket-same-line");
   settings.vue_indent_script_and_style = args.contains("--vue-indent-script-and-style");
-  Ok(settings)
-}
-
-/// The settings for `path`: its parser, and the path itself.
-fn for_path(settings: &Settings, path: &Path) -> Settings {
-  let parser = match path.extension().and_then(|it| it.to_str()) {
-    Some("vue") => Parser::Vue,
-    _ => Parser::Html,
+  let handlebars = handlebars::Settings {
+    width: settings.width,
+    tab_width: settings.tab_width,
+    tabs: settings.tabs,
+    whitespace: settings.whitespace,
+    single_quote: args.contains("--single-quote"),
+    ..handlebars::Settings::default()
   };
-  Settings { parser, filepath: Some(path.to_string_lossy().into_owned()), ..settings.clone() }
+  Ok(Settings { html: settings, handlebars })
 }
 
-fn format<'f>(
-  formatter: &'f mut Formatter,
-  source: &str,
-  settings: &Settings,
-) -> Result<&'f str, String> {
-  formatter.format(source, settings, &mut Verbatim).map_err(|error| error.to_string())
+/// A formatter for each language, each reusing its buffers.
+#[derive(Default)]
+struct Formatters {
+  html: html::Formatter,
+  handlebars: handlebars::Formatter,
+}
+
+impl Formatters {
+  fn format(
+    &mut self,
+    source: &str,
+    settings: &Settings,
+    language: Language,
+    path: Option<&Path>,
+  ) -> Result<&str, String> {
+    let error = |error: &dyn std::fmt::Display| error.to_string();
+    match language {
+      Language::Markup(parser) => {
+        let filepath = path.map(|path| path.to_string_lossy().into_owned());
+        let settings = html::Settings { parser, filepath, ..settings.html.clone() };
+        self.html.format(source, &settings, &mut Verbatim).map_err(|it| error(&it))
+      }
+      Language::Handlebars => {
+        self.handlebars.format(source, &settings.handlebars, &mut Verbatim).map_err(|it| error(&it))
+      }
+    }
+  }
 }
 
 enum Outcome {
@@ -204,7 +250,7 @@ fn work(
   write: bool,
 ) -> Vec<(usize, Outcome)> {
   let mut outcomes = Vec::new();
-  let mut formatter = Formatter::default();
+  let mut formatters = Formatters::default();
   let mut source = String::new();
   loop {
     let index = next.fetch_add(1, Ordering::Relaxed);
@@ -213,7 +259,7 @@ fn work(
     let read = std::fs::File::open(path).and_then(|mut file| file.read_to_string(&mut source));
     let outcome = match read {
       Err(error) => Outcome::Failed(error.to_string()),
-      Ok(_) => match format(&mut formatter, &source, &for_path(settings, path)) {
+      Ok(_) => match formatters.format(&source, settings, language_of(path), Some(path)) {
         Err(error) => Outcome::Failed(error),
         Ok(output) if output == source => Outcome::Same,
         Ok(output) => match write.then(|| std::fs::write(path, output)) {
@@ -238,7 +284,10 @@ fn walk(dir: &Path, files: &mut Vec<PathBuf>) {
       if !name.starts_with('.') && name != "node_modules" {
         walk(&path, files);
       }
-    } else if matches!(path.extension().and_then(|it| it.to_str()), Some("html" | "htm" | "vue")) {
+    } else if matches!(
+      path.extension().and_then(|it| it.to_str()),
+      Some("html" | "htm" | "vue" | "hbs" | "handlebars")
+    ) {
       files.push(path);
     }
   }
