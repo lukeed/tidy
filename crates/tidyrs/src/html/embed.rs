@@ -435,7 +435,7 @@ fn expand(printer: &mut Printer<'_, '_>, doc: impl FnOnce(&mut Printer<'_, '_>))
 }
 
 /// `@prettier/html-event-attributes`
-fn is_event_handler(name: &[u8]) -> bool {
+pub(crate) fn is_event_handler(name: &[u8]) -> bool {
   name.len() > 2 && name.starts_with(b"on") && EVENTS.binary_search(&&name[2..]).is_ok()
 }
 

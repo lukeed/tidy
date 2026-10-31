@@ -2,7 +2,7 @@
 
 use std::borrow::Cow;
 
-use super::ast::{Flags, Id, Kind, Tree};
+use super::ast::{self, Flags, Id, Kind, Tree};
 use super::embed::{self, Embedded};
 use super::strings;
 use super::tag::Tags;
@@ -660,10 +660,13 @@ impl<'p, 'a> Printer<'p, 'a> {
   }
 
   fn print_attribute(&mut self, id: Id, index: usize) {
+    let attr = &self.tree.attrs(id)[index];
+    if let Some(text) = self.verbatim(attr) {
+      return self.docs.text(text);
+    }
     if embed::attribute(self, id, index) {
       return;
     }
-    let attr = &self.tree.attrs(id)[index];
     let raw = raw_name(attr.raw_name());
     let Some(value) = attr.value else {
       return self.bytes(&raw);
@@ -684,6 +687,28 @@ impl<'p, 'a> Printer<'p, 'a> {
     self.bytes(quote);
     self.lines(&escaped, Separator::Literal);
     self.bytes(quote);
+  }
+
+  /// The source of an attribute that prints as it is written: `name="value"` with nothing to escape, collapse, or
+  /// format.
+  fn verbatim(&self, attr: &ast::Attribute<'_>) -> Option<&'a str> {
+    let (value, span) = (attr.value?, attr.value_span?);
+    let name = &attr.name[..];
+    let start = attr.span.start as usize;
+    let plain = self.options.parser != Parser::Vue
+      && attr.namespace.is_empty()
+      && span.start as usize == start + name.len() + 1
+      && span.len() as usize == value.len() + 2
+      && self
+        .source
+        .as_bytes()
+        .get(start..span.start as usize + 1)
+        .is_some_and(|written| written.starts_with(name) && written.ends_with(b"=\""))
+      && !matches!(name, b"srcset" | b"allow" | b"style")
+      && !embed::is_event_handler(name)
+      && memchr::memchr2(b'&', b'\n', value).is_none()
+      && (name != b"class" || is_collapsed(value));
+    plain.then(|| &self.source[start..span.end as usize])
   }
 
   // ───────────────────────────── `embed.js` ─────────────────────────────
@@ -762,6 +787,14 @@ pub(crate) fn raw_name<'t>((namespace, name): (&'t [u8], &'t [u8])) -> Cow<'t, [
   } else {
     Cow::Owned([namespace, b":", name].concat())
   }
+}
+
+/// True if trimming the class names and joining them with single spaces gives them back.
+fn is_collapsed(value: &[u8]) -> bool {
+  value.iter().all(|&byte| byte == b' ' || (0x21..0x80).contains(&byte))
+    && !value.starts_with(b" ")
+    && !value.ends_with(b" ")
+    && memchr::memmem::find(value, b"  ").is_none()
 }
 
 /// `getPreferredQuote(text, '"')`
