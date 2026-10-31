@@ -3,10 +3,11 @@
   "private": true,
   "type": "module",
   "devDependencies": {
+    "@lukeed/html": "1.0.2",
     "@prettier/plugin-xml": "3.4.2",
     "prettier": "3.9.9",
     "prettier-plugin-astro": "1.1.2",
     "prettier-plugin-svelte": "4.1.1",
-    "@lukeed/html": "1.0.2"
+    "tempura": "1.0.1"
   }
 }

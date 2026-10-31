@@ -51,6 +51,7 @@ function settings(options: Record<string, unknown>, file: string): FormatOptions
 	return {
 		parser,
 		singleQuote: (options.singleQuote as boolean) ?? false,
+		mustacheSpaces: false,
 		width: (options.printWidth as number) ?? 80,
 		tabWidth: (options.tabWidth as number) ?? 2,
 		useTabs: (options.useTabs as boolean) ?? false,
