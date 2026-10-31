@@ -38,8 +38,6 @@ pub struct FormatOptions {
   pub vue_indent_script_and_style: Option<bool>,
   /// Prefer single quotes in Handlebars. Default: false.
   pub single_quote: Option<bool>,
-  /// Print `{{ value }}` with spaces inside the braces in Handlebars. Default: true.
-  pub mustache_spaces: Option<bool>,
   /// The file's path, which decides some details.
   pub filepath: Option<String>,
 }
@@ -56,7 +54,6 @@ pub fn format(
   let options = options.unwrap_or_default();
   let is_handlebars = options.parser.as_deref() == Some("handlebars");
   let single_quote = options.single_quote.unwrap_or_default();
-  let mustache_spaces = options.mustache_spaces.unwrap_or(true);
   let settings = settings(options, is_handlebars)?;
   let mut failure = None;
   let mut hook = |request: Request<'_>| -> Option<String> {
@@ -94,7 +91,6 @@ pub fn format(
         tabs: settings.tabs,
         whitespace: settings.whitespace,
         single_quote,
-        spaced: mustache_spaces,
         filepath: settings.filepath.clone(),
         ..handlebars::Settings::default()
       };

@@ -30,7 +30,6 @@ Options
   --bracket-same-line             Keep the > of a multi-line tag on the last line
   --vue-indent-script-and-style   Indent the code in Vue's <script> and <style>
   --single-quote                  Prefer single quotes in Handlebars
-  --no-mustache-spaces            Print {{value}} rather than {{ value }} in Handlebars
   --threads <n>                   How many files to format at once (default: all cores)
   -v, --version                   Print the version
   -h, --help                      Print this help
@@ -207,7 +206,6 @@ fn settings(args: &mut pico_args::Arguments) -> Result<Settings, String> {
     tabs: settings.tabs,
     whitespace: settings.whitespace,
     single_quote: args.contains("--single-quote"),
-    spaced: !args.contains("--no-mustache-spaces"),
     ..handlebars::Settings::default()
   };
   Ok(Settings { html: settings, handlebars })

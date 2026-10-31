@@ -6,7 +6,7 @@ use super::tempura::{self, Form, Tag};
 
 /// The template's text, with its tags formatted. `indent` is one level of indentation. Returns `None` if a tag doesn't
 /// close.
-pub(crate) fn format(source: &str, is_tempura: bool, indent: &str, spaced: bool) -> Option<String> {
+pub(crate) fn format(source: &str, is_tempura: bool, indent: &str) -> Option<String> {
   let bytes = source.as_bytes();
   let mut out = String::with_capacity(source.len());
   let mut depth = 0usize;
@@ -25,13 +25,13 @@ pub(crate) fn format(source: &str, is_tempura: bool, indent: &str, spaced: bool)
       true => {
         out.push_str(&source[from..start]);
         out.push_str(&indent.repeat(level));
-        out.push_str(&written(source, tag, kind, name, spaced));
+        out.push_str(&written(source, tag, kind, name, is_tempura));
         out.push_str(&source[tag.end..end]);
         from = end;
       }
       false => {
         out.push_str(&source[from..tag.start]);
-        out.push_str(&written(source, tag, kind, name, spaced));
+        out.push_str(&written(source, tag, kind, name, is_tempura));
         from = tag.end;
       }
     }
@@ -77,12 +77,12 @@ fn kind(source: &[u8], tag: Tag, is_tempura: bool) -> (Kind, usize) {
   }
 }
 
-/// The tag with its inside trimmed. A value gets a space inside its braces if `spaced`.
-fn written(source: &str, tag: Tag, kind: Kind, name: usize, spaced: bool) -> String {
+/// The tag with its inside trimmed. In tempura, a value gets a space inside its braces.
+fn written(source: &str, tag: Tag, kind: Kind, name: usize, is_tempura: bool) -> String {
   let inner = source[tag.inner.0..tag.inner.1].trim_matches([' ', '\t', '\n', '\r']);
   let (open, close) = if tag.is_raw { ("{{{", "}}}") } else { ("{{", "}}") };
   match kind {
-    Kind::Value if spaced => format!("{open} {inner} {close}"),
+    Kind::Value if is_tempura => format!("{open} {inner} {close}"),
     Kind::Value => format!("{open}{inner}{close}"),
     Kind::Single if inner.starts_with('!') => source[tag.start..tag.end].to_owned(),
     Kind::Open | Kind::Branch | Kind::Single if inner.starts_with('#') => {

@@ -1,5 +1,5 @@
 use tidyrs::embed::Verbatim;
-use tidyrs::handlebars::{Settings, format};
+use tidyrs::handlebars::{Dialect, Settings, format};
 
 fn hbs(text: &str) -> String {
   format(text, &Settings::default(), &mut Verbatim).unwrap()
@@ -11,7 +11,7 @@ fn formats_a_template() {
     hbs(
       "<div   class=\"a  b\">\n{{#if   foo}}\n<p>{{bar baz=1   qux=\"x\"}}</p>\n{{else}}\n  nope\n{{/if}}</div>\n"
     ),
-    "<div class=\"a b\">\n  {{#if foo}}\n    <p>{{ bar baz=1 qux=\"x\" }}</p>\n  {{else}}\n    nope\n  {{/if}}</div>"
+    "<div class=\"a b\">\n  {{#if foo}}\n    <p>{{bar baz=1 qux=\"x\"}}</p>\n  {{else}}\n    nope\n  {{/if}}</div>"
   );
 }
 
@@ -42,10 +42,10 @@ fn keeps_the_text_of_other_languages() {
 }
 
 #[test]
-fn spaces_handlebars_values_unless_told_not_to() {
-  assert_eq!(hbs("<p>{{name}}</p>"), "<p>{{ name }}</p>");
-  assert_eq!(
-    with("<p>{{ name }}</p>", Settings { spaced: false, ..Settings::default() }),
-    "<p>{{name}}</p>"
-  );
+fn spaces_values_in_tempura_only() {
+  let handlebars = Settings { dialect: Dialect::Handlebars, ..Settings::default() };
+  let tempura = Settings { dialect: Dialect::Tempura, ..Settings::default() };
+  assert_eq!(with("<p>{{ name }}</p>", handlebars), "<p>{{name}}</p>");
+  assert_eq!(with("<p>{{name}}</p>", tempura), "<p>{{ name }}</p>");
+  assert_eq!(hbs("<p>{{name}}</p>"), "<p>{{name}}</p>");
 }
