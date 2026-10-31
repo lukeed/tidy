@@ -316,14 +316,16 @@ pub fn print(docs: &Docs<'_>, options: &Options) -> String {
       let element = docs.element(pos);
       command.pos += 1;
       match element {
-        Element::Text(index) => {
-          let (text, size) = docs.text_at(index);
-          if eol != "\n" && text.contains('\n') {
-            output.text.push_str(&text.replace('\n', eol));
-          } else {
-            output.text.push_str(text);
+        Element::Text { start, count, width } => {
+          for index in start..start + count {
+            let (text, _) = docs.text_at(index);
+            if eol != "\n" && text.contains('\n') {
+              output.text.push_str(&text.replace('\n', eol));
+            } else {
+              output.text.push_str(text);
+            }
           }
-          position += size as isize;
+          position += width as isize;
         }
         Element::Trim => position -= output.trim() as isize,
         Element::LineSuffixBoundary => {
@@ -492,10 +494,7 @@ fn text_of(docs: &Docs<'_>, start: u32, stop: u32) -> Option<(bool, u32)> {
   match stop - start {
     0 => Some((true, 0)),
     1 => match docs.element(start) {
-      Element::Text(index) => {
-        let (text, size) = docs.text_at(index);
-        Some((text.is_empty(), size))
-      }
+      Element::Text { width, .. } => Some((false, width)),
       _ => None,
     },
     _ => None,
@@ -565,16 +564,16 @@ fn fits(
     }
     frame.1 += 1;
     match docs.element(pos) {
-      Element::Text(index) => {
-        let (text, size) = docs.text_at(index);
-        if !text.is_empty() {
-          if space {
-            remaining -= 1;
-            space = false;
-            trailing += 1;
-          }
-          remaining -= size as isize;
-          if docs.trims {
+      Element::Text { start, count, width } => {
+        if space {
+          remaining -= 1;
+          space = false;
+          trailing += 1;
+        }
+        remaining -= width as isize;
+        if docs.trims {
+          for index in start..start + count {
+            let (text, _) = docs.text_at(index);
             let kept = text.trim_end_matches([' ', '\t']).len();
             trailing = if kept == 0 { trailing + text.len() } else { text.len() - kept };
           }

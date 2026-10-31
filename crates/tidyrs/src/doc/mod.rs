@@ -65,8 +65,13 @@ pub(crate) const NONE: u32 = u32::MAX;
 /// An element of the stream. A container's contents are the elements after it, up to its `end`.
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum Element {
-  /// An index into the texts.
-  Text(u32),
+  /// Texts next to each other, from `start` on in the texts, and their total width: a concatenation of texts prints
+  /// and measures the same as that.
+  Text {
+    start: u32,
+    count: u32,
+    width: u32,
+  },
   Line(Line),
   LineSuffixBoundary,
   Trim,
@@ -137,6 +142,8 @@ pub struct Docs<'a> {
   texts: Vec<(&'a str, u32)>,
   /// The groups that are open, innermost last, for `propagateBreaks`.
   open: Vec<u32>,
+  /// The last element, if it is a text that more texts can join.
+  run: u32,
   groups: u32,
   /// Whether a `trim` was emitted, which `fits` then has to account for.
   pub(crate) trims: bool,
@@ -158,7 +165,7 @@ impl<'a> Docs<'a> {
     let mut open = std::mem::take(&mut scratch.open);
     open.clear();
     let texts = recycle(std::mem::take(&mut scratch.texts));
-    Self { bump, elements, texts, open, groups: 0, trims: false }
+    Self { bump, elements, texts, open, run: NONE, groups: 0, trims: false }
   }
 
   /// The buffers of this stream, for the next one.
@@ -191,10 +198,12 @@ impl<'a> Docs<'a> {
   }
 
   fn emit(&mut self, element: Element) {
+    self.run = NONE;
     self.elements.push(element);
   }
 
   fn open(&mut self, element: Element) -> Mark {
+    self.run = NONE;
     self.elements.push(element);
     Mark(self.elements.len() as u32 - 1)
   }
@@ -205,9 +214,16 @@ impl<'a> Docs<'a> {
     if text.is_empty() {
       return;
     }
-    self.texts.push((text, width(text) as u32));
-    let index = self.texts.len() as u32 - 1;
-    self.emit(Element::Text(index));
+    let size = width(text) as u32;
+    self.texts.push((text, size));
+    if let Some(Element::Text { count, width, .. }) = self.elements.get_mut(self.run as usize) {
+      *count += 1;
+      *width += size;
+      return;
+    }
+    let start = self.texts.len() as u32 - 1;
+    self.elements.push(Element::Text { start, count: 1, width: size });
+    self.run = self.elements.len() as u32 - 1;
   }
 
   /// A text this stream keeps.
@@ -324,6 +340,7 @@ impl<'a> Docs<'a> {
 
   /// Closes the container that `mark` opened. A broken group breaks the group around it.
   pub fn close(&mut self, mark: Mark) {
+    self.run = NONE;
     let end = self.elements.len() as u32;
     let broken = match &mut self.elements[mark.0 as usize] {
       Element::Group { end: at, broken, .. } => {
