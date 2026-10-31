@@ -76,9 +76,20 @@ const fn is_sorted<T>(table: &[(u128, T)]) -> bool {
   true
 }
 
-/// Looks up `name` in `table`, which must be sorted.
-fn lookup<T: Copy>(table: &[(u128, T)], name: &[u8]) -> Option<T> {
-  let at = table.binary_search_by_key(&key(name), |entry| entry.0).ok()?;
+/// [`key`] of `name`, lowercased if `lower`, without a call to `memcpy`.
+fn packed(name: &[u8], lower: bool) -> u128 {
+  if name.is_empty() || name.len() > 15 {
+    return 0;
+  }
+  let bytes = name.iter().fold(0u128, |packed, &byte| {
+    packed << 8 | u128::from(if lower { byte.to_ascii_lowercase() } else { byte })
+  });
+  bytes << (8 * (16 - name.len())) | name.len() as u128
+}
+
+/// Looks up `name`, lowercased if `lower`, in `table`, which must be sorted.
+fn lookup<T: Copy>(table: &[(u128, T)], name: &[u8], lower: bool) -> Option<T> {
+  let at = table.binary_search_by_key(&packed(name, lower), |entry| entry.0).ok()?;
   table.get(at).map(|entry| entry.1)
 }
 
@@ -299,9 +310,9 @@ const TAG_DEFINITIONS: &[(u128, &TagDefinition)] = &[
 ];
 const _: () = assert!(is_sorted(TAG_DEFINITIONS));
 
-/// `getHtmlTagDefinition`
-pub(crate) fn tag_definition(name: &[u8]) -> &'static TagDefinition {
-  lookup(TAG_DEFINITIONS, name).unwrap_or(&DEFAULT_TAG_DEFINITION)
+/// `getHtmlTagDefinition`, of `name` lowercased if `lower`.
+pub(crate) fn tag_definition(name: &[u8], lower: bool) -> &'static TagDefinition {
+  lookup(TAG_DEFINITIONS, name, lower).unwrap_or(&DEFAULT_TAG_DEFINITION)
 }
 
 /// `HTML_TAGS.has(name)`
@@ -414,7 +425,7 @@ const _: () = assert!(is_sorted(CSS_DISPLAY_TAGS));
 
 /// `CSS_DISPLAY_TAGS[name]`
 pub(crate) fn css_display_of_tag(name: &[u8]) -> Option<Display> {
-  lookup(CSS_DISPLAY_TAGS, name)
+  lookup(CSS_DISPLAY_TAGS, name, false)
 }
 
 /// True if `CSS_WHITE_SPACE_TAGS[name]` starts with `pre`.

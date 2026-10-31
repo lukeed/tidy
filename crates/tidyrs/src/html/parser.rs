@@ -53,10 +53,7 @@ struct FullName<'a> {
 }
 
 pub(crate) fn definition_of(name: &[u8], is_case_sensitive: bool) -> &'static TagDefinition {
-  match is_case_sensitive || !name.iter().any(u8::is_ascii_uppercase) {
-    true => data::tag_definition(name),
-    false => data::tag_definition(&name.to_ascii_lowercase()),
-  }
+  data::tag_definition(name, !is_case_sensitive)
 }
 
 impl<'a> TreeBuilder<'a, '_, '_> {
