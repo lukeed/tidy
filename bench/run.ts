@@ -1,5 +1,6 @@
 // Compares tidyrs with Prettier, bun fmt, markup_fmt (the engine of dprint-plugin-markup), and a naive formatter on
-// @lukeed/html. Every tool checks the files and leaves embedded code alone. Each set runs in both orders. The
+// @lukeed/html. Every tool checks the files and leaves embedded code alone, except that tidyrs always formats style
+// sheets, so it does more work than the others. Each set runs in both orders. The
 // Handlebars corpus is Ghost's templates that Prettier can parse; only tidyrs, bun and Prettier format Handlebars.
 //
 //   mise run bench -- [--runs <n>] [--oss <dir>]
@@ -64,8 +65,8 @@ function size(path: string): [number, number] {
 
 let prettier = join(root, "node_modules/.bin/prettier");
 let tools = (dir: string): Record<string, string> => ({
-	tidyrs: `${target}/release/tidyrs ${dir} --check --embedded-language-formatting off`,
-	"tidyrs (1 thread)": `${target}/release/tidyrs ${dir} --check --embedded-language-formatting off --threads 1`,
+	tidyrs: `${target}/release/tidyrs ${dir} --check`,
+	"tidyrs (1 thread)": `${target}/release/tidyrs ${dir} --check --threads 1`,
 	bun: `bun fmt --cwd=${dir} --check --no-config --no-editorconfig --no-script --embedded-language-formatting off`,
 	"bun (1 thread)": `bun fmt --cwd=${dir} --check --no-config --no-editorconfig --no-script --embedded-language-formatting off --threads 1`,
 	markup_fmt: `${target}/dprint/release/dprint-bench ${dir}`,

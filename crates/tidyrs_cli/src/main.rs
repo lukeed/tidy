@@ -17,7 +17,7 @@ Usage
   Without paths, reads stdin and prints the result.
   With one file, prints the result unless --check or --write is set.
   Folders are searched for .html, .htm, .vue, .hbs, .handlebars, .css, .scss, and .less files.
-  Code in <script> and <style> is left as it is written.
+  Style sheets in <style> and style=\"\" are formatted. Scripts are left as they are written.
 
 Options
   --check                         List files that aren't formatted, and exit 1 if any
@@ -31,8 +31,6 @@ Options
   --bracket-same-line             Keep the > of a multi-line tag on the last line
   --vue-indent-script-and-style   Indent the code in Vue's <script> and <style>
   --single-quote                  Prefer single quotes in Handlebars and style sheets
-  --embedded-language-formatting <how>
-                                  auto (default) formats <style> and style=\"\"; off leaves them
   --threads <n>                   How many files to format at once (default: all cores)
   -v, --version                   Print the version
   -h, --help                      Print this help
@@ -211,20 +209,12 @@ fn settings(args: &mut pico_args::Arguments) -> Result<Settings, String> {
   settings.single_attribute_per_line = args.contains("--single-attribute-per-line");
   settings.bracket_same_line = args.contains("--bracket-same-line");
   settings.vue_indent_script_and_style = args.contains("--vue-indent-script-and-style");
-  settings.format_embedded =
-    match args.opt_value_from_str::<_, String>("--embedded-language-formatting").map_err(error)? {
-      None => true,
-      Some(how) if how == "auto" => true,
-      Some(how) if how == "off" => false,
-      Some(how) => return Err(format!("unknown embedded language formatting `{how}`")),
-    };
   let handlebars = handlebars::Settings {
     width: settings.width,
     tab_width: settings.tab_width,
     tabs: settings.tabs,
     whitespace: settings.whitespace,
     single_quote: args.contains("--single-quote"),
-    format_embedded: settings.format_embedded,
     ..handlebars::Settings::default()
   };
   let css = css::Settings {
@@ -232,7 +222,6 @@ fn settings(args: &mut pico_args::Arguments) -> Result<Settings, String> {
     tab_width: settings.tab_width,
     tabs: settings.tabs,
     single_quote: handlebars.single_quote,
-    format_embedded: settings.format_embedded,
     ..css::Settings::default()
   };
   Ok(Settings { html: settings, handlebars, css })
