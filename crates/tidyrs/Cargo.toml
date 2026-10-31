@@ -1,0 +1,19 @@
+[package]
+name = "tidyrs"
+description = "A fast markup formatter for HTML, Vue, Svelte, Astro, XML, and Handlebars, with Prettier's style by default"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords = ["html", "formatter", "prettier", "svelte", "vue"]
+categories = ["text-processing", "development-tools"]
+
+[dependencies]
+bumpalo = { workspace = true }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+serde_json = "1"
