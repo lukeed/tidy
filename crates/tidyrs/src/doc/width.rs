@@ -27,6 +27,15 @@ fn wide(text: &str) -> usize {
   let mut at = 0;
   let mut ahead: Vec<u32> = Vec::new();
   while at < bytes.len() {
+    // Whole chunks of printable ASCII first, unless the last byte may be a keycap's base.
+    while let Some(chunk) = bytes.get(at..at + 16)
+      && chunk.iter().fold(true, |all, &byte| all & (byte.wrapping_sub(0x20) < 0x5F))
+      && (!matches!(chunk[15], b'#' | b'*' | b'0'..=b'9')
+        || bytes.get(at + 16).is_none_or(u8::is_ascii))
+    {
+      width += 16;
+      at += 16;
+    }
     // A run of printable ASCII, where a keycap's base counts unless a non-ASCII mark follows it.
     let run = bytes[at..]
       .iter()
@@ -192,5 +201,8 @@ mod tests {
     assert_eq!(width("👍🏽"), 2);
     assert_eq!(width("👨‍👩‍👧"), 2);
     assert_eq!(width("\u{1}"), 0);
+    assert_eq!(width("aaaaaaaaaaaaaaa1\u{20e3}b"), 18);
+    assert_eq!(width("aaaaaaaaaaaaaaa1é"), 17);
+    assert_eq!(width("\taaaaaaaaaaaaaaaaaaa日"), 21);
   }
 }
