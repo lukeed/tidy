@@ -16,42 +16,39 @@ State as of 2026-10-30. Nothing is pushed or published. Starship uses this repo 
 
 One pass over pulldown-cmark's offset events, writing straight into a `String`. No tree and no layout document. That is the whole speed story: keep it _streaming_.
 
-- **Blocks are normalized, inlines are copied.** Text, code spans, links, images, HTML, entities, and escapes are written as source slices. A text event's range starts after a backslash escape, so the writer extends it back one byte (`writer.rs`, `Event::Text`).
+- **Blocks are normalized, inlines are mostly copied.** Text, HTML, entities, escapes, images, and the `](...)` part of a link are written as source slices. A text event's range starts after a backslash escape, so the writer extends it back one byte (`writer.rs`, `Event::Text`). Text loses runs of spaces (`collapse`, which uses memchr so plain text costs no copy), code spans get their delimiters rewritten (`span`), and link text goes through the same path as other inline content (`Link`).
 - **Containers are a prefix stack** (`Container`: quote, list item, footnote, indented code). A list item's marker replaces its indent on its first line.
 - **Lookahead is a small buffer** (`Events`). It reads up to three ordered-list items for Prettier's numbering and alignment rules before the first item is written.
 - **Blank lines inside and between list items follow the source** (`Gap::Source`, `blank()`), which is Prettier's `listItem.spread` rule. It also keeps list looseness by construction, so nothing tracks tightness.
 - **Paragraphs are buffered only when wrapping** (`wrap.rs`). A line never starts with something that opens a block (`opens_block`).
 - **Code blocks and front matter are buffered** for the `format_with` callback.
-- **Prettier rules** (from `printer-markdown`): adjacent sibling lists alternate `-`/`*` and `.`/`)`, git-diff-friendly numbering, `isAligned` with tab width 2, `_` emphasis falling back to `*` next to a word or inside emphasis, `---` (or `***` inside a list), backtick fences one longer than any run inside, aligned tables that only compact under `wrap: never`, and the block after `<!-- prettier-ignore -->` on the very next line.
+- **Prettier rules** (from `printer-markdown`): adjacent sibling lists alternate `-`/`*` and `.`/`)`, git-diff-friendly numbering, `isAligned` with tab width 2, `_` emphasis falling back to `*` next to a word or inside emphasis, `---` (or `***` inside a list), backtick fences one longer than any run inside, aligned tables that only compact under `wrap: never`, the block after `<!-- prettier-ignore -->` on the very next line, code spans with the fewest backticks that no run inside matches, one space for each run of spaces in text, sibling definitions on adjacent lines, no trailing whitespace on code lines, and a task item's first paragraph indented past its box (`BOX`).
 
 ## Oracles
 
-Both oracles live in the repo. Corpora don't: rebuild them with `git ls-files '*.md'` from any repos at hand. The 2026-10 runs used vite + storybook + shadcn-svelte (865 files) and starship + bun (2,147 files).
+Both oracles live in the repo. Corpora don't: rebuild them with `git ls-files '*.md'` from any repos at hand. The 2026-10 runs used vite + storybook + shadcn-svelte (872 files) and starship + bun (2,142 files, without `node_modules`).
 
 - **Semantics**: `MDTIDY_CORPUS=<dir> cargo test -p mdtidy --release --test semantics`. Every output re-parses to the same events (adjacent text merged, soft breaks as spaces, whitespace collapsed) and settles after one pass. It runs the Prettier preset, the Preserve preset, `wrap: always` at width 40, and `wrap: never`. It caught every real bug so far: trust it over reading diffs.
-- **Prettier**: the target is Prettier 3.9.10. Format one copy with `prettier --no-config --no-editorconfig --ignore-path= --embedded-language-formatting=off --write .` and another with `fd -H -e md -X mdtidy --write`, then count identical files. The CLI skips hidden folders on purpose, so give it every file by name. Last result: 856/872 and 2,016/2,145. `bun fmt` is close (8 misses, all inside code blocks) but it is not the reference.
+- **Speed**: build the old and the new CLI, then time both with `hyperfine -N --warmup 20 --runs 60 '<bin> <corpus> --check'` in both orders. Compare medians: means swing with machine load. Each fix on 2026-10-30 was within noise, and together they cost about 2–3%.
+- **Prettier**: the target is Prettier 3.9.10. Format one copy with `prettier --no-config --no-editorconfig --ignore-path= --embedded-language-formatting=off --write .` and another with `fd -H -e md -X mdtidy --write`, then count identical files. The CLI skips hidden folders on purpose, so give it every file by name. Last result: 865/872 and 2,027/2,142. `bun fmt` is close (8 misses, all inside code blocks) but it is not the reference.
 
 ## Known gaps against Prettier
 
-Most files first. 113 of the misses are Bun's react-compiler `.expect.md` fixtures, all from the first gap.
+Most files first. The rules are in Prettier's `src/language-markdown/print/` (`mdast.js`, `children.js`, `list.js`): read them before guessing. 113 of the misses are Bun's react-compiler `.expect.md` fixtures, all from the first gap.
 
 1. HTML right after a paragraph or another HTML block: Prettier keeps them on adjacent lines. mdtidy adds a blank line.
-2. Code spans: Prettier picks the fewest backticks that work (`` ` ```ts ` `` over ``` `` ```ts `` ```).
-3. Runs of spaces or tabs in text: Prettier writes one space.
-4. Consecutive link reference definitions: Prettier puts no blank line between them.
-5. Trailing whitespace in code blocks: Prettier removes it, even with embedded formatting off.
-6. HTML blocks indented up to 3 spaces: Prettier keeps the indent.
-7. Task list items: Prettier aligns continuation lines after `- [ ] `.
-8. Link destinations: Prettier prints them from the parsed URL: `()` becomes `(<>)`, `<z>` becomes `z`, and a URL with parentheses gets `<…>`.
-9. A list item followed by a blank line: Prettier puts a blank line between all blocks in that item (`isLooseListItem` checks the item's last character).
-10. A code span over two lines in a list item or quote: Prettier writes the second line with no indent and no `>`.
-11. Footnote definitions with more than one line: Prettier starts the text on the next line, indented 4.
-12. `isAligned` ignores Prettier's `hasIndentedCodeblock` case. The corpus doesn't hit it.
+2. HTML blocks indented up to 3 spaces: Prettier keeps the indent.
+3. Link destinations: Prettier prints them from the parsed URL: `()` becomes `(<>)`, `<z>` becomes `z`, and a URL with parentheses gets `<…>`.
+4. A list item followed by a blank line: Prettier puts a blank line between all blocks in that item (`isLooseListItem` checks the item's last character).
+5. A code span over two lines in a list item or quote: Prettier writes the second line with no indent and no `>`.
+6. Footnote definitions with more than one line: Prettier starts the text on the next line, indented 4.
+7. `isAligned` ignores Prettier's `hasIndentedCodeblock` case. The corpus doesn't hit it.
 
 Kept on purpose:
 
 - Setext headings become ATX. Prettier 3.9 keeps setext.
-- Leading whitespace before inline HTML at a paragraph start is dropped. pulldown-cmark reports it as a text event, CommonMark renders it as nothing, and the semantics oracle ignores whitespace-only text for that reason.
+- HTML blocks in a task item keep their indent. Prettier indents their lines after the first past the task box, and adds 4 more spaces on every pass.
+- Collapsing spaces and trimming code line ends apply to every preset, not only Prettier's: both are layout, like the whitespace mdtidy already trims.
 
 ## napi-rs
 
