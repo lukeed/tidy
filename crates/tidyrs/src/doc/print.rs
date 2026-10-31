@@ -62,7 +62,8 @@ enum Step<'a> {
 }
 
 struct Indent<'a> {
-  value: String,
+  /// A line break and the indent after it.
+  line: String,
   length: usize,
   queue: Vec<Step<'a>>,
   root: u32,
@@ -76,19 +77,22 @@ struct Indents<'a> {
   made: FxHashMap<(u32, Step<'a>), u32>,
   tabs: bool,
   tab_width: usize,
+  eol: &'static str,
 }
 
 const ROOT: u32 = 0;
 
 impl<'a> Indents<'a> {
   fn new(options: &Options) -> Self {
+    let eol = options.eol.text();
     let root =
-      Indent { value: String::new(), length: 0, queue: Vec::new(), root: ROOT, indented: None };
+      Indent { line: eol.to_owned(), length: 0, queue: Vec::new(), root: ROOT, indented: None };
     Self {
       list: vec![root],
       made: FxHashMap::default(),
       tabs: options.tabs,
       tab_width: options.tab_width,
+      eol,
     }
   }
 
@@ -102,7 +106,7 @@ impl<'a> Indents<'a> {
       Margin::Mark => {
         let parent = self.get(indent);
         let marked = Indent {
-          value: parent.value.clone(),
+          line: parent.line.clone(),
           length: parent.length,
           queue: parent.queue.clone(),
           root: indent,
@@ -134,7 +138,7 @@ impl<'a> Indents<'a> {
     } else {
       queue.push(step);
     }
-    let (mut value, mut length) = (String::new(), 0);
+    let (mut value, mut length) = (self.eol.to_owned(), 0);
     let (mut tabs, mut spaces) = (0, 0);
     let tab_width = self.tab_width;
     let flush = |value: &mut String,
@@ -180,7 +184,7 @@ impl<'a> Indents<'a> {
     }
     flush(&mut value, &mut length, &mut tabs, &mut spaces, false);
     let root = parent.root;
-    self.list.push(Indent { value, length, queue, root, indented: None });
+    self.list.push(Indent { line: value, length, queue, root, indented: None });
     let made = self.list.len() as u32 - 1;
     if step == Step::Indent {
       self.list[indent as usize].indented = Some(made);
@@ -347,15 +351,12 @@ pub fn print(docs: &Docs<'_>, options: &Options) -> String {
             continue 'commands;
           }
           if line == Line::Literal {
-            output.text.push_str(eol);
             let root = indents.get(indents.get(indent).root);
-            output.text.push_str(&root.value);
+            output.text.push_str(&root.line);
             position = root.length as isize;
           } else {
             output.trim();
-            let value = &indents.get(indent).value;
-            output.text.push_str(eol);
-            output.text.push_str(value);
+            output.text.push_str(&indents.get(indent).line);
             position = indents.get(indent).length as isize;
           }
         }
