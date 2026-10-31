@@ -60,6 +60,7 @@ pub(crate) fn format(
     last: 0,
     link: None,
     defined: None,
+    joins: None,
   };
   let mut events = Events { iter: parser.into_offset_iter(), ahead: VecDeque::new() };
   while let Some((event, range)) = events.next() {
@@ -184,6 +185,9 @@ struct Writer<'s, 'o> {
   link: Option<Link>,
   /// The output length and depth right after the last definition, to keep the next one beside it.
   defined: Option<(usize, usize)>,
+  /// The depth of the paragraph or HTML block that just ended, which an HTML block on the next
+  /// line stays beside, as in Prettier.
+  joins: Option<usize>,
 }
 
 /// A link whose text is being written: what follows the text is copied as written.
@@ -214,7 +218,9 @@ impl<'s> Writer<'s, '_> {
     match event {
       Event::Start(tag) => self.open(tag, range, events),
       Event::End(tag) => {
+        let joins = matches!(tag, TagEnd::Paragraph | TagEnd::HtmlBlock);
         self.close(tag);
+        self.joins = joins.then_some(self.containers.len());
         self.last = range.end;
       }
       Event::Text(text) => match &mut self.block {
@@ -266,6 +272,7 @@ impl<'s> Writer<'s, '_> {
         }
       }
       Event::Rule => {
+        self.joins = None;
         if self.verbatim(range.start, &range) {
           return;
         }
@@ -337,6 +344,11 @@ impl<'s> Writer<'s, '_> {
         self.block = Some(Block::Indented);
       }
       Tag::HtmlBlock => {
+        let beside = self.joins == Some(self.containers.len())
+          && !blank(self.source, self.last.min(range.start), range.start);
+        if beside && self.gap == Gap::Blank {
+          self.gap = Gap::Line;
+        }
         self.block(range.start);
         match directive::parse(&self.source[range.clone()], &self.options.ignore) {
           Some(Directive::Next) => self.ignore = true,
@@ -772,6 +784,7 @@ impl<'s> Writer<'s, '_> {
         continue;
       }
       self.adjacent = None;
+      self.joins = None;
       if self.defined == Some((self.out.len(), self.containers.len())) {
         self.gap = Gap::Line;
       }

@@ -161,6 +161,22 @@ fn hangs_task_items_after_the_box() {
 }
 
 #[test]
+fn keeps_html_beside_a_paragraph_or_html() {
+  for source in [
+    "para\n<div>y</div>\n",
+    "<script>\nx\n</script>\n<svg-image />\n",
+    "> para\n> <div>x</div>\n",
+    "para\n<div>\n\n<!-- c -->\n<!-- d -->\n",
+  ] {
+    assert_eq!(prettier(source), source);
+    assert_eq!(preserve(source), source);
+  }
+  assert_eq!(prettier("<!-- a -->\ntext\n"), "<!-- a -->\n\ntext\n");
+  assert_eq!(prettier("# h\n<div>x</div>\n"), "# h\n\n<div>x</div>\n");
+  assert_eq!(prettier("- a\n<div>x</div>\n"), "- a\n\n<div>x</div>\n");
+}
+
+#[test]
 fn quotes_and_nesting() {
   assert_eq!(prettier(">a\n>\n>b\n"), "> a\n>\n> b\n");
   assert_eq!(prettier("> - a\n>   > b\n"), "> - a\n>   > b\n");
