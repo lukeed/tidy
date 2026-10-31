@@ -1,0 +1,20 @@
+[package]
+name = "css-bench"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+lightningcss = "=1.0.0-alpha.72"
+malva = "=0.16.0"
+oxc_allocator = { git = "https://github.com/oxc-project/oxc", rev = "d14dbd1e137de15a95d1d66417fbeea5cd2dd14e" }
+oxc_formatter_css = { git = "https://github.com/oxc-project/oxc", rev = "d14dbd1e137de15a95d1d66417fbeea5cd2dd14e" }
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+opt-level = 3
+
+# oxc-css-parser takes oxc_allocator from crates.io, and oxc_formatter_css from git: one copy, as oxc's workspace does.
+[patch.crates-io]
+oxc_allocator = { git = "https://github.com/oxc-project/oxc", rev = "d14dbd1e137de15a95d1d66417fbeea5cd2dd14e" }

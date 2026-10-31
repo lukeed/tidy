@@ -1,7 +1,7 @@
 [workspace]
 resolver = "3"
 members = ["crates/*"]
-exclude = ["bench/dprint"]
+exclude = ["bench/css", "bench/dprint"]
 
 [workspace.package]
 version = "0.0.0"
