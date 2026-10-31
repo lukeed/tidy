@@ -3,14 +3,14 @@
 use std::borrow::Cow;
 
 use super::Parser;
-use super::ast::{Flags, Id, Kind};
-use super::print::{Printer, raw_name, replace};
+use super::ast::{Flags, Id};
+use super::print::{Printer, raw_name};
 use super::strings;
 use super::utilities::{
   dedent_string, html_split, html_trim_preserve_indentation, is_script_like_tag,
   unescape_quote_entities,
 };
-use crate::doc::{Align, Doc, Docs};
+use crate::doc::{Align, Branch};
 use crate::embed::{Kind as Purpose, Request};
 use crate::{front_matter, languages};
 
@@ -95,40 +95,43 @@ fn element_parser(printer: &Printer<'_, '_>, id: Id) -> Option<&'static str> {
 // ───────────────────────────── nodes ─────────────────────────────
 
 /// A Vue block in another language than HTML.
-pub(crate) fn element(printer: &mut Printer<'_, '_>, id: Id) -> Option<Doc> {
+pub(crate) fn element(printer: &mut Printer<'_, '_>, id: Id) -> bool {
   let tree = printer.tree;
   let node = &tree[id];
   if is_script_like_tag(node, printer.options)
     || node.has(Flags::IS_SELF_CLOSING)
     || !tree.is_vue_non_html_block(id, printer.options)
   {
-    return None;
+    return false;
   }
-  let language = element_parser(printer, id)?;
-  let tags = super::tag::Tags { tree, options: printer.options };
+  let Some(language) = element_parser(printer, id) else { return false };
+  let tags = printer.tags();
   let content = tags.node_content(id);
-  let mut empty = strings::trim_js_whitespace(content).is_empty();
-  let mut doc = Docs::EMPTY;
-  if !empty {
+  let mut formatted = String::new();
+  if !strings::trim_js_whitespace(content).is_empty() {
     let code = text(html_trim_preserve_indentation(content));
-    let formatted =
-      printer.embedded(Embedded { code: &code, language, kind: Purpose::Block, extra: 0 })?;
-    empty = formatted == Docs::EMPTY;
-    doc = formatted;
+    match printer.embed_text(Embedded { code: &code, language, kind: Purpose::Block, extra: 0 }) {
+      Some(text) => formatted = text,
+      None => return false,
+    }
   }
-  let prefix = printer.bytes(&marker(&tags, |tags, out| tags.opening_tag_prefix(id, out)));
-  let opening = printer.print_opening_tag(id);
-  let opening = printer.docs.group(opening);
-  let line = if empty { Docs::EMPTY } else { printer.docs.hardline() };
-  let line_after = if empty { Docs::EMPTY } else { printer.docs.hardline() };
-  let closing = printer.print_closing_tag(id);
-  let suffix = printer.bytes(&marker(&tags, |tags, out| tags.closing_tag_suffix(id, out)));
-  Some(printer.docs.concat(&[prefix, opening, line, doc, line_after, closing, suffix]))
+  printer.marker(|tags, out| tags.opening_tag_prefix(id, out));
+  let group = printer.docs.group();
+  printer.print_opening_tag(id);
+  printer.docs.close(group);
+  if !formatted.is_empty() {
+    printer.docs.hardline();
+    printer.text_doc(&formatted);
+    printer.docs.hardline();
+  }
+  printer.print_closing_tag(id);
+  printer.marker(|tags, out| tags.closing_tag_suffix(id, out));
+  true
 }
 
 /// The text in a `<script>` or a `<style>`.
-pub(crate) fn script(printer: &mut Printer<'_, '_>, id: Id, parent: Id) -> Option<Doc> {
-  let language = element_parser(printer, parent)?;
+pub(crate) fn script(printer: &mut Printer<'_, '_>, id: Id, parent: Id) -> bool {
+  let Some(language) = element_parser(printer, parent) else { return false };
   let tree = printer.tree;
   let value = &tree[id].value[..];
   let code = if language == "markdown" {
@@ -141,16 +144,20 @@ pub(crate) fn script(printer: &mut Printer<'_, '_>, id: Id, parent: Id) -> Optio
   } else {
     text(value).into_owned()
   };
-  let doc = printer.embedded(Embedded { code: &code, language, kind: Purpose::Block, extra: 0 })?;
-  let tags = super::tag::Tags { tree, options: printer.options };
-  let breaks = printer.docs.break_parent();
-  let prefix = printer.bytes(&marker(&tags, |tags, out| tags.opening_tag_prefix(id, out)));
-  let suffix = printer.bytes(&marker(&tags, |tags, out| tags.closing_tag_suffix(id, out)));
-  Some(printer.docs.concat(&[breaks, prefix, doc, suffix]))
+  let Some(formatted) =
+    printer.embed_text(Embedded { code: &code, language, kind: Purpose::Block, extra: 0 })
+  else {
+    return false;
+  };
+  printer.docs.break_parent();
+  printer.marker(|tags, out| tags.opening_tag_prefix(id, out));
+  printer.text_doc(&formatted);
+  printer.marker(|tags, out| tags.closing_tag_suffix(id, out));
+  true
 }
 
 /// The expression in `{{ }}`.
-pub(crate) fn interpolation(printer: &mut Printer<'_, '_>, id: Id, parent: Id) -> Option<Doc> {
+pub(crate) fn interpolation(printer: &mut Printer<'_, '_>, id: Id, parent: Id) -> bool {
   let tree = printer.tree;
   let language = match printer.options.parser {
     Parser::Vue if printer.options.typescript => "__vue_ts_expression",
@@ -158,124 +165,150 @@ pub(crate) fn interpolation(printer: &mut Printer<'_, '_>, id: Id, parent: Id) -
     _ => "__js_expression",
   };
   let code = text(&tree[id].value).into_owned();
-  let doc =
-    printer.embedded(Embedded { code: &code, language, kind: Purpose::Expression, extra: 1 })?;
-  let line = printer.docs.line();
-  let inner = printer.docs.concat(&[line, doc]);
-  let indented = printer.docs.indent(inner);
-  let tags = super::tag::Tags { tree, options: printer.options };
-  let after =
-    if tree.next(parent).is_some_and(|next| tags.needs_to_borrow_prev_closing_tag_end_marker(next))
-    {
-      printer.docs.text(" ")
-    } else {
-      printer.docs.line()
-    };
-  Some(printer.docs.concat(&[indented, after]))
+  let Some(formatted) =
+    printer.embed_text(Embedded { code: &code, language, kind: Purpose::Expression, extra: 1 })
+  else {
+    return false;
+  };
+  let indent = printer.docs.indent();
+  printer.docs.line();
+  printer.text_doc(&formatted);
+  printer.docs.close(indent);
+  let tags = printer.tags();
+  if tree.next(parent).is_some_and(|next| tags.needs_to_borrow_prev_closing_tag_end_marker(next)) {
+    printer.docs.text(" ");
+  } else {
+    printer.docs.line();
+  }
+  true
 }
 
 /// `printEmbedFrontMatter`
-pub(crate) fn front_matter(printer: &mut Printer<'_, '_>, raw: &[u8]) -> Option<Doc> {
-  let raw = std::str::from_utf8(raw).ok()?;
-  let matter = front_matter::parse(raw)?;
+pub(crate) fn front_matter(printer: &mut Printer<'_, '_>, raw: &[u8]) -> bool {
+  let Some(matter) = std::str::from_utf8(raw).ok().and_then(front_matter::parse) else {
+    return false;
+  };
   let language = match matter.language {
     "yaml" => "yaml",
-    "toml" => return None,
-    other => languages::parser(other)?,
+    "toml" => return false,
+    other => match languages::parser(other) {
+      Some(language) => language,
+      None => return false,
+    },
   };
   let value = matter.value.trim();
-  let doc = if value.is_empty() {
-    Docs::EMPTY
-  } else {
+  let mut formatted = String::new();
+  if !value.is_empty() {
     let saved = std::mem::replace(&mut printer.indents, 0);
-    let doc =
-      printer.embedded(Embedded { code: value, language, kind: Purpose::FrontMatter, extra: 0 });
+    let result =
+      printer.embed_text(Embedded { code: value, language, kind: Purpose::FrontMatter, extra: 0 });
     printer.indents = saved;
-    doc?
-  };
-  let start = printer.docs.owned(matter.start);
-  let explicit = printer.docs.owned(matter.explicit.unwrap_or_default());
-  let hardline = printer.docs.hardline();
-  let after = if doc == Docs::EMPTY { Docs::EMPTY } else { printer.docs.hardline() };
-  let end = printer.docs.owned(matter.end);
-  let inner = printer.docs.concat(&[start, explicit, hardline, doc, after, end]);
-  Some(printer.docs.align(Align::Mark, inner))
-}
-
-fn marker(
-  tags: &super::tag::Tags<'_, '_, '_>,
-  write: impl FnOnce(super::tag::Tags<'_, '_, '_>, &mut Vec<u8>),
-) -> Vec<u8> {
-  let mut out = Vec::new();
-  write(*tags, &mut out);
-  out
+    match result {
+      Some(text) => formatted = text,
+      None => return false,
+    }
+  }
+  let root = printer.docs.align(Align::Mark);
+  printer.docs.owned(matter.start);
+  printer.docs.owned(matter.explicit.unwrap_or_default());
+  printer.docs.hardline();
+  if !formatted.is_empty() {
+    printer.text_doc(&formatted);
+    printer.docs.hardline();
+  }
+  printer.docs.owned(matter.end);
+  printer.docs.close(root);
+  true
 }
 
 // ───────────────────────────── attributes ─────────────────────────────
 
-/// `printAttribute` of `embed/attribute.js`.
-pub(crate) fn attribute(printer: &mut Printer<'_, '_>, id: Id, index: usize) -> Option<Doc> {
+/// What an attribute's value prints, worked out before anything is emitted.
+enum Value<'v> {
+  /// A text, as for `class`.
+  Text(Cow<'v, [u8]>),
+  Srcset {
+    candidates: Vec<Candidate<'v>>,
+    descriptors: Vec<String>,
+    unit: &'static str,
+  },
+  /// The directives of `allow`.
+  Policy(Vec<&'v [u8]>),
+  /// The declarations of `style`, formatted.
+  Style(String),
+  /// `printExpand` of formatted code.
+  Expand(String),
+  /// `group` of formatted code.
+  Hug(String),
+  /// `v-for`: the formatted aliases, `in` or `of`, and the formatted expression.
+  For(String, &'static str, String),
+}
+
+/// `printAttribute` of `embed/attribute.js`. Emits nothing and returns false if no printer applies.
+pub(crate) fn attribute(printer: &mut Printer<'_, '_>, id: Id, index: usize) -> bool {
   let tree = printer.tree;
   let attr = &tree.attrs(id)[index];
-  let value = attr.value.filter(|value| !value.is_empty())?;
+  let Some(value) = attr.value.filter(|value| !value.is_empty()) else { return false };
   let raw = raw_name(attr.raw_name());
   if super::utilities::should_unquote_attribute_value(attr, printer.options) {
-    let name = printer.bytes(&raw);
-    let equals = printer.docs.text("=");
-    let value = printer.bytes(value);
-    return Some(printer.docs.concat(&[name, equals, value]));
+    printer.bytes(&raw);
+    printer.docs.text("=");
+    printer.bytes(value);
+    return true;
   }
   let full = attr.full_name();
   let is_candidate = matches!(&full[..], b"class" | b"srcset" | b"allow" | b"style")
     || is_event_handler(&full)
     || printer.options.parser == Parser::Vue;
   if !is_candidate {
-    return None;
+    return false;
   }
   let embedded = !printer.options.embedded && !strings::contains(value, b"{{");
   let unescaped = unescape_quote_entities(value);
+  let Some(plan) = value_of(printer, id, &full, &unescaped, embedded) else { return false };
+  printer.bytes(&raw);
+  printer.docs.text("=\"");
+  let group = printer.docs.group();
   // `createAttributePrinter` escapes the double quotes in every text of the value.
   printer.quotes = true;
-  let doc = value_doc(printer, id, &full, &unescaped, embedded);
+  emit_value(printer, plan);
   printer.quotes = false;
-  let doc = doc?;
-  let name = printer.bytes(&raw);
-  let open = printer.docs.text("=\"");
-  let group = printer.docs.group(doc);
-  let close = printer.docs.text("\"");
-  Some(printer.docs.concat(&[name, open, group, close]))
+  printer.docs.close(group);
+  printer.docs.text("\"");
+  true
 }
 
 /// The printers of `embed/attribute.js` for one value, in their order.
-fn value_doc(
+fn value_of<'v>(
   printer: &mut Printer<'_, '_>,
   id: Id,
   full: &[u8],
-  unescaped: &[u8],
+  unescaped: &'v [u8],
   embedded: bool,
-) -> Option<Doc> {
+) -> Option<Value<'v>> {
   let tree = printer.tree;
   if full == b"class" && embedded {
     let joined = strings::collapse_js_whitespace(strings::trim_js_whitespace(unescaped));
-    if joined.is_empty() { None } else { Some(printer.bytes(&joined)) }
+    (!joined.is_empty()).then_some(Value::Text(joined))
   } else if full == b"srcset" && (tree[id].is_full_name(b"img") || tree[id].is_full_name(b"source"))
   {
-    srcset(printer, unescaped)
+    srcset(unescaped)
   } else if full == b"allow" && embedded && tree[id].is_full_name(b"iframe") {
-    Some(permissions_policy(printer, unescaped))
+    let directives = strings::split(unescaped, b";")
+      .map(strings::trim_html_whitespace)
+      .filter(|token| !token.is_empty())
+      .collect();
+    Some(Value::Policy(directives))
   } else if full == b"style" && embedded {
     let code = text(unescaped);
-    let doc = style(printer, &code)?;
-    Some(expand(printer, doc))
+    let width = printer.options.width;
+    let request =
+      Request { code: &code, language: "css", kind: Purpose::Attribute, indent: 0, width };
+    printer.embed.format(request).map(Value::Style)
   } else if embedded && is_event_handler(full) {
     let code = text(unescaped);
-    let doc = printer.embedded(Embedded {
-      code: &code,
-      language: "babel",
-      kind: Purpose::Attribute,
-      extra: 2,
-    })?;
-    Some(expand(printer, doc))
+    let embedded = Embedded { code: &code, language: "babel", kind: Purpose::Attribute, extra: 2 };
+    printer.embed_text(embedded).map(Value::Expand)
   } else if printer.options.parser == Parser::Vue {
     let code = text(unescaped);
     vue(printer, id, full, &code)
@@ -284,12 +317,82 @@ fn value_doc(
   }
 }
 
+fn emit_value(printer: &mut Printer<'_, '_>, value: Value<'_>) {
+  match value {
+    Value::Text(text) => printer.bytes(&text),
+    Value::Srcset { candidates, descriptors, unit } => {
+      let left = |descriptor: &str| descriptor.find('.').unwrap_or(descriptor.len());
+      let max_url =
+        candidates.iter().map(|it| strings::wtf8_len_utf16(it.url) as usize).max().unwrap_or(0);
+      let max_left = descriptors.iter().map(|it| left(it)).max().unwrap_or(0);
+      expand(printer, |printer| {
+        for (index, (candidate, descriptor)) in candidates.iter().zip(&descriptors).enumerate() {
+          if index > 0 {
+            printer.docs.text(",");
+            printer.docs.line();
+          }
+          printer.bytes(candidate.url);
+          if descriptor.is_empty() {
+            continue;
+          }
+          let padding = max_url - strings::wtf8_len_utf16(candidate.url) as usize + 1 + max_left
+            - left(descriptor);
+          let broken = printer.docs.if_break(Branch::Break, None);
+          printer.docs.owned(&" ".repeat(padding));
+          printer.docs.close(broken);
+          let flat = printer.docs.if_break(Branch::Flat, None);
+          printer.docs.text(" ");
+          printer.docs.close(flat);
+          printer.docs.owned(&format!("{descriptor}{unit}"));
+        }
+      });
+    }
+    Value::Policy(directives) => {
+      if directives.is_empty() {
+        return;
+      }
+      let count = directives.len();
+      expand(printer, |printer| {
+        for (index, directive) in directives.iter().enumerate() {
+          let words: Vec<&[u8]> = html_split(directive).collect();
+          printer.bytes(&words.join(&b' '));
+          if index + 1 == count {
+            let broken = printer.docs.if_break(Branch::Break, None);
+            printer.docs.text(";");
+            printer.docs.close(broken);
+          } else {
+            printer.docs.text(";");
+            printer.docs.line();
+          }
+        }
+      });
+    }
+    Value::Style(formatted) => expand(printer, |printer| style(printer, &formatted)),
+    Value::Expand(formatted) => expand(printer, |printer| printer.text_doc(&formatted)),
+    Value::Hug(formatted) => {
+      let group = printer.docs.group();
+      printer.text_doc(&formatted);
+      printer.docs.close(group);
+    }
+    Value::For(left, operator, right) => {
+      let outer = printer.docs.group();
+      let inner = printer.docs.group();
+      printer.text_doc(&left);
+      printer.docs.close(inner);
+      printer.docs.close(outer);
+      printer.docs.text(" ");
+      printer.docs.text(operator);
+      printer.docs.text(" ");
+      let group = printer.docs.group();
+      printer.text_doc(&right);
+      printer.docs.close(group);
+    }
+  }
+}
+
 /// The declarations of a `style` attribute, as Prettier's CSS printer writes them for one: joined by `line`, the
 /// last one's semicolon only when the attribute breaks.
-fn style(printer: &mut Printer<'_, '_>, code: &str) -> Option<Doc> {
-  let width = printer.options.width;
-  let request = Request { code, language: "css", kind: Purpose::Attribute, indent: 0, width };
-  let formatted = printer.embed.format(request)?;
+fn style(printer: &mut Printer<'_, '_>, formatted: &str) {
   let formatted = formatted.trim_end();
   let mut declarations: Vec<Vec<&str>> = Vec::new();
   for line in formatted.split('\n') {
@@ -299,37 +402,36 @@ fn style(printer: &mut Printer<'_, '_>, code: &str) -> Option<Doc> {
     }
   }
   let count = declarations.len();
-  let mut parts = Vec::with_capacity(count * 2);
   for (index, lines) in declarations.into_iter().enumerate() {
     if index > 0 {
-      parts.push(printer.docs.line());
+      printer.docs.line();
     }
     let last = index + 1 == count;
     for (at, line) in lines.iter().enumerate() {
       if at > 0 {
-        parts.push(printer.docs.hardline());
+        printer.docs.hardline();
       }
       let end = last && at + 1 == lines.len();
       match line.strip_suffix(';').filter(|_| end) {
         Some(line) => {
-          parts.push(printer.bytes(line.as_bytes()));
-          let semicolon = printer.docs.text(";");
-          parts.push(printer.docs.if_break(semicolon, Docs::EMPTY, None));
+          printer.bytes(line.as_bytes());
+          let broken = printer.docs.if_break(Branch::Break, None);
+          printer.docs.text(";");
+          printer.docs.close(broken);
         }
-        None => parts.push(printer.bytes(line.as_bytes())),
+        None => printer.bytes(line.as_bytes()),
       }
     }
   }
-  Some(printer.docs.concat(&parts))
 }
 
-/// `printExpand`
-fn expand(printer: &mut Printer<'_, '_>, doc: Doc) -> Doc {
-  let soft = printer.docs.softline();
-  let inner = printer.docs.concat(&[soft, doc]);
-  let indented = printer.docs.indent(inner);
-  let after = printer.docs.softline();
-  printer.docs.concat(&[indented, after])
+/// `printExpand`: `[indent([softline, doc]), softline]`
+fn expand(printer: &mut Printer<'_, '_>, doc: impl FnOnce(&mut Printer<'_, '_>)) {
+  let indent = printer.docs.indent();
+  printer.docs.softline();
+  doc(printer);
+  printer.docs.close(indent);
+  printer.docs.softline();
 }
 
 /// `@prettier/html-event-attributes`
@@ -552,10 +654,10 @@ fn is_floating_point(text: &[u8]) -> bool {
 }
 
 /// `printSrcset`
-fn srcset(printer: &mut Printer<'_, '_>, value: &[u8]) -> Option<Doc> {
+fn srcset(value: &[u8]) -> Option<Value<'_>> {
   let candidates = parse_srcset(value)?;
   type Get = fn(&Candidate<'_>) -> Option<f64>;
-  let kinds: [(Get, &str); 3] =
+  let kinds: [(Get, &'static str); 3] =
     [(|it| it.width, "w"), (|it| it.height, "h"), (|it| it.density, "x")];
   let mut used = kinds.iter().filter(|(get, _)| candidates.iter().any(|it| get(it).is_some()));
   let (kind, None) = (used.next(), used.next()) else { return None };
@@ -566,62 +668,14 @@ fn srcset(printer: &mut Printer<'_, '_>, value: &[u8]) -> Option<Doc> {
       None => String::new(),
     });
   }
-  let left = |descriptor: &str| descriptor.find('.').unwrap_or(descriptor.len());
-  let max_url =
-    candidates.iter().map(|it| strings::wtf8_len_utf16(it.url) as usize).max().unwrap_or(0);
-  let max_left = descriptors.iter().map(|it| left(it)).max().unwrap_or(0);
-  let mut parts = Vec::new();
-  for (index, (candidate, descriptor)) in candidates.iter().zip(&descriptors).enumerate() {
-    if index > 0 {
-      parts.push(printer.docs.text(","));
-      parts.push(printer.docs.line());
-    }
-    parts.push(printer.bytes(candidate.url));
-    if descriptor.is_empty() {
-      continue;
-    }
-    let padding =
-      max_url - strings::wtf8_len_utf16(candidate.url) as usize + 1 + max_left - left(descriptor);
-    let aligned = printer.docs.owned(&" ".repeat(padding));
-    let space = printer.docs.text(" ");
-    parts.push(printer.docs.if_break(aligned, space, None));
-    let unit = kind.map_or("", |(_, unit)| *unit);
-    parts.push(printer.docs.owned(&format!("{descriptor}{unit}")));
-  }
-  let doc = printer.docs.concat(&parts);
-  Some(expand(printer, doc))
-}
-
-/// `printPermissionsPolicy`
-fn permissions_policy(printer: &mut Printer<'_, '_>, value: &[u8]) -> Doc {
-  let directives: Vec<&[u8]> = strings::split(value, b";")
-    .map(strings::trim_html_whitespace)
-    .filter(|token| !token.is_empty())
-    .collect();
-  if directives.is_empty() {
-    return Docs::EMPTY;
-  }
-  let count = directives.len();
-  let mut parts = Vec::new();
-  for (index, directive) in directives.into_iter().enumerate() {
-    let words: Vec<&[u8]> = html_split(directive).collect();
-    parts.push(printer.bytes(&words.join(&b' ')));
-    if index + 1 == count {
-      let semicolon = printer.docs.text(";");
-      parts.push(printer.docs.if_break(semicolon, Docs::EMPTY, None));
-    } else {
-      parts.push(printer.docs.text(";"));
-      parts.push(printer.docs.line());
-    }
-  }
-  let doc = printer.docs.concat(&parts);
-  expand(printer, doc)
+  let unit = kind.map_or("", |(_, unit)| *unit);
+  Some(Value::Srcset { candidates, descriptors, unit })
 }
 
 // ───────────────────────────── Vue ─────────────────────────────
 
 /// `embed/vue-attributes.js`: the value of a directive or binding of a Vue file.
-fn vue(printer: &mut Printer<'_, '_>, id: Id, name: &[u8], code: &str) -> Option<Doc> {
+fn vue<'v>(printer: &mut Printer<'_, '_>, id: Id, name: &[u8], code: &str) -> Option<Value<'v>> {
   let ts = printer.options.typescript;
   let tree = printer.tree;
   if name == b"v-for" {
@@ -667,20 +721,22 @@ enum Hug {
 }
 
 /// `formatAttributeValue`
-fn expression(printer: &mut Printer<'_, '_>, code: &str, language: &str, hug: Hug) -> Option<Doc> {
-  if hug == Hug::Always {
-    let doc = printer.embedded(Embedded { code, language, kind: Purpose::Attribute, extra: 1 })?;
-    return Some(printer.docs.group(doc));
-  }
+fn expression<'v>(
+  printer: &mut Printer<'_, '_>,
+  code: &str,
+  language: &str,
+  hug: Hug,
+) -> Option<Value<'v>> {
   let request = |extra| Embedded { code, language, kind: Purpose::Attribute, extra };
+  if hug == Hug::Always {
+    return printer.embed_text(request(1)).map(Value::Hug);
+  }
   let expanded = printer.embed_text(request(2))?;
   let strings = matches!(language, "__vue_expression" | "__vue_ts_expression");
   if !is_literal(expanded.trim(), strings) {
-    let doc = printer.text_doc(&expanded);
-    return Some(expand(printer, doc));
+    return Some(Value::Expand(expanded));
   }
-  let doc = printer.embedded(request(1))?;
-  Some(printer.docs.group(doc))
+  printer.embed_text(request(1)).map(Value::Hug)
 }
 
 /// Whether `text`, a formatted expression, is one object or array literal, or with `strings`, one string or template
@@ -739,17 +795,20 @@ fn end_of_literal(bytes: &[u8], close: u8) -> Option<usize> {
 }
 
 /// `printVueVForDirective`
-fn v_for(printer: &mut Printer<'_, '_>, code: &str) -> Option<Doc> {
+fn v_for<'v>(printer: &mut Printer<'_, '_>, code: &str) -> Option<Value<'v>> {
   let (left, operator, right) = parse_v_for(code)?;
   let ts = printer.options.typescript;
   let language = if ts { "__vue_ts_for_left" } else { "__vue_for_left" };
-  let left = expression(printer, &left, language, Hug::Always)?;
-  let left = printer.docs.group(left);
+  let left =
+    printer.embed_text(Embedded { code: &left, language, kind: Purpose::Attribute, extra: 1 })?;
   let script = if ts { "__ts_expression" } else { "__js_expression" };
-  let right = expression(printer, right, script, Hug::Always)?;
-  let space = printer.docs.text(" ");
-  let operator = printer.docs.text(operator);
-  Some(printer.docs.concat(&[left, space, operator, space, right]))
+  let right = printer.embed_text(Embedded {
+    code: right,
+    language: script,
+    kind: Purpose::Attribute,
+    extra: 1,
+  })?;
+  Some(Value::For(left, operator, right))
 }
 
 /// `parseVueVForDirective`: the aliases, `in` or `of`, and the expression.

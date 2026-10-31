@@ -4,13 +4,13 @@ use std::io::Read;
 
 use bumpalo::Bump;
 use serde_json::Value;
-use tidyrs::doc::{Align, Doc, Docs, GroupId, Options, print};
+use tidyrs::doc::{Align, Branch, Docs, GroupId, Options, print};
 
 struct Builder<'a, 'b> {
   docs: &'b mut Docs<'a>,
   bump: &'a Bump,
   ids: Vec<Option<GroupId>>,
-  defs: Vec<Doc>,
+  defs: Vec<Value>,
 }
 
 impl<'a> Builder<'a, '_> {
@@ -22,44 +22,55 @@ impl<'a> Builder<'a, '_> {
     Some(*self.ids[index].get_or_insert_with(|| self.docs.group_id()))
   }
 
-  fn list(&mut self, value: &Value) -> Vec<Doc> {
-    value.as_array().unwrap().iter().map(|part| self.build(part)).collect()
-  }
-
-  fn build(&mut self, value: &Value) -> Doc {
+  fn emit(&mut self, value: &Value) {
     if let Some(text) = value.as_str() {
       let text = self.bump.alloc_str(text);
       return self.docs.text(text);
     }
-    if value.is_array() {
-      let parts = self.list(value);
-      return self.docs.concat(&parts);
+    if let Some(parts) = value.as_array() {
+      for part in parts {
+        self.emit(part);
+      }
+      return;
     }
     let field = |name: &str| &value[name];
     match field("t").as_str().unwrap() {
-      "ref" => self.defs[field("i").as_u64().unwrap() as usize],
+      "ref" => {
+        let def = self.defs[field("i").as_u64().unwrap() as usize].clone();
+        self.emit(&def);
+      }
       "group" => {
         let id = self.id(field("id"));
         let broken = field("b").as_bool().unwrap_or(false);
-        if field("s").is_array() {
-          let states = self.list(field("s"));
-          let doc = self.docs.conditional(&states);
+        if let Some(states) = field("s").as_array() {
           assert!(id.is_none() && !broken);
-          return doc;
+          let mark = self.docs.conditional();
+          for state in states {
+            let part = self.docs.part();
+            self.emit(state);
+            self.docs.close(part);
+          }
+          return self.docs.close(mark);
         }
-        let contents = self.build(field("c"));
-        self.docs.group_with(contents, id, broken)
+        let mark = self.docs.group_with(id, broken);
+        self.emit(field("c"));
+        self.docs.close(mark);
       }
       "fill" => {
-        let parts = self.list(field("p"));
-        self.docs.fill(&parts)
+        let mark = self.docs.fill();
+        for part in field("p").as_array().unwrap() {
+          let inner = self.docs.part();
+          self.emit(part);
+          self.docs.close(inner);
+        }
+        self.docs.close(mark);
       }
       "indent" => {
-        let contents = self.build(field("c"));
-        self.docs.indent(contents)
+        let mark = self.docs.indent();
+        self.emit(field("c"));
+        self.docs.close(mark);
       }
       "align" => {
-        let contents = self.build(field("c"));
         let align = match field("n") {
           Value::String(text) if text == "root" => Align::Mark,
           Value::String(text) if text == "dedentToRoot" => Align::Root,
@@ -68,22 +79,29 @@ impl<'a> Builder<'a, '_> {
           Value::Number(n) => Align::Width(n.as_u64().unwrap() as usize),
           other => panic!("align {other}"),
         };
-        self.docs.align(align, contents)
+        let mark = self.docs.align(align);
+        self.emit(field("c"));
+        self.docs.close(mark);
       }
       "ifBreak" => {
-        let broken = self.build(field("b"));
-        let flat = self.build(field("f"));
         let id = self.id(field("id"));
-        self.docs.if_break(broken, flat, id)
+        let mark = self.docs.if_break(Branch::Break, id);
+        self.emit(field("b"));
+        self.docs.close(mark);
+        let mark = self.docs.if_break(Branch::Flat, id);
+        self.emit(field("f"));
+        self.docs.close(mark);
       }
       "indentIfBreak" => {
-        let contents = self.build(field("c"));
         let id = self.id(field("id")).unwrap();
-        self.docs.indent_if_break(contents, id, field("neg").as_bool().unwrap_or(false))
+        let mark = self.docs.indent_if_break(id, field("neg").as_bool().unwrap_or(false));
+        self.emit(field("c"));
+        self.docs.close(mark);
       }
       "lineSuffix" => {
-        let contents = self.build(field("c"));
-        self.docs.line_suffix(contents)
+        let mark = self.docs.line_suffix();
+        self.emit(field("c"));
+        self.docs.close(mark);
       }
       "lsb" => self.docs.line_suffix_boundary(),
       "line" => self.docs.line(),
@@ -105,19 +123,16 @@ fn main() {
   for case in cases.as_array().unwrap() {
     let bump = Bump::new();
     let mut docs = Docs::new(&bump);
-    let mut builder = Builder { docs: &mut docs, bump: &bump, ids: Vec::new(), defs: Vec::new() };
-    for def in case["defs"].as_array().unwrap() {
-      let doc = builder.build(def);
-      builder.defs.push(doc);
-    }
-    let doc = builder.build(&case["doc"]);
+    let defs = case["defs"].as_array().unwrap().clone();
+    let mut builder = Builder { docs: &mut docs, bump: &bump, ids: Vec::new(), defs };
+    builder.emit(&case["doc"]);
     let options = Options {
       width: case["width"].as_u64().unwrap() as usize,
       tab_width: case["tabWidth"].as_u64().unwrap() as usize,
       tabs: case["useTabs"].as_bool().unwrap(),
       eol: Default::default(),
     };
-    outputs.push(Value::String(print(&mut docs, doc, &options)));
+    outputs.push(Value::String(print(&docs, &options)));
   }
   println!("{}", Value::Array(outputs));
 }

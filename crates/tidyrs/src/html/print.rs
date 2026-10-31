@@ -1,4 +1,4 @@
-//! Prettier's `printer-html.js`, `print/children.js`, `print/element.js` and `print/tag.js`, building a [`Doc`].
+//! Prettier's `printer-html.js`, `print/children.js`, `print/element.js` and `print/tag.js`, emitting the doc stream.
 
 use std::borrow::Cow;
 
@@ -11,7 +11,7 @@ use super::utilities::{
   is_text_like, should_unquote_attribute_value, unescape_quote_entities,
 };
 use super::{Options, Parser};
-use crate::doc::{Align, Doc, Docs};
+use crate::doc::{Align, Branch, Docs};
 use crate::embed::Embed;
 
 pub(crate) struct Printer<'p, 'a> {
@@ -21,8 +21,6 @@ pub(crate) struct Printer<'p, 'a> {
   buffer: Vec<u8>,
   /// Whether texts escape `"` as `&quot;`, as in the value of an attribute.
   pub(crate) quotes: bool,
-  /// Parts of the docs being built, shared so that building a list needs no allocation.
-  stack: Vec<Doc>,
   pub(crate) tree: &'p Tree<'a>,
   pub(crate) options: &'p Options<'p>,
   pub(crate) docs: &'p mut Docs<'a>,
@@ -54,7 +52,6 @@ impl<'p, 'a> Printer<'p, 'a> {
       source,
       buffer: Vec::new(),
       quotes: false,
-      stack: Vec::new(),
       tree,
       options,
       docs,
@@ -64,18 +61,18 @@ impl<'p, 'a> Printer<'p, 'a> {
     }
   }
 
-  fn tags(&self) -> Tags<'p, 'a, 'p> {
+  pub(crate) fn tags(&self) -> Tags<'p, 'a, 'p> {
     Tags { tree: self.tree, options: self.options }
   }
 
-  /// A text that the arena keeps.
-  pub(crate) fn bytes(&mut self, bytes: &[u8]) -> Doc {
+  /// Emits a text, borrowed from the source when it is part of it.
+  pub(crate) fn bytes(&mut self, bytes: &[u8]) {
     if self.quotes && strings::contains_char(bytes, b'"') {
       let escaped = replace(bytes, b"\"", b"&quot;");
       self.quotes = false;
-      let doc = self.bytes(&escaped);
+      self.bytes(&escaped);
       self.quotes = true;
-      return doc;
+      return;
     }
     let start = (bytes.as_ptr() as usize).wrapping_sub(self.source.as_ptr() as usize);
     if let Some(text) = self.source.get(start..start + bytes.len()) {
@@ -87,160 +84,153 @@ impl<'p, 'a> Printer<'p, 'a> {
     }
   }
 
-  /// A string that `write` builds from the tag markers.
-  fn marker(&mut self, write: impl FnOnce(Tags<'p, 'a, 'p>, &mut Vec<u8>)) -> Doc {
+  /// Emits the string that `write` builds from the tag markers.
+  pub(crate) fn marker(&mut self, write: impl FnOnce(Tags<'p, 'a, 'p>, &mut Vec<u8>)) {
     let mut out = std::mem::take(&mut self.buffer);
     out.clear();
     write(self.tags(), &mut out);
-    let doc = match std::str::from_utf8(&out) {
+    match std::str::from_utf8(&out) {
       Ok(text) => self.docs.owned(text),
       Err(_) => self.docs.owned(&String::from_utf8_lossy(&out)),
-    };
+    }
     self.buffer = out;
-    doc
   }
 
   /// `replaceEndOfLine(text, separator)`
-  pub(crate) fn lines(&mut self, text: &[u8], separator: Separator) -> Doc {
-    if !strings::contains_char(text, b'\n') {
-      return self.bytes(text);
-    }
-    let parts = self.line_parts(text, separator);
-    self.docs.concat(&parts)
-  }
-
-  fn line_parts(&mut self, text: &[u8], separator: Separator) -> Vec<Doc> {
-    let mut parts = Vec::new();
+  pub(crate) fn lines(&mut self, text: &[u8], separator: Separator) {
     for (index, line) in strings::split(text, b"\n").enumerate() {
       if index > 0 {
-        let separator = match separator {
-          Separator::Literal => self.docs.literalline(),
-          Separator::Hard => self.docs.hardline(),
-        };
-        parts.push(separator);
+        self.separator(separator);
       }
-      parts.push(self.bytes(line));
+      self.bytes(line);
     }
-    parts
+  }
+
+  fn separator(&mut self, separator: Separator) {
+    match separator {
+      Separator::Literal => self.docs.literalline(),
+      Separator::Hard => self.docs.hardline(),
+    }
   }
 
   // ───────────────────────────── `genericPrint` ─────────────────────────────
 
-  pub(crate) fn print_root(&mut self) -> Doc {
+  pub(crate) fn print_root(&mut self) {
     let root = self.tree.root;
     self.ancestors = 0;
-    let children = self.print_children(root);
-    let group = self.docs.group(children);
-    let hardline = self.docs.hardline();
-    self.docs.concat(&[group, hardline])
+    let group = self.docs.group();
+    self.print_children(root);
+    self.docs.close(group);
+    self.docs.hardline();
   }
 
   /// `path.call(print)` for `id`: the embedded printer first, then `genericPrint`.
-  fn print(&mut self, id: Id) -> Doc {
-    if let Some(doc) = self.print_embedded(id) {
-      return doc;
+  fn print(&mut self, id: Id) {
+    if self.print_embedded(id) {
+      return;
     }
     let node = &self.tree[id];
     match node.kind {
       Kind::Element | Kind::IeConditionalComment => self.print_element(id),
       Kind::IeConditionalStartComment | Kind::IeConditionalEndComment => {
-        let start = self.marker(|tags, out| tags.opening_tag_start(id, out));
-        let end = self.marker(|tags, out| tags.closing_tag_end(id, out));
-        self.docs.concat(&[start, end])
+        self.marker(|tags, out| tags.opening_tag_start(id, out));
+        self.marker(|tags, out| tags.closing_tag_end(id, out));
       }
       Kind::Interpolation => {
-        let mut parts = vec![self.marker(|tags, out| tags.opening_tag_start(id, out))];
+        self.marker(|tags, out| tags.opening_tag_start(id, out));
         let mut next = self.tree.first_child(id);
         while let Some(child) = next {
           next = self.tree.next(child);
-          parts.push(self.print_nested(child));
+          self.print_nested(child);
         }
-        parts.push(self.marker(|tags, out| tags.closing_tag_end(id, out)));
-        self.docs.concat(&parts)
+        self.marker(|tags, out| tags.closing_tag_end(id, out));
       }
       Kind::Text => self.print_text(id),
       Kind::DocType => {
-        let start = self.marker(|tags, out| tags.opening_tag_start(id, out));
-        let space = self.docs.text(" ");
+        let group = self.docs.group();
+        self.marker(|tags, out| tags.opening_tag_start(id, out));
+        self.docs.text(" ");
         let value = doc_type_value(&node.value);
-        let value = self.bytes(&value);
-        let inner = self.docs.concat(&[start, space, value]);
-        let group = self.docs.group(inner);
-        let end = self.marker(|tags, out| tags.closing_tag_end(id, out));
-        self.docs.concat(&[group, end])
+        self.bytes(&value);
+        self.docs.close(group);
+        self.marker(|tags, out| tags.closing_tag_end(id, out));
       }
       Kind::Comment => {
-        let prefix = self.marker(|tags, out| tags.opening_tag_prefix(id, out));
+        self.marker(|tags, out| tags.opening_tag_prefix(id, out));
         let span = node.span;
         let text = &self.options.original_text[span.start as usize..span.end as usize];
-        let value = self.lines(text, Separator::Literal);
-        let suffix = self.marker(|tags, out| tags.closing_tag_suffix(id, out));
-        self.docs.concat(&[prefix, value, suffix])
+        self.lines(text, Separator::Literal);
+        self.marker(|tags, out| tags.closing_tag_suffix(id, out));
       }
       Kind::FrontMatter => {
         let span = node.span;
         let raw = &self.options.original_text[span.start as usize..span.end as usize];
-        self.print_front_matter(raw)
+        if !embed::front_matter(self, raw) {
+          self.lines(raw, Separator::Literal);
+        }
       }
-      _ => Docs::EMPTY,
+      _ => {}
     }
   }
 
   /// Prints a child, one level deeper.
-  fn print_nested(&mut self, id: Id) -> Doc {
+  fn print_nested(&mut self, id: Id) {
     self.ancestors += 1;
-    let doc = self.print(id);
+    self.print(id);
     self.ancestors -= 1;
-    doc
   }
 
-  fn print_text(&mut self, id: Id) -> Doc {
+  fn print_text(&mut self, id: Id) {
     let node = &self.tree[id];
     let parent = self.tree.parent(id).map(|parent| &self.tree[parent]);
     if parent.is_some_and(|parent| parent.kind == Kind::Interpolation) {
       let value = &node.value[..];
       let trailing = trailing_newline(value);
-      let value = trailing.map_or(value, |at| &value[..at]);
-      let printed = self.lines(value, Separator::Literal);
-      let end = if trailing.is_some() { self.docs.hardline() } else { Docs::EMPTY };
-      return self.docs.concat(&[printed, end]);
+      self.lines(trailing.map_or(value, |at| &value[..at]), Separator::Literal);
+      if trailing.is_some() {
+        self.docs.hardline();
+      }
+      return;
     }
-    let prefix = self.marker(|tags, out| tags.opening_tag_prefix(id, out));
-    let mut parts = self.text_value_parts(id, &self.tree[id].value);
-    let suffix = self.marker(|tags, out| tags.closing_tag_suffix(id, out));
-    parts[0] = self.docs.concat(&[prefix, parts[0]]);
-    let last = parts.len() - 1;
-    parts[last] = self.docs.concat(&[parts[last], suffix]);
-    self.docs.fill(&parts)
-  }
-
-  /// `getTextValueParts`, as the parts of a fill.
-  fn text_value_parts(&mut self, id: Id, value: &[u8]) -> Vec<Doc> {
-    let parent = self.tree.parent(id).map_or(self.tree.root, |parent| parent);
-    let parent = &self.tree[parent];
+    // `fill(getTextValueParts(node))`, with the prefix in the first part and the suffix in the last.
+    let fill = self.docs.fill();
+    let mut part = self.docs.part();
+    self.marker(|tags, out| tags.opening_tag_prefix(id, out));
+    let value = &node.value[..];
+    let parent = &self.tree[self.tree.parent(id).unwrap_or(self.tree.root)];
+    let mut write =
+      |printer: &mut Self, index: usize, piece: &[u8], separator: Option<Separator>| {
+        if index > 0 {
+          printer.docs.close(part);
+          let between = printer.docs.part();
+          match separator {
+            Some(separator) => printer.separator(separator),
+            None => printer.docs.line(),
+          }
+          printer.docs.close(between);
+          part = printer.docs.part();
+        }
+        printer.bytes(piece);
+      };
     if parent.has(Flags::IS_WHITESPACE_SENSITIVE) {
       if parent.has(Flags::IS_INDENTATION_SENSITIVE) {
-        return self.line_parts(value, Separator::Literal);
+        for (index, line) in strings::split(value, b"\n").enumerate() {
+          write(self, index, line, Some(Separator::Literal));
+        }
+      } else {
+        let dedented = dedent_string(html_trim_preserve_indentation(value));
+        for (index, line) in strings::split(&dedented, b"\n").enumerate() {
+          write(self, index, line, Some(Separator::Hard));
+        }
       }
-      let dedented = dedent_string(html_trim_preserve_indentation(value));
-      return self.line_parts(&dedented, Separator::Hard);
-    }
-    let words: Vec<&[u8]> = html_split(value).collect();
-    let mut parts = Vec::with_capacity(words.len() * 2);
-    for (index, word) in words.into_iter().enumerate() {
-      if index > 0 {
-        parts.push(self.docs.line());
+    } else {
+      for (index, word) in html_split(value).enumerate() {
+        write(self, index, word, None);
       }
-      parts.push(self.bytes(word));
     }
-    parts
-  }
-
-  fn print_front_matter(&mut self, raw: &[u8]) -> Doc {
-    if let Some(doc) = embed::front_matter(self, raw) {
-      return doc;
-    }
-    self.lines(raw, Separator::Literal)
+    self.marker(|tags, out| tags.closing_tag_suffix(id, out));
+    self.docs.close(part);
+    self.docs.close(fill);
   }
 
   // ───────────────────────────── `print/children.js` ─────────────────────────────
@@ -257,7 +247,7 @@ impl<'p, 'a> Printer<'p, 'a> {
     end
   }
 
-  fn print_child(&mut self, id: Id) -> Doc {
+  fn print_child(&mut self, id: Id) {
     if !self.tree.has_prettier_ignore(id) {
       return self.print_nested(id);
     }
@@ -278,10 +268,9 @@ impl<'p, 'a> Printer<'p, 'a> {
     }
     let text = self.options.original_text.get(start..end).unwrap_or_default();
     let text = strings::trim_html_whitespace_end(text);
-    let prefix = self.marker(|tags, out| tags.opening_tag_prefix(id, out));
-    let value = self.lines(text, Separator::Literal);
-    let suffix = self.marker(|tags, out| tags.closing_tag_suffix(id, out));
-    self.docs.concat(&[prefix, value, suffix])
+    self.marker(|tags, out| tags.opening_tag_prefix(id, out));
+    self.lines(text, Separator::Literal);
+    self.marker(|tags, out| tags.closing_tag_suffix(id, out));
   }
 
   fn between(&self, prev: Id, next: Id) -> Between {
@@ -330,36 +319,33 @@ impl<'p, 'a> Printer<'p, 'a> {
     if after.has(Flags::HAS_LEADING_SPACES) { Between::Line } else { Between::Soft }
   }
 
-  fn between_doc(&mut self, between: Between) -> Doc {
+  fn emit_between(&mut self, between: Between) {
     match between {
-      Between::None => Docs::EMPTY,
+      Between::None => {}
       Between::Hard => self.docs.hardline(),
       Between::Line => self.docs.line(),
       Between::Soft => self.docs.softline(),
     }
   }
 
-  fn print_children(&mut self, id: Id) -> Doc {
-    let mark = self.stack.len();
+  fn print_children(&mut self, id: Id) {
     if self.tree.force_break_children(id) {
-      self.stack.push(self.docs.break_parent());
+      self.docs.break_parent();
       let mut next = self.tree.first_child(id);
       while let Some(child) = next {
         next = self.tree.next(child);
         if let Some(prev) = self.tree.prev(child) {
           let between = self.between(prev, child);
           if between != Between::None {
-            let line = self.between_doc(between);
-            self.stack.push(line);
+            self.emit_between(between);
             if self.tree.force_next_empty_line(prev, self.options) {
-              self.stack.push(self.docs.hardline());
+              self.docs.hardline();
             }
           }
         }
-        let printed = self.print_child(child);
-        self.stack.push(printed);
+        self.print_child(child);
       }
-      return self.concat_from(mark);
+      return;
     }
 
     // The group of the previous child, which `ifBreak` looks at.
@@ -374,39 +360,33 @@ impl<'p, 'a> Printer<'p, 'a> {
         if let Some(prev) = prev.filter(|&prev| is_text_like(&self.tree[prev])) {
           let between = self.between(prev, child);
           if between != Between::None {
-            let printed = self.print_child(child);
-            let doc = if self.tree.force_next_empty_line(prev, self.options) {
-              let hard = self.docs.hardline();
-              self.docs.concat(&[hard, hard, printed])
+            if self.tree.force_next_empty_line(prev, self.options) {
+              self.docs.hardline();
+              self.docs.hardline();
             } else {
-              let line = self.between_doc(between);
-              self.docs.concat(&[line, printed])
-            };
-            self.stack.push(doc);
-            continue;
+              self.emit_between(between);
+            }
           }
         }
-        let printed = self.print_child(child);
-        self.stack.push(printed);
+        self.print_child(child);
         continue;
       }
 
-      let mut before = [Docs::EMPTY; 2];
-      let mut leading = Docs::EMPTY;
-      let mut trailing = Docs::EMPTY;
-      let mut after = [Docs::EMPTY; 2];
+      let mut before = 0;
+      let mut leading = Leading::None;
+      let mut trailing = Between::None;
+      let mut after = 0;
       if let Some(prev) = prev {
         let between = self.between(prev, child);
         if between != Between::None {
           if self.tree.force_next_empty_line(prev, self.options) {
-            before = [self.docs.hardline(); 2];
+            before = 2;
           } else if between == Between::Hard {
-            before[0] = self.docs.hardline();
+            before = 1;
           } else if is_text_like(&self.tree[prev]) {
-            leading = self.between_doc(between);
+            leading = Leading::Line(between);
           } else {
-            let soft = self.docs.softline();
-            leading = self.docs.if_break(Docs::EMPTY, soft, current);
+            leading = Leading::Soft;
           }
         }
       }
@@ -415,51 +395,54 @@ impl<'p, 'a> Printer<'p, 'a> {
         if between != Between::None {
           let next_is_text = is_text_like(&self.tree[next]);
           if self.tree.force_next_empty_line(child, self.options) {
-            if next_is_text {
-              after = [self.docs.hardline(); 2];
-            }
+            after = if next_is_text { 2 } else { 0 };
           } else if between == Between::Hard {
-            if next_is_text {
-              after[0] = self.docs.hardline();
-            }
+            after = usize::from(next_is_text);
           } else {
-            trailing = self.between_doc(between);
+            trailing = between;
           }
         }
       }
 
-      let printed = self.print_child(child);
-      let inner = self.docs.concat(&[printed, trailing]);
-      let inner = self.docs.group_with(inner, Some(group), false);
-      let outer = self.docs.concat(&[leading, inner]);
-      let outer = self.docs.group(outer);
-      let doc = self.docs.concat(&[before[0], before[1], outer, after[0], after[1]]);
-      self.stack.push(doc);
+      for _ in 0..before {
+        self.docs.hardline();
+      }
+      let outer = self.docs.group();
+      match leading {
+        Leading::None => {}
+        Leading::Line(between) => self.emit_between(between),
+        Leading::Soft => {
+          let flat = self.docs.if_break(Branch::Flat, current);
+          self.docs.softline();
+          self.docs.close(flat);
+        }
+      }
+      let inner = self.docs.group_with(Some(group), false);
+      self.print_child(child);
+      self.emit_between(trailing);
+      self.docs.close(inner);
+      self.docs.close(outer);
+      for _ in 0..after {
+        self.docs.hardline();
+      }
     }
-    self.concat_from(mark)
-  }
-
-  /// The concatenation of what was pushed onto the stack since `mark`, which it takes off again.
-  fn concat_from(&mut self, mark: usize) -> Doc {
-    let doc = self.docs.concat(&self.stack[mark..]);
-    self.stack.truncate(mark);
-    doc
   }
 
   // ───────────────────────────── `print/element.js` ─────────────────────────────
 
-  fn print_element(&mut self, id: Id) -> Doc {
+  fn print_element(&mut self, id: Id) {
     let tags = self.tags();
     let node = &self.tree[id];
     if node.has(Flags::PRESERVES_CONTENT) {
-      let prefix = self.marker(|tags, out| tags.opening_tag_prefix(id, out));
-      let opening = self.print_opening_tag(id);
-      let opening = self.docs.group(opening);
+      self.marker(|tags, out| tags.opening_tag_prefix(id, out));
+      let group = self.docs.group();
+      self.print_opening_tag(id);
+      self.docs.close(group);
       let content = tags.node_content(id);
-      let content = self.lines(content, Separator::Literal);
-      let closing = self.print_closing_tag(id);
-      let suffix = self.marker(|tags, out| tags.closing_tag_suffix(id, out));
-      return self.docs.concat(&[prefix, opening, content, closing, suffix]);
+      self.lines(content, Separator::Literal);
+      self.print_closing_tag(id);
+      self.marker(|tags, out| tags.closing_tag_suffix(id, out));
+      return;
     }
 
     let first = self.tree.first_child(id);
@@ -477,59 +460,64 @@ impl<'p, 'a> Printer<'p, 'a> {
     };
     let attr_group = self.docs.group_id();
 
-    let (Some(first), Some(last)) = (first, last) else {
-      let contents =
-        if node.flags.contains(Flags::HAS_DANGLING_SPACES | Flags::IS_DANGLING_SPACE_SENSITIVE) {
-          self.docs.line()
+    // `printTag`: `group([group(printOpeningTag(..), { id }), contents, printClosingTag(..)])`
+    let tag = self.docs.group();
+    let opening = self.docs.group_with(Some(attr_group), false);
+    self.print_opening_tag(id);
+    self.docs.close(opening);
+
+    match (first, last) {
+      (Some(first), Some(last)) => {
+        if self.tree.force_break_content(id, self.options) {
+          self.docs.break_parent();
+        }
+        let indented = !hug && !self.is_unindented_vue_block(id);
+        let container = if hug {
+          Some(self.docs.indent_if_break(attr_group, false))
+        } else if indented {
+          Some(self.docs.indent())
         } else {
-          Docs::EMPTY
+          None
         };
-      return self.print_tag(id, attr_group, contents);
-    };
-
-    let first_node = &self.tree[first];
-    let line_before = if hug {
-      let soft = self.docs.softline();
-      self.docs.if_break(soft, Docs::EMPTY, Some(attr_group))
-    } else if first_node
-      .flags
-      .contains(Flags::HAS_LEADING_SPACES | Flags::IS_LEADING_SPACE_SENSITIVE)
-    {
-      self.docs.line()
-    } else if first_node.kind == Kind::Text
-      && node.flags.contains(Flags::IS_WHITESPACE_SENSITIVE | Flags::IS_INDENTATION_SENSITIVE)
-    {
-      let soft = self.docs.softline();
-      self.docs.align(Align::Root, soft)
-    } else {
-      self.docs.softline()
-    };
-
-    let indented = !hug && !self.is_unindented_vue_block(id);
-    if indented {
-      self.indents += 1;
+        let first_node = &self.tree[first];
+        if hug {
+          let broken = self.docs.if_break(Branch::Break, Some(attr_group));
+          self.docs.softline();
+          self.docs.close(broken);
+        } else if first_node
+          .flags
+          .contains(Flags::HAS_LEADING_SPACES | Flags::IS_LEADING_SPACE_SENSITIVE)
+        {
+          self.docs.line();
+        } else if first_node.kind == Kind::Text
+          && node.flags.contains(Flags::IS_WHITESPACE_SENSITIVE | Flags::IS_INDENTATION_SENSITIVE)
+        {
+          let root = self.docs.align(Align::Root);
+          self.docs.softline();
+          self.docs.close(root);
+        } else {
+          self.docs.softline();
+        }
+        if indented {
+          self.indents += 1;
+        }
+        self.print_children(id);
+        if indented {
+          self.indents -= 1;
+        }
+        if let Some(container) = container {
+          self.docs.close(container);
+        }
+        self.line_after_children(id, last, hug, attr_group);
+      }
+      _ => {
+        if node.flags.contains(Flags::HAS_DANGLING_SPACES | Flags::IS_DANGLING_SPACE_SENSITIVE) {
+          self.docs.line();
+        }
+      }
     }
-    let children = self.print_children(id);
-    if indented {
-      self.indents -= 1;
-    }
-    let children = self.docs.concat(&[line_before, children]);
-    let children = if hug {
-      self.docs.indent_if_break(children, attr_group, false)
-    } else if indented {
-      self.docs.indent(children)
-    } else {
-      children
-    };
-
-    let line_after = self.line_after_children(id, last, hug, attr_group);
-    let force = if self.tree.force_break_content(id, self.options) {
-      self.docs.break_parent()
-    } else {
-      Docs::EMPTY
-    };
-    let contents = self.docs.concat(&[force, children, line_after]);
-    self.print_tag(id, attr_group, contents)
+    self.print_closing_tag(id);
+    self.docs.close(tag);
   }
 
   /// A Vue root `<script>`, `<style>` or custom block, whose contents aren't indented.
@@ -541,27 +529,25 @@ impl<'p, 'a> Printer<'p, 'a> {
       && (is_script_like_tag(node, self.options) || self.tree.is_vue_custom_block(id, self.options))
   }
 
-  fn line_after_children(
-    &mut self,
-    id: Id,
-    last: Id,
-    hug: bool,
-    attr_group: crate::doc::GroupId,
-  ) -> Doc {
+  fn line_after_children(&mut self, id: Id, last: Id, hug: bool, attr_group: crate::doc::GroupId) {
     let tags = self.tags();
     let node = &self.tree[id];
     let last_node = &self.tree[last];
     let trailing =
       last_node.flags.contains(Flags::HAS_TRAILING_SPACES | Flags::IS_TRAILING_SPACE_SENSITIVE);
     if tags.lends_closing_tag_end_marker(id) {
-      return if trailing { self.docs.text(" ") } else { Docs::EMPTY };
+      if trailing {
+        self.docs.text(" ");
+      }
+      return;
     }
     if is_pre_like(node) && tags.needs_to_borrow_parent_closing_tag_start_marker(last) {
-      return Docs::EMPTY;
+      return;
     }
     if hug {
-      let soft = self.docs.softline();
-      return self.docs.if_break(soft, Docs::EMPTY, Some(attr_group));
+      let broken = self.docs.if_break(Branch::Break, Some(attr_group));
+      self.docs.softline();
+      return self.docs.close(broken);
     }
     if trailing {
       return self.docs.line();
@@ -574,42 +560,34 @@ impl<'p, 'a> Printer<'p, 'a> {
         self.options.tab_width * self.ancestors.saturating_sub(1),
       )
     {
-      return Docs::EMPTY;
+      return;
     }
-    self.docs.softline()
-  }
-
-  fn print_tag(&mut self, id: Id, attr_group: crate::doc::GroupId, contents: Doc) -> Doc {
-    let opening = self.print_opening_tag(id);
-    let opening = self.docs.group_with(opening, Some(attr_group), false);
-    let closing = self.print_closing_tag(id);
-    let inner = self.docs.concat(&[opening, contents, closing]);
-    self.docs.group(inner)
+    self.docs.softline();
   }
 
   // ───────────────────────────── `print/tag.js` ─────────────────────────────
 
-  pub(crate) fn print_closing_tag(&mut self, id: Id) -> Doc {
-    self.marker(|tags, out| tags.closing_tag(id, out))
+  pub(crate) fn print_closing_tag(&mut self, id: Id) {
+    self.marker(|tags, out| tags.closing_tag(id, out));
   }
 
-  pub(crate) fn print_opening_tag(&mut self, id: Id) -> Doc {
-    let start = self.marker(|tags, out| tags.opening_tag_start(id, out));
-    let attributes = self.print_attributes(id);
-    let end = if self.tree[id].has(Flags::IS_SELF_CLOSING) {
-      Docs::EMPTY
-    } else {
-      self.marker(|tags, out| tags.opening_tag_end(id, out))
-    };
-    self.docs.concat(&[start, attributes, end])
+  pub(crate) fn print_opening_tag(&mut self, id: Id) {
+    self.marker(|tags, out| tags.opening_tag_start(id, out));
+    self.print_attributes(id);
+    if !self.tree[id].has(Flags::IS_SELF_CLOSING) {
+      self.marker(|tags, out| tags.opening_tag_end(id, out));
+    }
   }
 
-  fn print_attributes(&mut self, id: Id) -> Doc {
+  fn print_attributes(&mut self, id: Id) {
     let tags = self.tags();
     let node = &self.tree[id];
     let attrs = self.tree.attrs(id);
     if attrs.is_empty() {
-      return if node.has(Flags::IS_SELF_CLOSING) { self.docs.text(" ") } else { Docs::EMPTY };
+      if node.has(Flags::IS_SELF_CLOSING) {
+        self.docs.text(" ");
+      }
+      return;
     }
     let ignored = self
       .tree
@@ -625,42 +603,41 @@ impl<'p, 'a> Printer<'p, 'a> {
     let per_line = self.options.single_attribute_per_line
       && attrs.len() > 1
       && !self.tree.is_vue_sfc_block(id, self.options);
-    let separator = if per_line { self.docs.hardline() } else { self.docs.line() };
-    // `indent([line, join(attributeLine, printedAttributes)])`, as one list.
-    let mark = self.stack.len();
-    self.stack.push(if only_src { self.docs.text(" ") } else { self.docs.line() });
-    for index in 0..attrs.len() {
+    // `indent([line, join(attributeLine, printedAttributes)])`
+    let indent = self.docs.indent();
+    if only_src {
+      self.docs.text(" ");
+    } else {
+      self.docs.line();
+    }
+    for (index, attr) in attrs.iter().enumerate() {
       if index > 0 {
-        self.stack.push(separator);
+        if per_line {
+          self.docs.hardline();
+        } else {
+          self.docs.line();
+        }
       }
-      let attr = &self.tree.attrs(id)[index];
       let is_ignored = match &ignored {
         Some(Ignored::All) => true,
         Some(Ignored::Names(names)) => {
-          let (namespace, name) = attr.raw_name();
-          let raw: Cow<[u8]> = if namespace.is_empty() {
-            Cow::Borrowed(name)
-          } else {
-            Cow::Owned([namespace, b":", name].concat())
-          };
+          let raw = raw_name(attr.raw_name());
           names.iter().any(|ignored| *ignored == &raw[..])
         }
         None => false,
       };
-      let doc = if is_ignored {
+      if is_ignored {
         let span = attr.span;
         let text = &self.options.original_text[span.start as usize..span.end as usize];
-        self.lines(text, Separator::Literal)
+        self.lines(text, Separator::Literal);
       } else {
-        self.print_attribute(id, index)
-      };
-      self.stack.push(doc);
+        self.print_attribute(id, index);
+      }
     }
-    let lead = self.concat_from(mark);
-    let indented = self.docs.indent(lead);
+    self.docs.close(indent);
 
     let self_closing = node.has(Flags::IS_SELF_CLOSING);
-    let end = if self
+    if self
       .tree
       .first_child(id)
       .is_some_and(|first| tags.needs_to_borrow_parent_opening_tag_end_marker(first))
@@ -670,21 +647,21 @@ impl<'p, 'a> Printer<'p, 'a> {
           .parent(id)
           .is_some_and(|parent| tags.needs_to_borrow_last_child_closing_tag_end_marker(parent)))
       || only_src
+      || self.options.bracket_same_line
     {
-      if self_closing { self.docs.text(" ") } else { Docs::EMPTY }
-    } else if self.options.bracket_same_line {
-      if self_closing { self.docs.text(" ") } else { Docs::EMPTY }
+      if self_closing {
+        self.docs.text(" ");
+      }
     } else if self_closing {
-      self.docs.line()
+      self.docs.line();
     } else {
-      self.docs.softline()
-    };
-    self.docs.concat(&[indented, end])
+      self.docs.softline();
+    }
   }
 
-  fn print_attribute(&mut self, id: Id, index: usize) -> Doc {
-    if let Some(doc) = embed::attribute(self, id, index) {
-      return doc;
+  fn print_attribute(&mut self, id: Id, index: usize) {
+    if embed::attribute(self, id, index) {
+      return;
     }
     let attr = &self.tree.attrs(id)[index];
     let raw = raw_name(attr.raw_name());
@@ -702,50 +679,54 @@ impl<'p, 'a> Printer<'p, 'a> {
       b"'" => replace(&value, b"'", b"&apos;"),
       _ => value,
     };
-    let name = self.bytes(&raw);
-    let equals = self.docs.text("=");
-    let quote = self.bytes(quote);
-    let value = self.lines(&escaped, Separator::Literal);
-    self.docs.concat(&[name, equals, quote, value, quote])
+    self.bytes(&raw);
+    self.docs.text("=");
+    self.bytes(quote);
+    self.lines(&escaped, Separator::Literal);
+    self.bytes(quote);
   }
 
   // ───────────────────────────── `embed.js` ─────────────────────────────
 
-  fn print_embedded(&mut self, id: Id) -> Option<Doc> {
+  /// Emits `id` with an embedded printer, if one applies and its code is formatted.
+  fn print_embedded(&mut self, id: Id) -> bool {
     let node = &self.tree[id];
     match node.kind {
       Kind::Element => embed::element(self, id),
       Kind::Text => {
-        let parent = self.tree.parent(id)?;
+        let Some(parent) = self.tree.parent(id) else { return false };
         if is_script_like_tag(&self.tree[parent], self.options) {
           return embed::script(self, id, parent);
         }
         if self.tree[parent].kind == Kind::Interpolation {
           return embed::interpolation(self, id, parent);
         }
-        None
+        false
       }
-      _ => None,
+      _ => false,
     }
   }
 
-  /// Formats `code` with the host's formatter for `language`, as a doc.
-  pub(crate) fn embedded(&mut self, embedded: Embedded<'_>) -> Option<Doc> {
-    let formatted = self.embed_text(embedded)?;
-    Some(self.text_doc(&formatted))
-  }
-
-  /// Formats `code` with the host's formatter for `language`.
+  /// Formats `code` with the host's formatter for its language.
   pub(crate) fn embed_text(&mut self, embedded: Embedded<'_>) -> Option<String> {
     let mut formatted = self.embed.format(embedded.request(self.indents, self.options))?;
     formatted.truncate(formatted.trim_end_matches(['\n', '\r']).len());
     Some(formatted)
   }
 
-  /// A formatted text, its lines joined by literal lines.
-  pub(crate) fn text_doc(&mut self, text: &str) -> Doc {
+  /// Emits a formatted text, its lines joined by literal lines.
+  pub(crate) fn text_doc(&mut self, text: &str) {
     self.lines(text.as_bytes(), Separator::Literal)
   }
+}
+
+/// What comes before a child's group in `printChildren`.
+#[derive(Clone, Copy)]
+enum Leading {
+  None,
+  Line(Between),
+  /// `ifBreak("", softline, { groupId })` of the previous child's group.
+  Soft,
 }
 
 #[derive(Clone, Copy)]

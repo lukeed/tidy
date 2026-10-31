@@ -219,7 +219,7 @@ fn run<'a>(
     return Err(Error::TooDeep);
   }
   let preprocessed = clock.elapsed();
-  let doc = print::Printer::new(text, tree, &options, docs, embed).print_root();
+  print::Printer::new(text, tree, &options, docs, embed).print_root();
   let print = crate::doc::Options {
     width: settings.width,
     tab_width: settings.tab_width,
@@ -227,7 +227,7 @@ fn run<'a>(
     eol: settings.eol,
   };
   let built = clock.elapsed();
-  let output = crate::doc::print(docs, doc, &print);
+  let output = crate::doc::print(docs, &print);
   if std::env::var_os("TIDYRS_STATS").is_some() {
     let printed = clock.elapsed();
     let ms = |d: std::time::Duration| d.as_secs_f64() * 1000.0;

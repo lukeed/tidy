@@ -1,8 +1,8 @@
-//! Prettier's `printDocToString` (`src/document/printer`), step for step.
+//! Prettier's `printDocToString` (`src/document/printer`), step for step, over ranges of the stream.
 
 use rustc_hash::FxHashMap;
 
-use super::{Doc, Docs, Line, Margin, NONE, Node};
+use super::{Branch, Docs, Element, Line, Margin, NONE};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum Eol {
@@ -36,18 +36,20 @@ enum Mode {
   Flat,
 }
 
+/// A command of Prettier's printer: the elements from `pos` to `end`, which are a concatenation of docs. A fill's
+/// command walks its parts from `pos`, as Prettier's `DOC_FILL_PRINTED_LENGTH` does.
 #[derive(Clone, Copy)]
 struct Command {
   indent: u32,
   mode: Mode,
-  doc: Doc,
-  /// `DOC_FILL_PRINTED_LENGTH`: the parts of a fill already printed.
-  offset: u32,
+  pos: u32,
+  end: u32,
+  fill: bool,
 }
 
 impl Command {
-  fn new(indent: u32, mode: Mode, doc: Doc) -> Self {
-    Self { indent, mode, doc, offset: 0 }
+  fn new(indent: u32, mode: Mode, pos: u32, end: u32) -> Self {
+    Self { indent, mode, pos, end, fill: false }
   }
 }
 
@@ -221,24 +223,97 @@ impl Modes {
   }
 }
 
-/// Prints `doc`, breaking its groups to fit in `options.width` columns.
-pub fn print<'a>(docs: &Docs<'a>, doc: Doc, options: &Options) -> String {
+/// The contents of the container at `at`, which ends at `end`.
+fn inside(at: u32, end: u32) -> (u32, u32) {
+  (at + 1, end)
+}
+
+/// Prints the stream, breaking its groups to fit in `options.width` columns.
+#[inline(never)]
+pub fn print(docs: &Docs<'_>, options: &Options) -> String {
   let eol = options.eol.text();
   let mut indents = Indents::new(options);
   let mut modes = Modes(Vec::new());
-  let mut output = Output { text: String::with_capacity(docs.nodes.len() * 2), settled: 0 };
+  let mut output = Output { text: String::with_capacity(docs.len() as usize * 4), settled: 0 };
   let mut position = 0isize;
-  let mut commands = vec![Command::new(ROOT, Mode::Break, doc)];
+  let mut commands = vec![Command::new(ROOT, Mode::Break, 1, docs.len())];
   let mut remeasure = false;
   let mut suffix: Vec<Command> = Vec::new();
   let mut scratch: Vec<Frame> = Vec::new();
 
-  while let Some(command) = commands.pop() {
-    let Command { indent, mode, doc, offset } = command;
-    match docs.node(doc) {
-      Node::Text(index) => {
-        let (text, size) = docs.text_at(index);
-        if !text.is_empty() {
+  'commands: while let Some(mut command) = commands.pop() {
+    if command.fill {
+      let Command { indent, mode, pos, end, .. } = command;
+      if pos >= end {
+        continue;
+      }
+      let remaining = options.width as isize - position;
+      let pending = !suffix.is_empty();
+      let Element::Part { end: after } = docs.element(pos) else { unreachable!() };
+      let (start, stop) = inside(pos, after);
+      let flat = Command::new(indent, Mode::Flat, start, stop);
+      let broken = Command::new(indent, Mode::Break, start, stop);
+      let content_fits = match plain(docs, start, stop) {
+        Some(size) => remaining >= size as isize,
+        None => fits(docs, &mut scratch, &[flat], &[], remaining, pending, &modes, true),
+      };
+      if after >= end {
+        commands.push(if content_fits { flat } else { broken });
+        continue;
+      }
+      let Element::Part { end: next } = docs.element(after) else { unreachable!() };
+      let (space_start, space_stop) = inside(after, next);
+      let space_flat = Command::new(indent, Mode::Flat, space_start, space_stop);
+      let space_broken = Command::new(indent, Mode::Break, space_start, space_stop);
+      if next >= end {
+        if content_fits {
+          commands.extend([space_flat, flat]);
+        } else {
+          commands.extend([space_broken, broken]);
+        }
+        continue;
+      }
+      let Element::Part { end: last } = docs.element(next) else { unreachable!() };
+      let (second_start, second_stop) = inside(next, last);
+      commands.push(Command { indent, mode, pos: next, end, fill: true });
+      let second = Command::new(indent, Mode::Flat, second_start, second_stop);
+      let pair_fits = match (
+        plain(docs, start, stop),
+        line_of(docs, space_start, space_stop),
+        text_of(docs, second_start, second_stop),
+      ) {
+        (Some(first), Some(line @ (Line::Space | Line::Soft)), Some((empty, size))) => {
+          let space = usize::from(line == Line::Space && !empty);
+          remaining >= (first as usize + space + size as usize) as isize
+        }
+        _ => fits(
+          docs,
+          &mut scratch,
+          &[second, space_flat, flat],
+          &[],
+          remaining,
+          pending,
+          &modes,
+          true,
+        ),
+      };
+      if pair_fits {
+        commands.extend([space_flat, flat]);
+      } else if content_fits {
+        commands.extend([space_broken, flat]);
+      } else {
+        commands.extend([space_broken, broken]);
+      }
+      continue;
+    }
+
+    while command.pos < command.end {
+      let Command { indent, mode, pos, .. } = command;
+      let element = docs.element(pos);
+      command.pos += 1;
+      match element {
+        Element::Text(index) => {
+          let (text, size) = docs.text_at(index);
           if eol != "\n" && text.contains('\n') {
             output.text.push_str(&text.replace('\n', eol));
           } else {
@@ -246,153 +321,32 @@ pub fn print<'a>(docs: &Docs<'a>, doc: Doc, options: &Options) -> String {
           }
           position += size as isize;
         }
-      }
-      Node::Concat(list) => {
-        for &part in docs.parts(list).iter().rev() {
-          commands.push(Command::new(indent, mode, part));
+        Element::Trim => position -= output.trim() as isize,
+        Element::LineSuffixBoundary => {
+          if !suffix.is_empty() {
+            commands.push(command);
+            commands.push(Command::new(indent, mode, Docs::HARD, Docs::HARD + 1));
+            continue 'commands;
+          }
         }
-      }
-      Node::Indent(contents) => {
-        let indent = indents.make(indent, Step::Indent);
-        commands.push(Command::new(indent, mode, contents));
-      }
-      Node::Align(align, contents) => {
-        let indent = indents.align(indent, align, docs);
-        commands.push(Command::new(indent, mode, contents));
-      }
-      Node::Trim => position -= output.trim() as isize,
-      Node::Group { contents, id, broken, states } => {
-        let next = if mode == Mode::Flat && !remeasure {
-          Command::new(indent, if broken { Mode::Break } else { Mode::Flat }, contents)
-        } else {
-          remeasure = false;
-          let remaining = options.width as isize - position;
-          let pending = !suffix.is_empty();
-          let flat = Command::new(indent, Mode::Flat, contents);
-          if !broken && fits(docs, &mut scratch, flat, &commands, remaining, pending, &modes, false)
-          {
-            flat
-          } else if states != NONE {
-            let states = docs.states(states);
-            let last = states[states.len() - 1];
-            let mut chosen = Command::new(indent, Mode::Break, last);
-            if !broken {
-              for &state in &states[1..states.len() - 1] {
-                let flat = Command::new(indent, Mode::Flat, state);
-                if fits(docs, &mut scratch, flat, &commands, remaining, pending, &modes, false) {
-                  chosen = flat;
-                  break;
-                }
-              }
+        Element::Line(line) => {
+          if mode == Mode::Flat && matches!(line, Line::Space | Line::Soft) {
+            if line == Line::Space {
+              output.text.push(' ');
+              position += 1;
             }
-            chosen
-          } else {
-            Command::new(indent, Mode::Break, contents)
+            continue;
           }
-        };
-        commands.push(next);
-        if id != NONE {
-          modes.set(id, next.mode);
-        }
-      }
-      Node::Fill(list) => {
-        let remaining = options.width as isize - position;
-        let parts = docs.parts(list);
-        let length = parts.len() - offset as usize;
-        if length == 0 {
-          continue;
-        }
-        let content = parts[offset as usize];
-        let flat = Command::new(indent, Mode::Flat, content);
-        let broken = Command::new(indent, Mode::Break, content);
-        let pending = !suffix.is_empty();
-        let content_fits = match docs.node(content) {
-          // What `fits` does for one text.
-          Node::Text(index) => remaining >= docs.text_at(index).1 as isize,
-          _ => fits(docs, &mut scratch, flat, &[], remaining, pending, &modes, true),
-        };
-        if length == 1 {
-          commands.push(if content_fits { flat } else { broken });
-          continue;
-        }
-        let whitespace = parts[offset as usize + 1];
-        let space_flat = Command::new(indent, Mode::Flat, whitespace);
-        let space_broken = Command::new(indent, Mode::Break, whitespace);
-        if length == 2 {
-          if content_fits {
-            commands.extend([space_flat, flat]);
-          } else {
-            commands.extend([space_broken, broken]);
-          }
-          continue;
-        }
-        let second = parts[offset as usize + 2];
-        commands.push(Command { indent, mode, doc, offset: offset + 2 });
-        let both = Pair { first: content, space: whitespace, second };
-        let pair_fits = match (docs.node(content), docs.node(whitespace), docs.node(second)) {
-          // What `fits` does for a text, a `line` or `softline`, and a text.
-          (
-            Node::Text(first),
-            Node::Line(line @ (Line::Space | Line::Soft)),
-            Node::Text(second),
-          ) => {
-            let (first, (text, size)) = (docs.text_at(first).1, docs.text_at(second));
-            let space = usize::from(line == Line::Space && !text.is_empty());
-            remaining >= (first as usize + space + size as usize) as isize
-          }
-          _ => fits_pair(docs, &mut scratch, indent, both, remaining, pending, &modes),
-        };
-        if pair_fits {
-          commands.extend([space_flat, flat]);
-        } else if content_fits {
-          commands.extend([space_broken, flat]);
-        } else {
-          commands.extend([space_broken, broken]);
-        }
-      }
-      Node::IfBreak { broken, flat, id } => {
-        let group = if id == NONE { Some(mode) } else { modes.get(id) };
-        match group {
-          Some(Mode::Break) if broken != Docs::EMPTY => {
-            commands.push(Command::new(indent, mode, broken))
-          }
-          Some(Mode::Flat) if flat != Docs::EMPTY => {
-            commands.push(Command::new(indent, mode, flat))
-          }
-          _ => {}
-        }
-      }
-      Node::IndentIfBreak { contents, id, negate } => match modes.get(id.0) {
-        Some(Mode::Break) => {
-          let indent = if negate { indent } else { indents.make(indent, Step::Indent) };
-          commands.push(Command::new(indent, mode, contents));
-        }
-        Some(Mode::Flat) => {
-          let indent = if negate { indents.make(indent, Step::Indent) } else { indent };
-          commands.push(Command::new(indent, mode, contents));
-        }
-        None => {}
-      },
-      Node::LineSuffix(contents) => suffix.push(Command::new(indent, mode, contents)),
-      Node::LineSuffixBoundary => {
-        if !suffix.is_empty() {
-          commands.push(Command::new(indent, mode, Docs::HARD));
-        }
-      }
-      Node::Line(line) => {
-        if mode == Mode::Flat && matches!(line, Line::Space | Line::Soft) {
-          if line == Line::Space {
-            output.text.push(' ');
-            position += 1;
-          }
-        } else {
           if mode == Mode::Flat {
             remeasure = true;
           }
           if !suffix.is_empty() {
+            command.pos -= 1;
             commands.push(command);
             commands.extend(suffix.drain(..).rev());
-          } else if line == Line::Literal {
+            continue 'commands;
+          }
+          if line == Line::Literal {
             output.text.push_str(eol);
             let root = indents.get(indents.get(indent).root);
             output.text.push_str(&root.value);
@@ -405,8 +359,120 @@ pub fn print<'a>(docs: &Docs<'a>, doc: Doc, options: &Options) -> String {
             position = indents.get(indent).length as isize;
           }
         }
+        Element::Group { end, id, broken, states } => {
+          command.pos = end;
+          if command.pos < command.end {
+            commands.push(command);
+          }
+          let (start, stop) = if states { first_state(docs, pos, end) } else { inside(pos, end) };
+          let next = if mode == Mode::Flat && !remeasure {
+            Command::new(indent, if broken { Mode::Break } else { Mode::Flat }, start, stop)
+          } else {
+            remeasure = false;
+            let remaining = options.width as isize - position;
+            let pending = !suffix.is_empty();
+            let flat = Command::new(indent, Mode::Flat, start, stop);
+            if !broken
+              && fits(docs, &mut scratch, &[flat], &commands, remaining, pending, &modes, false)
+            {
+              flat
+            } else if states {
+              let all = states_of(docs, pos, end);
+              let (last_start, last_stop) = all[all.len() - 1];
+              let mut chosen = Command::new(indent, Mode::Break, last_start, last_stop);
+              if !broken {
+                for &(state_start, state_stop) in &all[1..all.len() - 1] {
+                  let flat = Command::new(indent, Mode::Flat, state_start, state_stop);
+                  if fits(docs, &mut scratch, &[flat], &commands, remaining, pending, &modes, false)
+                  {
+                    chosen = flat;
+                    break;
+                  }
+                }
+              }
+              chosen
+            } else {
+              Command::new(indent, Mode::Break, start, stop)
+            }
+          };
+          if id != NONE {
+            modes.set(id, next.mode);
+          }
+          commands.push(next);
+          continue 'commands;
+        }
+        Element::Fill { end } => {
+          command.pos = end;
+          if command.pos < command.end {
+            commands.push(command);
+          }
+          commands.push(Command { indent, mode, pos: pos + 1, end, fill: true });
+          continue 'commands;
+        }
+        Element::Part { end } => {
+          // A part outside of a fill's walk, as in a state that is printed: its contents.
+          command.pos = end;
+          if command.pos < command.end {
+            commands.push(command);
+          }
+          commands.push(Command::new(indent, mode, pos + 1, end));
+          continue 'commands;
+        }
+        Element::Indent { end } => {
+          command.pos = end;
+          if command.pos < command.end {
+            commands.push(command);
+          }
+          let indent = indents.make(indent, Step::Indent);
+          commands.push(Command::new(indent, mode, pos + 1, end));
+          continue 'commands;
+        }
+        Element::Align { end, margin } => {
+          command.pos = end;
+          if command.pos < command.end {
+            commands.push(command);
+          }
+          let indent = indents.align(indent, margin, docs);
+          commands.push(Command::new(indent, mode, pos + 1, end));
+          continue 'commands;
+        }
+        Element::IfBreak { end, id, branch } => {
+          let group = if id == NONE { Some(mode) } else { modes.get(id) };
+          let wanted = match branch {
+            Branch::Break => Mode::Break,
+            Branch::Flat => Mode::Flat,
+          };
+          if group != Some(wanted) || pos + 1 == end {
+            command.pos = end;
+            continue;
+          }
+          command.pos = end;
+          if command.pos < command.end {
+            commands.push(command);
+          }
+          commands.push(Command::new(indent, mode, pos + 1, end));
+          continue 'commands;
+        }
+        Element::IndentIfBreak { end, id, negate } => {
+          command.pos = end;
+          let indent = match modes.get(id) {
+            Some(Mode::Break) if negate => indent,
+            Some(Mode::Break) => indents.make(indent, Step::Indent),
+            Some(Mode::Flat) if negate => indents.make(indent, Step::Indent),
+            Some(Mode::Flat) => indent,
+            None => continue,
+          };
+          if command.pos < command.end {
+            commands.push(command);
+          }
+          commands.push(Command::new(indent, mode, pos + 1, end));
+          continue 'commands;
+        }
+        Element::LineSuffix { end } => {
+          command.pos = end;
+          suffix.push(Command::new(indent, mode, pos + 1, end));
+        }
       }
-      Node::BreakParent => {}
     }
     if commands.is_empty() && !suffix.is_empty() {
       commands.extend(suffix.drain(..).rev());
@@ -415,53 +481,61 @@ pub fn print<'a>(docs: &Docs<'a>, doc: Doc, options: &Options) -> String {
   output.text
 }
 
-/// A command of `fits`: its mode, doc, and fill offset.
-type Frame = (Mode, Doc, u32);
-
-#[derive(Clone, Copy)]
-struct Pair {
-  first: Doc,
-  space: Doc,
-  second: Doc,
+/// The width of the range when it is one text, or nothing.
+fn plain(docs: &Docs<'_>, start: u32, stop: u32) -> Option<u32> {
+  text_of(docs, start, stop).map(|(_, size)| size)
 }
 
-/// `fits` of `[content, whitespace, secondContent]` in flat mode, as a fill measures it.
-fn fits_pair(
-  docs: &Docs,
-  scratch: &mut Vec<Frame>,
-  indent: u32,
-  pair: Pair,
-  remaining: isize,
-  pending: bool,
-  modes: &Modes,
-) -> bool {
-  let rest =
-    [Command::new(indent, Mode::Flat, pair.second), Command::new(indent, Mode::Flat, pair.space)];
-  let first = Command::new(indent, Mode::Flat, pair.first);
-  fits_with(docs, scratch, first, &rest, &[], remaining, pending, modes, true)
+/// Whether the range is one text, empty or not, and its width.
+fn text_of(docs: &Docs<'_>, start: u32, stop: u32) -> Option<(bool, u32)> {
+  match stop - start {
+    0 => Some((true, 0)),
+    1 => match docs.element(start) {
+      Element::Text(index) => {
+        let (text, size) = docs.text_at(index);
+        Some((text.is_empty(), size))
+      }
+      _ => None,
+    },
+    _ => None,
+  }
 }
 
-/// `fits`: whether `next`, then `rest` from its end, fit on the line in `remaining` columns.
+/// The line the range is, if it is one.
+fn line_of(docs: &Docs<'_>, start: u32, stop: u32) -> Option<Line> {
+  match (stop - start, docs.element(start)) {
+    (1, Element::Line(line)) => Some(line),
+    _ => None,
+  }
+}
+
+/// The contents of a conditional group's first state.
+fn first_state(docs: &Docs<'_>, at: u32, end: u32) -> (u32, u32) {
+  states_of(docs, at, end)[0]
+}
+
+/// The contents of each state of the conditional group at `at`.
+fn states_of(docs: &Docs<'_>, at: u32, end: u32) -> Vec<(u32, u32)> {
+  let mut states = Vec::new();
+  let mut pos = at + 1;
+  while pos < end {
+    let Element::Part { end: stop } = docs.element(pos) else { unreachable!() };
+    states.push((pos + 1, stop));
+    pos = stop;
+  }
+  states
+}
+
+/// A command of `fits`: its mode, and the range of elements left.
+type Frame = (Mode, u32, u32);
+
+/// `fits`: whether `next`, which are commands in reverse order, and then `rest` from its end, fit on the line in
+/// `remaining` columns.
 #[allow(clippy::too_many_arguments)]
 fn fits(
-  docs: &Docs,
-  scratch: &mut Vec<Frame>,
-  next: Command,
-  rest: &[Command],
-  remaining: isize,
-  pending: bool,
-  modes: &Modes,
-  must_be_flat: bool,
-) -> bool {
-  fits_with(docs, scratch, next, &[], rest, remaining, pending, modes, must_be_flat)
-}
-
-#[allow(clippy::too_many_arguments)]
-fn fits_with(
-  docs: &Docs,
-  commands: &mut Vec<Frame>,
-  next: Command,
-  queued: &[Command],
+  docs: &Docs<'_>,
+  frames: &mut Vec<Frame>,
+  next: &[Command],
   rest: &[Command],
   mut remaining: isize,
   mut pending: bool,
@@ -471,21 +545,26 @@ fn fits_with(
   let mut rest_index = rest.len();
   let mut space = false;
   let mut trailing = 0usize;
-  commands.clear();
-  commands.extend(queued.iter().map(|c| (c.mode, c.doc, c.offset)));
-  commands.push((next.mode, next.doc, next.offset));
+  frames.clear();
+  frames.extend(next.iter().map(|command| (command.mode, command.pos, command.end)));
   while remaining >= 0 {
-    let Some((mode, doc, offset)) = commands.pop() else {
+    let Some(frame) = frames.last_mut() else {
       if rest_index == 0 {
         return true;
       }
       rest_index -= 1;
       let command = rest[rest_index];
-      commands.push((command.mode, command.doc, command.offset));
+      frames.push((command.mode, command.pos, command.end));
       continue;
     };
-    match docs.node(doc) {
-      Node::Text(index) => {
+    let (mode, pos, end) = *frame;
+    if pos >= end {
+      frames.pop();
+      continue;
+    }
+    frame.1 += 1;
+    match docs.element(pos) {
+      Element::Text(index) => {
         let (text, size) = docs.text_at(index);
         if !text.is_empty() {
           if space {
@@ -500,43 +579,11 @@ fn fits_with(
           }
         }
       }
-      Node::Concat(list) => {
-        for &part in docs.parts(list).iter().rev() {
-          commands.push((mode, part, 0));
-        }
-      }
-      Node::Fill(list) => {
-        for &part in docs.parts(list)[offset as usize..].iter().rev() {
-          commands.push((mode, part, 0));
-        }
-      }
-      Node::Indent(contents) | Node::Align(_, contents) | Node::IndentIfBreak { contents, .. } => {
-        commands.push((mode, contents, 0))
-      }
-      Node::Trim => {
+      Element::Trim => {
         remaining += trailing as isize;
         trailing = 0;
       }
-      Node::Group { contents, broken, states, .. } => {
-        if must_be_flat && broken {
-          return false;
-        }
-        let mode = if broken { Mode::Break } else { mode };
-        let contents = if states != NONE && mode == Mode::Break {
-          *docs.states(states).last().unwrap()
-        } else {
-          contents
-        };
-        commands.push((mode, contents, 0));
-      }
-      Node::IfBreak { broken, flat, id } => {
-        let group = if id == NONE { mode } else { modes.get(id).unwrap_or(Mode::Flat) };
-        let contents = if group == Mode::Break { broken } else { flat };
-        if contents != Docs::EMPTY {
-          commands.push((mode, contents, 0));
-        }
-      }
-      Node::Line(line) => {
+      Element::Line(line) => {
         if mode == Mode::Break || matches!(line, Line::Hard | Line::Literal) {
           return true;
         }
@@ -544,13 +591,49 @@ fn fits_with(
           space = true;
         }
       }
-      Node::LineSuffix(_) => pending = true,
-      Node::LineSuffixBoundary => {
+      Element::LineSuffixBoundary => {
         if pending {
           return false;
         }
       }
-      Node::BreakParent => {}
+      Element::LineSuffix { end } => {
+        frame.1 = end;
+        pending = true;
+      }
+      Element::Group { end, broken, states, .. } => {
+        frame.1 = end;
+        if must_be_flat && broken {
+          return false;
+        }
+        let mode = if broken { Mode::Break } else { mode };
+        let (start, stop) = if !states {
+          inside(pos, end)
+        } else if mode == Mode::Break {
+          *states_of(docs, pos, end).last().unwrap()
+        } else {
+          first_state(docs, pos, end)
+        };
+        frames.push((mode, start, stop));
+      }
+      Element::IfBreak { end, id, branch } => {
+        frame.1 = end;
+        let group = if id == NONE { mode } else { modes.get(id).unwrap_or(Mode::Flat) };
+        let wanted = match branch {
+          Branch::Break => Mode::Break,
+          Branch::Flat => Mode::Flat,
+        };
+        if group == wanted {
+          frames.push((mode, pos + 1, end));
+        }
+      }
+      Element::Fill { end }
+      | Element::Part { end }
+      | Element::Indent { end }
+      | Element::Align { end, .. }
+      | Element::IndentIfBreak { end, .. } => {
+        frame.1 = end;
+        frames.push((mode, pos + 1, end));
+      }
     }
   }
   false
