@@ -83,7 +83,8 @@ fn run() -> Result<ExitCode, String> {
     let mut source = String::new();
     std::io::stdin().read_to_string(&mut source).map_err(|error| error.to_string())?;
     let settings = Settings { parser: parser.unwrap_or(Parser::Html), ..settings };
-    let output = format(&mut Formatter::default(), &source, &settings)?;
+    let mut formatter = Formatter::default();
+    let output = format(&mut formatter, &source, &settings)?;
     if check {
       return Ok(if output == source { ExitCode::SUCCESS } else { ExitCode::FAILURE });
     }
@@ -95,7 +96,8 @@ fn run() -> Result<ExitCode, String> {
     let path = &paths[0];
     let source =
       std::fs::read_to_string(path).map_err(|error| format!("{}: {error}", path.display()))?;
-    let output = format(&mut Formatter::default(), &source, &for_path(&settings, path))?;
+    let mut formatter = Formatter::default();
+    let output = format(&mut formatter, &source, &for_path(&settings, path))?;
     std::io::stdout().write_all(output.as_bytes()).map_err(|error| error.to_string())?;
     return Ok(ExitCode::SUCCESS);
   }
@@ -181,7 +183,11 @@ fn for_path(settings: &Settings, path: &Path) -> Settings {
   Settings { parser, filepath: Some(path.to_string_lossy().into_owned()), ..settings.clone() }
 }
 
-fn format(formatter: &mut Formatter, source: &str, settings: &Settings) -> Result<String, String> {
+fn format<'f>(
+  formatter: &'f mut Formatter,
+  source: &str,
+  settings: &Settings,
+) -> Result<&'f str, String> {
   formatter.format(source, settings, &mut Verbatim).map_err(|error| error.to_string())
 }
 

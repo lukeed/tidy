@@ -132,7 +132,7 @@ fn main() {
       tabs: case["useTabs"].as_bool().unwrap(),
       eol: Default::default(),
     };
-    outputs.push(Value::String(print(&docs, &options)));
+    outputs.push(Value::String(print(&docs, &options, String::new())));
   }
   println!("{}", Value::Array(outputs));
 }

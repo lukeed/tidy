@@ -120,7 +120,7 @@ pub fn format(
   settings: &Settings,
   embed: &mut dyn crate::embed::Embed,
 ) -> Result<String, Error> {
-  Formatter::default().format(text, settings, embed)
+  Formatter::default().format(text, settings, embed).map(str::to_owned)
 }
 
 /// Formats one text after another, reusing its buffers.
@@ -130,6 +130,7 @@ pub struct Formatter {
   docs: crate::doc::Scratch,
   nodes: Vec<ast::Node<'static>>,
   attrs: Vec<ast::Attribute<'static>>,
+  output: String,
 }
 
 impl Formatter {
@@ -139,10 +140,10 @@ impl Formatter {
     text: &str,
     settings: &Settings,
     embed: &mut dyn crate::embed::Embed,
-  ) -> Result<String, Error> {
+  ) -> Result<&str, Error> {
     let text = text.strip_prefix('\u{FEFF}').unwrap_or(text);
     if text.trim().is_empty() {
-      return Ok(String::new());
+      return Ok("");
     }
     let text: std::borrow::Cow<str> = if text.contains('\r') {
       text.replace("\r\n", "\n").replace('\r', "\n").into()
@@ -164,7 +165,7 @@ impl Formatter {
       None => source.into(),
     };
     self.bump.reset();
-    let Self { bump, docs: scratch, nodes, attrs } = self;
+    let Self { bump, docs: scratch, nodes, attrs, output: buffer } = self;
     let mut tree = ast::Tree {
       nodes: crate::doc::recycle(std::mem::take(nodes)),
       attrs: crate::doc::recycle(std::mem::take(attrs)),
@@ -174,14 +175,17 @@ impl Formatter {
     tree.attrs.reserve(content.len() / 32);
     let mut docs = crate::doc::Docs::reuse(bump, scratch);
     docs.reserve(source.len());
-    let output = run(&text, &content, matter, settings, embed, &mut tree, &mut docs);
+    let output =
+      run(&text, &content, matter, settings, embed, &mut tree, &mut docs, std::mem::take(buffer));
     *scratch = docs.into_scratch();
     *nodes = crate::doc::recycle(tree.nodes);
     *attrs = crate::doc::recycle(tree.attrs);
-    output
+    *buffer = output?;
+    Ok(buffer)
   }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run<'a>(
   text: &'a str,
   content: &'a [u8],
@@ -190,6 +194,7 @@ fn run<'a>(
   embed: &mut dyn crate::embed::Embed,
   tree: &mut ast::Tree<'a>,
   docs: &mut crate::doc::Docs<'a>,
+  buffer: String,
 ) -> Result<String, Error> {
   let source = text.as_bytes();
   let clock = std::time::Instant::now();
@@ -227,7 +232,7 @@ fn run<'a>(
     eol: settings.eol,
   };
   let built = clock.elapsed();
-  let output = crate::doc::print(docs, &print);
+  let output = crate::doc::print(docs, &print, buffer);
   if std::env::var_os("TIDYRS_STATS").is_some() {
     let printed = clock.elapsed();
     let ms = |d: std::time::Duration| d.as_secs_f64() * 1000.0;

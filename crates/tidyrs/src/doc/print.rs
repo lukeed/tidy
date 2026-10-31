@@ -232,13 +232,15 @@ fn inside(at: u32, end: u32) -> (u32, u32) {
   (at + 1, end)
 }
 
-/// Prints the stream, breaking its groups to fit in `options.width` columns.
+/// Prints the stream into `text`, breaking its groups to fit in `options.width` columns.
 #[inline(never)]
-pub fn print(docs: &Docs<'_>, options: &Options) -> String {
+pub fn print(docs: &Docs<'_>, options: &Options, mut text: String) -> String {
   let eol = options.eol.text();
   let mut indents = Indents::new(options);
   let mut modes = Modes(Vec::new());
-  let mut output = Output { text: String::with_capacity(docs.len() as usize * 4), settled: 0 };
+  text.clear();
+  text.reserve(docs.len() as usize * 4);
+  let mut output = Output { text, settled: 0 };
   let mut position = 0isize;
   let mut commands = vec![Command::new(ROOT, Mode::Break, 1, docs.len())];
   let mut remeasure = false;
