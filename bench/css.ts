@@ -1,5 +1,5 @@
-// Compares CSS formatters before tidyrs has one: oxc's (oxc_formatter_css), Malva (the engine of dprint-plugin-malva),
-// bun fmt and Prettier, with lightningcss as a floor: it parses and prints CSS back, but doesn't format. Each corpus only
+// Compares tidyrs's CSS formatter with oxc's (oxc_formatter_css), Malva (the engine of dprint-plugin-malva), bun fmt
+// and Prettier, with lightningcss as a floor: it parses and prints CSS back, but doesn't format. Each corpus only
 // has the files that Prettier can parse. For each tool it shows the time, with all cores and with one, and how many
 // files it prints exactly as Prettier does.
 //
@@ -18,6 +18,8 @@ let oss = option("--oss") ?? join(homedir(), "repos", "oss");
 let root = new URL("..", import.meta.url).pathname;
 let target = join(root, "target", "css");
 await $`cargo build --release`.cwd(join(root, "bench/css")).env({ ...process.env, CARGO_TARGET_DIR: target }).quiet();
+await $`cargo build --release -p tidyrs_cli`.cwd(root).env({ ...process.env, CARGO_TARGET_DIR: join(root, "target") }).quiet();
+let tidyrs = join(root, "target/release/tidyrs");
 let harness = join(target, "release/css-bench");
 
 let parsers: Record<string, string> = { ".css": "css", ".scss": "scss", ".less": "less" };
@@ -61,6 +63,8 @@ function size(path: string): [number, number] {
 
 let prettierBin = join(root, "node_modules/.bin/prettier");
 let tools = (dir: string, name: string): Record<string, string> => ({
+	tidyrs: `${tidyrs} ${dir} --check`,
+	"tidyrs (1 thread)": `${tidyrs} ${dir} --check --threads 1`,
 	oxc: `${harness} oxc ${dir}`,
 	"oxc (1 thread)": `${harness} oxc ${dir} --threads 1`,
 	malva: `${harness} malva ${dir}`,
@@ -84,6 +88,9 @@ async function matches(tool: string, dir: string): Promise<number | undefined> {
 	if (tool === "bun") {
 		cpSync(dir, out, { recursive: true });
 		await $`bun fmt --cwd=${out} --write --no-config --no-editorconfig`.nothrow().quiet();
+	} else if (tool === "tidyrs") {
+		cpSync(dir, out, { recursive: true });
+		await $`${tidyrs} ${out} --write`.nothrow().quiet();
 	} else {
 		await $`${harness} ${tool} ${dir} --write ${out}`.nothrow().quiet();
 	}

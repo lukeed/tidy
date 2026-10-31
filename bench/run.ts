@@ -64,8 +64,8 @@ function size(path: string): [number, number] {
 
 let prettier = join(root, "node_modules/.bin/prettier");
 let tools = (dir: string): Record<string, string> => ({
-	tidyrs: `${target}/release/tidyrs ${dir} --check`,
-	"tidyrs (1 thread)": `${target}/release/tidyrs ${dir} --check --threads 1`,
+	tidyrs: `${target}/release/tidyrs ${dir} --check --embedded-language-formatting off`,
+	"tidyrs (1 thread)": `${target}/release/tidyrs ${dir} --check --embedded-language-formatting off --threads 1`,
 	bun: `bun fmt --cwd=${dir} --check --no-config --no-editorconfig --no-script --embedded-language-formatting off`,
 	"bun (1 thread)": `bun fmt --cwd=${dir} --check --no-config --no-editorconfig --no-script --embedded-language-formatting off --threads 1`,
 	markup_fmt: `${target}/dprint/release/dprint-bench ${dir}`,
