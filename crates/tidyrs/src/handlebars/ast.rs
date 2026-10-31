@@ -137,6 +137,28 @@ pub(crate) enum Kind {
   },
   /// `<!DOCTYPE html>`, which `@glimmer/syntax` has no node for.
   Doctype,
+  /// Tempura's `{{ code }}`, or `{{{ code }}}` if it's trusting. `code` is JavaScript.
+  Value {
+    code: Text,
+    is_trusting: bool,
+  },
+  /// Tempura's `{{#name args}}`, a tag that has no body: `#expect`, `#var`, or a custom block.
+  Directive {
+    name: Text,
+    args: Text,
+  },
+  /// Tempura's `{{#if code}}`, `{{#elif code}}` and `{{#each code}}`, with their bodies. A section is chained if it's
+  /// the `{{#elif}}` of the section whose `inverse` it's in. `{{#else}}` is an `inverse` that isn't chained.
+  Section {
+    name: Text,
+    code: Text,
+    program: NodeId,
+    inverse: NodeId,
+    is_chained: bool,
+  },
+  /// Template syntax where the HTML tree can't hold it, such as a block in a start tag. Its source is printed as it
+  /// is written.
+  Opaque,
   Path {
     head: Head,
     /// `head.original`

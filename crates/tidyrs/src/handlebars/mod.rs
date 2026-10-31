@@ -17,6 +17,8 @@ mod error;
 mod lexer;
 mod parser;
 mod printer;
+mod tempura;
+mod text;
 mod tokenizer;
 
 use crate::doc::{self, Docs};
@@ -36,6 +38,16 @@ pub fn is_handlebars_path(path: &str) -> bool {
   path.ends_with(".hbs") || path.ends_with(".handlebars")
 }
 
+/// True if the template at `path` is of another language than HTML: `robots.txt.hbs`, `sitemap.xml.hbs`.
+fn is_text(path: &str) -> bool {
+  let name = path.rsplit(['/', '\\']).next().unwrap_or(path).to_ascii_lowercase();
+  let stem =
+    name.strip_suffix(".hbs").or_else(|| name.strip_suffix(".handlebars")).unwrap_or(&name);
+  stem
+    .rsplit_once('.')
+    .is_some_and(|(base, extension)| !base.is_empty() && !matches!(extension, "html" | "htm"))
+}
+
 /// Allocations that are reused for the next file.
 #[derive(Default)]
 pub struct Scratch {
@@ -44,24 +56,76 @@ pub struct Scratch {
   tree: ast::Tree,
 }
 
+/// The template language of a file.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
+pub enum Dialect {
+  /// Tempura if the template uses syntax that only tempura has, or if it only parses as tempura. Otherwise
+  /// Handlebars.
+  #[default]
+  Auto,
+  Handlebars,
+  /// [Tempura](https://github.com/lukeed/tempura), whose tags hold JavaScript.
+  Tempura,
+}
+
 /// Prettier's `parse`. `content` has no `\r`, and its front matter, which ends at `front_matter_end`, has been replaced
 /// with spaces. Returns the template node.
 fn parse(
   content: &[u8],
   front_matter_end: usize,
+  dialect: Dialect,
   scratch: &mut Scratch,
   rejection: &Rejection,
 ) -> Result<ast::NodeId, Error> {
-  let Scratch { tokens, statements, tree } = scratch;
-  tokens.clear();
-  statements.clear();
-  tree.clear();
   // Offsets are stored in 31 bits.
   if content.len() > i32::MAX as usize {
     return Err(Error::Syntax(rejection.note(Message::TooLarge, 0)));
   }
-  lexer::lex(content, tokens, rejection)?;
-  parser::parse(content, tokens, tree, statements, rejection)?;
+  let is_tempura = match dialect {
+    Dialect::Auto => tempura::is_tempura(content),
+    dialect => dialect == Dialect::Tempura,
+  };
+  let result = statements(content, is_tempura, scratch, rejection);
+  if result.is_err() && dialect == Dialect::Auto && !is_tempura {
+    let handlebars = rejection.reason();
+    if statements(content, true, scratch, rejection).is_ok() {
+      return build(content, front_matter_end, scratch, rejection);
+    }
+    rejection.note(handlebars.0, handlebars.1);
+    return result.map(|_| 0);
+  }
+  result?;
+  build(content, front_matter_end, scratch, rejection)
+}
+
+/// Parses the tags of the template into `scratch.statements`.
+fn statements(
+  content: &[u8],
+  is_tempura: bool,
+  scratch: &mut Scratch,
+  rejection: &Rejection,
+) -> Result<(), Error> {
+  let Scratch { tokens, statements, tree } = scratch;
+  tokens.clear();
+  statements.clear();
+  tree.clear();
+  match is_tempura {
+    true => tempura::parse(content, tree, statements, rejection),
+    false => {
+      lexer::lex(content, tokens, rejection)?;
+      parser::parse(content, tokens, tree, statements, rejection)
+    }
+  }
+}
+
+/// Builds the tree of HTML around the statements. Returns the template node.
+fn build(
+  content: &[u8],
+  front_matter_end: usize,
+  scratch: &mut Scratch,
+  rejection: &Rejection,
+) -> Result<ast::NodeId, Error> {
+  let Scratch { statements, tree, .. } = scratch;
   let front_matter =
     (front_matter_end > 0).then(|| tree.add(ast::Kind::FrontMatter, 0, front_matter_end));
   tokenizer::build(content, statements, front_matter, tree, rejection)
@@ -77,6 +141,12 @@ pub struct Settings {
   /// `htmlWhitespaceSensitivity`: Glimmer only tells `ignore` from the rest.
   pub whitespace: crate::html::Whitespace,
   pub single_quote: bool,
+  pub dialect: Dialect,
+  /// Prints `{{ value }}` and `{{{ value }}}` with a space inside the braces. Prettier prints `{{value}}`.
+  pub spaced: bool,
+  /// The file's path. A template of another language than HTML, such as `robots.txt.hbs`, keeps its text as it is
+  /// written.
+  pub filepath: Option<String>,
 }
 
 impl Default for Settings {
@@ -88,6 +158,9 @@ impl Default for Settings {
       eol: doc::Eol::Lf,
       whitespace: crate::html::Whitespace::Css,
       single_quote: false,
+      dialect: Dialect::Auto,
+      spaced: true,
+      filepath: None,
     }
   }
 }
@@ -95,6 +168,7 @@ impl Default for Settings {
 /// Options of the printer, as it uses them.
 pub(crate) struct Options {
   pub(crate) width: usize,
+  pub(crate) spaced: bool,
 }
 
 /// Why a template could not be formatted.
@@ -148,6 +222,21 @@ impl Formatter {
       true => text.replace("\r\n", "\n").replace('\r', "\n").into(),
       false => text.into(),
     };
+    if settings.filepath.as_deref().is_some_and(is_text) {
+      let is_tempura = match settings.dialect {
+        Dialect::Auto => tempura::is_tempura(text.as_bytes()),
+        dialect => dialect == Dialect::Tempura,
+      };
+      let indent = if settings.tabs { "\t".to_owned() } else { " ".repeat(settings.tab_width) };
+      let Some(formatted) = text::format(&text, is_tempura, &indent, settings.spaced) else {
+        return Err(Failure::Syntax {
+          message: Message::ExpectedEndOfMustache.text().to_owned(),
+          at: 0,
+        });
+      };
+      self.output = formatted;
+      return Ok(&self.output);
+    }
     let front_matter_end = crate::front_matter::parse(&text).map_or(0, |matter| matter.len);
     let mut content = String::from(&*text);
     if front_matter_end > 0 {
@@ -156,14 +245,15 @@ impl Formatter {
       content.replace_range(..front_matter_end, &blanked);
     }
     let rejection = Rejection::default();
-    let template = parse(content.as_bytes(), front_matter_end, &mut self.scratch, &rejection)
-      .map_err(|error| match error {
-        Error::Syntax(_) => {
-          let reason = rejection.reason();
-          Failure::Syntax { message: reason.0.text().to_owned(), at: reason.1 as usize }
-        }
-        Error::NestedTooDeeply => Failure::TooDeep,
-      })?;
+    let template =
+      parse(content.as_bytes(), front_matter_end, settings.dialect, &mut self.scratch, &rejection)
+        .map_err(|error| match error {
+          Error::Syntax(_) => {
+            let reason = rejection.reason();
+            Failure::Syntax { message: reason.0.text().to_owned(), at: reason.1 as usize }
+          }
+          Error::NestedTooDeeply => Failure::TooDeep,
+        })?;
     if self.scratch.tree.has_lost_text {
       self.output.clear();
       self.output.push_str(&text);
@@ -172,7 +262,7 @@ impl Formatter {
     self.bump.reset();
     let mut docs = Docs::reuse(&self.bump, &mut self.docs);
     docs.reserve(content.len());
-    let options = Options { width: settings.width };
+    let options = Options { width: settings.width, spaced: settings.spaced };
     let mut printer = printer::Printer {
       tree: &self.scratch.tree,
       source: &content,

@@ -4,7 +4,7 @@ use std::process::ExitCode;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use tidyrs::embed::Verbatim;
-use tidyrs::handlebars;
+use tidyrs::handlebars::{self, Dialect};
 use tidyrs::html::{self, Parser, Whitespace};
 
 const HELP: &str = "\
@@ -21,7 +21,7 @@ Usage
 Options
   --check                         List files that aren't formatted, and exit 1 if any
   -w, --write                     Rewrite files in place
-  --parser <name>                 html, vue, or handlebars, for stdin (default: by extension)
+  --parser <name>                 html, vue, handlebars, or tempura (default: by extension)
   --width <n>                     Line width (default: 80)
   --tab-width <n>                 Indent width (default: 2)
   --use-tabs                      Indent with tabs
@@ -30,6 +30,7 @@ Options
   --bracket-same-line             Keep the > of a multi-line tag on the last line
   --vue-indent-script-and-style   Indent the code in Vue's <script> and <style>
   --single-quote                  Prefer single quotes in Handlebars
+  --no-mustache-spaces            Print {{value}} rather than {{ value }} in Handlebars
   --threads <n>                   How many files to format at once (default: all cores)
   -v, --version                   Print the version
   -h, --help                      Print this help
@@ -68,7 +69,8 @@ fn run() -> Result<ExitCode, String> {
     .opt_value_from_fn("--parser", |name: &str| match name {
       "html" => Ok(Language::Markup(Parser::Html)),
       "vue" => Ok(Language::Markup(Parser::Vue)),
-      "handlebars" | "glimmer" => Ok(Language::Handlebars),
+      "handlebars" | "glimmer" => Ok(Language::Handlebars(Dialect::Handlebars)),
+      "tempura" => Ok(Language::Handlebars(Dialect::Tempura)),
       other => Err(format!("unknown parser `{other}`")),
     })
     .map_err(|error| error.to_string())?;
@@ -100,7 +102,8 @@ fn run() -> Result<ExitCode, String> {
     let source =
       std::fs::read_to_string(path).map_err(|error| format!("{}: {error}", path.display()))?;
     let mut formatters = Formatters::default();
-    let output = formatters.format(&source, &settings, language_of(path), Some(path))?;
+    let language = language.unwrap_or_else(|| language_of(path));
+    let output = formatters.format(&source, &settings, language, Some(path))?;
     std::io::stdout().write_all(output.as_bytes()).map_err(|error| error.to_string())?;
     return Ok(ExitCode::SUCCESS);
   }
@@ -122,8 +125,9 @@ fn run() -> Result<ExitCode, String> {
   let cores = std::thread::available_parallelism().map_or(1, |count| count.get());
   let threads = threads.unwrap_or(cores).clamp(1, files.len().max(1));
   let mut outcomes: Vec<(usize, Outcome)> = std::thread::scope(|scope| {
-    let workers: Vec<_> =
-      (0..threads).map(|_| scope.spawn(|| work(&files, &next, &settings, write))).collect();
+    let workers: Vec<_> = (0..threads)
+      .map(|_| scope.spawn(|| work(&files, &next, &settings, language, write)))
+      .collect();
     workers.into_iter().flat_map(|worker| worker.join().unwrap_or_default()).collect()
   });
   outcomes.sort_by_key(|(index, _)| *index);
@@ -154,14 +158,14 @@ fn run() -> Result<ExitCode, String> {
 #[derive(Clone, Copy)]
 enum Language {
   Markup(Parser),
-  Handlebars,
+  Handlebars(Dialect),
 }
 
 /// The language of the file at `path`, by its extension.
 fn language_of(path: &Path) -> Language {
   match path.extension().and_then(|it| it.to_str()) {
     Some("vue") => Language::Markup(Parser::Vue),
-    Some("hbs" | "handlebars") => Language::Handlebars,
+    Some("hbs" | "handlebars") => Language::Handlebars(Dialect::Auto),
     _ => Language::Markup(Parser::Html),
   }
 }
@@ -203,6 +207,7 @@ fn settings(args: &mut pico_args::Arguments) -> Result<Settings, String> {
     tabs: settings.tabs,
     whitespace: settings.whitespace,
     single_quote: args.contains("--single-quote"),
+    spaced: !args.contains("--no-mustache-spaces"),
     ..handlebars::Settings::default()
   };
   Ok(Settings { html: settings, handlebars })
@@ -230,8 +235,10 @@ impl Formatters {
         let settings = html::Settings { parser, filepath, ..settings.html.clone() };
         self.html.format(source, &settings, &mut Verbatim).map_err(|it| error(&it))
       }
-      Language::Handlebars => {
-        self.handlebars.format(source, &settings.handlebars, &mut Verbatim).map_err(|it| error(&it))
+      Language::Handlebars(dialect) => {
+        let filepath = path.map(|path| path.to_string_lossy().into_owned());
+        let settings = handlebars::Settings { filepath, dialect, ..settings.handlebars.clone() };
+        self.handlebars.format(source, &settings, &mut Verbatim).map_err(|it| error(&it))
       }
     }
   }
@@ -247,6 +254,7 @@ fn work(
   files: &[PathBuf],
   next: &AtomicUsize,
   settings: &Settings,
+  language: Option<Language>,
   write: bool,
 ) -> Vec<(usize, Outcome)> {
   let mut outcomes = Vec::new();
@@ -259,7 +267,12 @@ fn work(
     let read = std::fs::File::open(path).and_then(|mut file| file.read_to_string(&mut source));
     let outcome = match read {
       Err(error) => Outcome::Failed(error.to_string()),
-      Ok(_) => match formatters.format(&source, settings, language_of(path), Some(path)) {
+      Ok(_) => match formatters.format(
+        &source,
+        settings,
+        language.unwrap_or_else(|| language_of(path)),
+        Some(path),
+      ) {
         Err(error) => Outcome::Failed(error),
         Ok(output) if output == source => Outcome::Same,
         Ok(output) => match write.then(|| std::fs::write(path, output)) {

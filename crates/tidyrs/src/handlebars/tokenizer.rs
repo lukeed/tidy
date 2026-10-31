@@ -1020,6 +1020,12 @@ impl Builder<'_> {
   }
 
   fn mustache(&mut self, mustache: NodeId) -> Result<(), Error> {
+    if matches!(
+      self.tree.kind(mustache),
+      Kind::Value { .. } | Kind::Directive { .. } | Kind::Opaque
+    ) {
+      return self.tempura_tag(mustache);
+    }
     match self.state {
       State::TagOpen | State::TagName => return Err(self.error(Message::MisplacedMustache)),
       State::BeforeAttributeName => self.add_element_modifier(mustache)?,
@@ -1052,6 +1058,37 @@ impl Builder<'_> {
         self.tree.has_lost_text |= !matches!(self.state, State::BeforeData | State::Data);
         self.children.push(mustache);
       }
+    }
+    Ok(())
+  }
+
+  /// Adds a tempura tag. In a start tag it's kept in its place among the attributes, as a modifier would be.
+  fn tempura_tag(&mut self, node: NodeId) -> Result<(), Error> {
+    // Like whitespace, the tag ends the name of the element.
+    if self.state == State::TagName {
+      self.state = State::BeforeAttributeName;
+    }
+    match self.state {
+      State::BeforeAttributeName | State::AfterAttributeValueQuoted if !self.tag.is_end => {
+        self.tag_parts[1].push(node);
+        self.state = State::BeforeAttributeName;
+      }
+      State::AttributeName | State::AfterAttributeName if !self.tag.is_end => {
+        self.begin_attribute_value(false);
+        self.finish_attribute_value()?;
+        self.tag_parts[1].push(node);
+        self.state = State::BeforeAttributeName;
+      }
+      State::BeforeAttributeValue => {
+        self.begin_attribute_value(false);
+        self.append_dynamic_attribute_value_part(node);
+        self.state = State::AttributeValueUnquoted;
+      }
+      State::AttributeValueDoubleQuoted
+      | State::AttributeValueSingleQuoted
+      | State::AttributeValueUnquoted => self.append_dynamic_attribute_value_part(node),
+      State::BeforeData | State::Data => self.children.push(node),
+      _ => return Err(self.error(Message::MisplacedMustache)),
     }
     Ok(())
   }
@@ -1101,6 +1138,11 @@ impl Builder<'_> {
         is_verbatim,
         block_params,
       } => {
+        let is_section = matches!(self.tree.kind(node), Kind::Section { .. });
+        if is_section && !matches!(self.state, State::Data | State::BeforeData) {
+          let opaque = self.tree.add(Kind::Opaque, start, end);
+          return self.tempura_tag(opaque);
+        }
         if !matches!(self.state, State::Data | State::BeforeData) || !is_valid {
           return Err(self.error_at(Message::MisplacedBlock, statement.start as usize));
         }
@@ -1116,7 +1158,9 @@ impl Builder<'_> {
         if let Some(block) = self.tree.nodes.get_mut(node as usize) {
           (block.start, block.end) = (start as u32, end as u32);
           block.is_verbatim = is_verbatim;
-          if let Kind::BlockStatement { program, inverse, .. } = &mut block.kind {
+          if let Kind::BlockStatement { program, inverse, .. }
+          | Kind::Section { program, inverse, .. } = &mut block.kind
+          {
             (*program, *inverse) = (default_block, else_block);
           }
         }

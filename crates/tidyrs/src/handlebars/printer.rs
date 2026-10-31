@@ -343,6 +343,10 @@ impl<'a> Printer<'a, '_> {
           self.block_statement(node, outer.map(|outer| outer.1));
         }
         Kind::Mustache { .. } => self.mustache_node(node, false),
+        Kind::Value { code, is_trusting } => self.value(code, is_trusting, false),
+        Kind::Directive { name, args } => self.directive(self.text(name), self.text(args)),
+        Kind::Section { .. } => self.section(node),
+        Kind::Opaque => self.ignored(node),
         Kind::MustacheComment { value } => self.mustache_comment(node, self.text(value)),
         Kind::Comment { value } => {
           self.token("<!--");
@@ -550,6 +554,9 @@ impl<'a> Printer<'a, '_> {
       }
       Kind::MustacheComment { .. } if self.is_prettier_ignore(id) => self.ignored(node),
       Kind::MustacheComment { value } => self.mustache_comment(node, self.text(value)),
+      Kind::Value { code, is_trusting } => self.value(code, is_trusting, false),
+      Kind::Directive { name, args } => self.directive(self.text(name), self.text(args)),
+      Kind::Opaque => self.ignored(node),
       _ => {}
     }
   }
@@ -598,9 +605,9 @@ impl<'a> Printer<'a, '_> {
         let parts = self.list(parts);
         let tree = self.tree;
         let is_mustache = |index: Option<usize>| {
-          index
-            .and_then(|index| parts.get(index))
-            .is_some_and(|part| matches!(tree.kind(*part), Kind::Mustache { .. }))
+          index.and_then(|index| parts.get(index)).is_some_and(|part| {
+            matches!(tree.kind(*part), Kind::Mustache { .. } | Kind::Value { .. })
+          })
         };
         for (index, part) in parts.iter().enumerate() {
           match self.tree.kind(*part) {
@@ -612,11 +619,15 @@ impl<'a> Printer<'a, '_> {
               self.text_in_attribute(self.text(chars), is_class, neighbors, escapes);
             }
             Kind::Mustache { .. } => self.mustache_node(self.tree.node(*part), true),
+            Kind::Value { code, is_trusting } => self.value(code, is_trusting, true),
+            Kind::Opaque => self.ignored(self.tree.node(*part)),
             _ => {}
           }
         }
       }
       Kind::Mustache { .. } => self.mustache_node(node, false),
+      Kind::Value { code, is_trusting } => self.value(code, is_trusting, false),
+      Kind::Opaque => self.ignored(node),
       _ => {}
     }
     if is_grouped {
@@ -714,10 +725,16 @@ impl<'a> Printer<'a, '_> {
         .map_or(Kind::Nothing, |node| self.tree.kind(*node))
     };
     let (previous, next) = (kind_at(index.checked_sub(1)), kind_at(Some(index + 1)));
-    let is_block_or_element =
-      |kind: Kind| matches!(kind, Kind::BlockStatement { .. } | Kind::Element { .. });
+    let is_block_or_element = |kind: Kind| {
+      matches!(kind, Kind::BlockStatement { .. } | Kind::Section { .. } | Kind::Element { .. })
+    };
     // A text next to a text means an escaped mustache. Prettier joins the two.
-    let is_mustache = |kind: Kind| matches!(kind, Kind::Mustache { .. } | Kind::Text { .. });
+    let is_mustache = |kind: Kind| {
+      matches!(
+        kind,
+        Kind::Mustache { .. } | Kind::Value { .. } | Kind::Directive { .. } | Kind::Text { .. }
+      )
+    };
 
     let line_breaks = strings::count_char(chars, b'\n');
     // `countLeadingNewLines`, `countTrailingNewLines`
@@ -968,6 +985,242 @@ impl<'a> Printer<'a, '_> {
     self.close();
   }
 
+  // ───────────────────────────── tempura ─────────────────────────────
+
+  /// Formats JavaScript with the host. `extra` is how many indents it starts at past the current ones, and `reserved`
+  /// how many columns of the line the tag around it takes.
+  fn javascript(
+    &mut self,
+    code: &[u8],
+    kind: Purpose,
+    extra: usize,
+    reserved: usize,
+  ) -> Option<String> {
+    let code = std::str::from_utf8(code).ok()?;
+    let request = Request {
+      code,
+      language: "__js_expression",
+      kind,
+      indent: self.indents + extra,
+      width: self.options.width.saturating_sub(reserved),
+    };
+    let formatted = self.embed.format(request)?;
+    Some(formatted.trim_end_matches(['\n', '\r']).to_owned())
+  }
+
+  /// Emits JavaScript as the host formats it, or as it is written.
+  fn code(&mut self, code: &[u8], kind: Purpose, extra: usize, reserved: usize) {
+    match self.javascript(code, kind, extra, reserved) {
+      Some(formatted) => self.with_literal_lines(formatted.as_bytes(), Escapes::Nothing),
+      None => self.with_literal_lines(code, Escapes::Nothing),
+    }
+  }
+
+  /// `{{ code }}`, or `{{{ code }}}` if it's trusting: `group(["{{", indent([line, code]), line, "}}"])`, as Prettier
+  /// prints an interpolation in Vue.
+  fn value(&mut self, code: ast::Text, is_trusting: bool, is_in_attribute: bool) {
+    let code = self.text(code);
+    let kind = if is_in_attribute { Purpose::Attribute } else { Purpose::Expression };
+    self.start_group();
+    self.token(if is_trusting { "{{{" } else { "{{" });
+    self.start_indent();
+    self.space();
+    self.code(code, kind, 0, 0);
+    self.close();
+    self.space();
+    self.token(if is_trusting { "}}}" } else { "}}" });
+    self.close();
+  }
+
+  /// A `line` if values are spaced, else a `softline`.
+  fn space(&mut self) {
+    match self.options.spaced {
+      true => self.docs.line(),
+      false => self.docs.softline(),
+    }
+  }
+
+  /// `{{#name args}}`: `#expect`, `#var`, or a custom block.
+  fn directive(&mut self, name: &'a [u8], args: &'a [u8]) {
+    self.start_group();
+    self.token("{{#");
+    self.put(name);
+    match name {
+      b"expect" => {
+        let names: Vec<&[u8]> = strings::split(args, b",")
+          .map(<[u8]>::trim_ascii)
+          .filter(|name| !name.is_empty())
+          .collect();
+        self.start_indent();
+        for (index, name) in names.iter().enumerate() {
+          if index > 0 {
+            self.token(",");
+          }
+          self.docs.line();
+          self.put(name);
+        }
+        self.close();
+      }
+      b"var" => match strings::index_of_char_usize(args, b'=') {
+        Some(at) => {
+          let key = args[..at].trim_ascii();
+          let value = args[at + 1..].trim_ascii();
+          let value = value.strip_suffix(b";").unwrap_or(value).trim_ascii_end();
+          self.token(" ");
+          self.put(key);
+          self.token(" = ");
+          // `{{#var key = ` and `}}`
+          self.code(value, Purpose::Expression, 0, key.len() + 12);
+          self.token("}}");
+          return self.close();
+        }
+        None => {
+          self.token(" ");
+          self.put(args);
+        }
+      },
+      _ => match arguments(args) {
+        // A single argument stays next to the name.
+        Some(pairs) if pairs.len() == 1 => {
+          let (key, value) = pairs[0];
+          self.token(" ");
+          self.put(key);
+          self.token("=");
+          self.with_literal_lines(value, Escapes::Nothing);
+          self.token("}}");
+          return self.close();
+        }
+        Some(pairs) => {
+          self.start_indent();
+          for (key, value) in pairs {
+            self.docs.line();
+            self.put(key);
+            self.token("=");
+            self.with_literal_lines(value, Escapes::Nothing);
+          }
+          self.close();
+        }
+        None if args.is_empty() => {
+          self.token("}}");
+          return self.close();
+        }
+        None => {
+          self.token(" ");
+          self.with_literal_lines(args, Escapes::Nothing);
+          self.token("}}");
+          return self.close();
+        }
+      },
+    }
+    self.docs.softline();
+    self.token("}}");
+    self.close();
+  }
+
+  /// The opening tag of a section: `{{#if code}}`, `{{#elif code}}` or `{{#each list as item}}`.
+  fn section_tag(&mut self, name: &'a [u8], code: &'a [u8]) {
+    self.start_group();
+    self.token("{{#");
+    self.put(name);
+    if !code.is_empty() {
+      self.token(" ");
+      match (name, each(code)) {
+        (b"each", Some((list, names))) => {
+          // `{{#each `, ` as (item, index)}}`
+          let reserved = 8 + 6 + names.iter().map(|name| name.len() + 2).sum::<usize>();
+          self.code(list, Purpose::Expression, 0, reserved);
+          self.token(" as ");
+          match names[..] {
+            [item] => self.put(item),
+            _ => {
+              self.token("(");
+              for (index, name) in names.iter().enumerate() {
+                if index > 0 {
+                  self.token(", ");
+                }
+                self.put(name);
+              }
+              self.token(")");
+            }
+          }
+        }
+        // `{{#name ` and `}}`
+        _ => self.code(code, Purpose::Expression, 0, name.len() + 6),
+      }
+    }
+    self.token("}}");
+    self.close();
+  }
+
+  /// A tempura `#if` or `#each` with its body, as `block_statement` prints a block.
+  fn section(&mut self, node: Node) {
+    let Kind::Section { name, code, program, inverse, .. } = node.kind else {
+      return;
+    };
+    let name = self.text(name);
+    let is_ignoring_white_space = !self.is_white_space_sensitive;
+    self.section_tag(name, self.text(code));
+    self.start_group();
+    let (body, _) = self.body_of(program);
+    let is_blank = self.section_body(body);
+    let mut inverse = inverse;
+    while inverse != NOTHING {
+      let (body, _) = self.body_of(inverse);
+      if let [chained] = body
+        && let Kind::Section { name, code, program, inverse: next, is_chained: true } =
+          self.tree.kind(*chained)
+      {
+        if is_ignoring_white_space {
+          self.docs.hardline();
+        }
+        self.section_tag(self.text(name), self.text(code));
+        self.section_body(self.body_of(program).0);
+        inverse = next;
+        continue;
+      }
+      if is_ignoring_white_space {
+        self.docs.hardline();
+      }
+      self.token("{{#else}}");
+      self.section_body(body);
+      break;
+    }
+    if is_ignoring_white_space {
+      match is_blank && inverse == NOTHING {
+        true => self.docs.softline(),
+        false => self.docs.hardline(),
+      }
+    }
+    self.token("{{/");
+    self.put(name);
+    self.token("}}");
+    self.close();
+  }
+
+  /// Prints the body of a section's part, indented. Returns true if it's blank.
+  fn section_body(&mut self, body: &'a [NodeId]) -> bool {
+    let is_blank = self.are_white_space(body) && (self.pre_depth == 0 || body.is_empty());
+    if is_blank {
+      // A tag alone on its line leaves no trace when tempura renders, so it stays alone.
+      let has_line_break = body.iter().any(|node| {
+        matches!(self.tree.kind(*node), Kind::Text { chars } if self.text(chars).contains(&b'\n'))
+      });
+      if has_line_break && self.is_white_space_sensitive {
+        self.docs.hardline();
+      }
+      return true;
+    }
+    self.start_indent();
+    if !self.is_white_space_sensitive {
+      self.docs.hardline();
+    }
+    self.start_group();
+    self.children(body, Parent::Block, None);
+    self.close();
+    self.close();
+    false
+  }
+
   // ───────────────────────────── expressions ─────────────────────────────
 
   /// `is_in_quotes` is true if it's part of a quoted attribute value.
@@ -986,7 +1239,16 @@ impl<'a> Printer<'a, '_> {
       (false, true) => "{{~",
       (false, false) => "{{",
     });
+    if self.options.spaced {
+      self.token(" ");
+    }
     self.path_and_params(call, is_in_quotes);
+    if self.options.spaced {
+      // After the `softline` of a broken mustache, the braces start the line.
+      self.open_if_break(Branch::Flat);
+      self.token(" ");
+      self.close();
+    }
     self.token(match (is_trusting, strip & ast::OPEN_CLOSE != 0) {
       (true, true) => "}~}}",
       (true, false) => "}}}",
@@ -1147,6 +1409,65 @@ impl<'a> Printer<'a, '_> {
     if needs_brackets {
       self.token("]");
     }
+  }
+}
+
+/// tempura's `#each list as item`, `as item, index` or `as (item, index)`: the list and the names.
+fn each(code: &[u8]) -> Option<(&[u8], Vec<&[u8]>)> {
+  let at = code.windows(4).position(|window| {
+    window[0].is_ascii_whitespace()
+      && &window[1..3] == b"as"
+      && (window[3].is_ascii_whitespace() || window[3] == b'(')
+  })?;
+  let names = code[at + 3..].trim_ascii();
+  let names = names.strip_prefix(b"(").and_then(|it| it.strip_suffix(b")")).unwrap_or(names);
+  let names: Vec<&[u8]> = strings::split(names, b",").map(<[u8]>::trim_ascii).collect();
+  if names.is_empty()
+    || names.len() > 2
+    || names.iter().any(|name| name.is_empty() || id_len(name) != name.len())
+  {
+    return None;
+  }
+  Some((code[..at].trim_ascii(), names))
+}
+
+/// tempura's `args`: `a="x" b=1 c=(x === y)` as pairs, or `None` if it can't read them.
+fn arguments(args: &[u8]) -> Option<Vec<(&[u8], &[u8])>> {
+  let mut pairs = Vec::new();
+  let mut at = 0;
+  let skip = |at: &mut usize| {
+    *at += args[*at..].iter().take_while(|byte| byte.is_ascii_whitespace()).count()
+  };
+  loop {
+    skip(&mut at);
+    if at >= args.len() {
+      return Some(pairs);
+    }
+    let first = args[at];
+    if !(first.is_ascii_alphabetic() || first == b'$' || first == b'_') {
+      return None;
+    }
+    let key_start = at;
+    at +=
+      args[at..].iter().take_while(|byte| !byte.is_ascii_whitespace() && **byte != b'=').count();
+    let key = &args[key_start..at];
+    skip(&mut at);
+    if args.get(at) != Some(&b'=') {
+      return None;
+    }
+    at += 1;
+    skip(&mut at);
+    let value_start = at;
+    let end = match args.get(at)? {
+      b'"' | b'\'' | b'`' => super::tempura::quote_end(args, at)?,
+      b'(' | b'{' | b'[' => super::tempura::group_end(args, at)?,
+      _ => at + args[at..].iter().take_while(|byte| !byte.is_ascii_whitespace()).count(),
+    };
+    if end <= value_start {
+      return None;
+    }
+    pairs.push((key, &args[value_start..end]));
+    at = end;
   }
 }
 
