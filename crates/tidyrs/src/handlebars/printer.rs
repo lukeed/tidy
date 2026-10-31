@@ -361,6 +361,10 @@ impl<'a> Printer<'a, '_> {
   }
 
   fn mustache_comment(&mut self, node: Node, value: &[u8]) {
+    // Tempura's comments, `{{! note }}` and `{{! note !}}`, have no dashes to add or drop.
+    if self.options.is_tempura {
+      return self.ignored(node);
+    }
     let is_tilde =
       |at: Option<usize>| at.and_then(|at| self.source.as_bytes().get(at)) == Some(&b'~');
     let strips_left = is_tilde(Some(node.start as usize + 2));
@@ -1024,20 +1028,12 @@ impl<'a> Printer<'a, '_> {
     self.start_group();
     self.token(if is_trusting { "{{{" } else { "{{" });
     self.start_indent();
-    self.space();
+    self.docs.line();
     self.code(code, kind, 0, 0);
     self.close();
-    self.space();
+    self.docs.line();
     self.token(if is_trusting { "}}}" } else { "}}" });
     self.close();
-  }
-
-  /// A `line` if values are spaced, else a `softline`.
-  fn space(&mut self) {
-    match self.options.spaced {
-      true => self.docs.line(),
-      false => self.docs.softline(),
-    }
   }
 
   /// `{{#name args}}`: `#expect`, `#var`, or a custom block.
@@ -1126,22 +1122,15 @@ impl<'a> Printer<'a, '_> {
       self.token(" ");
       match (name, each(code)) {
         (b"each", Some((list, names))) => {
-          // `{{#each `, ` as (item, index)}}`
-          let reserved = 8 + 6 + names.iter().map(|name| name.len() + 2).sum::<usize>();
+          // `{{#each `, ` as item, index}}`
+          let reserved = 8 + 4 + names.iter().map(|name| name.len() + 2).sum::<usize>();
           self.code(list, Purpose::Expression, 0, reserved);
           self.token(" as ");
-          match names[..] {
-            [item] => self.put(item),
-            _ => {
-              self.token("(");
-              for (index, name) in names.iter().enumerate() {
-                if index > 0 {
-                  self.token(", ");
-                }
-                self.put(name);
-              }
-              self.token(")");
+          for (index, name) in names.iter().enumerate() {
+            if index > 0 {
+              self.token(", ");
             }
+            self.put(name);
           }
         }
         // `{{#name ` and `}}`
@@ -1239,16 +1228,7 @@ impl<'a> Printer<'a, '_> {
       (false, true) => "{{~",
       (false, false) => "{{",
     });
-    if self.options.spaced {
-      self.token(" ");
-    }
     self.path_and_params(call, is_in_quotes);
-    if self.options.spaced {
-      // After the `softline` of a broken mustache, the braces start the line.
-      self.open_if_break(Branch::Flat);
-      self.token(" ");
-      self.close();
-    }
     self.token(match (is_trusting, strip & ast::OPEN_CLOSE != 0) {
       (true, true) => "}~}}",
       (true, false) => "}}}",
@@ -1412,7 +1392,8 @@ impl<'a> Printer<'a, '_> {
   }
 }
 
-/// tempura's `#each list as item`, `as item, index` or `as (item, index)`: the list and the names.
+/// tempura's `#each list as item` or `as item, index`: the list and the names. Tempura also reads them in
+/// parentheses.
 fn each(code: &[u8]) -> Option<(&[u8], Vec<&[u8]>)> {
   let at = code.windows(4).position(|window| {
     window[0].is_ascii_whitespace()

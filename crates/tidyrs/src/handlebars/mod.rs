@@ -174,8 +174,8 @@ impl Default for Settings {
 /// Options of the printer, as it uses them.
 pub(crate) struct Options {
   pub(crate) width: usize,
-  /// Tempura's style: `{{ value }}`.
-  pub(crate) spaced: bool,
+  /// The template is tempura.
+  pub(crate) is_tempura: bool,
 }
 
 /// Why a template could not be formatted.
@@ -266,7 +266,7 @@ impl Formatter {
     self.bump.reset();
     let mut docs = Docs::reuse(&self.bump, &mut self.docs);
     docs.reserve(content.len());
-    let options = Options { width: settings.width, spaced: is_tempura };
+    let options = Options { width: settings.width, is_tempura };
     let mut printer = printer::Printer {
       tree: &self.scratch.tree,
       source: &content,

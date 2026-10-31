@@ -25,7 +25,7 @@ fn formats_tempura() {
     hbs(
       "{{#expect  items,\n  title }}\n{{#var count=items.length;}}\n<ul>\n{{#each items as item,i}}\n<li{{#if item.done}} class=\"done\"{{/if}}>{{item.text}}</li>\n{{/each}}\n</ul>\n{{#if count == 0}}\n<p>Done</p>\n{{#elif count > 9}}\n<p>{{{ count }}} left</p>\n{{#else}}\n{{#partial   src=\"nav\"  }}\n{{/if}}\n"
     ),
-    "{{#expect items, title}}\n{{#var count = items.length}}\n<ul>\n  {{#each items as (item, i)}}\n    <li {{#if item.done}} class=\"done\"{{/if}}>{{ item.text }}</li>\n  {{/each}}\n</ul>\n{{#if count == 0}}\n  <p>Done</p>\n{{#elif count > 9}}\n  <p>{{{ count }}} left</p>\n{{#else}}\n  {{#partial src=\"nav\"}}\n{{/if}}"
+    "{{#expect items, title}}\n{{#var count = items.length}}\n<ul>\n  {{#each items as item, i}}\n    <li {{#if item.done}} class=\"done\"{{/if}}>{{ item.text }}</li>\n  {{/each}}\n</ul>\n{{#if count == 0}}\n  <p>Done</p>\n{{#elif count > 9}}\n  <p>{{{ count }}} left</p>\n{{#else}}\n  {{#partial src=\"nav\"}}\n{{/if}}"
   );
 }
 
@@ -48,4 +48,13 @@ fn spaces_values_in_tempura_only() {
   assert_eq!(with("<p>{{ name }}</p>", handlebars), "<p>{{name}}</p>");
   assert_eq!(with("<p>{{name}}</p>", tempura), "<p>{{ name }}</p>");
   assert_eq!(hbs("<p>{{name}}</p>"), "<p>{{name}}</p>");
+}
+
+#[test]
+fn keeps_tempura_comments_as_written() {
+  let tempura = Settings { dialect: Dialect::Tempura, ..Settings::default() };
+  assert_eq!(
+    with("{{!-- todo --}}\n{{!\n  many\n  lines\n!}}\n<p>{{x}}</p>", tempura),
+    "{{!-- todo --}}\n{{!\n  many\n  lines\n!}}\n<p>{{ x }}</p>"
+  );
 }
