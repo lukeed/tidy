@@ -7,10 +7,10 @@
 
 use super::Error;
 use super::ast::{self, Call, Head, Kind, NOTHING, NodeId, Range, Text, Tree};
-use super::error::{Message, Rejection};
 use super::lexer::{Token, TokenKind, id_len};
 use crate::stack::Stack;
 use crate::strings;
+use crate::syntax::{Message, Rejection};
 
 #[derive(Copy, Clone)]
 pub(crate) enum StatementKind {

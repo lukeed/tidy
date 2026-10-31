@@ -1,8 +1,9 @@
 //! The lexer of `@handlebars/parser` (`src/handlebars.l`). In each state, the first rule that matches wins.
 
 use super::Error;
-use super::error::{Message, Rejection};
 use crate::strings;
+use crate::syntax::{Message, Rejection};
+use crate::text::ByteSet;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub(crate) enum TokenKind {
@@ -57,42 +58,12 @@ enum State {
 }
 
 /// The ASCII bytes that `[^\s!"#%-,\.\/;->@\[-\^`\{-~]` matches.
-const ASCII_OF_ID: ByteSet = ByteSet::of(b"$-:?_\x7F")
+const ASCII_OF_ID: ByteSet = ByteSet::new(b"$-:?_\x7F")
   .with_range(0x00, 0x08)
   .with_range(0x0E, 0x1F)
   .with_range(b'0', b'9')
   .with_range(b'A', b'Z')
   .with_range(b'a', b'z');
-
-/// A set of bytes, for tables built at compile time.
-#[derive(Copy, Clone)]
-struct ByteSet([bool; 256]);
-
-impl ByteSet {
-  const fn of(bytes: &[u8]) -> ByteSet {
-    let mut set = [false; 256];
-    let mut at = 0;
-    while at < bytes.len() {
-      set[bytes[at] as usize] = true;
-      at += 1;
-    }
-    ByteSet(set)
-  }
-
-  const fn with_range(self, first: u8, last: u8) -> ByteSet {
-    let mut set = self.0;
-    let mut byte = first as usize;
-    while byte <= last as usize {
-      set[byte] = true;
-      byte += 1;
-    }
-    ByteSet(set)
-  }
-
-  fn has(&self, byte: u8) -> bool {
-    self.0[byte as usize]
-  }
-}
 
 fn leading_white_space_len(text: &[u8]) -> usize {
   text.len() - strings::trim_js_whitespace_start(text).len()

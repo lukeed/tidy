@@ -10,6 +10,7 @@ mod width_tables;
 
 use bumpalo::Bump;
 
+pub(crate) use print::print_at;
 pub use print::{Eol, Options, print};
 pub use width::width;
 

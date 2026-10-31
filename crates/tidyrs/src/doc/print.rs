@@ -13,7 +13,7 @@ pub enum Eol {
 }
 
 impl Eol {
-  fn text(self) -> &'static str {
+  pub(crate) fn text(self) -> &'static str {
     match self {
       Eol::Lf => "\n",
       Eol::Crlf => "\r\n",
@@ -197,13 +197,18 @@ impl<'a> Indents<'a> {
 
 /// `PrintResult`: trims only what was written since the last trim.
 struct Output {
-  text: String,
+  text: Vec<u8>,
   settled: usize,
 }
 
 impl Output {
   fn trim(&mut self) -> usize {
-    let kept = self.text[self.settled..].trim_end_matches([' ', '\t']).len() + self.settled;
+    let blank = self.text[self.settled..]
+      .iter()
+      .rev()
+      .take_while(|byte| matches!(byte, b' ' | b'\t'))
+      .count();
+    let kept = self.text.len() - blank;
     let count = self.text.len() - kept;
     self.text.truncate(kept);
     self.settled = kept;
@@ -233,16 +238,44 @@ fn inside(at: u32, end: u32) -> (u32, u32) {
 }
 
 /// Prints the stream into `text`, breaking its groups to fit in `options.width` columns.
-#[inline(never)]
 pub fn print(docs: &Docs<'_>, options: &Options, mut text: String) -> String {
-  let eol = options.eol.text();
-  let mut indents = Indents::new(options);
-  let mut modes = Modes(Vec::new());
   text.clear();
   text.reserve(docs.len() as usize * 4);
-  let mut output = Output { text, settled: 0 };
-  let mut position = 0isize;
-  let mut commands = vec![Command::new(ROOT, Mode::Break, 1, docs.len())];
+  let printed = run(docs, options, text.into_bytes(), 0, 0).0;
+  // Every text is a whole `str`, and so is every indent.
+  String::from_utf8(printed)
+    .unwrap_or_else(|error| String::from_utf8_lossy(error.as_bytes()).into_owned())
+}
+
+/// Prints the stream after what `text` has, from `column` and `depth` indents on. Returns the column it ends at.
+pub(crate) fn print_at(
+  docs: &Docs<'_>,
+  options: &Options,
+  text: &mut Vec<u8>,
+  depth: usize,
+  column: usize,
+) -> usize {
+  let (printed, position) = run(docs, options, std::mem::take(text), depth, column);
+  *text = printed;
+  position.max(0) as usize
+}
+
+#[inline(never)]
+fn run(
+  docs: &Docs<'_>,
+  options: &Options,
+  text: Vec<u8>,
+  depth: usize,
+  column: usize,
+) -> (Vec<u8>, isize) {
+  let eol = options.eol.text();
+  let mut indents = Indents::new(options);
+  let indent = (0..depth).fold(ROOT, |indent, _| indents.make(indent, Step::Indent));
+  let mut modes = Modes(Vec::new());
+  let settled = text.len();
+  let mut output = Output { text, settled };
+  let mut position = column as isize;
+  let mut commands = vec![Command::new(indent, Mode::Break, 1, docs.len())];
   let mut remeasure = false;
   let mut suffix: Vec<Command> = Vec::new();
   let mut scratch: Vec<Frame> = Vec::new();
@@ -322,9 +355,9 @@ pub fn print(docs: &Docs<'_>, options: &Options, mut text: String) -> String {
           for index in start..start + count {
             let (text, _) = docs.text_at(index);
             if eol != "\n" && text.contains('\n') {
-              output.text.push_str(&text.replace('\n', eol));
+              output.text.extend_from_slice(text.replace('\n', eol).as_bytes());
             } else {
-              output.text.push_str(text);
+              output.text.extend_from_slice(text.as_bytes());
             }
           }
           position += width as isize;
@@ -340,7 +373,7 @@ pub fn print(docs: &Docs<'_>, options: &Options, mut text: String) -> String {
         Element::Line(line) => {
           if mode == Mode::Flat && matches!(line, Line::Space | Line::Soft) {
             if line == Line::Space {
-              output.text.push(' ');
+              output.text.push(b' ');
               position += 1;
             }
             continue;
@@ -356,11 +389,11 @@ pub fn print(docs: &Docs<'_>, options: &Options, mut text: String) -> String {
           }
           if line == Line::Literal {
             let root = indents.get(indents.get(indent).root);
-            output.text.push_str(&root.line);
+            output.text.extend_from_slice(root.line.as_bytes());
             position = root.length as isize;
           } else {
             output.trim();
-            output.text.push_str(&indents.get(indent).line);
+            output.text.extend_from_slice(indents.get(indent).line.as_bytes());
             position = indents.get(indent).length as isize;
           }
         }
@@ -483,7 +516,7 @@ pub fn print(docs: &Docs<'_>, options: &Options, mut text: String) -> String {
       commands.extend(suffix.drain(..).rev());
     }
   }
-  output.text
+  (output.text, position)
 }
 
 /// The width of the range when it is one text, or nothing.

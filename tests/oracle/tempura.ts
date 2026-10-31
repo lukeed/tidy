@@ -53,7 +53,8 @@ for (let file of files) {
 	try {
 		let once = await run(source, file);
 		if ((await run(once, file)) !== once) throw new Error("not stable");
-		let verbatim = format(source, { parser: "handlebars", filepath: file });
+		// Only the template is compared: style sheets are formatted, which changes more than whitespace.
+		let verbatim = format(source, { parser: "handlebars", filepath: file, embeddedLanguageFormatting: "off" });
 		let before = compiled(source);
 		if (before !== undefined && compiled(verbatim) !== before) throw new Error("compiles differently");
 		if (before !== undefined && compiled(once) === undefined) throw new Error("doesn't compile");

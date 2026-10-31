@@ -58,6 +58,8 @@ pub(crate) struct Options<'o> {
   pub(crate) embedded: bool,
   /// A Vue file with a TypeScript `<script>`, whose expressions are TypeScript.
   pub(crate) typescript: bool,
+  /// `embeddedLanguageFormatting` is `"auto"`.
+  pub(crate) formats_embedded: bool,
 }
 
 /// How to format a markup file.
@@ -74,6 +76,9 @@ pub struct Settings {
   pub vue_indent_script_and_style: bool,
   /// The file's path, which decides some details, like the case of `<!doctype html>`.
   pub filepath: Option<String>,
+  /// Prettier's `embeddedLanguageFormatting`: `"auto"` if true, `"off"` if false. Off, neither the embed hook nor
+  /// tidyrs' own formatters see the code of other languages, which stays as it is written.
+  pub format_embedded: bool,
 }
 
 impl Default for Settings {
@@ -89,6 +94,7 @@ impl Default for Settings {
       bracket_same_line: false,
       vue_indent_script_and_style: false,
       filepath: None,
+      format_embedded: true,
     }
   }
 }
@@ -141,9 +147,21 @@ impl Formatter {
     settings: &Settings,
     embed: &mut dyn crate::embed::Embed,
   ) -> Result<&str, Error> {
-    let text = text.strip_prefix('\u{FEFF}').unwrap_or(text);
+    let (bom, text) = crate::without_bom(text);
+    let embed = if settings.format_embedded { embed } else { &mut crate::embed::Verbatim };
+    self.format_text(text, settings, embed)?;
+    Ok(crate::with_bom(bom, &mut self.output))
+  }
+
+  fn format_text(
+    &mut self,
+    text: &str,
+    settings: &Settings,
+    embed: &mut dyn crate::embed::Embed,
+  ) -> Result<(), Error> {
     if text.trim().is_empty() {
-      return Ok("");
+      self.output.clear();
+      return Ok(());
     }
     let text: std::borrow::Cow<str> = if text.contains('\r') {
       text.replace("\r\n", "\n").replace('\r', "\n").into()
@@ -183,7 +201,7 @@ impl Formatter {
     *attrs = crate::doc::recycle(tree.attrs);
     *tokens = tree.tokens;
     *buffer = output?;
-    Ok(buffer)
+    Ok(())
   }
 }
 
@@ -221,6 +239,7 @@ fn run<'a>(
     vue_indent_script_and_style: settings.vue_indent_script_and_style,
     embedded: false,
     typescript,
+    formats_embedded: settings.format_embedded,
   };
   if !preprocess::preprocess(tree, &options) {
     return Err(Error::TooDeep);

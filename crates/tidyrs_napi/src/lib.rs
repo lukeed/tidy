@@ -1,8 +1,8 @@
 use napi::bindgen_prelude::Function;
 use napi_derive::napi;
 use tidyrs::embed::{Kind, Request};
-use tidyrs::handlebars;
 use tidyrs::html::{Parser, Settings, Whitespace};
+use tidyrs::{css, handlebars};
 
 /// A piece of embedded code for the host to format.
 #[napi(object)]
@@ -24,7 +24,7 @@ type Callback<'a> = Function<'a, EmbedRequest, Option<String>>;
 #[napi(object)]
 #[derive(Default)]
 pub struct FormatOptions {
-  #[napi(ts_type = "'html' | 'vue' | 'handlebars'")]
+  #[napi(ts_type = "'html' | 'vue' | 'handlebars' | 'css' | 'scss' | 'less'")]
   pub parser: Option<String>,
   /// The line width. Default: 80.
   pub width: Option<u32>,
@@ -36,8 +36,15 @@ pub struct FormatOptions {
   pub single_attribute_per_line: Option<bool>,
   pub bracket_same_line: Option<bool>,
   pub vue_indent_script_and_style: Option<bool>,
-  /// Prefer single quotes in Handlebars. Default: false.
+  /// Prefer single quotes in Handlebars and style sheets. Default: false.
   pub single_quote: Option<bool>,
+  /// Prettier's `embeddedLanguageFormatting`. Off, the code of other languages stays as it is written. Default:
+  /// `"auto"`.
+  #[napi(ts_type = "'auto' | 'off'")]
+  pub embedded_language_formatting: Option<String>,
+  /// Prettier's `trailingComma`, for SCSS maps and lists. Default: `"all"`.
+  #[napi(ts_type = "'all' | 'es5' | 'none'")]
+  pub trailing_comma: Option<String>,
   /// The file's path, which decides some details.
   pub filepath: Option<String>,
 }
@@ -52,8 +59,16 @@ pub fn format(
   embed: Option<Callback<'_>>,
 ) -> napi::Result<String> {
   let options = options.unwrap_or_default();
-  let is_handlebars = options.parser.as_deref() == Some("handlebars");
+  let dialect = match options.parser.as_deref() {
+    Some("css") => Some(css::Dialect::Css),
+    Some("scss") => Some(css::Dialect::Scss),
+    Some("less") => Some(css::Dialect::Less),
+    _ => None,
+  };
+  let is_handlebars = options.parser.as_deref() == Some("handlebars") || dialect.is_some();
   let single_quote = options.single_quote.unwrap_or_default();
+  let trailing_comma = options.trailing_comma.as_deref() != Some("none");
+  let format_embedded = options.embedded_language_formatting.as_deref() != Some("off");
   let settings = settings(options, is_handlebars)?;
   let mut failure = None;
   let mut hook = |request: Request<'_>| -> Option<String> {
@@ -84,6 +99,19 @@ pub fn format(
   };
   let error = |error: &dyn std::fmt::Display| napi::Error::from_reason(error.to_string());
   let output = match is_handlebars {
+    true if let Some(dialect) = dialect => {
+      let settings = css::Settings {
+        dialect,
+        width: settings.width,
+        tab_width: settings.tab_width,
+        tabs: settings.tabs,
+        single_quote,
+        trailing_comma,
+        format_embedded,
+        ..css::Settings::default()
+      };
+      css::format(&source, &settings, &mut hook).map_err(|it| error(&it))?
+    }
     true => {
       let settings = handlebars::Settings {
         width: settings.width,
@@ -92,11 +120,15 @@ pub fn format(
         whitespace: settings.whitespace,
         single_quote,
         filepath: settings.filepath.clone(),
+        format_embedded,
         ..handlebars::Settings::default()
       };
       handlebars::format(&source, &settings, &mut hook).map_err(|it| error(&it))?
     }
-    false => tidyrs::html::format(&source, &settings, &mut hook).map_err(|it| error(&it))?,
+    false => {
+      let settings = Settings { format_embedded, ..settings };
+      tidyrs::html::format(&source, &settings, &mut hook).map_err(|it| error(&it))?
+    }
   };
   match failure {
     Some(error) => Err(error),

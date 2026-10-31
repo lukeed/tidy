@@ -7,10 +7,10 @@
 
 use super::Error;
 use super::ast::{Kind, NOTHING, NodeId, Range, Text, Tree};
-use super::error::{Message, Rejection};
 use super::parser::{Statement, StatementKind};
 use crate::stack::Stack;
 use crate::strings;
+use crate::syntax::{Message, Rejection};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum State {

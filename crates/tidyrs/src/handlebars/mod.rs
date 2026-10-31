@@ -13,7 +13,6 @@
 //! (`ast::Node::is_as_written`).
 
 mod ast;
-mod error;
 mod lexer;
 mod parser;
 mod printer;
@@ -24,7 +23,7 @@ mod tokenizer;
 use crate::doc::{self, Docs};
 use crate::embed::Embed;
 use crate::stack::Stack;
-use error::{Message, Rejected, Rejection};
+use crate::syntax::{Message, Rejected, Rejection};
 
 #[derive(Copy, Clone, Debug)]
 enum Error {
@@ -157,6 +156,9 @@ pub struct Settings {
   /// The file's path. A template of another language than HTML, such as `robots.txt.hbs`, keeps its text as it is
   /// written.
   pub filepath: Option<String>,
+  /// Prettier's `embeddedLanguageFormatting`: `"auto"` if true, `"off"` if false. Off, neither the embed hook nor
+  /// tidyrs' own formatters see the code of other languages, which stays as it is written.
+  pub format_embedded: bool,
 }
 
 impl Default for Settings {
@@ -170,6 +172,7 @@ impl Default for Settings {
       single_quote: false,
       dialect: Dialect::Auto,
       filepath: None,
+      format_embedded: true,
     }
   }
 }
@@ -177,6 +180,9 @@ impl Default for Settings {
 /// Options of the printer, as it uses them.
 pub(crate) struct Options {
   pub(crate) width: usize,
+  pub(crate) tab_width: usize,
+  /// `embeddedLanguageFormatting` is `"auto"`.
+  pub(crate) formats_embedded: bool,
   /// The template is tempura.
   pub(crate) is_tempura: bool,
 }
@@ -223,10 +229,22 @@ impl Formatter {
     settings: &Settings,
     embed: &mut dyn Embed,
   ) -> Result<&str, Failure> {
-    let text = text.strip_prefix('\u{FEFF}').unwrap_or(text);
+    let (bom, text) = crate::without_bom(text);
+    let embed = if settings.format_embedded { embed } else { &mut crate::embed::Verbatim };
+    self.format_text(text, settings, embed)?;
+    Ok(crate::with_bom(bom, &mut self.output))
+  }
+
+  fn format_text(
+    &mut self,
+    text: &str,
+    settings: &Settings,
+    embed: &mut dyn Embed,
+  ) -> Result<(), Failure> {
     // Prettier also counts a no-break space as whitespace here.
     if text.trim_ascii().is_empty() {
-      return Ok("");
+      self.output.clear();
+      return Ok(());
     }
     let text: std::borrow::Cow<str> = match text.contains('\r') {
       true => text.replace("\r\n", "\n").replace('\r', "\n").into(),
@@ -242,7 +260,7 @@ impl Formatter {
         });
       };
       self.output = formatted;
-      return Ok(&self.output);
+      return Ok(());
     }
     let front_matter_end = crate::front_matter::parse(&text).map_or(0, |matter| matter.len);
     let mut content = String::from(&*text);
@@ -264,12 +282,17 @@ impl Formatter {
     if self.scratch.tree.has_lost_text {
       self.output.clear();
       self.output.push_str(&text);
-      return Ok(&self.output);
+      return Ok(());
     }
     self.bump.reset();
     let mut docs = Docs::reuse(&self.bump, &mut self.docs);
     docs.reserve(content.len());
-    let options = Options { width: settings.width, is_tempura };
+    let options = Options {
+      width: settings.width,
+      tab_width: settings.tab_width,
+      formats_embedded: settings.format_embedded,
+      is_tempura,
+    };
     let mut printer = printer::Printer {
       tree: &self.scratch.tree,
       source: &content,
@@ -296,6 +319,6 @@ impl Formatter {
     };
     self.output = doc::print(&docs, &print, std::mem::take(&mut self.output));
     self.docs = docs.into_scratch();
-    Ok(&self.output)
+    Ok(())
   }
 }

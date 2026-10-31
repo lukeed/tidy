@@ -34,6 +34,14 @@ struct Neighbors {
   precedes_mustache: bool,
 }
 
+/// A style sheet that is embedded in a template.
+enum StyleSheet {
+  /// As the host formats it.
+  Text(String),
+  /// As `crate::css` formats it.
+  Document(crate::css::Document),
+}
+
 /// A text's parent.
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum Parent {
@@ -416,8 +424,13 @@ impl<'a> Printer<'a, '_> {
 
   // ───────────────────────────── elements ─────────────────────────────
 
-  /// `embed`: formats the style sheet of a `<style>` whose only child is a text.
-  fn embedded_style_sheet(&mut self, attributes: &[NodeId], children: &[NodeId]) -> Option<String> {
+  /// `embed`: formats the style sheet of a `<style>` whose only child is a text, with the host or else with
+  /// `crate::css`.
+  fn embedded_style_sheet(
+    &mut self,
+    attributes: &[NodeId],
+    children: &[NodeId],
+  ) -> Option<StyleSheet> {
     let [child] = children else {
       return None;
     };
@@ -441,9 +454,20 @@ impl<'a> Printer<'a, '_> {
       indent: self.indents,
       width: self.options.width,
     };
-    let formatted = self.embed.format(request)?;
+    let Some(formatted) = self.embed.format(request) else {
+      if !self.options.formats_embedded {
+        return None;
+      }
+      let settings = crate::css::Settings {
+        width: self.options.width,
+        tab_width: self.options.tab_width,
+        ..crate::css::Settings::default()
+      };
+      let document = crate::css::document(code, &settings, false, self.embed).ok()?;
+      return (!code.trim().is_empty()).then_some(StyleSheet::Document(document));
+    };
     let formatted = formatted.trim_end_matches(['\n', '\r']);
-    (!formatted.trim().is_empty()).then(|| formatted.to_owned())
+    (!formatted.trim().is_empty()).then(|| StyleSheet::Text(formatted.to_owned()))
   }
 
   fn element(&mut self, node: Node, follows_element: bool) {
@@ -508,7 +532,8 @@ impl<'a> Printer<'a, '_> {
       self.start_indent();
       self.docs.softline();
       match is_style.then(|| self.embedded_style_sheet(attributes, children)).flatten() {
-        Some(style_sheet) => self.with_literal_lines(style_sheet.as_bytes(), Escapes::Nothing),
+        Some(StyleSheet::Text(text)) => self.with_literal_lines(text.as_bytes(), Escapes::Nothing),
+        Some(StyleSheet::Document(document)) => document.write(self.docs),
         None => {
           self.children(children, if is_style { Parent::Style } else { Parent::Element }, None)
         }

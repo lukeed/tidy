@@ -143,3 +143,69 @@ pub(crate) fn contains_js_line_break(text: &[u8]) -> bool {
   memchr::memchr3_iter(b'\r', b'\n', 0xE2, text)
     .any(|at| text[at] != 0xE2 || matches!(text.get(at + 1..at + 3), Some([0x80, 0xA8 | 0xA9])))
 }
+
+pub(crate) fn index_of_char_pos(text: &[u8], char: u8, from: usize) -> Option<usize> {
+  memchr::memchr(char, text.get(from..)?).map(|at| at + from)
+}
+
+pub(crate) fn last_index_of_char(text: &[u8], char: u8) -> Option<usize> {
+  memchr::memrchr(char, text)
+}
+
+pub(crate) fn last_index_of(text: &[u8], needle: &[u8]) -> Option<usize> {
+  memchr::memmem::rfind(text, needle)
+}
+
+pub(crate) fn last_index_of_any(text: &[u8], chars: &[u8]) -> Option<usize> {
+  text.iter().rposition(|byte| chars.contains(byte))
+}
+
+pub(crate) fn contains_any(text: &[u8], chars: &[u8]) -> bool {
+  index_of_any(text, chars).is_some()
+}
+
+/// Splits `text` at each byte that is one of `chars`.
+pub(crate) fn split_any<'a>(text: &'a [u8], chars: &'a [u8]) -> impl Iterator<Item = &'a [u8]> {
+  text.split(move |byte| chars.contains(byte))
+}
+
+/// `\w` of a regular expression without flags.
+pub(crate) fn is_regexp_word_byte(byte: u8) -> bool {
+  byte.is_ascii_alphanumeric() || byte == b'_'
+}
+
+/// The text with each `\r\n` as `\n`.
+pub(crate) fn crlf_as_lf(text: &[u8]) -> std::borrow::Cow<'_, [u8]> {
+  if !contains_char(text, b'\r') {
+    return std::borrow::Cow::Borrowed(text);
+  }
+  let mut normalized = Vec::with_capacity(text.len());
+  let mut rest = text;
+  while let Some(at) = memchr::memmem::find(rest, b"\r\n") {
+    normalized.extend_from_slice(&rest[..at]);
+    normalized.push(b'\n');
+    rest = &rest[at + 2..];
+  }
+  normalized.extend_from_slice(rest);
+  std::borrow::Cow::Owned(normalized)
+}
+
+/// The length in bytes of the line break that `text` starts with: `\r\n`, `\r`, `\n`, U+2028 or U+2029. 0 if none.
+pub(crate) fn js_line_break_len(text: &[u8]) -> usize {
+  match text {
+    [b'\r', b'\n', ..] => 2,
+    [b'\r' | b'\n', ..] => 1,
+    [0xE2, 0x80, 0xA8 | 0xA9, ..] => 3,
+    _ => 0,
+  }
+}
+
+/// The same for the line break that `text` ends with.
+pub(crate) fn js_line_break_len_back(text: &[u8]) -> usize {
+  match text {
+    [.., b'\r', b'\n'] => 2,
+    [.., b'\r' | b'\n'] => 1,
+    [.., 0xE2, 0x80, 0xA8 | 0xA9] => 3,
+    _ => 0,
+  }
+}

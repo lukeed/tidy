@@ -1,4 +1,4 @@
-//! Syntax errors of the Handlebars parsers: a message and an offset. Ported from bun's `syntax_error.rs` (MIT).
+//! Syntax errors of the parsers: a message and an offset. Ported from bun's `syntax_error.rs` (MIT).
 
 use std::cell::Cell;
 
@@ -52,6 +52,18 @@ macro_rules! messages {
 }
 
 messages! {
+  // Style sheets
+  AtRuleWithoutName = "Expected a name after \"@\"",
+  ExpectedColon = "Expected \":\"",
+  NeitherDeclarationNorRule = "Expected a declaration or a rule",
+  PropertyWithoutName = "Expected a property name",
+  RuleWithoutSelector = "Expected a selector",
+  UnclosedInterpolation = "Unclosed interpolation",
+  UnexpectedClosingBrace = "Unexpected \"}\"",
+  UnexpectedColon = "Unexpected \":\"",
+  UnreadableAtRule = "Invalid at-rule parameters",
+  UnreadableValue = "Invalid value",
+  // Handlebars
   AttributeInEndTag = "An end tag cannot have attributes",
   EndTagOfVoidElement = "This element cannot have an end tag",
   EndTagWithoutStartTag = "This end tag has no start tag",

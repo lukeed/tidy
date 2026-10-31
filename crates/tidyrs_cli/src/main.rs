@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use tidyrs::css;
 use tidyrs::embed::Verbatim;
 use tidyrs::handlebars::{self, Dialect};
 use tidyrs::html::{self, Parser, Whitespace};
@@ -15,13 +16,13 @@ Usage
 
   Without paths, reads stdin and prints the result.
   With one file, prints the result unless --check or --write is set.
-  Folders are searched for .html, .htm, .vue, .hbs, and .handlebars files.
+  Folders are searched for .html, .htm, .vue, .hbs, .handlebars, .css, .scss, and .less files.
   Code in <script> and <style> is left as it is written.
 
 Options
   --check                         List files that aren't formatted, and exit 1 if any
   -w, --write                     Rewrite files in place
-  --parser <name>                 html, vue, handlebars, or tempura (default: by extension)
+  --parser <name>                 html, vue, handlebars, tempura, css, scss, or less (default: by extension)
   --width <n>                     Line width (default: 80)
   --tab-width <n>                 Indent width (default: 2)
   --use-tabs                      Indent with tabs
@@ -29,7 +30,9 @@ Options
   --single-attribute-per-line     Put each attribute on its own line
   --bracket-same-line             Keep the > of a multi-line tag on the last line
   --vue-indent-script-and-style   Indent the code in Vue's <script> and <style>
-  --single-quote                  Prefer single quotes in Handlebars
+  --single-quote                  Prefer single quotes in Handlebars and style sheets
+  --embedded-language-formatting <how>
+                                  auto (default) formats <style> and style=\"\"; off leaves them
   --threads <n>                   How many files to format at once (default: all cores)
   -v, --version                   Print the version
   -h, --help                      Print this help
@@ -70,6 +73,9 @@ fn run() -> Result<ExitCode, String> {
       "vue" => Ok(Language::Markup(Parser::Vue)),
       "handlebars" | "glimmer" => Ok(Language::Handlebars(Dialect::Handlebars)),
       "tempura" => Ok(Language::Handlebars(Dialect::Tempura)),
+      "css" => Ok(Language::Css(css::Dialect::Css)),
+      "scss" => Ok(Language::Css(css::Dialect::Scss)),
+      "less" => Ok(Language::Css(css::Dialect::Less)),
       other => Err(format!("unknown parser `{other}`")),
     })
     .map_err(|error| error.to_string())?;
@@ -158,10 +164,14 @@ fn run() -> Result<ExitCode, String> {
 enum Language {
   Markup(Parser),
   Handlebars(Dialect),
+  Css(css::Dialect),
 }
 
 /// The language of the file at `path`, by its extension.
 fn language_of(path: &Path) -> Language {
+  if let Some(dialect) = css::Dialect::of_path(&path.to_string_lossy()) {
+    return Language::Css(dialect);
+  }
   match path.extension().and_then(|it| it.to_str()) {
     Some("vue") => Language::Markup(Parser::Vue),
     Some("hbs" | "handlebars") => Language::Handlebars(Dialect::Auto),
@@ -174,6 +184,7 @@ fn language_of(path: &Path) -> Language {
 struct Settings {
   html: html::Settings,
   handlebars: handlebars::Settings,
+  css: css::Settings,
 }
 
 fn settings(args: &mut pico_args::Arguments) -> Result<Settings, String> {
@@ -200,15 +211,31 @@ fn settings(args: &mut pico_args::Arguments) -> Result<Settings, String> {
   settings.single_attribute_per_line = args.contains("--single-attribute-per-line");
   settings.bracket_same_line = args.contains("--bracket-same-line");
   settings.vue_indent_script_and_style = args.contains("--vue-indent-script-and-style");
+  settings.format_embedded =
+    match args.opt_value_from_str::<_, String>("--embedded-language-formatting").map_err(error)? {
+      None => true,
+      Some(how) if how == "auto" => true,
+      Some(how) if how == "off" => false,
+      Some(how) => return Err(format!("unknown embedded language formatting `{how}`")),
+    };
   let handlebars = handlebars::Settings {
     width: settings.width,
     tab_width: settings.tab_width,
     tabs: settings.tabs,
     whitespace: settings.whitespace,
     single_quote: args.contains("--single-quote"),
+    format_embedded: settings.format_embedded,
     ..handlebars::Settings::default()
   };
-  Ok(Settings { html: settings, handlebars })
+  let css = css::Settings {
+    width: settings.width,
+    tab_width: settings.tab_width,
+    tabs: settings.tabs,
+    single_quote: handlebars.single_quote,
+    format_embedded: settings.format_embedded,
+    ..css::Settings::default()
+  };
+  Ok(Settings { html: settings, handlebars, css })
 }
 
 /// A formatter for each language, each reusing its buffers.
@@ -216,6 +243,7 @@ fn settings(args: &mut pico_args::Arguments) -> Result<Settings, String> {
 struct Formatters {
   html: html::Formatter,
   handlebars: handlebars::Formatter,
+  css: css::Formatter,
 }
 
 impl Formatters {
@@ -237,6 +265,10 @@ impl Formatters {
         let filepath = path.map(|path| path.to_string_lossy().into_owned());
         let settings = handlebars::Settings { filepath, dialect, ..settings.handlebars.clone() };
         self.handlebars.format(source, &settings, &mut Verbatim).map_err(|it| error(&it))
+      }
+      Language::Css(dialect) => {
+        let settings = css::Settings { dialect, ..settings.css.clone() };
+        self.css.format(source, &settings, &mut Verbatim).map_err(|it| error(&it))
       }
     }
   }
@@ -297,7 +329,7 @@ fn walk(dir: &Path, files: &mut Vec<PathBuf>) {
       }
     } else if matches!(
       path.extension().and_then(|it| it.to_str()),
-      Some("html" | "htm" | "vue" | "hbs" | "handlebars")
+      Some("html" | "htm" | "vue" | "hbs" | "handlebars" | "css" | "scss" | "less")
     ) {
       files.push(path);
     }

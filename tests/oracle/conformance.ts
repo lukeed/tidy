@@ -1,7 +1,9 @@
 // Formats Prettier's own fixtures and compares the output with its snapshots. Embedded code is formatted by Prettier
 // through the hook, so only the markup printing is under test.
 //
-//   bun tests/oracle/conformance.ts [language=html] [filter] [--show=n]
+//   bun tests/oracle/conformance.ts [language=html] [filter] [--show=n] [--builtin-css]
+//
+// With `--builtin-css`, the hook declines style sheets, so tidyrs formats them itself.
 import { $, Glob } from "bun";
 import { join, relative } from "node:path";
 import * as prettier from "prettier";
@@ -9,6 +11,7 @@ import { format, type EmbedRequest, type FormatOptions } from "../../crates/tidy
 
 let args = Bun.argv.slice(2).filter((arg) => !arg.startsWith("--"));
 let show = Number(Bun.argv.find((arg) => arg.startsWith("--show="))?.slice(7) ?? 5);
+let builtinCss = Bun.argv.includes("--builtin-css");
 let language = args[0] ?? "html";
 let filter = args[1] ?? "";
 let root = join(process.env.HOME!, "repos/oss/prettier/tests/format", language);
@@ -46,11 +49,13 @@ function cases(snapshot: string, directory: string): Case[] {
 
 function settings(options: Record<string, unknown>, file: string): FormatOptions | undefined {
 	let parsers = options.parsers as string[];
-	let parser = parsers?.[0] === "glimmer" ? "handlebars" : parsers?.[0];
-	if (parser !== "html" && parser !== "vue" && parser !== "handlebars") return undefined;
+	let parser: string = parsers?.[0] === "glimmer" ? "handlebars" : parsers?.[0];
+	if (!["html", "vue", "handlebars", "css", "scss", "less"].includes(parser)) return undefined;
 	return {
 		parser,
 		singleQuote: (options.singleQuote as boolean) ?? false,
+		trailingComma: options.trailingComma as "none" | undefined,
+		embeddedLanguageFormatting: options.embeddedLanguageFormatting as "off" | undefined,
 		width: (options.printWidth as number) ?? 80,
 		tabWidth: (options.tabWidth as number) ?? 2,
 		useTabs: (options.useTabs as boolean) ?? false,
@@ -161,7 +166,7 @@ for (let test of all) {
 		for (let round = 0; round < 8; round++) {
 			let missing = new Map<string, EmbedRequest>();
 			actual = format(test.input, options, (request) => {
-				if (off) return undefined;
+				if (off || (builtinCss && ["css", "scss", "less"].includes(request.language))) return undefined;
 				let id = key(request);
 				if (!answers.has(id)) missing.set(id, request);
 				return answers.get(id);

@@ -144,16 +144,50 @@ pub(crate) fn script(printer: &mut Printer<'_, '_>, id: Id, parent: Id) -> bool 
   } else {
     text(value).into_owned()
   };
-  let Some(formatted) =
-    printer.embed_text(Embedded { code: &code, language, kind: Purpose::Block, extra: 0 })
-  else {
-    return false;
+  let formatted =
+    printer.embed_text(Embedded { code: &code, language, kind: Purpose::Block, extra: 0 });
+  // Without the host's answer, a style sheet is formatted here.
+  let document = match &formatted {
+    Some(_) => None,
+    None => match style_sheet(printer, language, &code, false) {
+      Some(document) => Some(document),
+      None => return false,
+    },
   };
   printer.docs.break_parent();
   printer.marker(|tags, out| tags.opening_tag_prefix(id, out));
-  printer.text_doc(&formatted);
+  match (formatted, document) {
+    (Some(formatted), _) => printer.text_doc(&formatted),
+    (None, Some(document)) => document.write(printer.docs),
+    (None, None) => {}
+  }
   printer.marker(|tags, out| tags.closing_tag_suffix(id, out));
   true
+}
+
+/// The document of a style sheet in `language`, formatted by `crate::css`, or `None` if it isn't one or doesn't parse.
+fn style_sheet(
+  printer: &mut Printer<'_, '_>,
+  language: &str,
+  code: &str,
+  is_style_attribute: bool,
+) -> Option<crate::css::Document> {
+  if !printer.options.formats_embedded {
+    return None;
+  }
+  let dialect = match language {
+    "css" => crate::css::Dialect::Css,
+    "scss" => crate::css::Dialect::Scss,
+    "less" => crate::css::Dialect::Less,
+    _ => return None,
+  };
+  let settings = crate::css::Settings {
+    dialect,
+    width: printer.options.width,
+    tab_width: printer.options.tab_width,
+    ..crate::css::Settings::default()
+  };
+  crate::css::document(code, &settings, is_style_attribute, printer.embed).ok()
 }
 
 /// The expression in `{{ }}`.
@@ -236,6 +270,8 @@ enum Value<'v> {
   Policy(Vec<&'v [u8]>),
   /// The declarations of `style`, formatted.
   Style(String),
+  /// The declarations of `style`, as `crate::css` formats them.
+  Css(crate::css::Document),
   /// `printExpand` of formatted code.
   Expand(String),
   /// `group` of formatted code.
@@ -304,7 +340,10 @@ fn value_of<'v>(
     let width = printer.options.width;
     let request =
       Request { code: &code, language: "css", kind: Purpose::Attribute, indent: 0, width };
-    printer.embed.format(request).map(Value::Style)
+    match printer.embed.format(request) {
+      Some(formatted) => Some(Value::Style(formatted)),
+      None => style_sheet(printer, "css", &code, true).map(Value::Css),
+    }
   } else if embedded && is_event_handler(full) {
     let code = text(unescaped);
     let embedded = Embedded { code: &code, language: "babel", kind: Purpose::Attribute, extra: 2 };
@@ -368,6 +407,7 @@ fn emit_value(printer: &mut Printer<'_, '_>, value: Value<'_>) {
       });
     }
     Value::Style(formatted) => expand(printer, |printer| style(printer, &formatted)),
+    Value::Css(document) => expand(printer, |printer| document.write(printer.docs)),
     Value::Expand(formatted) => expand(printer, |printer| printer.text_doc(&formatted)),
     Value::Hug(formatted) => {
       let group = printer.docs.group();
