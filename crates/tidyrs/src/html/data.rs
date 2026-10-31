@@ -87,10 +87,45 @@ fn packed(name: &[u8], lower: bool) -> u128 {
   bytes << (8 * (16 - name.len())) | name.len() as u128
 }
 
-/// Looks up `name`, lowercased if `lower`, in `table`, which must be sorted.
-fn lookup<T: Copy>(table: &[(u128, T)], name: &[u8], lower: bool) -> Option<T> {
-  let at = table.binary_search_by_key(&packed(name, lower), |entry| entry.0).ok()?;
-  table.get(at).map(|entry| entry.1)
+/// The slot of `key` in a hash index of `N` slots.
+const fn slot<const N: usize>(key: u128) -> usize {
+  let mixed = (key as u64 ^ (key >> 64) as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+  (mixed >> (64 - N.trailing_zeros())) as usize
+}
+
+/// A hash index of `table`: each slot holds one more than the index of an entry, or 0. `N` is a power of two, at least
+/// twice the size of the table.
+const fn index<T, const N: usize>(table: &[(u128, T)]) -> [u16; N] {
+  assert!(N.is_power_of_two() && N >= 2 * table.len());
+  let mut slots = [0; N];
+  let mut entry = 0;
+  while entry < table.len() {
+    let mut at = slot::<N>(table[entry].0);
+    while slots[at] != 0 {
+      at = (at + 1) % N;
+    }
+    slots[at] = entry as u16 + 1;
+    entry += 1;
+  }
+  slots
+}
+
+/// Looks up `name`, lowercased if `lower`, in `table` through its hash index.
+fn lookup<T: Copy, const N: usize>(
+  table: &[(u128, T)],
+  slots: &[u16; N],
+  name: &[u8],
+  lower: bool,
+) -> Option<T> {
+  let key = packed(name, lower);
+  let mut at = slot::<N>(key);
+  loop {
+    let entry = table.get(usize::from(slots[at]).checked_sub(1)?)?;
+    if entry.0 == key {
+      return Some(entry.1);
+    }
+    at = (at + 1) % N;
+  }
 }
 
 /// For an element that's in Angular's schema but doesn't have its own definition.
@@ -309,10 +344,11 @@ const TAG_DEFINITIONS: &[(u128, &TagDefinition)] = &[
   (key(b"wbr"), &VOID),
 ];
 const _: () = assert!(is_sorted(TAG_DEFINITIONS));
+static TAG_DEFINITION_SLOTS: [u16; 512] = index(TAG_DEFINITIONS);
 
 /// `getHtmlTagDefinition`, of `name` lowercased if `lower`.
 pub(crate) fn tag_definition(name: &[u8], lower: bool) -> &'static TagDefinition {
-  lookup(TAG_DEFINITIONS, name, lower).unwrap_or(&DEFAULT_TAG_DEFINITION)
+  lookup(TAG_DEFINITIONS, &TAG_DEFINITION_SLOTS, name, lower).unwrap_or(&DEFAULT_TAG_DEFINITION)
 }
 
 /// `HTML_TAGS.has(name)`
@@ -417,10 +453,11 @@ const CSS_DISPLAY_TAGS: &[(u128, Display)] = &[
   (key(b"xmp"), Display::Block),
 ];
 const _: () = assert!(is_sorted(CSS_DISPLAY_TAGS));
+static CSS_DISPLAY_SLOTS: [u16; 256] = index(CSS_DISPLAY_TAGS);
 
 /// `CSS_DISPLAY_TAGS[name]`
 pub(crate) fn css_display_of_tag(name: &[u8]) -> Option<Display> {
-  lookup(CSS_DISPLAY_TAGS, name, false)
+  lookup(CSS_DISPLAY_TAGS, &CSS_DISPLAY_SLOTS, name, false)
 }
 
 /// True if `CSS_WHITE_SPACE_TAGS[name]` starts with `pre`.
