@@ -1,0 +1,7 @@
+*.node
+crates/tidyrs_napi/artifacts/
+crates/tidyrs_napi/index.d.ts
+crates/tidyrs_napi/index.js
+crates/tidyrs_napi/npm/
+node_modules/
+target/

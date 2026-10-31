@@ -1,0 +1,40 @@
+[tools]
+rust = { version = "1.98.0", components = "clippy,rustfmt" }
+bun = "1.4.4"
+
+[env]
+CARGO_TARGET_DIR = "{{config_root}}/target"
+
+[tasks.build]
+description = "Build the library and CLI"
+run = "cargo build --workspace --exclude tidyrs_napi"
+
+[tasks."build:napi"]
+description = "Build the Node addon for this platform"
+dir = "crates/tidyrs_napi"
+run = "bunx napi build --platform --release --esm"
+
+[tasks.fmt]
+description = "Check formatting"
+run = "cargo fmt --all --check"
+
+[tasks."fmt:fix"]
+description = "Format all crates"
+run = "cargo fmt --all"
+
+[tasks.clippy]
+description = "Lint with warnings denied"
+run = "cargo clippy --workspace --all-targets -- -D warnings"
+
+[tasks.test]
+description = "Run all tests"
+run = ["cargo test --workspace", "bun test --cwd crates/tidyrs_napi"]
+depends = ["build:napi"]
+
+[tasks.check]
+description = "Format, lint, and test"
+depends = ["fmt", "clippy", "test"]
+
+[tasks.bench]
+description = "Compare against other formatters: mise run bench -- <dir>"
+run = "bun bench/run.ts"
