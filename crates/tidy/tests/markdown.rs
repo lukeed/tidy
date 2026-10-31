@@ -136,6 +136,8 @@ fn wraps_paragraphs() {
   assert_eq!(mdtidy::format(source, &never), "one two three four five six seven\n");
   assert_eq!(mdtidy::format("- one\n  two\n", &never), "- one two\n");
   assert_eq!(mdtidy::format("one\\\ntwo\n", &never), "one\\\ntwo\n");
+  let html = "- a:\n   <details>\n     <x>\n\n     - b\n";
+  assert_eq!(mdtidy::format(html, &never), "- a:\n  <details>\n     <x>\n\n  - b\n");
 }
 
 #[test]

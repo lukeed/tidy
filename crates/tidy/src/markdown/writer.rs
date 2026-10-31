@@ -199,6 +199,7 @@ impl<'s> Writer<'s, '_> {
           code.push_str(&text);
         }
         Some(Block::Indented) => self.lines(&text),
+        None if range.is_empty() => {}
         None => {
           let bytes = self.source.as_bytes();
           let escaped = range.start > 0
