@@ -58,6 +58,7 @@ pub(crate) fn format(
     next: 0,
     adjacent: None,
     last: 0,
+    link: None,
   };
   let mut events = Events { iter: parser.into_offset_iter(), ahead: VecDeque::new() };
   while let Some((event, range)) = events.next() {
@@ -173,6 +174,14 @@ struct Writer<'s, 'o> {
   adjacent: Option<Adjacent>,
   /// Where the last block ended in the source.
   last: usize,
+  link: Option<Link>,
+}
+
+/// A link whose text is being written: what follows the text is copied as written.
+struct Link {
+  /// Where the text ends so far.
+  text: usize,
+  end: usize,
 }
 
 impl<'s> Writer<'s, '_> {
@@ -187,6 +196,11 @@ impl<'s> Writer<'s, '_> {
     }
     if self.ignored.contains(&range.start) {
       return;
+    }
+    if let Some(link) = &mut self.link
+      && !matches!(event, Event::End(TagEnd::Link))
+    {
+      link.text = link.text.max(range.end);
     }
     match event {
       Event::Start(tag) => self.open(tag, range, events),
@@ -225,6 +239,8 @@ impl<'s> Writer<'s, '_> {
         if self.table.is_some() || (self.heading.is_some() && self.options.heading == Heading::Atx)
         {
           self.atom(" ");
+        } else if self.link.is_some() && self.wraps() {
+          self.paragraph.get_or_insert_default().atom(" ");
         } else if self.heading.is_none() && self.wraps() {
           self.paragraph.get_or_insert_default().space();
         } else {
@@ -410,8 +426,14 @@ impl<'s> Writer<'s, '_> {
         let collapsed = matches!(link_type, LinkType::Collapsed | LinkType::CollapsedUnknown)
           && self.source[range.end..].starts_with("[]");
         let end = if collapsed { range.end + 2 } else { range.end };
-        self.atom(&self.source[range.start..end]);
-        self.skip = 1;
+        let image = matches!(tag, Tag::Image { .. });
+        if image || matches!(link_type, LinkType::Autolink | LinkType::Email) {
+          self.atom(&self.source[range.start..end]);
+          self.skip = 1;
+        } else {
+          self.atom("[");
+          self.link = Some(Link { text: range.start + 1, end });
+        }
       }
       Tag::MetadataBlock(kind) => {
         self.block(range.start);
@@ -507,6 +529,13 @@ impl<'s> Writer<'s, '_> {
           }
         }
         self.end();
+      }
+      TagEnd::Link => {
+        if let Some(link) = self.link.take() {
+          let tail = &self.source[link.text..link.end];
+          let tail = if self.start { tail.trim_start_matches([' ', '\t', '>']) } else { tail };
+          self.atom(tail);
+        }
       }
       TagEnd::Emphasis | TagEnd::Strong | TagEnd::Strikethrough => {
         if tag == TagEnd::Emphasis {
@@ -752,10 +781,11 @@ impl<'s> Writer<'s, '_> {
   }
 
   fn text(&mut self, text: &str) {
-    if self.wraps() {
-      self.paragraph.get_or_insert_default().text(text);
+    let text = collapse(text);
+    if self.link.is_none() && self.wraps() {
+      self.paragraph.get_or_insert_default().text(&text);
     } else {
-      self.atom(text);
+      self.atom(&text);
     }
   }
 
@@ -878,6 +908,22 @@ fn longest(text: &str, char: char) -> usize {
     longest = longest.max(run);
   }
   longest
+}
+
+/// `text` with each run of spaces and tabs as one space.
+fn collapse(text: &str) -> Cow<'_, str> {
+  let bytes = text.as_bytes();
+  if memchr::memchr(b'\t', bytes).is_none() && memchr::memmem::find(bytes, b"  ").is_none() {
+    return Cow::Borrowed(text);
+  }
+  let mut out = String::with_capacity(text.len());
+  for char in text.chars() {
+    let space = matches!(char, ' ' | '\t');
+    if !(space && out.ends_with(' ')) {
+      out.push(if space { ' ' } else { char });
+    }
+  }
+  Cow::Owned(out)
 }
 
 /// A code span rewritten as Prettier writes it, or `None` when `raw` already is: the fewest

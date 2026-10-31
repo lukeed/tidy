@@ -10,6 +10,7 @@ keywords = ["markdown", "formatter", "prettier", "commonmark", "gfm"]
 categories = ["text-processing", "development-tools"]
 
 [dependencies]
+memchr = { workspace = true }
 pulldown-cmark = { workspace = true }
 unicode-width = { workspace = true }
 

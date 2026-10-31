@@ -117,6 +117,27 @@ fn fences_code_spans_with_the_fewest_backticks() {
 }
 
 #[test]
+fn collapses_spaces_in_text() {
+  assert_eq!(prettier("a  b\tc\n"), "a b c\n");
+  assert_eq!(prettier("# a   b\n"), "# a b\n");
+  assert_eq!(prettier("a  `x  y`  *b  c*\n"), "a `x  y` _b c_\n");
+  assert_eq!(prettier("| a  b |\n| - |\n"), "| a b |\n| --- |\n");
+  assert_eq!(preserve("a  b\n"), "a b\n");
+}
+
+#[test]
+fn formats_link_text_like_other_text() {
+  assert_eq!(prettier("[a  *b*](u \"t  t\")\n"), "[a _b_](u \"t  t\")\n");
+  assert_eq!(prettier("[![a  b](i)  c](u)\n"), "[![a  b](i) c](u)\n");
+  assert_eq!(prettier("[c  d][r] [r][]\n\n[r]: /r\n"), "[c d][r] [r][]\n\n[r]: /r\n");
+  assert_eq!(prettier("<http://a.b>  x [](u)\n"), "<http://a.b> x [](u)\n");
+  assert_eq!(prettier("- [a\n  ](u)\n"), "- [a\n  ](u)\n");
+  assert_eq!(prettier("> [a\n> ](u)\n"), "> [a\n> ](u)\n");
+  let never = Options { wrap: Wrap::Always, width: 6, ..Options::default() };
+  assert_eq!(mdtidy::format("x [a b\nc](u) y\n", &never), "x\n[a b c](u)\ny\n");
+}
+
+#[test]
 fn quotes_and_nesting() {
   assert_eq!(prettier(">a\n>\n>b\n"), "> a\n>\n> b\n");
   assert_eq!(prettier("> - a\n>   > b\n"), "> - a\n>   > b\n");
