@@ -138,6 +138,13 @@ fn formats_link_text_like_other_text() {
 }
 
 #[test]
+fn keeps_definitions_together() {
+  let source = "[a]: /a\n\n[b]: /b\n\ntext\n\n[c]: /c\n";
+  assert_eq!(prettier(source), "[a]: /a\n[b]: /b\n\ntext\n\n[c]: /c\n");
+  assert_eq!(prettier("[a]: /a\n# h\n[b]: /b\n"), "[a]: /a\n\n# h\n\n[b]: /b\n");
+}
+
+#[test]
 fn quotes_and_nesting() {
   assert_eq!(prettier(">a\n>\n>b\n"), "> a\n>\n> b\n");
   assert_eq!(prettier("> - a\n>   > b\n"), "> - a\n>   > b\n");

@@ -59,6 +59,7 @@ pub(crate) fn format(
     adjacent: None,
     last: 0,
     link: None,
+    defined: None,
   };
   let mut events = Events { iter: parser.into_offset_iter(), ahead: VecDeque::new() };
   while let Some((event, range)) = events.next() {
@@ -175,6 +176,8 @@ struct Writer<'s, 'o> {
   /// Where the last block ended in the source.
   last: usize,
   link: Option<Link>,
+  /// The output length and depth right after the last definition, to keep the next one beside it.
+  defined: Option<(usize, usize)>,
 }
 
 /// A link whose text is being written: what follows the text is copied as written.
@@ -750,10 +753,14 @@ impl<'s> Writer<'s, '_> {
         continue;
       }
       self.adjacent = None;
+      if self.defined == Some((self.out.len(), self.containers.len())) {
+        self.gap = Gap::Line;
+      }
       self.separate();
       self.write(self.source[span].trim_end());
       self.newline();
       self.gap = Gap::Blank;
+      self.defined = Some((self.out.len(), self.containers.len()));
     }
   }
 
