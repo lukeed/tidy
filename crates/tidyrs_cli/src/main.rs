@@ -4,7 +4,7 @@ use std::process::ExitCode;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use tidyrs::embed::Verbatim;
-use tidyrs::html::{Parser, Settings, Whitespace};
+use tidyrs::html::{Formatter, Parser, Settings, Whitespace};
 
 const HELP: &str = "\
 tidyrs: a fast markup formatter
@@ -83,7 +83,7 @@ fn run() -> Result<ExitCode, String> {
     let mut source = String::new();
     std::io::stdin().read_to_string(&mut source).map_err(|error| error.to_string())?;
     let settings = Settings { parser: parser.unwrap_or(Parser::Html), ..settings };
-    let output = format(&source, &settings)?;
+    let output = format(&mut Formatter::default(), &source, &settings)?;
     if check {
       return Ok(if output == source { ExitCode::SUCCESS } else { ExitCode::FAILURE });
     }
@@ -95,7 +95,7 @@ fn run() -> Result<ExitCode, String> {
     let path = &paths[0];
     let source =
       std::fs::read_to_string(path).map_err(|error| format!("{}: {error}", path.display()))?;
-    let output = format(&source, &for_path(&settings, path))?;
+    let output = format(&mut Formatter::default(), &source, &for_path(&settings, path))?;
     std::io::stdout().write_all(output.as_bytes()).map_err(|error| error.to_string())?;
     return Ok(ExitCode::SUCCESS);
   }
@@ -181,8 +181,8 @@ fn for_path(settings: &Settings, path: &Path) -> Settings {
   Settings { parser, filepath: Some(path.to_string_lossy().into_owned()), ..settings.clone() }
 }
 
-fn format(source: &str, settings: &Settings) -> Result<String, String> {
-  tidyrs::html::format(source, settings, &mut Verbatim).map_err(|error| error.to_string())
+fn format(formatter: &mut Formatter, source: &str, settings: &Settings) -> Result<String, String> {
+  formatter.format(source, settings, &mut Verbatim).map_err(|error| error.to_string())
 }
 
 enum Outcome {
@@ -198,12 +198,13 @@ fn work(
   write: bool,
 ) -> Vec<(usize, Outcome)> {
   let mut outcomes = Vec::new();
+  let mut formatter = Formatter::default();
   loop {
     let index = next.fetch_add(1, Ordering::Relaxed);
     let Some(path) = files.get(index) else { return outcomes };
     let outcome = match std::fs::read_to_string(path) {
       Err(error) => Outcome::Failed(error.to_string()),
-      Ok(source) => match format(&source, &for_path(settings, path)) {
+      Ok(source) => match format(&mut formatter, &source, &for_path(settings, path)) {
         Err(error) => Outcome::Failed(error),
         Ok(output) if output == source => Outcome::Same,
         Ok(output) => match write.then(|| std::fs::write(path, output)) {

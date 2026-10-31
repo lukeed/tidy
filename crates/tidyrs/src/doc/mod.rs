@@ -80,6 +80,20 @@ pub(crate) enum Node<'a> {
   Label(&'static str, Doc),
 }
 
+/// The buffers of a [`Docs`], kept from one run to the next.
+#[derive(Default)]
+pub struct Scratch {
+  nodes: Vec<Node<'static>>,
+  lists: Vec<Doc>,
+  broken: Vec<bool>,
+}
+
+/// An empty vector with the buffer of `vec`, for another lifetime: collecting in place keeps the buffer.
+pub(crate) fn recycle<T, U>(mut vec: Vec<T>) -> Vec<U> {
+  vec.clear();
+  vec.into_iter().map(|_| unreachable!()).collect()
+}
+
 /// The arena that owns every doc of one format run.
 pub struct Docs<'a> {
   bump: &'a Bump,
@@ -106,7 +120,13 @@ impl<'a> Docs<'a> {
   const SHARED: (usize, usize) = (8, 4);
 
   pub fn new(bump: &'a Bump) -> Self {
-    let nodes = vec![
+    Self::reuse(bump, &mut Scratch::default())
+  }
+
+  /// An arena that takes the buffers of `scratch`, which `into_scratch` gives back.
+  pub fn reuse(bump: &'a Bump, scratch: &mut Scratch) -> Self {
+    let mut nodes = recycle(std::mem::take(&mut scratch.nodes));
+    nodes.extend([
       Node::Text("", 0),
       Node::Line(Line::Hard),
       Node::Line(Line::Space),
@@ -115,23 +135,33 @@ impl<'a> Docs<'a> {
       Node::BreakParent,
       Node::Concat(List { start: 0, len: 2 }),
       Node::Concat(List { start: 2, len: 2 }),
-    ];
-    let lists = vec![Self::HARD, Self::BREAK_PARENT, Self::LITERAL, Self::BREAK_PARENT];
-    let broken = vec![false, false, false, false, false, true, true, true];
+    ]);
+    let mut lists = std::mem::take(&mut scratch.lists);
+    lists.clear();
+    lists.extend([Self::HARD, Self::BREAK_PARENT, Self::LITERAL, Self::BREAK_PARENT]);
+    let mut broken = std::mem::take(&mut scratch.broken);
+    broken.clear();
+    broken.extend([false, false, false, false, false, true, true, true]);
     Self { bump, nodes, lists, broken, groups: 0, trims: false }
+  }
+
+  /// The buffers of this arena, for the next one.
+  pub fn into_scratch(self) -> Scratch {
+    Scratch { nodes: recycle(self.nodes), lists: self.lists, broken: self.broken }
+  }
+
+  /// Makes room for the docs of a text about `size` bytes long.
+  pub fn reserve(&mut self, size: usize) {
+    self.nodes.reserve(size / 2);
+    self.broken.reserve(size / 2);
+    self.lists.reserve(size / 2);
   }
 
   /// An arena with room for the docs of a text about `size` bytes long.
   pub fn with_capacity(bump: &'a Bump, size: usize) -> Self {
     let mut docs = Self::new(bump);
-    docs.nodes.reserve(size / 2);
-    docs.broken.reserve(size / 2);
-    docs.lists.reserve(size / 2);
+    docs.reserve(size);
     docs
-  }
-
-  pub fn stats(&self) -> String {
-    format!("{} lists {}", self.nodes.len(), self.lists.len())
   }
 
   pub fn clear(&mut self) {
@@ -352,5 +382,3 @@ impl<'a> Docs<'a> {
     false
   }
 }
-
-pub type NodeSize = Node<'static>;

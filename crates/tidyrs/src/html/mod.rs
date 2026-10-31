@@ -120,34 +120,80 @@ pub fn format(
   settings: &Settings,
   embed: &mut dyn crate::embed::Embed,
 ) -> Result<String, Error> {
-  let text = text.strip_prefix('\u{FEFF}').unwrap_or(text);
-  if text.trim().is_empty() {
-    return Ok(String::new());
-  }
-  let text: std::borrow::Cow<str> = if text.contains('\r') {
-    text.replace("\r\n", "\n").replace('\r', "\n").into()
-  } else {
-    text.into()
-  };
-  let source = text.as_bytes();
-  let matter = crate::front_matter::parse(&text).map(|matter| matter.len);
-  let content: std::borrow::Cow<[u8]> = match matter {
-    Some(len) => {
-      let mut blanked = source.to_vec();
-      for byte in &mut blanked[..len] {
-        if *byte != b'\n' {
-          *byte = b' ';
-        }
-      }
-      blanked.into()
+  Formatter::default().format(text, settings, embed)
+}
+
+/// Formats one text after another, reusing its buffers.
+#[derive(Default)]
+pub struct Formatter {
+  bump: bumpalo::Bump,
+  docs: crate::doc::Scratch,
+  nodes: Vec<ast::Node<'static>>,
+  attrs: Vec<ast::Attribute<'static>>,
+}
+
+impl Formatter {
+  /// Formats `text`, handing the code of other languages to `embed`.
+  pub fn format(
+    &mut self,
+    text: &str,
+    settings: &Settings,
+    embed: &mut dyn crate::embed::Embed,
+  ) -> Result<String, Error> {
+    let text = text.strip_prefix('\u{FEFF}').unwrap_or(text);
+    if text.trim().is_empty() {
+      return Ok(String::new());
     }
-    None => source.into(),
-  };
+    let text: std::borrow::Cow<str> = if text.contains('\r') {
+      text.replace("\r\n", "\n").replace('\r', "\n").into()
+    } else {
+      text.into()
+    };
+    let source = text.as_bytes();
+    let matter = crate::front_matter::parse(&text).map(|matter| matter.len);
+    let content: std::borrow::Cow<[u8]> = match matter {
+      Some(len) => {
+        let mut blanked = source.to_vec();
+        for byte in &mut blanked[..len] {
+          if *byte != b'\n' {
+            *byte = b' ';
+          }
+        }
+        blanked.into()
+      }
+      None => source.into(),
+    };
+    self.bump.reset();
+    let Self { bump, docs: scratch, nodes, attrs } = self;
+    let mut tree = ast::Tree {
+      nodes: crate::doc::recycle(std::mem::take(nodes)),
+      attrs: crate::doc::recycle(std::mem::take(attrs)),
+      ..ast::Tree::default()
+    };
+    tree.nodes.reserve(content.len() / 32);
+    tree.attrs.reserve(content.len() / 32);
+    let mut docs = crate::doc::Docs::reuse(bump, scratch);
+    docs.reserve(source.len());
+    let output = run(&text, &content, matter, settings, embed, &mut tree, &mut docs);
+    *scratch = docs.into_scratch();
+    *nodes = crate::doc::recycle(tree.nodes);
+    *attrs = crate::doc::recycle(tree.attrs);
+    output
+  }
+}
+
+fn run<'a>(
+  text: &'a str,
+  content: &'a [u8],
+  matter: Option<usize>,
+  settings: &Settings,
+  embed: &mut dyn crate::embed::Embed,
+  tree: &mut ast::Tree<'a>,
+  docs: &mut crate::doc::Docs<'a>,
+) -> Result<String, Error> {
+  let source = text.as_bytes();
   let clock = std::time::Instant::now();
-  let mut tree = ast::Tree::default();
-  tree.nodes.reserve(content.len() / 32);
-  tree.attrs.reserve(content.len() / 32);
-  parse::parse(&content, matter, settings.parser, &mut tree).map_err(|error| match error {
+  parse::parse(content, matter, settings.parser, tree).map_err(|error| match error {
     parse::ParseError::Syntax(error) => Error::Syntax {
       message: String::from_utf8_lossy(&error.message()).into_owned(),
       at: error.at as usize,
@@ -155,7 +201,7 @@ pub fn format(
     parse::ParseError::NestedTooDeeply => Error::TooDeep,
   })?;
   let parsed = clock.elapsed();
-  let typescript = settings.parser == Parser::Vue && has_typescript_script(&tree);
+  let typescript = settings.parser == Parser::Vue && has_typescript_script(tree);
   let options = Options {
     parser: settings.parser,
     original_text: source,
@@ -169,13 +215,11 @@ pub fn format(
     embedded: false,
     typescript,
   };
-  if !preprocess::preprocess(&mut tree, &options) {
+  if !preprocess::preprocess(tree, &options) {
     return Err(Error::TooDeep);
   }
   let preprocessed = clock.elapsed();
-  let bump = bumpalo::Bump::new();
-  let mut docs = crate::doc::Docs::with_capacity(&bump, source.len());
-  let doc = print::Printer::new(&text, &tree, &options, &mut docs, embed).print_root();
+  let doc = print::Printer::new(text, tree, &options, docs, embed).print_root();
   let print = crate::doc::Options {
     width: settings.width,
     tab_width: settings.tab_width,
@@ -183,7 +227,7 @@ pub fn format(
     eol: settings.eol,
   };
   let built = clock.elapsed();
-  let output = crate::doc::print(&mut docs, doc, &print);
+  let output = crate::doc::print(docs, doc, &print);
   if std::env::var_os("TIDYRS_STATS").is_some() {
     let printed = clock.elapsed();
     let ms = |d: std::time::Duration| d.as_secs_f64() * 1000.0;
