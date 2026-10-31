@@ -1,0 +1,23 @@
+[package]
+name = "tidyrs_napi"
+description = "Node bindings for tidyrs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+tidyrs = { workspace = true }
+napi = { version = "3.16.0", default-features = false, features = ["napi4"] }
+napi-derive = "3.7.0"
+
+[build-dependencies]
+napi-build = "2.6.0"
+
+[lints]
+workspace = true

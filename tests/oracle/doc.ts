@@ -147,6 +147,7 @@ for (let i = 0; i < count; i++) {
 let root = new URL("../..", import.meta.url).pathname;
 let actual: string[] = await $`cargo run -q -p tidyrs --example doc < ${new Response(JSON.stringify(cases))}`
 	.cwd(root)
+	.env({ ...process.env, CARGO_TARGET_DIR: `${root}target` })
 	.json();
 
 let failed = 0;

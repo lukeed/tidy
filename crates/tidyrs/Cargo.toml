@@ -10,7 +10,9 @@ keywords = ["html", "formatter", "prettier", "svelte", "vue"]
 categories = ["text-processing", "development-tools"]
 
 [dependencies]
+bitflags = "2"
 bumpalo = { workspace = true }
+rustc-hash = "2"
 
 [lints]
 workspace = true

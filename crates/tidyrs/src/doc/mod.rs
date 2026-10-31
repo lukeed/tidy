@@ -240,6 +240,70 @@ impl<'a> Docs<'a> {
     self.join(separator, &parts)
   }
 
+  /// `mapDoc(doc, cb)` where `cb` changes texts: `change` returns the new text, or `None` to keep it.
+  pub fn map_text(&mut self, doc: Doc, change: impl Fn(&str) -> Option<String>) -> Doc {
+    let mut mapped = std::collections::HashMap::new();
+    self.map_with(doc, &change, &mut mapped)
+  }
+
+  fn map_with(
+    &mut self,
+    doc: Doc,
+    change: &impl Fn(&str) -> Option<String>,
+    mapped: &mut std::collections::HashMap<Doc, Doc>,
+  ) -> Doc {
+    if let Some(&done) = mapped.get(&doc) {
+      return done;
+    }
+    let mut list =
+      |docs: &mut Self, list: List, mapped: &mut std::collections::HashMap<Doc, Doc>| {
+        let parts = docs.parts(list).to_vec();
+        let parts: Vec<Doc> =
+          parts.into_iter().map(|part| docs.map_with(part, change, mapped)).collect();
+        docs.list(&parts)
+      };
+    let node = match self.node(doc) {
+      Node::Text(text) => match change(text) {
+        Some(text) => {
+          let done = self.owned(&text);
+          mapped.insert(doc, done);
+          return done;
+        }
+        None => Node::Text(text),
+      },
+      Node::Concat(parts) => Node::Concat(list(self, parts, mapped)),
+      Node::Fill(parts) => Node::Fill(list(self, parts, mapped)),
+      Node::Indent(contents) => Node::Indent(self.map_with(contents, change, mapped)),
+      Node::Align(align, contents) => Node::Align(align, self.map_with(contents, change, mapped)),
+      Node::Group { contents, id, broken, states: Some(states) } => {
+        let states = list(self, states, mapped);
+        Node::Group {
+          contents: self.lists[states.start as usize],
+          id,
+          broken,
+          states: Some(states),
+        }
+      }
+      Node::Group { contents, id, broken, states: None } => {
+        Node::Group { contents: self.map_with(contents, change, mapped), id, broken, states: None }
+      }
+      Node::IfBreak { broken, flat, id } => {
+        let broken = self.map_with(broken, change, mapped);
+        let flat = self.map_with(flat, change, mapped);
+        Node::IfBreak { broken, flat, id }
+      }
+      Node::IndentIfBreak { contents, id, negate } => {
+        Node::IndentIfBreak { contents: self.map_with(contents, change, mapped), id, negate }
+      }
+      Node::LineSuffix(contents) => Node::LineSuffix(self.map_with(contents, change, mapped)),
+      Node::Label(label, contents) => Node::Label(label, self.map_with(contents, change, mapped)),
+      other => other,
+    };
+    let done = self.push(node);
+    mapped.insert(doc, done);
+    done
+  }
+
   /// `willBreak`.
   pub fn will_break(&self, doc: Doc) -> bool {
     self.find(doc, &mut |node| match node {
