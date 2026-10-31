@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = ["crates/*"]
+exclude = ["bench/dprint"]
 
 [workspace.package]
 version = "0.0.0"
@@ -24,6 +25,11 @@ codegen-units = 1
 lto = "fat"
 opt-level = 3
 strip = true
+
+[profile.profiling]
+inherits = "release"
+debug = "line-tables-only"
+strip = false
 
 [profile.bench]
 inherits = "release"

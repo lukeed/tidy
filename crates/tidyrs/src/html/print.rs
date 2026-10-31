@@ -15,6 +15,10 @@ use crate::doc::{Align, Doc, Docs};
 use crate::embed::Embed;
 
 pub(crate) struct Printer<'p, 'a> {
+  /// The text that is formatted, which texts that are part of it borrow from.
+  source: &'a str,
+  /// A buffer for the markers of tags.
+  buffer: Vec<u8>,
   pub(crate) tree: &'p Tree<'a>,
   pub(crate) options: &'p Options<'p>,
   pub(crate) docs: &'p mut Docs<'a>,
@@ -36,12 +40,13 @@ enum Between {
 
 impl<'p, 'a> Printer<'p, 'a> {
   pub(crate) fn new(
+    source: &'a str,
     tree: &'p Tree<'a>,
     options: &'p Options<'p>,
     docs: &'p mut Docs<'a>,
     embed: &'p mut dyn Embed,
   ) -> Self {
-    Self { tree, options, docs, embed, indents: 0, ancestors: 0 }
+    Self { source, buffer: Vec::new(), tree, options, docs, embed, indents: 0, ancestors: 0 }
   }
 
   fn tags(&self) -> Tags<'p, 'a, 'p> {
@@ -50,6 +55,10 @@ impl<'p, 'a> Printer<'p, 'a> {
 
   /// A text that the arena keeps.
   pub(crate) fn bytes(&mut self, bytes: &[u8]) -> Doc {
+    let start = (bytes.as_ptr() as usize).wrapping_sub(self.source.as_ptr() as usize);
+    if let Some(text) = self.source.get(start..start + bytes.len()) {
+      return self.docs.text(text);
+    }
     match std::str::from_utf8(bytes) {
       Ok(text) => self.docs.owned(text),
       Err(_) => self.docs.owned(&String::from_utf8_lossy(bytes)),
@@ -58,9 +67,15 @@ impl<'p, 'a> Printer<'p, 'a> {
 
   /// A string that `write` builds from the tag markers.
   fn marker(&mut self, write: impl FnOnce(Tags<'p, 'a, 'p>, &mut Vec<u8>)) -> Doc {
-    let mut out = Vec::new();
+    let mut out = std::mem::take(&mut self.buffer);
+    out.clear();
     write(self.tags(), &mut out);
-    self.bytes(&out)
+    let doc = match std::str::from_utf8(&out) {
+      Ok(text) => self.docs.owned(text),
+      Err(_) => self.docs.owned(&String::from_utf8_lossy(&out)),
+    };
+    self.buffer = out;
+    doc
   }
 
   /// `replaceEndOfLine(text, separator)`

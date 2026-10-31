@@ -1,0 +1,13 @@
+[package]
+name = "dprint-bench"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+markup_fmt = "=0.25.0"
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+opt-level = 3

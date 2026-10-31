@@ -169,8 +169,8 @@ pub fn format(
     return Err(Error::TooDeep);
   }
   let bump = bumpalo::Bump::new();
-  let mut docs = crate::doc::Docs::new(&bump);
-  let doc = print::Printer::new(&tree, &options, &mut docs, embed).print_root();
+  let mut docs = crate::doc::Docs::with_capacity(&bump, source.len());
+  let doc = print::Printer::new(&text, &tree, &options, &mut docs, embed).print_root();
   let print = crate::doc::Options {
     width: settings.width,
     tab_width: settings.tab_width,

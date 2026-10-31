@@ -50,14 +50,28 @@ pub(crate) struct List {
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum Node<'a> {
-  Text(&'a str),
+  /// A text and its width.
+  Text(&'a str, u32),
   Concat(List),
   Fill(List),
   Indent(Doc),
   Align(Align<'a>, Doc),
-  Group { contents: Doc, id: Option<GroupId>, broken: bool, states: Option<List> },
-  IfBreak { broken: Doc, flat: Doc, id: Option<GroupId> },
-  IndentIfBreak { contents: Doc, id: GroupId, negate: bool },
+  Group {
+    contents: Doc,
+    id: Option<GroupId>,
+    broken: bool,
+    states: Option<List>,
+  },
+  IfBreak {
+    broken: Doc,
+    flat: Doc,
+    id: Option<GroupId>,
+  },
+  IndentIfBreak {
+    contents: Doc,
+    id: GroupId,
+    negate: bool,
+  },
   LineSuffix(Doc),
   LineSuffixBoundary,
   Line(Line),
@@ -72,6 +86,8 @@ pub struct Docs<'a> {
   nodes: Vec<Node<'a>>,
   lists: Vec<Doc>,
   groups: u32,
+  /// Whether a `trim` was made, which `fits` then has to account for.
+  pub(crate) trims: bool,
 }
 
 impl<'a> Docs<'a> {
@@ -80,8 +96,16 @@ impl<'a> Docs<'a> {
   pub(crate) const HARD: Doc = Doc(1);
 
   pub fn new(bump: &'a Bump) -> Self {
-    let nodes = vec![Node::Text(""), Node::Line(Line::Hard)];
-    Self { bump, nodes, lists: Vec::new(), groups: 0 }
+    let nodes = vec![Node::Text("", 0), Node::Line(Line::Hard)];
+    Self { bump, nodes, lists: Vec::new(), groups: 0, trims: false }
+  }
+
+  /// An arena with room for the docs of a text about `size` bytes long.
+  pub fn with_capacity(bump: &'a Bump, size: usize) -> Self {
+    let mut docs = Self::new(bump);
+    docs.nodes.reserve(size / 4);
+    docs.lists.reserve(size / 4);
+    docs
   }
 
   pub fn clear(&mut self) {
@@ -118,7 +142,7 @@ impl<'a> Docs<'a> {
     if text.is_empty() {
       return Self::EMPTY;
     }
-    self.push(Node::Text(text))
+    self.push(Node::Text(text, width(text) as u32))
   }
 
   /// A text this arena keeps.
@@ -213,6 +237,7 @@ impl<'a> Docs<'a> {
   }
 
   pub fn trim(&mut self) -> Doc {
+    self.trims = true;
     self.push(Node::Trim)
   }
 
@@ -263,13 +288,13 @@ impl<'a> Docs<'a> {
         docs.list(&parts)
       };
     let node = match self.node(doc) {
-      Node::Text(text) => match change(text) {
+      Node::Text(text, size) => match change(text) {
         Some(text) => {
           let done = self.owned(&text);
           mapped.insert(doc, done);
           return done;
         }
-        None => Node::Text(text),
+        None => Node::Text(text, size),
       },
       Node::Concat(parts) => Node::Concat(list(self, parts, mapped)),
       Node::Fill(parts) => Node::Fill(list(self, parts, mapped)),

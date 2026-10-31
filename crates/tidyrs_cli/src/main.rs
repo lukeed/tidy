@@ -1,0 +1,235 @@
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
+use std::process::ExitCode;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+use tidyrs::embed::Verbatim;
+use tidyrs::html::{Parser, Settings, Whitespace};
+
+const HELP: &str = "\
+tidyrs: a fast markup formatter
+
+Usage
+  $ tidyrs [paths...] [options]
+
+  Without paths, reads stdin and prints the result.
+  With one file, prints the result unless --check or --write is set.
+  Folders are searched for .html, .htm, and .vue files.
+  Code in <script> and <style> is left as it is written.
+
+Options
+  --check                         List files that aren't formatted, and exit 1 if any
+  -w, --write                     Rewrite files in place
+  --parser <name>                 html or vue, for stdin (default: by extension)
+  --width <n>                     Line width (default: 80)
+  --tab-width <n>                 Indent width (default: 2)
+  --use-tabs                      Indent with tabs
+  --whitespace <how>              css (default), strict, or ignore
+  --single-attribute-per-line     Put each attribute on its own line
+  --bracket-same-line             Keep the > of a multi-line tag on the last line
+  --vue-indent-script-and-style   Indent the code in Vue's <script> and <style>
+  --threads <n>                   How many files to format at once (default: all cores)
+  -v, --version                   Print the version
+  -h, --help                      Print this help
+
+Examples
+  $ tidyrs index.html
+  $ tidyrs src --check
+  $ tidyrs . --write --width 100
+";
+
+fn main() -> ExitCode {
+  match run() {
+    Ok(code) => code,
+    Err(error) => {
+      eprintln!("tidyrs: {error}");
+      ExitCode::from(2)
+    }
+  }
+}
+
+fn run() -> Result<ExitCode, String> {
+  let mut args = pico_args::Arguments::from_env();
+  if args.contains(["-h", "--help"]) {
+    print!("{HELP}");
+    return Ok(ExitCode::SUCCESS);
+  }
+  if args.contains(["-v", "--version"]) {
+    println!("tidyrs {}", env!("CARGO_PKG_VERSION"));
+    return Ok(ExitCode::SUCCESS);
+  }
+  let check = args.contains("--check");
+  let write = args.contains(["-w", "--write"]);
+  let threads: Option<usize> =
+    args.opt_value_from_str("--threads").map_err(|error| error.to_string())?;
+  let parser = args
+    .opt_value_from_fn("--parser", |name: &str| match name {
+      "html" => Ok(Parser::Html),
+      "vue" => Ok(Parser::Vue),
+      other => Err(format!("unknown parser `{other}`")),
+    })
+    .map_err(|error| error.to_string())?;
+  let settings = settings(&mut args)?;
+  let mut paths = Vec::new();
+  for arg in args.finish() {
+    let text = arg.to_string_lossy();
+    if text.starts_with('-') && text != "-" {
+      return Err(format!("unknown flag `{text}`, see --help"));
+    }
+    paths.push(PathBuf::from(arg));
+  }
+
+  if paths.is_empty() || paths == [Path::new("-")] {
+    let mut source = String::new();
+    std::io::stdin().read_to_string(&mut source).map_err(|error| error.to_string())?;
+    let settings = Settings { parser: parser.unwrap_or(Parser::Html), ..settings };
+    let output = format(&source, &settings)?;
+    if check {
+      return Ok(if output == source { ExitCode::SUCCESS } else { ExitCode::FAILURE });
+    }
+    std::io::stdout().write_all(output.as_bytes()).map_err(|error| error.to_string())?;
+    return Ok(ExitCode::SUCCESS);
+  }
+
+  if !check && !write && paths.len() == 1 && paths[0].is_file() {
+    let path = &paths[0];
+    let source =
+      std::fs::read_to_string(path).map_err(|error| format!("{}: {error}", path.display()))?;
+    let output = format(&source, &for_path(&settings, path))?;
+    std::io::stdout().write_all(output.as_bytes()).map_err(|error| error.to_string())?;
+    return Ok(ExitCode::SUCCESS);
+  }
+  if !check && !write {
+    return Err("pass --check or --write to format more than one file".into());
+  }
+
+  let mut files = Vec::new();
+  for path in &paths {
+    if path.is_dir() {
+      walk(path, &mut files);
+    } else {
+      files.push(path.clone());
+    }
+  }
+  files.sort();
+
+  let next = AtomicUsize::new(0);
+  let cores = std::thread::available_parallelism().map_or(1, |count| count.get());
+  let threads = threads.unwrap_or(cores).clamp(1, files.len().max(1));
+  let mut outcomes: Vec<(usize, Outcome)> = std::thread::scope(|scope| {
+    let workers: Vec<_> =
+      (0..threads).map(|_| scope.spawn(|| work(&files, &next, &settings, write))).collect();
+    workers.into_iter().flat_map(|worker| worker.join().unwrap_or_default()).collect()
+  });
+  outcomes.sort_by_key(|(index, _)| *index);
+
+  let mut changed = 0;
+  let mut failed = false;
+  for (index, outcome) in outcomes {
+    let path = files[index].display();
+    match outcome {
+      Outcome::Same => {}
+      Outcome::Changed => {
+        changed += 1;
+        println!("{path}");
+      }
+      Outcome::Failed(error) => {
+        failed = true;
+        eprintln!("tidyrs: {path}: {error}");
+      }
+    }
+  }
+  if failed {
+    return Ok(ExitCode::from(2));
+  }
+  Ok(if check && changed > 0 { ExitCode::FAILURE } else { ExitCode::SUCCESS })
+}
+
+fn settings(args: &mut pico_args::Arguments) -> Result<Settings, String> {
+  let error = |error: pico_args::Error| error.to_string();
+  let mut settings = Settings::default();
+  if let Some(width) = args.opt_value_from_str("--width").map_err(error)? {
+    settings.width = width;
+  }
+  if let Some(width) = args.opt_value_from_str("--tab-width").map_err(error)? {
+    settings.tab_width = width;
+  }
+  settings.tabs = args.contains("--use-tabs");
+  if let Some(whitespace) = args
+    .opt_value_from_fn("--whitespace", |name: &str| match name {
+      "css" => Ok(Whitespace::Css),
+      "strict" => Ok(Whitespace::Strict),
+      "ignore" => Ok(Whitespace::Ignore),
+      other => Err(format!("unknown whitespace `{other}`")),
+    })
+    .map_err(error)?
+  {
+    settings.whitespace = whitespace;
+  }
+  settings.single_attribute_per_line = args.contains("--single-attribute-per-line");
+  settings.bracket_same_line = args.contains("--bracket-same-line");
+  settings.vue_indent_script_and_style = args.contains("--vue-indent-script-and-style");
+  Ok(settings)
+}
+
+/// The settings for `path`: its parser, and the path itself.
+fn for_path(settings: &Settings, path: &Path) -> Settings {
+  let parser = match path.extension().and_then(|it| it.to_str()) {
+    Some("vue") => Parser::Vue,
+    _ => Parser::Html,
+  };
+  Settings { parser, filepath: Some(path.to_string_lossy().into_owned()), ..settings.clone() }
+}
+
+fn format(source: &str, settings: &Settings) -> Result<String, String> {
+  tidyrs::html::format(source, settings, &mut Verbatim).map_err(|error| error.to_string())
+}
+
+enum Outcome {
+  Same,
+  Changed,
+  Failed(String),
+}
+
+fn work(
+  files: &[PathBuf],
+  next: &AtomicUsize,
+  settings: &Settings,
+  write: bool,
+) -> Vec<(usize, Outcome)> {
+  let mut outcomes = Vec::new();
+  loop {
+    let index = next.fetch_add(1, Ordering::Relaxed);
+    let Some(path) = files.get(index) else { return outcomes };
+    let outcome = match std::fs::read_to_string(path) {
+      Err(error) => Outcome::Failed(error.to_string()),
+      Ok(source) => match format(&source, &for_path(settings, path)) {
+        Err(error) => Outcome::Failed(error),
+        Ok(output) if output == source => Outcome::Same,
+        Ok(output) => match write.then(|| std::fs::write(path, output)) {
+          Some(Err(error)) => Outcome::Failed(error.to_string()),
+          _ => Outcome::Changed,
+        },
+      },
+    };
+    outcomes.push((index, outcome));
+  }
+}
+
+/// Collect markup files under `dir`, skipping hidden folders and `node_modules`.
+fn walk(dir: &Path, files: &mut Vec<PathBuf>) {
+  let Ok(entries) = std::fs::read_dir(dir) else { return };
+  for entry in entries.flatten() {
+    let name = entry.file_name();
+    let Ok(kind) = entry.file_type() else { continue };
+    let path = entry.path();
+    if kind.is_dir() {
+      let name = name.to_string_lossy();
+      if !name.starts_with('.') && name != "node_modules" {
+        walk(&path, files);
+      }
+    } else if matches!(path.extension().and_then(|it| it.to_str()), Some("html" | "htm" | "vue")) {
+      files.push(path);
+    }
+  }
+}

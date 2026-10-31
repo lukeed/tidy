@@ -216,25 +216,24 @@ pub fn print<'a>(docs: &mut Docs<'a>, doc: Doc, options: &Options) -> String {
   let eol = options.eol.text();
   let mut indents = Indents::new(options);
   let mut modes = Modes(Vec::new());
-  let mut output = Output { text: String::new(), settled: 0 };
+  let mut output = Output { text: String::with_capacity(docs.nodes.len() * 2), settled: 0 };
   let mut position = 0isize;
   let mut commands = vec![Command::new(ROOT, Mode::Break, doc)];
   let mut remeasure = false;
   let mut suffix: Vec<Command> = Vec::new();
+  let mut scratch: Vec<Frame> = Vec::new();
 
   while let Some(command) = commands.pop() {
     let Command { indent, mode, doc, offset } = command;
     match docs.node(doc) {
-      Node::Text(text) => {
+      Node::Text(text, size) => {
         if !text.is_empty() {
           if eol != "\n" && text.contains('\n') {
             output.text.push_str(&text.replace('\n', eol));
           } else {
             output.text.push_str(text);
           }
-          if !commands.is_empty() {
-            position += width(text) as isize;
-          }
+          position += size as isize;
         }
       }
       Node::Concat(list) => {
@@ -259,7 +258,8 @@ pub fn print<'a>(docs: &mut Docs<'a>, doc: Doc, options: &Options) -> String {
           let remaining = options.width as isize - position;
           let pending = !suffix.is_empty();
           let flat = Command::new(indent, Mode::Flat, contents);
-          if !broken && fits(docs, flat, &commands, remaining, pending, &modes, false) {
+          if !broken && fits(docs, &mut scratch, flat, &commands, remaining, pending, &modes, false)
+          {
             flat
           } else if let Some(list) = states {
             let states = docs.parts(list);
@@ -268,7 +268,7 @@ pub fn print<'a>(docs: &mut Docs<'a>, doc: Doc, options: &Options) -> String {
             if !broken {
               for &state in &states[1..states.len() - 1] {
                 let flat = Command::new(indent, Mode::Flat, state);
-                if fits(docs, flat, &commands, remaining, pending, &modes, false) {
+                if fits(docs, &mut scratch, flat, &commands, remaining, pending, &modes, false) {
                   chosen = flat;
                   break;
                 }
@@ -295,7 +295,7 @@ pub fn print<'a>(docs: &mut Docs<'a>, doc: Doc, options: &Options) -> String {
         let flat = Command::new(indent, Mode::Flat, content);
         let broken = Command::new(indent, Mode::Break, content);
         let pending = !suffix.is_empty();
-        let content_fits = fits(docs, flat, &[], remaining, pending, &modes, true);
+        let content_fits = fits(docs, &mut scratch, flat, &[], remaining, pending, &modes, true);
         if length == 1 {
           commands.push(if content_fits { flat } else { broken });
           continue;
@@ -314,7 +314,7 @@ pub fn print<'a>(docs: &mut Docs<'a>, doc: Doc, options: &Options) -> String {
         let second = parts[offset as usize + 2];
         commands.push(Command { indent, mode, doc, offset: offset + 2 });
         let both = Pair { first: content, space: whitespace, second };
-        if fits_pair(docs, indent, both, remaining, pending, &modes) {
+        if fits_pair(docs, &mut scratch, indent, both, remaining, pending, &modes) {
           commands.extend([space_flat, flat]);
         } else if content_fits {
           commands.extend([space_broken, flat]);
@@ -391,6 +391,9 @@ pub fn print<'a>(docs: &mut Docs<'a>, doc: Doc, options: &Options) -> String {
   output.text
 }
 
+/// A command of `fits`: its mode, doc, and fill offset.
+type Frame = (Mode, Doc, u32);
+
 #[derive(Clone, Copy)]
 struct Pair {
   first: Doc,
@@ -401,6 +404,7 @@ struct Pair {
 /// `fits` of `[content, whitespace, secondContent]` in flat mode, as a fill measures it.
 fn fits_pair(
   docs: &Docs,
+  scratch: &mut Vec<Frame>,
   indent: u32,
   pair: Pair,
   remaining: isize,
@@ -410,12 +414,14 @@ fn fits_pair(
   let rest =
     [Command::new(indent, Mode::Flat, pair.second), Command::new(indent, Mode::Flat, pair.space)];
   let first = Command::new(indent, Mode::Flat, pair.first);
-  fits_with(docs, first, &rest, &[], remaining, pending, modes, true)
+  fits_with(docs, scratch, first, &rest, &[], remaining, pending, modes, true)
 }
 
 /// `fits`: whether `next`, then `rest` from its end, fit on the line in `remaining` columns.
+#[allow(clippy::too_many_arguments)]
 fn fits(
   docs: &Docs,
+  scratch: &mut Vec<Frame>,
   next: Command,
   rest: &[Command],
   remaining: isize,
@@ -423,12 +429,13 @@ fn fits(
   modes: &Modes,
   must_be_flat: bool,
 ) -> bool {
-  fits_with(docs, next, &[], rest, remaining, pending, modes, must_be_flat)
+  fits_with(docs, scratch, next, &[], rest, remaining, pending, modes, must_be_flat)
 }
 
 #[allow(clippy::too_many_arguments)]
 fn fits_with(
   docs: &Docs,
+  commands: &mut Vec<Frame>,
   next: Command,
   queued: &[Command],
   rest: &[Command],
@@ -440,8 +447,8 @@ fn fits_with(
   let mut rest_index = rest.len();
   let mut space = false;
   let mut trailing = 0usize;
-  let mut commands: Vec<(Mode, Doc, u32)> =
-    queued.iter().map(|c| (c.mode, c.doc, c.offset)).collect();
+  commands.clear();
+  commands.extend(queued.iter().map(|c| (c.mode, c.doc, c.offset)));
   commands.push((next.mode, next.doc, next.offset));
   while remaining >= 0 {
     let Some((mode, doc, offset)) = commands.pop() else {
@@ -454,16 +461,18 @@ fn fits_with(
       continue;
     };
     match docs.node(doc) {
-      Node::Text(text) => {
+      Node::Text(text, size) => {
         if !text.is_empty() {
           if space {
             remaining -= 1;
             space = false;
             trailing += 1;
           }
-          remaining -= width(text) as isize;
-          let kept = text.trim_end_matches([' ', '\t']).len();
-          trailing = if kept == 0 { trailing + text.len() } else { text.len() - kept };
+          remaining -= size as isize;
+          if docs.trims {
+            let kept = text.trim_end_matches([' ', '\t']).len();
+            trailing = if kept == 0 { trailing + text.len() } else { text.len() - kept };
+          }
         }
       }
       Node::Concat(list) => {
