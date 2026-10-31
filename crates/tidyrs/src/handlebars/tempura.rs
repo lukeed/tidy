@@ -224,27 +224,44 @@ fn trimmed(source: &[u8], (start, end): (usize, usize)) -> (usize, usize) {
   (start, end)
 }
 
-/// True if the template uses syntax that only tempura has: `#expect`, `#var`, `#elif`, `#else`, or `#each list as
-/// item` without Handlebars' pipes.
+/// True if the template uses syntax that only tempura has: `#expect`, `#var`, `#elif`, `#else`, `#each list as item`
+/// without Handlebars' pipes, or a block that never closes, which is a custom tag in tempura and an error in
+/// Handlebars.
 pub(crate) fn is_tempura(source: &[u8]) -> bool {
+  let mut open: Vec<(&[u8], isize)> = Vec::new();
+  let mut count = |name: &[u8], change: isize| match open.iter_mut().find(|(it, _)| *it == name) {
+    Some((_, count)) => *count += change,
+    None => open.push((source_name(source, name), change)),
+  };
   let mut from = 0;
   while let Ok(Some(tag)) = next_tag(source, from) {
     from = tag.end;
-    if let Form::Open { name, rest } = form(source, tag) {
-      let rest = &source[rest.0..rest.1];
-      let is_each_as = name == b"each"
-        && !rest.contains(&b'|')
-        && rest.windows(4).any(|window| {
-          is_space(window[0])
-            && &window[1..3] == b"as"
-            && matches!(window[3], b' ' | b'\t' | b'\n' | b'(')
-        });
-      if matches!(name, b"expect" | b"var" | b"elif" | b"else") || is_each_as {
-        return true;
+    match form(source, tag) {
+      Form::Open { name, rest } => {
+        let rest = &source[rest.0..rest.1];
+        let is_each_as = name == b"each"
+          && !rest.contains(&b'|')
+          && rest.windows(4).any(|window| {
+            is_space(window[0])
+              && &window[1..3] == b"as"
+              && matches!(window[3], b' ' | b'\t' | b'\n' | b'(')
+          });
+        if matches!(name, b"expect" | b"var" | b"elif" | b"else") || is_each_as {
+          return true;
+        }
+        count(name, 1);
       }
+      Form::Close { name } => count(name, -1),
+      _ => {}
     }
   }
-  false
+  open.iter().any(|(_, count)| *count > 0)
+}
+
+/// `name`, which is a part of `source`.
+fn source_name<'s>(source: &'s [u8], name: &[u8]) -> &'s [u8] {
+  let start = name.as_ptr() as usize - source.as_ptr() as usize;
+  &source[start..start + name.len()]
 }
 
 /// An open `#if` or `#each`, and the statements of its chain: the section, then each `#elif`.

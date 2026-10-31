@@ -59,7 +59,7 @@ pub struct Scratch {
 /// The template language of a file.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
 pub enum Dialect {
-  /// Tempura if the template uses syntax that only tempura has, or if it only parses as tempura. Otherwise
+  /// Tempura if the template uses syntax that only tempura has, or if its tags aren't Handlebars. Otherwise
   /// Handlebars.
   #[default]
   Auto,
@@ -93,17 +93,20 @@ fn parse(
   if content.len() > i32::MAX as usize {
     return Err(Error::Syntax(rejection.note(Message::TooLarge, 0)));
   }
-  let is_tempura = dialect.is_tempura(content);
+  let mut is_tempura = dialect.is_tempura(content);
   let result = statements(content, is_tempura, scratch, rejection);
+  // Not Handlebars at all, as in `{{ $utils.year() }}`. Handlebars that Glimmer doesn't support, such as a partial,
+  // fails later, as it does in Prettier.
   if result.is_err() && dialect == Dialect::Auto && !is_tempura {
     let handlebars = rejection.reason();
-    if statements(content, true, scratch, rejection).is_ok() {
-      return Ok((build(content, front_matter_end, scratch, rejection)?, true));
+    if statements(content, true, scratch, rejection).is_err() {
+      rejection.note(handlebars.0, handlebars.1);
+      return Err(result.err().unwrap_or(Error::NestedTooDeeply));
     }
-    rejection.note(handlebars.0, handlebars.1);
-    return Err(result.err().unwrap_or(Error::NestedTooDeeply));
+    is_tempura = true;
+  } else {
+    result?;
   }
-  result?;
   Ok((build(content, front_matter_end, scratch, rejection)?, is_tempura))
 }
 
