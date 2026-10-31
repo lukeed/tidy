@@ -2,7 +2,7 @@
 
 use rustc_hash::FxHashMap;
 
-use super::{Align, Doc, Docs, GroupId, Line, Node, width};
+use super::{Doc, Docs, Line, Margin, NONE, Node};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum Eol {
@@ -94,10 +94,10 @@ impl<'a> Indents<'a> {
     &self.list[indent as usize]
   }
 
-  fn align(&mut self, indent: u32, align: Align<'a>) -> u32 {
-    match align {
-      Align::Width(0) => indent,
-      Align::Mark => {
+  fn align(&mut self, indent: u32, margin: Margin, docs: &Docs<'a>) -> u32 {
+    match margin {
+      Margin::Width(0) => indent,
+      Margin::Mark => {
         let parent = self.get(indent);
         let marked = Indent {
           value: parent.value.clone(),
@@ -109,10 +109,10 @@ impl<'a> Indents<'a> {
         self.list.push(marked);
         self.list.len() as u32 - 1
       }
-      Align::Root => self.get(indent).root,
-      Align::Dedent => self.make(indent, Step::Dedent),
-      Align::Width(width) => self.make(indent, Step::Width(width)),
-      Align::Text(text) => self.make(indent, Step::Text(text)),
+      Margin::Root => self.get(indent).root,
+      Margin::Dedent => self.make(indent, Step::Dedent),
+      Margin::Width(width) => self.make(indent, Step::Width(width as usize)),
+      Margin::Text(index) => self.make(indent, Step::Text(docs.text_at(index).0)),
     }
   }
 
@@ -208,12 +208,12 @@ impl Output {
 struct Modes(Vec<Option<Mode>>);
 
 impl Modes {
-  fn get(&self, id: GroupId) -> Option<Mode> {
-    self.0.get(id.0 as usize).copied().flatten()
+  fn get(&self, id: u32) -> Option<Mode> {
+    self.0.get(id as usize).copied().flatten()
   }
 
-  fn set(&mut self, id: GroupId, mode: Mode) {
-    let index = id.0 as usize;
+  fn set(&mut self, id: u32, mode: Mode) {
+    let index = id as usize;
     if self.0.len() <= index {
       self.0.resize(index + 1, None);
     }
@@ -236,7 +236,8 @@ pub fn print<'a>(docs: &Docs<'a>, doc: Doc, options: &Options) -> String {
   while let Some(command) = commands.pop() {
     let Command { indent, mode, doc, offset } = command;
     match docs.node(doc) {
-      Node::Text(text, size) => {
+      Node::Text(index) => {
+        let (text, size) = docs.text_at(index);
         if !text.is_empty() {
           if eol != "\n" && text.contains('\n') {
             output.text.push_str(&text.replace('\n', eol));
@@ -256,7 +257,7 @@ pub fn print<'a>(docs: &Docs<'a>, doc: Doc, options: &Options) -> String {
         commands.push(Command::new(indent, mode, contents));
       }
       Node::Align(align, contents) => {
-        let indent = indents.align(indent, align);
+        let indent = indents.align(indent, align, docs);
         commands.push(Command::new(indent, mode, contents));
       }
       Node::Trim => position -= output.trim() as isize,
@@ -271,8 +272,8 @@ pub fn print<'a>(docs: &Docs<'a>, doc: Doc, options: &Options) -> String {
           if !broken && fits(docs, &mut scratch, flat, &commands, remaining, pending, &modes, false)
           {
             flat
-          } else if let Some(list) = states {
-            let states = docs.parts(list);
+          } else if states != NONE {
+            let states = docs.states(states);
             let last = states[states.len() - 1];
             let mut chosen = Command::new(indent, Mode::Break, last);
             if !broken {
@@ -290,7 +291,7 @@ pub fn print<'a>(docs: &Docs<'a>, doc: Doc, options: &Options) -> String {
           }
         };
         commands.push(next);
-        if let Some(id) = id {
+        if id != NONE {
           modes.set(id, next.mode);
         }
       }
@@ -305,7 +306,11 @@ pub fn print<'a>(docs: &Docs<'a>, doc: Doc, options: &Options) -> String {
         let flat = Command::new(indent, Mode::Flat, content);
         let broken = Command::new(indent, Mode::Break, content);
         let pending = !suffix.is_empty();
-        let content_fits = fits(docs, &mut scratch, flat, &[], remaining, pending, &modes, true);
+        let content_fits = match docs.node(content) {
+          // What `fits` does for one text.
+          Node::Text(index) => remaining >= docs.text_at(index).1 as isize,
+          _ => fits(docs, &mut scratch, flat, &[], remaining, pending, &modes, true),
+        };
         if length == 1 {
           commands.push(if content_fits { flat } else { broken });
           continue;
@@ -324,7 +329,20 @@ pub fn print<'a>(docs: &Docs<'a>, doc: Doc, options: &Options) -> String {
         let second = parts[offset as usize + 2];
         commands.push(Command { indent, mode, doc, offset: offset + 2 });
         let both = Pair { first: content, space: whitespace, second };
-        if fits_pair(docs, &mut scratch, indent, both, remaining, pending, &modes) {
+        let pair_fits = match (docs.node(content), docs.node(whitespace), docs.node(second)) {
+          // What `fits` does for a text, a `line` or `softline`, and a text.
+          (
+            Node::Text(first),
+            Node::Line(line @ (Line::Space | Line::Soft)),
+            Node::Text(second),
+          ) => {
+            let (first, (text, size)) = (docs.text_at(first).1, docs.text_at(second));
+            let space = usize::from(line == Line::Space && !text.is_empty());
+            remaining >= (first as usize + space + size as usize) as isize
+          }
+          _ => fits_pair(docs, &mut scratch, indent, both, remaining, pending, &modes),
+        };
+        if pair_fits {
           commands.extend([space_flat, flat]);
         } else if content_fits {
           commands.extend([space_broken, flat]);
@@ -333,10 +351,7 @@ pub fn print<'a>(docs: &Docs<'a>, doc: Doc, options: &Options) -> String {
         }
       }
       Node::IfBreak { broken, flat, id } => {
-        let group = match id {
-          Some(id) => modes.get(id),
-          None => Some(mode),
-        };
+        let group = if id == NONE { Some(mode) } else { modes.get(id) };
         match group {
           Some(Mode::Break) if broken != Docs::EMPTY => {
             commands.push(Command::new(indent, mode, broken))
@@ -347,7 +362,7 @@ pub fn print<'a>(docs: &Docs<'a>, doc: Doc, options: &Options) -> String {
           _ => {}
         }
       }
-      Node::IndentIfBreak { contents, id, negate } => match modes.get(id) {
+      Node::IndentIfBreak { contents, id, negate } => match modes.get(id.0) {
         Some(Mode::Break) => {
           let indent = if negate { indent } else { indents.make(indent, Step::Indent) };
           commands.push(Command::new(indent, mode, contents));
@@ -391,7 +406,6 @@ pub fn print<'a>(docs: &Docs<'a>, doc: Doc, options: &Options) -> String {
           }
         }
       }
-      Node::Label(_, contents) => commands.push(Command::new(indent, mode, contents)),
       Node::BreakParent => {}
     }
     if commands.is_empty() && !suffix.is_empty() {
@@ -471,7 +485,8 @@ fn fits_with(
       continue;
     };
     match docs.node(doc) {
-      Node::Text(text, size) => {
+      Node::Text(index) => {
+        let (text, size) = docs.text_at(index);
         if !text.is_empty() {
           if space {
             remaining -= 1;
@@ -495,10 +510,9 @@ fn fits_with(
           commands.push((mode, part, 0));
         }
       }
-      Node::Indent(contents)
-      | Node::Align(_, contents)
-      | Node::IndentIfBreak { contents, .. }
-      | Node::Label(_, contents) => commands.push((mode, contents, 0)),
+      Node::Indent(contents) | Node::Align(_, contents) | Node::IndentIfBreak { contents, .. } => {
+        commands.push((mode, contents, 0))
+      }
       Node::Trim => {
         remaining += trailing as isize;
         trailing = 0;
@@ -508,17 +522,15 @@ fn fits_with(
           return false;
         }
         let mode = if broken { Mode::Break } else { mode };
-        let contents = match states {
-          Some(list) if mode == Mode::Break => *docs.parts(list).last().unwrap(),
-          _ => contents,
+        let contents = if states != NONE && mode == Mode::Break {
+          *docs.states(states).last().unwrap()
+        } else {
+          contents
         };
         commands.push((mode, contents, 0));
       }
       Node::IfBreak { broken, flat, id } => {
-        let group = match id {
-          Some(id) => modes.get(id).unwrap_or(Mode::Flat),
-          None => mode,
-        };
+        let group = if id == NONE { mode } else { modes.get(id).unwrap_or(Mode::Flat) };
         let contents = if group == Mode::Break { broken } else { flat };
         if contents != Docs::EMPTY {
           commands.push((mode, contents, 0));

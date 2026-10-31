@@ -617,8 +617,22 @@ impl<'p, 'a> Printer<'p, 'a> {
       .filter(|prev| prev.kind == Kind::Comment)
       .and_then(|prev| ignore_attribute_data(&prev.value));
 
-    let mut printed = Vec::with_capacity(attrs.len());
+    let only_src = node.kind == Kind::Element
+      && node.is_full_name(b"script")
+      && attrs.len() == 1
+      && attrs[0].is_full_name(b"src")
+      && self.tree.first_child(id).is_none();
+    let per_line = self.options.single_attribute_per_line
+      && attrs.len() > 1
+      && !self.tree.is_vue_sfc_block(id, self.options);
+    let separator = if per_line { self.docs.hardline() } else { self.docs.line() };
+    // `indent([line, join(attributeLine, printedAttributes)])`, as one list.
+    let mark = self.stack.len();
+    self.stack.push(if only_src { self.docs.text(" ") } else { self.docs.line() });
     for index in 0..attrs.len() {
+      if index > 0 {
+        self.stack.push(separator);
+      }
       let attr = &self.tree.attrs(id)[index];
       let is_ignored = match &ignored {
         Some(Ignored::All) => true,
@@ -640,21 +654,9 @@ impl<'p, 'a> Printer<'p, 'a> {
       } else {
         self.print_attribute(id, index)
       };
-      printed.push(doc);
+      self.stack.push(doc);
     }
-
-    let only_src = node.kind == Kind::Element
-      && node.is_full_name(b"script")
-      && attrs.len() == 1
-      && attrs[0].is_full_name(b"src")
-      && self.tree.first_child(id).is_none();
-    let per_line = self.options.single_attribute_per_line
-      && attrs.len() > 1
-      && !self.tree.is_vue_sfc_block(id, self.options);
-    let separator = if per_line { self.docs.hardline() } else { self.docs.line() };
-    let joined = self.docs.join(separator, &printed);
-    let lead = if only_src { self.docs.text(" ") } else { self.docs.line() };
-    let lead = self.docs.concat(&[lead, joined]);
+    let lead = self.concat_from(mark);
     let indented = self.docs.indent(lead);
 
     let self_closing = node.has(Flags::IS_SELF_CLOSING);

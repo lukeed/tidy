@@ -2,7 +2,9 @@
 
 /// Whether `name`, between `&` and `;`, is a named character reference.
 pub(crate) fn is_entity(name: &[u8]) -> bool {
-  NAMES.binary_search(&name).is_ok()
+  static SET: std::sync::OnceLock<rustc_hash::FxHashSet<&'static [u8]>> =
+    std::sync::OnceLock::new();
+  SET.get_or_init(|| NAMES.iter().copied().collect()).contains(name)
 }
 
 const NAMES: &[&[u8]] = &[
