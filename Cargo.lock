@@ -322,6 +322,7 @@ version = "0.0.0"
 dependencies = [
  "bitflags",
  "bumpalo",
+ "memchr",
  "rustc-hash",
  "serde_json",
 ]

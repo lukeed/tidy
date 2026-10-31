@@ -12,6 +12,7 @@ categories = ["text-processing", "development-tools"]
 [dependencies]
 bitflags = "2"
 bumpalo = { workspace = true }
+memchr = "2"
 rustc-hash = "2"
 
 [lints]

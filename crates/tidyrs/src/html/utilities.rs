@@ -109,7 +109,9 @@ fn is_prettier_ignore(node: &Node<'_>) -> bool {
 
 /// `unescapeQuoteEntities`
 pub(crate) fn unescape_quote_entities(text: &[u8]) -> Cow<'_, [u8]> {
-  if !strings::contains(text, b"&apos;") && !strings::contains(text, b"&quot;") {
+  if !strings::contains_char(text, b'&')
+    || (!strings::contains(text, b"&apos;") && !strings::contains(text, b"&quot;"))
+  {
     return Cow::Borrowed(text);
   }
   let mut result = Vec::with_capacity(text.len());

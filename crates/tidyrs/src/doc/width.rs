@@ -18,28 +18,54 @@ pub fn width(text: &str) -> usize {
 
 #[cold]
 fn wide(text: &str) -> usize {
-  let chars: Vec<u32> = text.chars().map(u32::from).collect();
-  let (mut width, mut i) = (0, 0);
-  while let Some(&c) = chars.get(i) {
-    let len = match emoji(&chars[i..]) {
-      2.. if skin(c) => 1,
-      len => len,
-    };
-    if len > 0 {
-      width += if len == 1 && within(NARROW_EMOJI, c) { 1 } else { 2 };
-      i += len;
+  let mut width = 0;
+  let mut chars = text.chars().map(u32::from).peekable();
+  let mut ahead: Vec<u32> = Vec::new();
+  while let Some(c) = chars.next() {
+    if !may_start_emoji(c) {
+      width += match c {
+        0..=0x1F | 0x7F..=0x9F | 0x300..=0x36F | 0xFE00..=0xFE0F => 0,
+        _ if c >= 0x1100 && within(WIDE, c) => 2,
+        _ => 1,
+      };
       continue;
     }
-    i += 1;
-    width += match c {
-      0..=0x1F | 0x7F..=0x9F => 0,
-      0x20..=0x7E => 1,
-      0x300..=0x36F | 0xFE00..=0xFE0F => 0,
-      _ if within(WIDE, c) => 2,
-      _ => 1,
-    };
+    // An emoji is at most a few characters, joined by joiners and selectors: look at those.
+    ahead.clear();
+    ahead.push(c);
+    while let Some(&next) = chars.peek() {
+      if ahead.len() >= 64 || (next < 0xA9 && !matches!(next, 0x23 | 0x2A | 0x30..=0x39)) {
+        break;
+      }
+      ahead.push(next);
+      chars.next();
+    }
+    let mut at = 0;
+    while at < ahead.len() {
+      let c = ahead[at];
+      let len = match emoji(&ahead[at..]) {
+        2.. if skin(c) => 1,
+        len => len,
+      };
+      if len > 0 {
+        width += if len == 1 && within(NARROW_EMOJI, c) { 1 } else { 2 };
+        at += len;
+        continue;
+      }
+      at += 1;
+      width += match c {
+        0..=0x1F | 0x7F..=0x9F | 0x300..=0x36F | 0xFE00..=0xFE0F => 0,
+        _ if within(WIDE, c) => 2,
+        _ => 1,
+      };
+    }
   }
   width
+}
+
+/// Whether `c` can be the first character of an emoji: a keycap's base, a regional indicator, or an emoji.
+fn may_start_emoji(c: u32) -> bool {
+  matches!(c, 0x23 | 0x2A | 0x30..=0x39) || (c >= 0xA9 && (regional(c) || within(EMOJI, c)))
 }
 
 fn within(table: &[(u32, u32)], c: u32) -> bool {

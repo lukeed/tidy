@@ -80,6 +80,9 @@ impl<'p, 'a> Printer<'p, 'a> {
 
   /// `replaceEndOfLine(text, separator)`
   pub(crate) fn lines(&mut self, text: &[u8], separator: Separator) -> Doc {
+    if !strings::contains_char(text, b'\n') {
+      return self.bytes(text);
+    }
     let parts = self.line_parts(text, separator);
     self.docs.concat(&parts)
   }

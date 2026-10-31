@@ -225,9 +225,15 @@ pub(crate) fn attribute(printer: &mut Printer<'_, '_>, id: Id, index: usize) -> 
     let value = printer.bytes(value);
     return Some(printer.docs.concat(&[name, equals, value]));
   }
+  let full = attr.full_name();
+  let is_candidate = matches!(&full[..], b"class" | b"srcset" | b"allow" | b"style")
+    || is_event_handler(&full)
+    || printer.options.parser == Parser::Vue;
+  if !is_candidate {
+    return None;
+  }
   let embedded = !printer.options.embedded && !strings::contains(value, b"{{");
   let unescaped = unescape_quote_entities(value);
-  let full = attr.full_name();
   let doc = if &full[..] == b"class" && embedded {
     let joined = strings::collapse_js_whitespace(strings::trim_js_whitespace(&unescaped));
     if joined.is_empty() { None } else { Some(printer.bytes(&joined)) }

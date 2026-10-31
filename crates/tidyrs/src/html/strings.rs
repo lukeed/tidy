@@ -1,11 +1,11 @@
 //! Byte string helpers, with the names of bun's `bun_core::strings` that the ported modules use.
 
 pub(crate) fn index_of_char_usize(text: &[u8], char: u8) -> Option<usize> {
-  text.iter().position(|&byte| byte == char)
+  memchr::memchr(char, text)
 }
 
 pub(crate) fn contains_char(text: &[u8], char: u8) -> bool {
-  text.contains(&char)
+  memchr::memchr(char, text).is_some()
 }
 
 pub(crate) fn index_of_any(text: &[u8], chars: &[u8]) -> Option<usize> {
@@ -13,10 +13,7 @@ pub(crate) fn index_of_any(text: &[u8], chars: &[u8]) -> Option<usize> {
 }
 
 pub(crate) fn index_of(text: &[u8], needle: &[u8]) -> Option<usize> {
-  if needle.is_empty() {
-    return Some(0);
-  }
-  text.windows(needle.len()).position(|window| window == needle)
+  memchr::memmem::find(text, needle)
 }
 
 pub(crate) fn contains(text: &[u8], needle: &[u8]) -> bool {

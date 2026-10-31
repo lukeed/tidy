@@ -18,7 +18,7 @@ function pick<T>(list: readonly T[]): T {
 	return list[Math.floor(random() * list.length)];
 }
 
-const WORDS = ["a", "bb", "ccc", "dddd", "eeeee", "ffffff", " ", "  x", "y  ", "日本", "\t", ""];
+const WORDS = ["a", "bb", "ccc", "dddd", "eeeee", "ffffff", " ", "  x", "y  ", "日本", "\t", "", "👍🏽", "éx", "a©️b", "1️⃣2", "🇺🇸", "x–y", "日本語x", "👨‍👩‍👧", "©", "‍z"];
 
 function generate(depth: number, defs: number): Json {
 	if (depth <= 0 || random() < 0.25) {
