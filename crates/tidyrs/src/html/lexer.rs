@@ -3,7 +3,7 @@
 //! The text only has `\n` line breaks. A token's contents are always substrings of the text, so a token stores spans.
 
 use super::error::{ErrorKind, SyntaxError};
-use super::strings;
+use crate::strings;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum TokenType {

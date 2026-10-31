@@ -206,7 +206,7 @@ impl<'a> TreeBuilder<'a, '_, '_> {
     let end = end_token.or(text).unwrap_or(start_token).span.end;
     let mut node = Node::new(Kind::DocType, Span::new(start_token.span.start, end));
     node.value = Cow::Borrowed(
-      text.map_or(&b""[..], |text| super::strings::trim_js_whitespace(text.span.of(self.text))),
+      text.map_or(&b""[..], |text| crate::strings::trim_js_whitespace(text.span.of(self.text))),
     );
     self.add_to_parent(node);
   }

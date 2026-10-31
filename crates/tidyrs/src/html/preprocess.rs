@@ -4,9 +4,9 @@
 //! a node, in the same order, before its children are visited. Only the last step runs after them.
 
 use super::ast::{Flags, Id, Kind, Node, Span, Tree};
-use super::strings;
 use super::utilities::{is_pre_like, is_script_like_tag};
 use super::{Options, Parser};
+use crate::strings;
 use std::borrow::Cow;
 
 struct Preprocessor<'t, 'a, 'o> {

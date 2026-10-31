@@ -3,8 +3,8 @@
 use super::Whitespace as HtmlWhitespaceSensitivity;
 use super::ast::{Attribute, Flags, Id, Kind, Node, Span, Tree};
 use super::data::{self, Display};
-use super::strings;
 use super::{Options, Parser};
+use crate::strings;
 use std::borrow::Cow;
 
 // ───────────────────────────── `htmlWhitespace` ─────────────────────────────

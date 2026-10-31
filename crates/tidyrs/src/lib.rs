@@ -5,3 +5,4 @@ pub mod embed;
 mod front_matter;
 pub mod html;
 mod languages;
+mod strings;

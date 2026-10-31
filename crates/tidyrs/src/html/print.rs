@@ -4,7 +4,6 @@ use std::borrow::Cow;
 
 use super::ast::{self, Flags, Id, Kind, Tree};
 use super::embed::{self, Embedded};
-use super::strings;
 use super::tag::Tags;
 use super::utilities::{
   dedent_string, html_split, html_trim_preserve_indentation, is_pre_like, is_script_like_tag,
@@ -13,6 +12,7 @@ use super::utilities::{
 use super::{Options, Parser};
 use crate::doc::{Align, Branch, Docs};
 use crate::embed::Embed;
+use crate::strings;
 
 pub(crate) struct Printer<'p, 'a> {
   /// The text that is formatted, which texts that are part of it borrow from.

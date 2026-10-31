@@ -6,8 +6,8 @@ use super::data;
 use super::error::SyntaxError;
 use super::lexer::{self, LexedAttribute};
 use super::parser;
-use super::strings;
 use super::utilities::is_unknown_namespace;
+use crate::strings;
 use std::borrow::Cow;
 
 #[derive(Debug, Copy, Clone)]

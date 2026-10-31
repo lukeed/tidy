@@ -14,7 +14,6 @@ mod parse;
 mod parser;
 mod preprocess;
 mod print;
-mod strings;
 mod tag;
 mod utilities;
 

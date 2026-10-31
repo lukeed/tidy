@@ -133,3 +133,13 @@ pub(crate) fn collapse_js_whitespace(mut text: &[u8]) -> std::borrow::Cow<'_, [u
   }
   std::borrow::Cow::Owned(out)
 }
+
+pub(crate) fn count_char(text: &[u8], char: u8) -> usize {
+  memchr::memchr_iter(char, text).count()
+}
+
+/// `/\r\n|[\r\n  ]/u.test(text)`
+pub(crate) fn contains_js_line_break(text: &[u8]) -> bool {
+  memchr::memchr3_iter(b'\r', b'\n', 0xE2, text)
+    .any(|at| text[at] != 0xE2 || matches!(text.get(at + 1..at + 3), Some([0x80, 0xA8 | 0xA9])))
+}

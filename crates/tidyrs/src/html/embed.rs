@@ -5,13 +5,13 @@ use std::borrow::Cow;
 use super::Parser;
 use super::ast::{Flags, Id};
 use super::print::{Printer, raw_name};
-use super::strings;
 use super::utilities::{
   dedent_string, html_split, html_trim_preserve_indentation, is_script_like_tag,
   unescape_quote_entities,
 };
 use crate::doc::{Align, Branch};
 use crate::embed::{Kind as Purpose, Request};
+use crate::strings;
 use crate::{front_matter, languages};
 
 /// Code to hand to the host.
@@ -785,7 +785,7 @@ fn end_of_literal(bytes: &[u8], close: u8) -> Option<usize> {
         at += bytes[at..].iter().position(|&byte| byte == b'\n')?;
       }
       b'/' if bytes.get(at + 1) == Some(&b'*') => {
-        at += 2 + super::strings::index_of(&bytes[at + 2..], b"*/")? + 1;
+        at += 2 + crate::strings::index_of(&bytes[at + 2..], b"*/")? + 1;
       }
       _ => {}
     }
