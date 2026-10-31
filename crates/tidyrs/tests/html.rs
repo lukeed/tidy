@@ -35,3 +35,13 @@ fn prints_quotes_and_entities() {
     "<div\n  data-a='{\"x\":1}'\n  data-b=\"plain\"\n  data-c=\"a &amp; b\"\n  data-d='say \"hi\"'\n  data-e='it&apos;s \"x\"'\n  style=\"color: red\"\n  onclick=\"go()\"\n  title='\"q\" and \"r\"'\n>\n  <img srcset=\"a.png 1x, b.png 2x\" />\n</div>\n"
   );
 }
+
+#[test]
+fn prints_borrowed_markers_once() {
+  assert_eq!(html("<b>a</b><textarea> </textarea>"), "<b>a</b><textarea> </textarea>\n");
+  assert_eq!(html("<p><br><textarea> </textarea></p>"), "<p><br /><textarea> </textarea></p>\n");
+  assert_eq!(
+    html("<b>a</b><textarea> </textarea><b>c</b>"),
+    "<b>a</b><textarea> </textarea><b>c</b>\n"
+  );
+}

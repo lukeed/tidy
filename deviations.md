@@ -6,7 +6,7 @@ tidyrs prints what Prettier 3.9.9 prints, except where this file says otherwise.
 
 1. A change that makes tidyrs print something other than Prettier is a deviation. It is never shipped silently: add an entry here with status `proposed`, add its rows to `tests/deviations.json`, and raise it with Luke for sign-off.
 2. Proposed rule, which itself needs sign-off: keep a deviation only where Prettier's output changes what the code means (it loses text, changes a value that a program reads, or no longer parses). Where the difference is only layout, print what Prettier prints.
-3. Each entry is `proposed` (in the code, awaiting sign-off) or `approved` (with the date). A rejected entry is removed from the code and from this file, and its rows from the test.
+3. Each entry is `proposed` (in the code, awaiting sign-off) or `approved` (with the date). A rejected entry is removed from the code and from this file, and its rows from the test. A deviation that is raised but not yet in the code is listed under [Raised, not in the code](#raised-not-in-the-code).
 
 Most entries come from bun's ports, which correct the places where Prettier's output changes the meaning of the code. When HTML was ported, the corrections that are only layout (an SVG `<text>`, `<script>` and `<dialog>` on their own lines, classes split at ASCII whitespace only) were removed, so HTML prints what Prettier prints there.
 
@@ -695,9 +695,24 @@ Prettier rejects tempura templates, and formats a template of another language a
 - Tempura comments print as written. Handlebars' rule for `{{!-- --}}` applies to Handlebars only.
 - A template of another language than HTML (`robots.txt.hbs`, `sitemap.xml.hbs`) keeps its text as written. Only the block tags that are alone on their lines are indented by depth, which doesn't change what renders.
 
+## Raised, not in the code
+
+### html-borrowed-markers-once
+
+- Status: raised 2026-10-31, awaiting sign-off
+- Why: Where an element's contents print as written, Prettier prints the markers that its tags borrow from the elements next to them twice: once on their own, and once in the tag. The extra `>` or `/>` is text on the page.
+- Where it would go: `crates/tidyrs/src/html/print.rs`, `print_element`, which prints them once only for a whitespace-only `<pre>` or `<textarea>` now. bun prints them once always (`src/format/html/printer.rs:524`, and `:335` for `<!-- prettier-ignore -->`).
+- Parser: html, with `--whitespace strict`
+
+```
+input:    "<b>a</b><pre   ><i>x</i>\n"
+Prettier: "<b>a</b>><pre><i>x</i>\n"
+tidyrs:   "<b>a</b>><pre><i>x</i>\n"
+bun:      "<b>a</b><pre><i>x</i>\n"
+```
+
 ## Known bugs
 
 These differ from Prettier by mistake, not by decision. They will be fixed to print what Prettier prints.
 
-- HTML and Vue: a stray `>` after the tag before a whitespace-only `<textarea>` or `<pre>`, as in `<b>a</b>><textarea> </textarea>`, and `<br />/>` after a void element. The rule that prints such an element as written was ported, but not bun's fix that prints the end of a tag only once.
 - HTML: with embedded language formatting off, `class`, `srcset` and `allow` are still formatted. Prettier leaves them as written.

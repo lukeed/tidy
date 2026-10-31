@@ -435,14 +435,23 @@ impl<'p, 'a> Printer<'p, 'a> {
     let tags = self.tags();
     let node = &self.tree[id];
     if node.has(Flags::PRESERVES_CONTENT) {
-      self.marker(|tags, out| tags.opening_tag_prefix(id, out));
+      // The tags already print the markers that they borrow, and Prettier prints those again around them:
+      // `<b>a</b>><pre>`. A whitespace-only `<pre>` or `<textarea>`, which only tidyrs prints as written, prints them
+      // once.
+      let is_whitespace_only =
+        is_pre_like(node) && node.has(Flags::HAS_DANGLING_SPACES | Flags::HAS_END_SPAN);
+      if !is_whitespace_only {
+        self.marker(|tags, out| tags.opening_tag_prefix(id, out));
+      }
       let group = self.docs.group();
       self.print_opening_tag(id);
       self.docs.close(group);
       let content = tags.node_content(id);
       self.lines(content, Separator::Literal);
       self.print_closing_tag(id);
-      self.marker(|tags, out| tags.closing_tag_suffix(id, out));
+      if !is_whitespace_only {
+        self.marker(|tags, out| tags.closing_tag_suffix(id, out));
+      }
       return;
     }
 
