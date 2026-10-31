@@ -238,6 +238,8 @@ fn is_two_words(text: &[u8], first: &[u8], second: &[u8]) -> bool {
 }
 
 struct Tokenizer<'a, 'f> {
+  /// Where the next NUL is at or after `pos`, or the end of the text.
+  nul: usize,
   text: &'a [u8],
   /// `_cursor`
   pos: usize,
@@ -479,8 +481,15 @@ impl<'a> Tokenizer<'a, '_> {
     let rest = self.text.get(self.pos..).unwrap_or_default();
     let next = match end {
       End::Text if self.options.tokenize_angular_blocks => strings::index_of_any(rest, b"<{&\0@}"),
-      End::Text => strings::index_of_any(rest, b"<{&\0"),
-      End::Quote(quote) => strings::index_of_any(rest, &[quote as u8, b'{', b'&']),
+      End::Text => {
+        if self.nul < self.pos {
+          self.nul = memchr::memchr(0, rest).map_or(self.text.len(), |at| self.pos + at);
+        }
+        let stop =
+          memchr::memchr3(b'<', b'{', b'&', rest).map_or(self.text.len(), |at| self.pos + at);
+        Some(stop.min(self.nul) - self.pos)
+      }
+      End::Quote(quote) => memchr::memchr3(quote as u8, b'{', b'&', rest),
       End::TagStart | End::Name | End::UnquotedValue => return,
     };
     self.pos += next.unwrap_or(rest.len());
@@ -1214,6 +1223,7 @@ pub(crate) fn tokenize<'a>(
   options: Options,
 ) -> (Vec<Token>, Vec<SyntaxError<'a>>) {
   let mut tokenizer = Tokenizer {
+    nul: memchr::memchr(0, &text[start..]).map_or(text.len(), |at| start + at),
     text,
     pos: start,
     get_tag_content_type,

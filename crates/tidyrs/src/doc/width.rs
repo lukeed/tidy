@@ -18,46 +18,68 @@ pub fn width(text: &str) -> usize {
 
 #[cold]
 fn wide(text: &str) -> usize {
-  let mut width = 0;
-  let mut chars = text.chars().map(u32::from).peekable();
-  let mut ahead: Vec<u32> = Vec::new();
+  let bytes = text.as_bytes();
   let special = special();
-  while let Some(c) = chars.next() {
-    if c < 0x10000 && special[c as usize / 64] >> (c % 64) & 1 == 0 {
+  let mut width = 0;
+  let mut at = 0;
+  let mut ahead: Vec<u32> = Vec::new();
+  while at < bytes.len() {
+    // A run of printable ASCII, where a keycap's base counts unless a non-ASCII mark follows it.
+    let run = bytes[at..]
+      .iter()
+      .enumerate()
+      .take_while(|&(index, &byte)| {
+        (0x20..0x7F).contains(&byte)
+          && (!matches!(byte, b'#' | b'*' | b'0'..=b'9')
+            || bytes.get(at + index + 1).is_none_or(u8::is_ascii))
+      })
+      .count();
+    width += run;
+    at += run;
+    let Some(c) = text[at..].chars().next() else { break };
+    let code = u32::from(c);
+    if code < 0x10000 && special[code as usize / 64] >> (code % 64) & 1 == 0 {
       width += 1;
+      at += c.len_utf8();
       continue;
     }
-    if !may_start_emoji(c) {
-      width += match c {
+    if !may_start_emoji(code) {
+      width += match code {
         0..=0x1F | 0x7F..=0x9F | 0x300..=0x36F | 0xFE00..=0xFE0F => 0,
-        _ if c >= 0x1100 && within(WIDE, c) => 2,
+        _ if code >= 0x1100 && within(WIDE, code) => 2,
         _ => 1,
       };
+      at += c.len_utf8();
       continue;
     }
     // An emoji is at most a few characters, joined by joiners and selectors: look at those.
     ahead.clear();
-    ahead.push(c);
-    while let Some(&next) = chars.peek() {
-      if ahead.len() >= 64 || (next < 0xA9 && !matches!(next, 0x23 | 0x2A | 0x30..=0x39)) {
+    let mut end = at;
+    for next in text[at..].chars() {
+      let next_code = u32::from(next);
+      if !ahead.is_empty()
+        && (ahead.len() >= 64
+          || (next_code < 0xA9 && !matches!(next_code, 0x23 | 0x2A | 0x30..=0x39)))
+      {
         break;
       }
-      ahead.push(next);
-      chars.next();
+      ahead.push(next_code);
+      end += next.len_utf8();
     }
-    let mut at = 0;
-    while at < ahead.len() {
-      let c = ahead[at];
-      let len = match emoji(&ahead[at..]) {
+    at = end;
+    let mut index = 0;
+    while index < ahead.len() {
+      let c = ahead[index];
+      let len = match emoji(&ahead[index..]) {
         2.. if skin(c) => 1,
         len => len,
       };
       if len > 0 {
         width += if len == 1 && within(NARROW_EMOJI, c) { 1 } else { 2 };
-        at += len;
+        index += len;
         continue;
       }
-      at += 1;
+      index += 1;
       width += match c {
         0..=0x1F | 0x7F..=0x9F | 0x300..=0x36F | 0xFE00..=0xFE0F => 0,
         _ if within(WIDE, c) => 2,

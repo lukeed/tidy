@@ -177,6 +177,16 @@ pub fn format(
     tabs: settings.tabs,
     eol: settings.eol,
   };
+  if std::env::var_os("TIDYRS_STATS").is_some() {
+    eprintln!(
+      "bytes {} tree {} attrs {} docs {} node {}B",
+      source.len(),
+      tree.nodes.len(),
+      tree.attrs.len(),
+      docs.stats(),
+      std::mem::size_of::<crate::doc::NodeSize>()
+    );
+  }
   Ok(crate::doc::print(&mut docs, doc, &print))
 }
 

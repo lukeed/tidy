@@ -92,12 +92,30 @@ pub struct Docs<'a> {
 
 impl<'a> Docs<'a> {
   pub const EMPTY: Doc = Doc(0);
-  /// A shared `hardlineWithoutBreakParent`.
+  /// `hardlineWithoutBreakParent`. Like Prettier's, the lines and `breakParent` are shared.
   pub(crate) const HARD: Doc = Doc(1);
+  const LINE: Doc = Doc(2);
+  const SOFT: Doc = Doc(3);
+  const LITERAL: Doc = Doc(4);
+  const BREAK_PARENT: Doc = Doc(5);
+  const HARDLINE: Doc = Doc(6);
+  const LITERALLINE: Doc = Doc(7);
+  /// How many nodes and list entries the shared docs take.
+  const SHARED: (usize, usize) = (8, 4);
 
   pub fn new(bump: &'a Bump) -> Self {
-    let nodes = vec![Node::Text("", 0), Node::Line(Line::Hard)];
-    Self { bump, nodes, lists: Vec::new(), groups: 0, trims: false }
+    let nodes = vec![
+      Node::Text("", 0),
+      Node::Line(Line::Hard),
+      Node::Line(Line::Space),
+      Node::Line(Line::Soft),
+      Node::Line(Line::Literal),
+      Node::BreakParent,
+      Node::Concat(List { start: 0, len: 2 }),
+      Node::Concat(List { start: 2, len: 2 }),
+    ];
+    let lists = vec![Self::HARD, Self::BREAK_PARENT, Self::LITERAL, Self::BREAK_PARENT];
+    Self { bump, nodes, lists, groups: 0, trims: false }
   }
 
   /// An arena with room for the docs of a text about `size` bytes long.
@@ -108,9 +126,13 @@ impl<'a> Docs<'a> {
     docs
   }
 
+  pub fn stats(&self) -> String {
+    format!("{} lists {}", self.nodes.len(), self.lists.len())
+  }
+
   pub fn clear(&mut self) {
-    self.nodes.truncate(2);
-    self.lists.clear();
+    self.nodes.truncate(Self::SHARED.0);
+    self.lists.truncate(Self::SHARED.1);
     self.groups = 0;
   }
 
@@ -205,35 +227,31 @@ impl<'a> Docs<'a> {
   }
 
   pub fn line(&mut self) -> Doc {
-    self.push(Node::Line(Line::Space))
+    Self::LINE
   }
 
   pub fn softline(&mut self) -> Doc {
-    self.push(Node::Line(Line::Soft))
+    Self::SOFT
   }
 
   pub fn hardline(&mut self) -> Doc {
-    let line = self.push(Node::Line(Line::Hard));
-    let parent = self.push(Node::BreakParent);
-    self.concat(&[line, parent])
+    Self::HARDLINE
   }
 
   pub fn literalline(&mut self) -> Doc {
-    let line = self.push(Node::Line(Line::Literal));
-    let parent = self.push(Node::BreakParent);
-    self.concat(&[line, parent])
+    Self::LITERALLINE
   }
 
   pub fn hardline_without_break_parent(&mut self) -> Doc {
-    self.push(Node::Line(Line::Hard))
+    Self::HARD
   }
 
   pub fn literalline_without_break_parent(&mut self) -> Doc {
-    self.push(Node::Line(Line::Literal))
+    Self::LITERAL
   }
 
   pub fn break_parent(&mut self) -> Doc {
-    self.push(Node::BreakParent)
+    Self::BREAK_PARENT
   }
 
   pub fn trim(&mut self) -> Doc {
@@ -360,3 +378,5 @@ impl<'a> Docs<'a> {
     }
   }
 }
+
+pub type NodeSize = Node<'static>;
