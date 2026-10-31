@@ -229,17 +229,17 @@ pub(crate) fn attribute(printer: &mut Printer<'_, '_>, id: Id, index: usize) -> 
   let unescaped = unescape_quote_entities(value);
   let full = attr.full_name();
   let doc = if &full[..] == b"class" && embedded {
-    let words: Vec<&[u8]> = html_split(strings::trim_js_whitespace(&unescaped)).collect();
-    let joined = words.join(&b' ');
-    Some(printer.bytes(&joined))
+    let joined = strings::collapse_js_whitespace(strings::trim_js_whitespace(&unescaped));
+    if joined.is_empty() { None } else { Some(printer.bytes(&joined)) }
+  } else if &full[..] == b"srcset"
+    && (tree[id].is_full_name(b"img") || tree[id].is_full_name(b"source"))
+  {
+    srcset(printer, &unescaped)
+  } else if &full[..] == b"allow" && embedded && tree[id].is_full_name(b"iframe") {
+    Some(permissions_policy(printer, &unescaped))
   } else if &full[..] == b"style" && embedded {
     let code = text(&unescaped).into_owned();
-    let doc = printer.embedded(Embedded {
-      code: &code,
-      language: "css",
-      kind: Purpose::Attribute,
-      extra: 1,
-    })?;
+    let doc = style(printer, &code)?;
     Some(expand(printer, doc))
   } else if embedded && is_event_handler(&full) {
     let code = text(&unescaped).into_owned();
@@ -247,9 +247,12 @@ pub(crate) fn attribute(printer: &mut Printer<'_, '_>, id: Id, index: usize) -> 
       code: &code,
       language: "babel",
       kind: Purpose::Attribute,
-      extra: 1,
+      extra: 2,
     })?;
     Some(expand(printer, doc))
+  } else if printer.options.parser == Parser::Vue {
+    let code = text(&unescaped).into_owned();
+    vue(printer, id, &full, &code)
   } else {
     None
   }?;
@@ -259,6 +262,45 @@ pub(crate) fn attribute(printer: &mut Printer<'_, '_>, id: Id, index: usize) -> 
   let group = printer.docs.group(doc);
   let close = printer.docs.text("\"");
   Some(printer.docs.concat(&[name, open, group, close]))
+}
+
+/// The declarations of a `style` attribute, as Prettier's CSS printer writes them for one: joined by `line`, the
+/// last one's semicolon only when the attribute breaks.
+fn style(printer: &mut Printer<'_, '_>, code: &str) -> Option<Doc> {
+  let width = printer.options.width;
+  let request = Request { code, language: "css", kind: Purpose::Attribute, indent: 0, width };
+  let formatted = printer.embed.format(request)?;
+  let formatted = formatted.trim_end();
+  let mut declarations: Vec<Vec<&str>> = Vec::new();
+  for line in formatted.split('\n') {
+    match declarations.last_mut() {
+      Some(lines) if line.starts_with([' ', '\t']) || line.is_empty() => lines.push(line),
+      _ => declarations.push(vec![line]),
+    }
+  }
+  let count = declarations.len();
+  let mut parts = Vec::with_capacity(count * 2);
+  for (index, lines) in declarations.into_iter().enumerate() {
+    if index > 0 {
+      parts.push(printer.docs.line());
+    }
+    let last = index + 1 == count;
+    for (at, line) in lines.iter().enumerate() {
+      if at > 0 {
+        parts.push(printer.docs.hardline());
+      }
+      let end = last && at + 1 == lines.len();
+      match line.strip_suffix(';').filter(|_| end) {
+        Some(line) => {
+          parts.push(printer.docs.owned(line));
+          let semicolon = printer.docs.text(";");
+          parts.push(printer.docs.if_break(semicolon, Docs::EMPTY, None));
+        }
+        None => parts.push(printer.docs.owned(line)),
+      }
+    }
+  }
+  Some(printer.docs.concat(&parts))
 }
 
 /// `printExpand`
@@ -376,3 +418,388 @@ const EVENTS: &[&[u8]] = &[
   b"waiting",
   b"wheel",
 ];
+
+// ───────────────────────────── `srcset` and `allow` ─────────────────────────────
+
+/// A `srcset` candidate: the URL and its descriptors.
+struct Candidate<'v> {
+  url: &'v [u8],
+  width: Option<f64>,
+  density: Option<f64>,
+  height: Option<f64>,
+}
+
+/// `@prettier/parse-srcset`. `None` where it throws.
+fn parse_srcset(input: &[u8]) -> Option<Vec<Candidate<'_>>> {
+  let is_space = |byte: u8| matches!(byte, b'\t' | b'\n' | 0x0C | b'\r' | b' ');
+  let mut candidates = Vec::new();
+  let mut position = 0;
+  loop {
+    position +=
+      input[position..].iter().take_while(|&&byte| byte == b',' || is_space(byte)).count();
+    if position >= input.len() {
+      return Some(candidates).filter(|candidates| !candidates.is_empty());
+    }
+    let len = input[position..].iter().take_while(|&&byte| !is_space(byte)).count();
+    let mut url = &input[position..position + len];
+    position += len;
+    let mut descriptors: Vec<&[u8]> = Vec::new();
+    if url.ends_with(b",") {
+      while let Some(shorter) = url.strip_suffix(b",") {
+        url = shorter;
+      }
+    } else {
+      position += input[position..].iter().take_while(|&&byte| is_space(byte)).count();
+      let mut start = position;
+      let mut in_parens = false;
+      loop {
+        let c = input.get(position).copied();
+        match c {
+          Some(b')') if in_parens => in_parens = false,
+          Some(_) if in_parens => {}
+          Some(b'(') => in_parens = true,
+          Some(byte) if byte != b',' && !is_space(byte) => {}
+          _ => {
+            if position > start {
+              descriptors.push(&input[start..position]);
+            }
+            if !c.is_some_and(is_space) {
+              position += usize::from(c.is_some());
+              break;
+            }
+            position += input[position..].iter().take_while(|&&byte| is_space(byte)).count();
+            start = position;
+            continue;
+          }
+        }
+        position += 1;
+      }
+    }
+    let mut candidate = Candidate { url, width: None, density: None, height: None };
+    for descriptor in descriptors {
+      let (&unit, value) = descriptor.split_last()?;
+      let number = std::str::from_utf8(value).ok().and_then(|value| value.parse::<f64>().ok());
+      let has = |value: Option<f64>| value.is_some_and(|value| value != 0.0);
+      match unit {
+        b'w' if is_non_negative_integer(value) => {
+          if has(candidate.width) || has(candidate.density) {
+            return None;
+          }
+          candidate.width = Some(number.filter(|&number| number != 0.0)?);
+        }
+        b'x' if is_floating_point(value) => {
+          if has(candidate.width) || has(candidate.density) || has(candidate.height) {
+            return None;
+          }
+          candidate.density = Some(number.filter(|&number| number >= 0.0)?);
+        }
+        b'h' if is_non_negative_integer(value) => {
+          if has(candidate.height) || has(candidate.density) {
+            return None;
+          }
+          candidate.height = Some(number.filter(|&number| number != 0.0)?);
+        }
+        _ => return None,
+      }
+    }
+    candidate.density = candidate.density.filter(|&density| density != 0.0);
+    candidates.push(candidate);
+  }
+}
+
+/// `String(value)` for a non-negative number, or `None` where JavaScript writes an exponent.
+fn number_to_string(value: f64) -> Option<String> {
+  (value == 0.0 || (1e-6..1e21).contains(&value)).then(|| value.to_string())
+}
+
+/// `/^\d+$/`
+fn is_non_negative_integer(text: &[u8]) -> bool {
+  !text.is_empty() && text.iter().all(u8::is_ascii_digit)
+}
+
+/// `/^-?(?:[0-9]+|[0-9]*\.[0-9]+)(?:[eE][+-]?[0-9]+)?$/`
+fn is_floating_point(text: &[u8]) -> bool {
+  let digits = |text: &[u8]| text.iter().take_while(|byte| byte.is_ascii_digit()).count();
+  let rest = text.strip_prefix(b"-").unwrap_or(text);
+  let whole = digits(rest);
+  let mut rest = match rest[whole..].strip_prefix(b".") {
+    Some(fraction) if digits(fraction) > 0 => &fraction[digits(fraction)..],
+    Some(_) => return false,
+    None if whole == 0 => return false,
+    None => &rest[whole..],
+  };
+  if let [b'e' | b'E', exponent @ ..] = rest {
+    let exponent =
+      exponent.strip_prefix(b"+").or_else(|| exponent.strip_prefix(b"-")).unwrap_or(exponent);
+    if digits(exponent) == 0 {
+      return false;
+    }
+    rest = &exponent[digits(exponent)..];
+  }
+  rest.is_empty()
+}
+
+/// `printSrcset`
+fn srcset(printer: &mut Printer<'_, '_>, value: &[u8]) -> Option<Doc> {
+  let candidates = parse_srcset(value)?;
+  type Get = fn(&Candidate<'_>) -> Option<f64>;
+  let kinds: [(Get, &str); 3] =
+    [(|it| it.width, "w"), (|it| it.height, "h"), (|it| it.density, "x")];
+  let mut used = kinds.iter().filter(|(get, _)| candidates.iter().any(|it| get(it).is_some()));
+  let (kind, None) = (used.next(), used.next()) else { return None };
+  let mut descriptors = Vec::with_capacity(candidates.len());
+  for candidate in &candidates {
+    descriptors.push(match kind.and_then(|(get, _)| get(candidate)) {
+      Some(number) => number_to_string(number)?,
+      None => String::new(),
+    });
+  }
+  let left = |descriptor: &str| descriptor.find('.').unwrap_or(descriptor.len());
+  let max_url =
+    candidates.iter().map(|it| strings::wtf8_len_utf16(it.url) as usize).max().unwrap_or(0);
+  let max_left = descriptors.iter().map(|it| left(it)).max().unwrap_or(0);
+  let mut parts = Vec::new();
+  for (index, (candidate, descriptor)) in candidates.iter().zip(&descriptors).enumerate() {
+    if index > 0 {
+      parts.push(printer.docs.text(","));
+      parts.push(printer.docs.line());
+    }
+    parts.push(printer.bytes(candidate.url));
+    if descriptor.is_empty() {
+      continue;
+    }
+    let padding =
+      max_url - strings::wtf8_len_utf16(candidate.url) as usize + 1 + max_left - left(descriptor);
+    let aligned = printer.docs.owned(&" ".repeat(padding));
+    let space = printer.docs.text(" ");
+    parts.push(printer.docs.if_break(aligned, space, None));
+    let unit = kind.map_or("", |(_, unit)| *unit);
+    parts.push(printer.docs.owned(&format!("{descriptor}{unit}")));
+  }
+  let doc = printer.docs.concat(&parts);
+  Some(expand(printer, doc))
+}
+
+/// `printPermissionsPolicy`
+fn permissions_policy(printer: &mut Printer<'_, '_>, value: &[u8]) -> Doc {
+  let directives: Vec<&[u8]> = strings::split(value, b";")
+    .map(strings::trim_html_whitespace)
+    .filter(|token| !token.is_empty())
+    .collect();
+  if directives.is_empty() {
+    return Docs::EMPTY;
+  }
+  let count = directives.len();
+  let mut parts = Vec::new();
+  for (index, directive) in directives.into_iter().enumerate() {
+    let words: Vec<&[u8]> = html_split(directive).collect();
+    parts.push(printer.bytes(&words.join(&b' ')));
+    if index + 1 == count {
+      let semicolon = printer.docs.text(";");
+      parts.push(printer.docs.if_break(semicolon, Docs::EMPTY, None));
+    } else {
+      parts.push(printer.docs.text(";"));
+      parts.push(printer.docs.line());
+    }
+  }
+  let doc = printer.docs.concat(&parts);
+  expand(printer, doc)
+}
+
+// ───────────────────────────── Vue ─────────────────────────────
+
+/// `embed/vue-attributes.js`: the value of a directive or binding of a Vue file.
+fn vue(printer: &mut Printer<'_, '_>, id: Id, name: &[u8], code: &str) -> Option<Doc> {
+  let ts = printer.options.typescript;
+  let tree = printer.tree;
+  if name == b"v-for" {
+    return v_for(printer, code);
+  }
+  if name == b"generic" && tree.is_vue_script_tag(id, printer.options) {
+    return expression(printer, code, "__vue_generic", Hug::Literal);
+  }
+  let is_slot = name.starts_with(b"#")
+    || name == b"slot-scope"
+    || name == b"v-slot"
+    || name.starts_with(b"v-slot:");
+  let is_bindings = tree.is_vue_sfc_block(id, printer.options)
+    && ((tree[id].is_full_name(b"script") && name == b"setup")
+      || (tree[id].is_full_name(b"style") && name == b"vars"));
+  if is_slot || is_bindings {
+    let language = if ts { "__vue_ts_bindings" } else { "__vue_bindings" };
+    return expression(printer, code, language, Hug::Always);
+  }
+  let script = if ts { "__ts_expression" } else { "__js_expression" };
+  if name.starts_with(b"@") || name.starts_with(b"v-on:") {
+    let binding = if ts { "__vue_ts_event_binding" } else { "__vue_event_binding" };
+    return expression(printer, code, script, Hug::Literal)
+      .or_else(|| expression(printer, code, binding, Hug::Literal));
+  }
+  if name.starts_with(b":") || name.starts_with(b".") || name.starts_with(b"v-bind:") {
+    let language = if ts { "__vue_ts_expression" } else { "__vue_expression" };
+    return expression(printer, code, language, Hug::Literal);
+  }
+  if name.starts_with(b"v-") {
+    return expression(printer, code, script, Hug::Literal);
+  }
+  None
+}
+
+/// When `formatAttributeValue` hugs the formatted value instead of expanding it.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Hug {
+  /// Without `shouldHugJsExpression`: always.
+  Always,
+  /// `shouldHugJsExpression`: an object, an array, or, for Vue's own parsers, a string or a template literal.
+  Literal,
+}
+
+/// `formatAttributeValue`
+fn expression(printer: &mut Printer<'_, '_>, code: &str, language: &str, hug: Hug) -> Option<Doc> {
+  if hug == Hug::Always {
+    let doc = printer.embedded(Embedded { code, language, kind: Purpose::Attribute, extra: 1 })?;
+    return Some(printer.docs.group(doc));
+  }
+  let request = |extra| Embedded { code, language, kind: Purpose::Attribute, extra };
+  let expanded = printer.embed_text(request(2))?;
+  let strings = matches!(language, "__vue_expression" | "__vue_ts_expression");
+  if !is_literal(expanded.trim(), strings) {
+    let doc = printer.text_doc(&expanded);
+    return Some(expand(printer, doc));
+  }
+  let doc = printer.embedded(request(1))?;
+  Some(printer.docs.group(doc))
+}
+
+/// Whether `text`, a formatted expression, is one object or array literal, or with `strings`, one string or template
+/// literal: what `shouldHugJsExpression` looks for in the tree.
+fn is_literal(text: &str, strings: bool) -> bool {
+  let bytes = text.as_bytes();
+  let Some(&first) = bytes.first() else { return false };
+  let close = match first {
+    b'{' => b'}',
+    b'[' => b']',
+    b'"' | b'\'' | b'`' if strings => first,
+    _ => return false,
+  };
+  match end_of_literal(bytes, close) {
+    Some(end) => end + 1 == bytes.len(),
+    None => false,
+  }
+}
+
+/// The index of the bracket or quote that closes the one at the start of `bytes`.
+fn end_of_literal(bytes: &[u8], close: u8) -> Option<usize> {
+  if matches!(close, b'"' | b'\'' | b'`') {
+    let mut at = 1;
+    while at < bytes.len() {
+      match bytes[at] {
+        b'\\' => at += 2,
+        byte if byte == close => return Some(at),
+        _ => at += 1,
+      }
+    }
+    return None;
+  }
+  let mut depth = 0usize;
+  let mut at = 0;
+  while at < bytes.len() {
+    match bytes[at] {
+      b'{' | b'[' | b'(' => depth += 1,
+      b'}' | b']' | b')' => {
+        depth -= 1;
+        if depth == 0 {
+          return (bytes[at] == close).then_some(at);
+        }
+      }
+      quote @ (b'"' | b'\'' | b'`') => at += end_of_literal(&bytes[at..], quote)?,
+      b'/' if bytes.get(at + 1) == Some(&b'/') => {
+        at += bytes[at..].iter().position(|&byte| byte == b'\n')?;
+      }
+      b'/' if bytes.get(at + 1) == Some(&b'*') => {
+        at += 2 + super::strings::index_of(&bytes[at + 2..], b"*/")? + 1;
+      }
+      _ => {}
+    }
+    at += 1;
+  }
+  None
+}
+
+/// `printVueVForDirective`
+fn v_for(printer: &mut Printer<'_, '_>, code: &str) -> Option<Doc> {
+  let (left, operator, right) = parse_v_for(code)?;
+  let ts = printer.options.typescript;
+  let language = if ts { "__vue_ts_for_left" } else { "__vue_for_left" };
+  let left = expression(printer, &left, language, Hug::Always)?;
+  let left = printer.docs.group(left);
+  let script = if ts { "__ts_expression" } else { "__js_expression" };
+  let right = expression(printer, right, script, Hug::Always)?;
+  let space = printer.docs.text(" ");
+  let operator = printer.docs.text(operator);
+  Some(printer.docs.concat(&[left, space, operator, space, right]))
+}
+
+/// `parseVueVForDirective`: the aliases, `in` or `of`, and the expression.
+fn parse_v_for(value: &str) -> Option<(String, &'static str, &str)> {
+  let (alias, operator, right) = split_v_for(value)?;
+  let right = right.trim();
+  if right.is_empty() {
+    return None;
+  }
+  let alias = alias.trim();
+  let alias = alias.strip_prefix('(').unwrap_or(alias);
+  let alias = alias.strip_suffix(')').unwrap_or(alias);
+  let parts: Vec<&str> = match iterators(alias) {
+    Some((alias, first, second)) => {
+      [Some(alias), Some(first.trim()), second.map(str::trim)].into_iter().flatten().collect()
+    }
+    None => vec![alias],
+  };
+  let mut slots = parts.clone();
+  slots.resize(3, "");
+  if slots.iter().enumerate().any(|(index, part)| {
+    part.is_empty() && (index == 0 || slots[index + 1..].iter().any(|part| !part.is_empty()))
+  }) {
+    return None;
+  }
+  let left = parts.into_iter().filter(|part| !part.is_empty()).collect::<Vec<_>>().join(",");
+  Some((left, operator, right))
+}
+
+/// `/(.*?)\s+(in|of)\s+(.*)/s`
+fn split_v_for(value: &str) -> Option<(&str, &'static str, &str)> {
+  let bytes = value.as_bytes();
+  for at in 0..bytes.len() {
+    if !bytes[at].is_ascii_whitespace() && !value[at..].starts_with(char::is_whitespace) {
+      continue;
+    }
+    let before = &value[..at];
+    let rest = value[at..].trim_start();
+    for operator in ["in", "of"] {
+      if let Some(after) = rest.strip_prefix(operator)
+        && after.starts_with(char::is_whitespace)
+      {
+        return Some((before, operator, after.trim_start()));
+      }
+    }
+  }
+  None
+}
+
+/// `/,([^,\]}]*)(?:,([^,\]}]*))?$/` on the aliases.
+fn iterators(alias: &str) -> Option<(&str, &str, Option<&str>)> {
+  let allowed = |text: &str| !text.contains([',', ']', '}']);
+  let last = alias.rfind(',')?;
+  let tail = &alias[last + 1..];
+  if !allowed(tail) {
+    return None;
+  }
+  let head = &alias[..last];
+  if let Some(second) = head.rfind(',')
+    && allowed(&head[second + 1..])
+  {
+    return Some((&alias[..second], &head[second + 1..], Some(tail)));
+  }
+  Some((head, tail, None))
+}

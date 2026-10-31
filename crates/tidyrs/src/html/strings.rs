@@ -90,3 +90,28 @@ pub(crate) fn trim_html_whitespace_end(text: &[u8]) -> &[u8] {
   let kept = text.iter().rposition(|byte| !matches!(byte, b'\t' | b'\n' | b'\x0C' | b'\r' | b' '));
   &text[..kept.map_or(0, |at| at + 1)]
 }
+
+/// `htmlWhitespace.trim(text)`
+pub(crate) fn trim_html_whitespace(text: &[u8]) -> &[u8] {
+  let is_space = |byte: &u8| matches!(byte, b'\t' | b'\n' | b'\x0C' | b'\r' | b' ');
+  let start = text.iter().position(|byte| !is_space(byte)).unwrap_or(text.len());
+  trim_html_whitespace_end(&text[start..])
+}
+
+/// `text.replaceAll(/\s+/g, " ")`
+pub(crate) fn collapse_js_whitespace(mut text: &[u8]) -> Vec<u8> {
+  let mut out = Vec::with_capacity(text.len());
+  while !text.is_empty() {
+    let len = js_whitespace_len(text);
+    if len == 0 {
+      out.push(text[0]);
+      text = &text[1..];
+      continue;
+    }
+    out.push(b' ');
+    while let len @ 1.. = js_whitespace_len(text) {
+      text = &text[len..];
+    }
+  }
+  out
+}

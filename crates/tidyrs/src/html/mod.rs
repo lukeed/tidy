@@ -121,6 +121,9 @@ pub fn format(
   embed: &mut dyn crate::embed::Embed,
 ) -> Result<String, Error> {
   let text = text.strip_prefix('\u{FEFF}').unwrap_or(text);
+  if text.trim().is_empty() {
+    return Ok(String::new());
+  }
   let text: std::borrow::Cow<str> = if text.contains('\r') {
     text.replace("\r\n", "\n").replace('\r', "\n").into()
   } else {
@@ -183,6 +186,8 @@ fn has_typescript_script(tree: &ast::Tree<'_>) -> bool {
     let node = &tree[id];
     node.kind == ast::Kind::Element
       && node.is_full_name(b"script")
-      && tree.attribute_value(id, b"lang").is_some_and(|lang| lang == b"ts" || lang == b"tsx")
+      && tree
+        .attribute_value(id, b"lang")
+        .is_some_and(|lang| lang == b"ts" || lang == b"typescript")
   })
 }

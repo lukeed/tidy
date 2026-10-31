@@ -525,7 +525,10 @@ impl<'p, 'a> Printer<'p, 'a> {
     let sensitive_text = last_node.kind == Kind::Text
       && node.flags.contains(Flags::IS_WHITESPACE_SENSITIVE | Flags::IS_INDENTATION_SENSITIVE);
     if (last_node.kind == Kind::Comment || sensitive_text)
-      && ends_with_indent(&last_node.value, self.options.tab_width * self.ancestors)
+      && ends_with_indent(
+        &last_node.value,
+        self.options.tab_width * self.ancestors.saturating_sub(1),
+      )
     {
       return Docs::EMPTY;
     }
@@ -682,9 +685,20 @@ impl<'p, 'a> Printer<'p, 'a> {
 
   /// Formats `code` with the host's formatter for `language`, as a doc.
   pub(crate) fn embedded(&mut self, embedded: Embedded<'_>) -> Option<Doc> {
-    let formatted = self.embed.format(embedded.request(self.indents, self.options))?;
-    let formatted = formatted.trim_end_matches(['\n', '\r']);
-    Some(self.lines(formatted.as_bytes(), Separator::Literal))
+    let formatted = self.embed_text(embedded)?;
+    Some(self.text_doc(&formatted))
+  }
+
+  /// Formats `code` with the host's formatter for `language`.
+  pub(crate) fn embed_text(&mut self, embedded: Embedded<'_>) -> Option<String> {
+    let mut formatted = self.embed.format(embedded.request(self.indents, self.options))?;
+    formatted.truncate(formatted.trim_end_matches(['\n', '\r']).len());
+    Some(formatted)
+  }
+
+  /// A formatted text, its lines joined by literal lines.
+  pub(crate) fn text_doc(&mut self, text: &str) -> Doc {
+    self.lines(text.as_bytes(), Separator::Literal)
   }
 }
 

@@ -18,20 +18,12 @@ struct Preprocessor<'t, 'a, 'o> {
   is_nested_too_deeply: bool,
 }
 
-/// Tracks whether whitespace at the start and at the end of an SVG `<text>`, or of an element inside one, would be
-/// rendered. It's collapsed next to other whitespace and at either end of the `<text>`.
-#[derive(Copy, Clone)]
-struct SvgTextEdges {
-  start: bool,
-  end: bool,
-}
-
 /// Returns false if the tree is nested too deeply.
 pub(crate) fn preprocess<'a>(tree: &mut Tree<'a>, options: &Options<'_>) -> bool {
   let root = tree.root;
   tree[root].css_display = tree.css_display(root, false, options);
   let mut preprocessor = Preprocessor { tree, options, depth: 0, is_nested_too_deeply: false };
-  preprocessor.visit(root, false, None);
+  preprocessor.visit(root, false);
   !preprocessor.is_nested_too_deeply
 }
 
@@ -62,12 +54,7 @@ fn moved_by(text: &[u8], start: u32, mut units: u32) -> u32 {
 }
 
 impl<'a> Preprocessor<'_, 'a, '_> {
-  fn visit(
-    &mut self,
-    id: Id,
-    is_in_svg_foreign_object: bool,
-    svg_text_edges: Option<SvgTextEdges>,
-  ) {
+  fn visit(&mut self, id: Id, is_in_svg_foreign_object: bool) {
     if self.depth >= super::MAX_DEPTH {
       self.is_nested_too_deeply = true;
       return;
@@ -96,7 +83,7 @@ impl<'a> Preprocessor<'_, 'a, '_> {
       }
     }
     if has_children_property {
-      self.add_is_space_sensitive(id, svg_text_edges);
+      self.add_is_space_sensitive(id);
     }
     let mut next = self.tree.first_child(id);
     while let Some(child) = next {
@@ -104,12 +91,8 @@ impl<'a> Preprocessor<'_, 'a, '_> {
       if !matches!(self.tree[child].kind, Kind::Text | Kind::Comment | Kind::DocType) {
         let is_in_svg_foreign_object =
           is_in_svg_foreign_object || self.is_svg_foreign_object(child);
-        let svg_text_edges = match is_in_svg_foreign_object {
-          true => None,
-          false => self.svg_text_edges(child, svg_text_edges),
-        };
         self.depth += 1;
-        self.visit(child, is_in_svg_foreign_object, svg_text_edges);
+        self.visit(child, is_in_svg_foreign_object);
         self.depth -= 1;
       }
     }
@@ -131,25 +114,6 @@ impl<'a> Preprocessor<'_, 'a, '_> {
   fn is_svg_foreign_object(&self, id: Id) -> bool {
     let node = &self.tree[id];
     node.kind == Kind::Element && node.namespace == b"svg" && &node.name[..] == b"foreignObject"
-  }
-
-  /// Returns the edges of `id`. `parent_edges` is `None` if the parent isn't in a `<text>`.
-  fn svg_text_edges(&self, id: Id, parent_edges: Option<SvgTextEdges>) -> Option<SvgTextEdges> {
-    let node = &self.tree[id];
-    if node.kind != Kind::Element || node.namespace != b"svg" {
-      return None;
-    }
-    let Some(parent_edges) = parent_edges else {
-      let is_ignored = matches!(self.options.whitespace, HtmlWhitespaceSensitivity::Ignore);
-      return (&node.name[..] == b"text" && !is_ignored)
-        .then_some(SvgTextEdges { start: false, end: false });
-    };
-    Some(SvgTextEdges {
-      start: !node.has(Flags::HAS_LEADING_SPACES)
-        && (self.tree.prev(id).is_some() || parent_edges.start),
-      end: !node.has(Flags::HAS_TRAILING_SPACES)
-        && (self.tree.next(id).is_some() || parent_edges.end),
-    })
   }
 
   fn remove_ignorable_first_lf(&mut self, id: Id) {
@@ -382,37 +346,22 @@ impl<'a> Preprocessor<'_, 'a, '_> {
     node.flags.set(Flags::HAS_HTM_COMPONENT_CLOSING_TAG, has_htm_component_closing_tag);
   }
 
-  fn add_is_space_sensitive(&mut self, id: Id, svg_text_edges: Option<SvgTextEdges>) {
+  /// `addIsSpaceSensitive`
+  fn add_is_space_sensitive(&mut self, id: Id) {
     let Some(first) = self.tree.first_child(id) else {
-      let is_sensitive = self.tree.is_dangling_space_sensitive(id, self.options)
-        || svg_text_edges.is_some_and(|edges| edges.start && edges.end);
+      let is_sensitive = self.tree.is_dangling_space_sensitive(id, self.options);
       self.tree[id].flags.set(Flags::IS_DANGLING_SPACE_SENSITIVE, is_sensitive);
       return;
     };
     let mut next = Some(first);
     while let Some(child) = next {
       next = self.tree.next(child);
-      let mut is_leading = self.tree.is_leading_space_sensitive(child, self.options);
-      let mut is_trailing = self.tree.is_trailing_space_sensitive(child, self.options);
-      // Prettier treats every SVG element as a block and puts it on its own line. Inside a `<text>` the elements
-      // are one run of text, so `H<tspan>2</tspan>O` would render as "H 2 O". Nodes that already have whitespace
-      // next to them keep Prettier's behavior.
-      if let Some(edges) = svg_text_edges {
-        let node = &self.tree[child];
-        is_leading |= match self.tree.prev(child) {
-          Some(_) => !node.has(Flags::HAS_LEADING_SPACES),
-          None => edges.start,
-        };
-        is_trailing |= match next {
-          Some(_) => !node.has(Flags::HAS_TRAILING_SPACES),
-          None => edges.end,
-        };
-      }
+      let is_leading = self.tree.is_leading_space_sensitive(child, self.options);
+      let is_trailing = self.tree.is_trailing_space_sensitive(child, self.options);
       let flags = &mut self.tree[child].flags;
       flags.set(Flags::IS_LEADING_SPACE_SENSITIVE, is_leading);
       flags.set(Flags::IS_TRAILING_SPACE_SENSITIVE, is_trailing);
     }
-    self.keep_inline_content_joined_across_hidden_blocks(first);
     // In order, so each node sees the final flag of its previous sibling and the not yet adjusted flag of its next
     // one.
     let mut next = Some(first);
@@ -424,63 +373,6 @@ impl<'a> Preprocessor<'_, 'a, '_> {
       }
       if self.tree.next_of(child).is_some_and(|next| !next.has(Flags::IS_LEADING_SPACE_SENSITIVE)) {
         self.tree[child].flags.remove(Flags::IS_TRAILING_SPACE_SENSITIVE);
-      }
-    }
-  }
-
-  /// True for an element that renders nothing inline but that Prettier treats as a block.
-  fn is_hidden_block(&self, id: Id) -> bool {
-    let node = &self.tree[id];
-    node.kind == Kind::Element
-      && node.css_display == Display::Block
-      && node.namespace.is_empty()
-      && matches!(&node.name[..], b"script" | b"dialog" | b"param" | b"source" | b"track")
-  }
-
-  /// Prettier puts a hidden block on its own line, so `a<script></script>b` renders as "a b". If the content before
-  /// and after it is inline and there's no whitespace in between, this marks all of it as whitespace-sensitive so
-  /// that none is added. `first` is the first sibling. The siblings must already have the sensitivity flags that
-  /// Prettier computes.
-  fn keep_inline_content_joined_across_hidden_blocks(&mut self, first: Id) {
-    let can_be_space_sensitive =
-      |node: &Node<'_>| !matches!(node.kind, Kind::FrontMatter | Kind::AngularControlFlowBlock);
-    let mut next = Some(first);
-    while let Some(start) = next {
-      next = self.tree.next(start);
-      if !self.is_hidden_block(start) {
-        continue;
-      }
-      let mut end = start;
-      while let Some(following) = self
-        .tree
-        .next(end)
-        .filter(|&it| self.is_hidden_block(it) && !self.tree[it].has(Flags::HAS_LEADING_SPACES))
-      {
-        end = following;
-      }
-      next = self.tree.next(end);
-      let (before, after) = (self.tree.prev(start), next);
-      let leading = Flags::IS_LEADING_SPACE_SENSITIVE | Flags::HAS_LEADING_SPACES;
-      let trailing = Flags::IS_TRAILING_SPACE_SENSITIVE | Flags::HAS_TRAILING_SPACES;
-      if self.tree[start].flags & leading != Flags::IS_LEADING_SPACE_SENSITIVE
-        || self.tree[end].flags & trailing != Flags::IS_TRAILING_SPACE_SENSITIVE
-        || !before.is_none_or(|it| can_be_space_sensitive(&self.tree[it]))
-        || !after.is_none_or(|it| can_be_space_sensitive(&self.tree[it]))
-      {
-        continue;
-      }
-      if let Some(before) = before {
-        self.tree[before].flags.insert(Flags::IS_TRAILING_SPACE_SENSITIVE);
-      }
-      if let Some(after) = after {
-        self.tree[after].flags.insert(Flags::IS_LEADING_SPACE_SENSITIVE);
-      }
-      let mut hidden = Some(start);
-      while let Some(id) = hidden {
-        self.tree[id]
-          .flags
-          .insert(Flags::IS_LEADING_SPACE_SENSITIVE | Flags::IS_TRAILING_SPACE_SENSITIVE);
-        hidden = self.tree.next(id).filter(|_| id != end);
       }
     }
   }

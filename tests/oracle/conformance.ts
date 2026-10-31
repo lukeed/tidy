@@ -2,7 +2,7 @@
 // through the hook, so only the markup printing is under test.
 //
 //   bun tests/oracle/conformance.ts [language=html] [filter] [--show=n]
-import { Glob } from "bun";
+import { $, Glob } from "bun";
 import { join, relative } from "node:path";
 import * as prettier from "prettier";
 import { format, type EmbedRequest, type FormatOptions } from "../../crates/tidyrs_napi/index.js";
@@ -65,18 +65,47 @@ function key(request: EmbedRequest) {
 	return JSON.stringify([request.code, request.language, request.kind, request.indent, request.width]);
 }
 
+/** Parameter lists, which Prettier formats with options that only its HTML printer can pass. */
+async function parameters(request: EmbedRequest, extra: Record<string, unknown>, width: number) {
+	let ts = request.language.includes("_ts_");
+	let wrap = request.language.endsWith("generic")
+		? (code: string) => [`type T<${code}> = any`, "type T<", "> = any;"]
+		: (code: string) => [`function _(${code}) {}`, "function _(", ") {}"];
+	let [code, start, end] = wrap(request.code);
+	let formatted = (await prettier.format(code, { ...extra, parser: ts || request.language.endsWith("generic") ? "babel-ts" : "babel", printWidth: 2 ** 31 - 1 })).trim();
+	if (!formatted.startsWith(start) || !formatted.endsWith(end)) return undefined;
+	let inner = formatted.slice(start.length, -end.length);
+	let many = inner.includes(",");
+	return request.language.includes("for_left") && many ? `(${inner})` : inner;
+}
+
 async function embedded(request: EmbedRequest, options: FormatOptions, extra: Record<string, unknown>) {
+	if (/__vue(_ts)?_(bindings|for_left|generic)$/.test(request.language)) {
+		try {
+			return await parameters(request, extra, request.width);
+		} catch {
+			return undefined;
+		}
+	}
 	let tab = options.useTabs ? "\t" : " ".repeat(options.tabWidth ?? 2);
 	let width = (request.width ?? 80) - request.indent * (options.tabWidth ?? 2);
+	let handler = request.kind === "attribute" && request.language === "babel";
 	try {
 		let formatted = await prettier.format(request.code, {
 			...extra,
+			...(handler ? { singleQuote: true } : {}),
 			parser: request.language,
 			printWidth: Math.max(width, 0),
 			tabWidth: options.tabWidth,
 			useTabs: options.useTabs,
 		});
 		formatted = formatted.replace(/\n+$/, "");
+		// Prettier's `__isHtmlInlineEventHandler`, which only the HTML printer can pass: no semicolon after one statement.
+		if (handler) {
+			let { ast } = await prettier.__debug.parse(request.code, { parser: "babel" });
+			let body = (ast as { program: { body: { type: string }[] } }).program.body;
+			if (body.length === 1 && body[0].type === "ExpressionStatement") formatted = formatted.replace(/;$/, "");
+		}
 		let indent = tab.repeat(request.indent);
 		return formatted
 			.split("\n")
@@ -100,7 +129,7 @@ let skipped = 0;
 for (let test of all) {
 	if (filter && !test.name.includes(filter)) continue;
 	let options = settings(test.options, test.file);
-	if (!options) {
+	if (!options || "cursorOffset" in test.options || test.input.includes("<|>")) {
 		skipped++;
 		continue;
 	}
@@ -118,7 +147,8 @@ for (let test of all) {
 		});
 		let answers = new Map<string, string | undefined>();
 		for (let [id, request] of requests) answers.set(id, await embedded(request, options, extra));
-		actual = format(test.input, options, (request) => answers.get(key(request)));
+		let off = test.options.embeddedLanguageFormatting === "off";
+		actual = format(test.input, options, (request) => (off ? undefined : answers.get(key(request))));
 	} catch (error) {
 		actual = `!error ${(error as Error).message}`;
 	}
@@ -128,10 +158,10 @@ for (let test of all) {
 
 for (let failure of failed.slice(0, show)) {
 	console.log(`\n✗ ${failure.name}`);
-	console.log("--- expected");
-	console.log(failure.expected);
-	console.log("--- actual");
-	console.log(failure.actual);
+	await Bun.write("/tmp/tidyrs-expected", failure.expected);
+	await Bun.write("/tmp/tidyrs-actual", failure.actual);
+	let diff = await $`diff -u /tmp/tidyrs-expected /tmp/tidyrs-actual`.nothrow().text();
+	console.log(diff.split("\n").slice(2).join("\n"));
 }
 let total = passed + failed.length;
 console.log(`\n${language}: ${passed}/${total} same (${((passed / total) * 100).toFixed(1)}%), ${skipped} skipped`);
