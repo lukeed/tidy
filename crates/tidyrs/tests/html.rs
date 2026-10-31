@@ -45,3 +45,17 @@ fn prints_borrowed_markers_once() {
     "<b>a</b><textarea> </textarea><b>c</b>\n"
   );
 }
+
+#[test]
+fn leaves_attributes_without_embedded_formatting() {
+  let settings = Settings { format_embedded: false, ..Settings::default() };
+  assert_eq!(
+    format(
+      "<img class=\"a   b\" srcset=\"a.png 1x,b.png   2x\"><p style=\"color:red\"></p>",
+      &settings,
+      &mut Verbatim
+    )
+    .unwrap(),
+    "<img class=\"a   b\" srcset=\"a.png 1x,b.png   2x\" />\n<p style=\"color:red\"></p>\n"
+  );
+}

@@ -710,9 +710,3 @@ Prettier: "<b>a</b>><pre><i>x</i>\n"
 tidyrs:   "<b>a</b>><pre><i>x</i>\n"
 bun:      "<b>a</b><pre><i>x</i>\n"
 ```
-
-## Known bugs
-
-These differ from Prettier by mistake, not by decision. They will be fixed to print what Prettier prints.
-
-- HTML: with embedded language formatting off, `class`, `srcset` and `allow` are still formatted. Prettier leaves them as written.

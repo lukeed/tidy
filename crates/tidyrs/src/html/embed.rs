@@ -282,6 +282,9 @@ enum Value<'v> {
 
 /// `printAttribute` of `embed/attribute.js`. Emits nothing and returns false if no printer applies.
 pub(crate) fn attribute(printer: &mut Printer<'_, '_>, id: Id, index: usize) -> bool {
+  if !printer.options.formats_embedded {
+    return false;
+  }
   let tree = printer.tree;
   let attr = &tree.attrs(id)[index];
   let Some(value) = attr.value.filter(|value| !value.is_empty()) else { return false };
