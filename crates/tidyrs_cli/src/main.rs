@@ -205,12 +205,15 @@ fn work(
 ) -> Vec<(usize, Outcome)> {
   let mut outcomes = Vec::new();
   let mut formatter = Formatter::default();
+  let mut source = String::new();
   loop {
     let index = next.fetch_add(1, Ordering::Relaxed);
     let Some(path) = files.get(index) else { return outcomes };
-    let outcome = match std::fs::read_to_string(path) {
+    source.clear();
+    let read = std::fs::File::open(path).and_then(|mut file| file.read_to_string(&mut source));
+    let outcome = match read {
       Err(error) => Outcome::Failed(error.to_string()),
-      Ok(source) => match format(&mut formatter, &source, &for_path(settings, path)) {
+      Ok(_) => match format(&mut formatter, &source, &for_path(settings, path)) {
         Err(error) => Outcome::Failed(error),
         Ok(output) if output == source => Outcome::Same,
         Ok(output) => match write.then(|| std::fs::write(path, output)) {
