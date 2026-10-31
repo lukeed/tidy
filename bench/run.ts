@@ -1,11 +1,13 @@
 // Compares tidyrs with Prettier, bun fmt, markup_fmt (the engine of dprint-plugin-markup), and a naive formatter on
-// @lukeed/html. Every tool checks the files and leaves embedded code alone. Each set runs in both orders.
+// @lukeed/html. Every tool checks the files and leaves embedded code alone. Each set runs in both orders. The
+// Handlebars corpus is Ghost's templates that Prettier can parse; only tidyrs, bun and Prettier format Handlebars.
 //
 //   mise run bench -- [--runs <n>] [--oss <dir>]
 import { $ } from "bun";
 import { cpSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import * as prettierApi from "prettier";
 
 let args = Bun.argv.slice(2);
 let option = (name: string) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
@@ -30,6 +32,7 @@ let sources: Record<string, { repo: string; extensions: string[] }[]> = {
 		{ repo: "storybook", extensions: ["vue"] },
 		{ repo: "npmx.dev", extensions: ["vue"] },
 	],
+	handlebars: [{ repo: "ghost", extensions: ["hbs"] }],
 };
 for (let [name, list] of Object.entries(sources)) {
 	for (let { repo, extensions } of list) {
@@ -38,6 +41,11 @@ for (let [name, list] of Object.entries(sources)) {
 		for (let file of files) {
 			if (/node_modules|\/dist\/|\/build\//.test(file)) continue;
 			let to = join(corpus, name, repo, file);
+			if (name === "handlebars") {
+				let source = await Bun.file(join(oss, repo, file)).text();
+				let parses = await prettierApi.format(source, { parser: "glimmer" }).then(() => true, () => false);
+				if (!parses) continue;
+			}
 			mkdirSync(dirname(to), { recursive: true });
 			try {
 				cpSync(join(oss, repo, file), to);
@@ -69,10 +77,12 @@ let tools = (dir: string): Record<string, string> => ({
 type Result = { command: string; mean: number };
 
 let rows: string[] = [];
-for (let name of ["html", "vue", "pages"]) {
+for (let name of ["html", "vue", "pages", "handlebars"]) {
 	let dir = join(corpus, name);
 	let [files, bytes] = size(dir);
-	let commands = tools(dir);
+	let all = tools(dir);
+	let markup = ["markup_fmt", "naive", "naive (1 thread)"];
+	let commands = Object.fromEntries(Object.entries(all).filter(([tool]) => name !== "handlebars" || !markup.includes(tool)));
 	let means: Record<string, number[]> = {};
 	for (let order of [Object.keys(commands), Object.keys(commands).reverse()]) {
 		let file = join(target, "bench.json");
