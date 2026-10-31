@@ -130,6 +130,7 @@ pub struct Formatter {
   docs: crate::doc::Scratch,
   nodes: Vec<ast::Node<'static>>,
   attrs: Vec<ast::Attribute<'static>>,
+  tokens: Vec<lexer::Token>,
   output: String,
 }
 
@@ -165,10 +166,11 @@ impl Formatter {
       None => source.into(),
     };
     self.bump.reset();
-    let Self { bump, docs: scratch, nodes, attrs, output: buffer } = self;
+    let Self { bump, docs: scratch, nodes, attrs, tokens, output: buffer } = self;
     let mut tree = ast::Tree {
       nodes: crate::doc::recycle(std::mem::take(nodes)),
       attrs: crate::doc::recycle(std::mem::take(attrs)),
+      tokens: std::mem::take(tokens),
       ..ast::Tree::default()
     };
     tree.nodes.reserve(content.len() / 32);
@@ -180,6 +182,7 @@ impl Formatter {
     *scratch = docs.into_scratch();
     *nodes = crate::doc::recycle(tree.nodes);
     *attrs = crate::doc::recycle(tree.attrs);
+    *tokens = tree.tokens;
     *buffer = output?;
     Ok(buffer)
   }

@@ -233,6 +233,8 @@ pub(crate) struct Tree<'a> {
   pub(crate) attrs: Vec<Attribute<'a>>,
   pub(crate) start_tag_comments: Vec<StartTagComment<'a>>,
   pub(crate) root: Id,
+  /// The buffer of the lexer's tokens, kept from one parse to the next.
+  pub(crate) tokens: Vec<super::lexer::Token>,
 }
 
 impl<'a> std::ops::Index<Id> for Tree<'a> {

@@ -637,7 +637,8 @@ pub(crate) fn parse<'a>(
     if is_raw { ContentType::RawText } else { definition_of(name, is_case_sensitive).content_type }
   };
   let get_tag_content_type: GetTagContentType<'_> = &get_tag_content_type;
-  let (tokens, mut errors) = lexer::tokenize(text, start, get_tag_content_type, options.lexer);
+  let mut tokens = std::mem::take(&mut tree.tokens);
+  let mut errors = lexer::tokenize(text, start, get_tag_content_type, options.lexer, &mut tokens);
   // A node is typically three or four tokens.
   tree.nodes.reserve(tokens.len() / 3);
   let root = tree.add(Node::new(Kind::Root, Span::new(0, text.len() as u32)));
@@ -669,5 +670,7 @@ pub(crate) fn parse<'a>(
   if (ended as usize) < text.len() {
     errors.push(SyntaxError::new(ended, ErrorKind::TextAfterNul, b""));
   }
-  ParseResult { root, errors, is_nested_too_deeply: builder.is_nested_too_deeply }
+  let is_nested_too_deeply = builder.is_nested_too_deeply;
+  tree.tokens = tokens;
+  ParseResult { root, errors, is_nested_too_deeply }
 }

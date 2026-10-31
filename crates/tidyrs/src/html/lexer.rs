@@ -1215,13 +1215,14 @@ fn trimmed(text: &[u8], span: Span) -> Span {
   Span::new(start, start + strings::trim_js_whitespace_end(without_start).len() as u32)
 }
 
-/// `tokenize`, from `start` on. Returns the tokens and the errors.
+/// `tokenize`, from `start` on, into `tokens`. Returns the errors.
 pub(crate) fn tokenize<'a>(
   text: &'a [u8],
   start: usize,
   get_tag_content_type: GetTagContentType<'_>,
   options: Options,
-) -> (Vec<Token>, Vec<SyntaxError<'a>>) {
+  tokens: &mut Vec<Token>,
+) -> Vec<SyntaxError<'a>> {
   let mut tokenizer = Tokenizer {
     nul: memchr::memchr(0, &text[start..]).map_or(text.len(), |at| start + at),
     text,
@@ -1232,14 +1233,16 @@ pub(crate) fn tokenize<'a>(
     expansion_case_stack: Vec::new(),
     full_name_stack: Vec::new(),
     attributes: Vec::new(),
-    // A token is typically about ten bytes.
-    tokens: Vec::with_capacity(text.len().saturating_sub(start) / 8),
+    tokens: std::mem::take(tokens),
     errors: Vec::new(),
     thrown: (ErrorKind::Other, Span::new(0, 0), false),
   };
+  // A token is typically about ten bytes.
+  tokenizer.tokens.clear();
+  tokenizer.tokens.reserve(text.len().saturating_sub(start) / 8);
   tokenizer.tokenize();
   // `mergeTextTokens`
-  let mut tokens = tokenizer.tokens;
+  *tokens = tokenizer.tokens;
   tokens.dedup_by(|token, last| {
     let is_merged =
       last.kind == token.kind && matches!(token.kind, TokenType::Text | TokenType::AttrValueText);
@@ -1248,5 +1251,5 @@ pub(crate) fn tokenize<'a>(
     }
     is_merged
   });
-  (tokens, tokenizer.errors)
+  tokenizer.errors
 }
