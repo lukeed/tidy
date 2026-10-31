@@ -10,7 +10,10 @@ const COMBINING_ENCLOSING_KEYCAP: u32 = 0x20E3;
 #[inline]
 pub fn width(text: &str) -> usize {
   let bytes = text.as_bytes();
-  if bytes.iter().all(|&byte| byte.wrapping_sub(0x20) < 0x60) {
+  let (chunks, rest) = bytes.as_chunks::<16>();
+  let printable =
+    |bytes: &[u8]| bytes.iter().fold(true, |all, &byte| all & (byte.wrapping_sub(0x20) < 0x60));
+  if chunks.iter().all(|chunk| printable(chunk)) && printable(rest) {
     return bytes.len();
   }
   wide(text)
