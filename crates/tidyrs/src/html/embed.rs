@@ -234,21 +234,41 @@ pub(crate) fn attribute(printer: &mut Printer<'_, '_>, id: Id, index: usize) -> 
   }
   let embedded = !printer.options.embedded && !strings::contains(value, b"{{");
   let unescaped = unescape_quote_entities(value);
-  let doc = if &full[..] == b"class" && embedded {
-    let joined = strings::collapse_js_whitespace(strings::trim_js_whitespace(&unescaped));
+  // `createAttributePrinter` escapes the double quotes in every text of the value.
+  printer.quotes = true;
+  let doc = value_doc(printer, id, &full, &unescaped, embedded);
+  printer.quotes = false;
+  let doc = doc?;
+  let name = printer.bytes(&raw);
+  let open = printer.docs.text("=\"");
+  let group = printer.docs.group(doc);
+  let close = printer.docs.text("\"");
+  Some(printer.docs.concat(&[name, open, group, close]))
+}
+
+/// The printers of `embed/attribute.js` for one value, in their order.
+fn value_doc(
+  printer: &mut Printer<'_, '_>,
+  id: Id,
+  full: &[u8],
+  unescaped: &[u8],
+  embedded: bool,
+) -> Option<Doc> {
+  let tree = printer.tree;
+  if full == b"class" && embedded {
+    let joined = strings::collapse_js_whitespace(strings::trim_js_whitespace(unescaped));
     if joined.is_empty() { None } else { Some(printer.bytes(&joined)) }
-  } else if &full[..] == b"srcset"
-    && (tree[id].is_full_name(b"img") || tree[id].is_full_name(b"source"))
+  } else if full == b"srcset" && (tree[id].is_full_name(b"img") || tree[id].is_full_name(b"source"))
   {
-    srcset(printer, &unescaped)
-  } else if &full[..] == b"allow" && embedded && tree[id].is_full_name(b"iframe") {
-    Some(permissions_policy(printer, &unescaped))
-  } else if &full[..] == b"style" && embedded {
-    let code = text(&unescaped).into_owned();
+    srcset(printer, unescaped)
+  } else if full == b"allow" && embedded && tree[id].is_full_name(b"iframe") {
+    Some(permissions_policy(printer, unescaped))
+  } else if full == b"style" && embedded {
+    let code = text(unescaped);
     let doc = style(printer, &code)?;
     Some(expand(printer, doc))
-  } else if embedded && is_event_handler(&full) {
-    let code = text(&unescaped).into_owned();
+  } else if embedded && is_event_handler(full) {
+    let code = text(unescaped);
     let doc = printer.embedded(Embedded {
       code: &code,
       language: "babel",
@@ -257,17 +277,11 @@ pub(crate) fn attribute(printer: &mut Printer<'_, '_>, id: Id, index: usize) -> 
     })?;
     Some(expand(printer, doc))
   } else if printer.options.parser == Parser::Vue {
-    let code = text(&unescaped).into_owned();
-    vue(printer, id, &full, &code)
+    let code = text(unescaped);
+    vue(printer, id, full, &code)
   } else {
     None
-  }?;
-  let doc = escape_quotes(printer, doc);
-  let name = printer.bytes(&raw);
-  let open = printer.docs.text("=\"");
-  let group = printer.docs.group(doc);
-  let close = printer.docs.text("\"");
-  Some(printer.docs.concat(&[name, open, group, close]))
+  }
 }
 
 /// The declarations of a `style` attribute, as Prettier's CSS printer writes them for one: joined by `line`, the
@@ -298,11 +312,11 @@ fn style(printer: &mut Printer<'_, '_>, code: &str) -> Option<Doc> {
       let end = last && at + 1 == lines.len();
       match line.strip_suffix(';').filter(|_| end) {
         Some(line) => {
-          parts.push(printer.docs.owned(line));
+          parts.push(printer.bytes(line.as_bytes()));
           let semicolon = printer.docs.text(";");
           parts.push(printer.docs.if_break(semicolon, Docs::EMPTY, None));
         }
-        None => parts.push(printer.docs.owned(line)),
+        None => parts.push(printer.bytes(line.as_bytes())),
       }
     }
   }
@@ -316,14 +330,6 @@ fn expand(printer: &mut Printer<'_, '_>, doc: Doc) -> Doc {
   let indented = printer.docs.indent(inner);
   let after = printer.docs.softline();
   printer.docs.concat(&[indented, after])
-}
-
-/// `mapDoc(valueDoc, doc => doc.replaceAll('"', "&quot;"))`
-fn escape_quotes(printer: &mut Printer<'_, '_>, doc: Doc) -> Doc {
-  printer.docs.map_text(doc, |text| match replace(text.as_bytes(), b"\"", b"&quot;") {
-    Cow::Borrowed(_) => None,
-    Cow::Owned(bytes) => String::from_utf8(bytes).ok(),
-  })
 }
 
 /// `@prettier/html-event-attributes`

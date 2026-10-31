@@ -96,7 +96,15 @@ pub(crate) fn trim_html_whitespace(text: &[u8]) -> &[u8] {
 }
 
 /// `text.replaceAll(/\s+/g, " ")`
-pub(crate) fn collapse_js_whitespace(mut text: &[u8]) -> Vec<u8> {
+pub(crate) fn collapse_js_whitespace(mut text: &[u8]) -> std::borrow::Cow<'_, [u8]> {
+  let single = text.iter().enumerate().all(|(at, &byte)| match byte {
+    b' ' => text.get(at + 1) != Some(&b' '),
+    0x09..=0x0D | 0x80.. => false,
+    _ => true,
+  });
+  if single {
+    return std::borrow::Cow::Borrowed(text);
+  }
   let mut out = Vec::with_capacity(text.len());
   while !text.is_empty() {
     let len = js_whitespace_len(text);
@@ -110,5 +118,5 @@ pub(crate) fn collapse_js_whitespace(mut text: &[u8]) -> Vec<u8> {
       text = &text[len..];
     }
   }
-  out
+  std::borrow::Cow::Owned(out)
 }

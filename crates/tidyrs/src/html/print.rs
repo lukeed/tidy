@@ -19,6 +19,8 @@ pub(crate) struct Printer<'p, 'a> {
   source: &'a str,
   /// A buffer for the markers of tags.
   buffer: Vec<u8>,
+  /// Whether texts escape `"` as `&quot;`, as in the value of an attribute.
+  pub(crate) quotes: bool,
   pub(crate) tree: &'p Tree<'a>,
   pub(crate) options: &'p Options<'p>,
   pub(crate) docs: &'p mut Docs<'a>,
@@ -46,7 +48,17 @@ impl<'p, 'a> Printer<'p, 'a> {
     docs: &'p mut Docs<'a>,
     embed: &'p mut dyn Embed,
   ) -> Self {
-    Self { source, buffer: Vec::new(), tree, options, docs, embed, indents: 0, ancestors: 0 }
+    Self {
+      source,
+      buffer: Vec::new(),
+      quotes: false,
+      tree,
+      options,
+      docs,
+      embed,
+      indents: 0,
+      ancestors: 0,
+    }
   }
 
   fn tags(&self) -> Tags<'p, 'a, 'p> {
@@ -55,6 +67,13 @@ impl<'p, 'a> Printer<'p, 'a> {
 
   /// A text that the arena keeps.
   pub(crate) fn bytes(&mut self, bytes: &[u8]) -> Doc {
+    if self.quotes && strings::contains_char(bytes, b'"') {
+      let escaped = replace(bytes, b"\"", b"&quot;");
+      self.quotes = false;
+      let doc = self.bytes(&escaped);
+      self.quotes = true;
+      return doc;
+    }
     let start = (bytes.as_ptr() as usize).wrapping_sub(self.source.as_ptr() as usize);
     if let Some(text) = self.source.get(start..start + bytes.len()) {
       return self.docs.text(text);

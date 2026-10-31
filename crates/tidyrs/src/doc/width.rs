@@ -21,7 +21,12 @@ fn wide(text: &str) -> usize {
   let mut width = 0;
   let mut chars = text.chars().map(u32::from).peekable();
   let mut ahead: Vec<u32> = Vec::new();
+  let special = special();
   while let Some(c) = chars.next() {
+    if c < 0x10000 && special[c as usize / 64] >> (c % 64) & 1 == 0 {
+      width += 1;
+      continue;
+    }
     if !may_start_emoji(c) {
       width += match c {
         0..=0x1F | 0x7F..=0x9F | 0x300..=0x36F | 0xFE00..=0xFE0F => 0,
@@ -61,6 +66,37 @@ fn wide(text: &str) -> usize {
     }
   }
   width
+}
+
+/// A bit for each character of the Basic Multilingual Plane whose width isn't simply 1: control, combining, and wide
+/// characters, variation selectors, and what can start an emoji.
+fn special() -> &'static [u64; 1024] {
+  static SPECIAL: std::sync::OnceLock<Box<[u64; 1024]>> = std::sync::OnceLock::new();
+  SPECIAL.get_or_init(|| {
+    let mut bits = Box::new([0u64; 1024]);
+    let mut mark = |start: u32, end: u32| {
+      for c in start..=end.min(0xFFFF) {
+        bits[c as usize / 64] |= 1 << (c % 64);
+      }
+    };
+    for (start, end) in [
+      (0, 0x1F),
+      (0x23, 0x23),
+      (0x2A, 0x2A),
+      (0x30, 0x39),
+      (0x7F, 0x9F),
+      (0x300, 0x36F),
+      (0xFE00, 0xFE0F),
+    ] {
+      mark(start, end);
+    }
+    for &(start, end) in WIDE.iter().chain(EMOJI) {
+      if start <= 0xFFFF {
+        mark(start, end);
+      }
+    }
+    bits
+  })
 }
 
 /// Whether `c` can be the first character of an emoji: a keycap's base, a regional indicator, or an emoji.

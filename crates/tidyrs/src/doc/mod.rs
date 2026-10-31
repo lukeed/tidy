@@ -151,14 +151,14 @@ impl<'a> Docs<'a> {
     self.text(text)
   }
 
+  /// The parts in order. Empty parts are left out: they print nothing and `fits` skips them.
   pub fn concat(&mut self, parts: &[Doc]) -> Doc {
-    match parts {
-      [] => Self::EMPTY,
-      [one] => *one,
-      _ => {
-        let list = self.list(parts);
-        self.push(Node::Concat(list))
-      }
+    let start = self.lists.len();
+    self.lists.extend(parts.iter().filter(|&&part| part != Self::EMPTY));
+    match self.lists.len() - start {
+      0 => Self::EMPTY,
+      1 => self.lists.pop().unwrap(),
+      len => self.push(Node::Concat(List { start: start as u32, len: len as u32 })),
     }
   }
 
@@ -263,70 +263,6 @@ impl<'a> Docs<'a> {
     }
     let parts: Vec<Doc> = text.split('\n').map(|line| self.text(line)).collect();
     self.join(separator, &parts)
-  }
-
-  /// `mapDoc(doc, cb)` where `cb` changes texts: `change` returns the new text, or `None` to keep it.
-  pub fn map_text(&mut self, doc: Doc, change: impl Fn(&str) -> Option<String>) -> Doc {
-    let mut mapped = std::collections::HashMap::new();
-    self.map_with(doc, &change, &mut mapped)
-  }
-
-  fn map_with(
-    &mut self,
-    doc: Doc,
-    change: &impl Fn(&str) -> Option<String>,
-    mapped: &mut std::collections::HashMap<Doc, Doc>,
-  ) -> Doc {
-    if let Some(&done) = mapped.get(&doc) {
-      return done;
-    }
-    let mut list =
-      |docs: &mut Self, list: List, mapped: &mut std::collections::HashMap<Doc, Doc>| {
-        let parts = docs.parts(list).to_vec();
-        let parts: Vec<Doc> =
-          parts.into_iter().map(|part| docs.map_with(part, change, mapped)).collect();
-        docs.list(&parts)
-      };
-    let node = match self.node(doc) {
-      Node::Text(text, size) => match change(text) {
-        Some(text) => {
-          let done = self.owned(&text);
-          mapped.insert(doc, done);
-          return done;
-        }
-        None => Node::Text(text, size),
-      },
-      Node::Concat(parts) => Node::Concat(list(self, parts, mapped)),
-      Node::Fill(parts) => Node::Fill(list(self, parts, mapped)),
-      Node::Indent(contents) => Node::Indent(self.map_with(contents, change, mapped)),
-      Node::Align(align, contents) => Node::Align(align, self.map_with(contents, change, mapped)),
-      Node::Group { contents, id, broken, states: Some(states) } => {
-        let states = list(self, states, mapped);
-        Node::Group {
-          contents: self.lists[states.start as usize],
-          id,
-          broken,
-          states: Some(states),
-        }
-      }
-      Node::Group { contents, id, broken, states: None } => {
-        Node::Group { contents: self.map_with(contents, change, mapped), id, broken, states: None }
-      }
-      Node::IfBreak { broken, flat, id } => {
-        let broken = self.map_with(broken, change, mapped);
-        let flat = self.map_with(flat, change, mapped);
-        Node::IfBreak { broken, flat, id }
-      }
-      Node::IndentIfBreak { contents, id, negate } => {
-        Node::IndentIfBreak { contents: self.map_with(contents, change, mapped), id, negate }
-      }
-      Node::LineSuffix(contents) => Node::LineSuffix(self.map_with(contents, change, mapped)),
-      Node::Label(label, contents) => Node::Label(label, self.map_with(contents, change, mapped)),
-      other => other,
-    };
-    let done = self.push(node);
-    mapped.insert(doc, done);
-    done
   }
 
   /// `willBreak`.
