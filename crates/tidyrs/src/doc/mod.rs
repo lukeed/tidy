@@ -85,6 +85,8 @@ pub struct Docs<'a> {
   bump: &'a Bump,
   nodes: Vec<Node<'a>>,
   lists: Vec<Doc>,
+  /// For each node, whether it breaks the group around it.
+  broken: Vec<bool>,
   groups: u32,
   /// Whether a `trim` was made, which `fits` then has to account for.
   pub(crate) trims: bool,
@@ -115,14 +117,16 @@ impl<'a> Docs<'a> {
       Node::Concat(List { start: 2, len: 2 }),
     ];
     let lists = vec![Self::HARD, Self::BREAK_PARENT, Self::LITERAL, Self::BREAK_PARENT];
-    Self { bump, nodes, lists, groups: 0, trims: false }
+    let broken = vec![false, false, false, false, false, true, true, true];
+    Self { bump, nodes, lists, broken, groups: 0, trims: false }
   }
 
   /// An arena with room for the docs of a text about `size` bytes long.
   pub fn with_capacity(bump: &'a Bump, size: usize) -> Self {
     let mut docs = Self::new(bump);
-    docs.nodes.reserve(size / 4);
-    docs.lists.reserve(size / 4);
+    docs.nodes.reserve(size / 2);
+    docs.broken.reserve(size / 2);
+    docs.lists.reserve(size / 2);
     docs
   }
 
@@ -132,13 +136,40 @@ impl<'a> Docs<'a> {
 
   pub fn clear(&mut self) {
     self.nodes.truncate(Self::SHARED.0);
+    self.broken.truncate(Self::SHARED.0);
     self.lists.truncate(Self::SHARED.1);
     self.groups = 0;
   }
 
-  fn push(&mut self, node: Node<'a>) -> Doc {
+  fn push(&mut self, mut node: Node<'a>) -> Doc {
+    // `propagateBreaks`, done as the docs are made: a `breakParent` breaks the group around it, a broken group breaks
+    // the group around it, and a conditional group stops both.
+    let breaks = match &mut node {
+      Node::BreakParent => true,
+      Node::Concat(list) | Node::Fill(list) => {
+        self.parts(*list).iter().any(|&part| self.breaks(part))
+      }
+      Node::Group { broken, states: Some(_), .. } => *broken,
+      Node::Group { contents, broken, .. } => {
+        *broken |= self.breaks(*contents);
+        *broken
+      }
+      Node::IfBreak { broken, flat, .. } => self.breaks(*broken) || self.breaks(*flat),
+      Node::Indent(contents)
+      | Node::Align(_, contents)
+      | Node::IndentIfBreak { contents, .. }
+      | Node::Label(_, contents)
+      | Node::LineSuffix(contents) => self.breaks(*contents),
+      _ => false,
+    };
+    self.broken.push(breaks);
     self.nodes.push(node);
     Doc(self.nodes.len() as u32 - 1)
+  }
+
+  /// Whether `doc` breaks the group around it.
+  fn breaks(&self, doc: Doc) -> bool {
+    self.broken[doc.0 as usize]
   }
 
   fn list(&mut self, parts: &[Doc]) -> List {
@@ -319,63 +350,6 @@ impl<'a> Docs<'a> {
       }
     }
     false
-  }
-
-  /// `propagateBreaks`: a group with a forced break inside breaks too, up to a conditional group.
-  pub(crate) fn propagate(&mut self, doc: Doc) {
-    enum Step {
-      Enter(Doc),
-      Exit(Doc),
-    }
-    let mut visited = vec![false; self.nodes.len()];
-    let mut groups: Vec<Doc> = Vec::new();
-    let mut stack = vec![Step::Enter(doc)];
-    while let Some(step) = stack.pop() {
-      match step {
-        Step::Exit(doc) => {
-          groups.pop();
-          if let Node::Group { broken: true, .. } = self.node(doc) {
-            self.break_group(&groups);
-          }
-        }
-        Step::Enter(doc) => {
-          let node = self.node(doc);
-          if matches!(node, Node::Group { .. }) {
-            stack.push(Step::Exit(doc));
-            groups.push(doc);
-            if std::mem::replace(&mut visited[doc.0 as usize], true) {
-              continue;
-            }
-          }
-          match node {
-            Node::BreakParent => self.break_group(&groups),
-            Node::Concat(list) | Node::Fill(list) => {
-              stack.extend(self.parts(list).iter().rev().map(|&part| Step::Enter(part)))
-            }
-            Node::IfBreak { broken, flat, .. } => {
-              stack.extend([Step::Enter(flat), Step::Enter(broken)])
-            }
-            Node::Group { states: Some(list), .. } => {
-              stack.extend(self.parts(list).iter().rev().map(|&part| Step::Enter(part)))
-            }
-            Node::Group { contents, .. }
-            | Node::Indent(contents)
-            | Node::Align(_, contents)
-            | Node::IndentIfBreak { contents, .. }
-            | Node::Label(_, contents)
-            | Node::LineSuffix(contents) => stack.push(Step::Enter(contents)),
-            _ => {}
-          }
-        }
-      }
-    }
-  }
-
-  fn break_group(&mut self, groups: &[Doc]) {
-    let Some(&parent) = groups.last() else { return };
-    if let Node::Group { broken, states: None, .. } = &mut self.nodes[parent.0 as usize] {
-      *broken = true;
-    }
   }
 }
 

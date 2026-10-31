@@ -21,6 +21,8 @@ pub(crate) struct Printer<'p, 'a> {
   buffer: Vec<u8>,
   /// Whether texts escape `"` as `&quot;`, as in the value of an attribute.
   pub(crate) quotes: bool,
+  /// Parts of the docs being built, shared so that building a list needs no allocation.
+  stack: Vec<Doc>,
   pub(crate) tree: &'p Tree<'a>,
   pub(crate) options: &'p Options<'p>,
   pub(crate) docs: &'p mut Docs<'a>,
@@ -52,6 +54,7 @@ impl<'p, 'a> Printer<'p, 'a> {
       source,
       buffer: Vec::new(),
       quotes: false,
+      stack: Vec::new(),
       tree,
       options,
       docs,
@@ -337,106 +340,110 @@ impl<'p, 'a> Printer<'p, 'a> {
   }
 
   fn print_children(&mut self, id: Id) -> Doc {
-    let children: Vec<Id> = self.tree.children(id).collect();
+    let mark = self.stack.len();
     if self.tree.force_break_children(id) {
-      let mut parts = vec![self.docs.break_parent()];
-      for &child in &children {
-        let between = self.tree.prev(child).map_or(Between::None, |prev| self.between(prev, child));
-        if between != Between::None {
-          let line = self.between_doc(between);
-          let prev = self.tree.prev(child).unwrap();
-          let extra = if self.tree.force_next_empty_line(prev, self.options) {
-            self.docs.hardline()
-          } else {
-            Docs::EMPTY
-          };
-          parts.push(line);
-          parts.push(extra);
+      self.stack.push(self.docs.break_parent());
+      let mut next = self.tree.first_child(id);
+      while let Some(child) = next {
+        next = self.tree.next(child);
+        if let Some(prev) = self.tree.prev(child) {
+          let between = self.between(prev, child);
+          if between != Between::None {
+            let line = self.between_doc(between);
+            self.stack.push(line);
+            if self.tree.force_next_empty_line(prev, self.options) {
+              self.stack.push(self.docs.hardline());
+            }
+          }
         }
-        parts.push(self.print_child(child));
+        let printed = self.print_child(child);
+        self.stack.push(printed);
       }
-      return self.docs.concat(&parts);
+      return self.concat_from(mark);
     }
 
-    let ids: Vec<_> = children.iter().map(|_| self.docs.group_id()).collect();
-    let mut parts = Vec::with_capacity(children.len());
-    for (index, &child) in children.iter().enumerate() {
-      let node = &self.tree[child];
+    // The group of the previous child, which `ifBreak` looks at.
+    let mut previous = None;
+    let mut next = self.tree.first_child(id);
+    while let Some(child) = next {
+      next = self.tree.next(child);
       let prev = self.tree.prev(child);
-      if is_text_like(node) {
+      let group = self.docs.group_id();
+      let current = std::mem::replace(&mut previous, Some(group));
+      if is_text_like(&self.tree[child]) {
         if let Some(prev) = prev.filter(|&prev| is_text_like(&self.tree[prev])) {
           let between = self.between(prev, child);
           if between != Between::None {
-            if self.tree.force_next_empty_line(prev, self.options) {
+            let printed = self.print_child(child);
+            let doc = if self.tree.force_next_empty_line(prev, self.options) {
               let hard = self.docs.hardline();
-              let again = self.docs.hardline();
-              let printed = self.print_child(child);
-              parts.push(self.docs.concat(&[hard, again, printed]));
+              self.docs.concat(&[hard, hard, printed])
             } else {
               let line = self.between_doc(between);
-              let printed = self.print_child(child);
-              parts.push(self.docs.concat(&[line, printed]));
-            }
+              self.docs.concat(&[line, printed])
+            };
+            self.stack.push(doc);
             continue;
           }
         }
-        parts.push(self.print_child(child));
+        let printed = self.print_child(child);
+        self.stack.push(printed);
         continue;
       }
 
-      let mut prev_parts = Vec::new();
-      let mut leading = Vec::new();
-      let mut trailing = Vec::new();
-      let mut next_parts = Vec::new();
-      let prev_between = prev.map_or(Between::None, |prev| self.between(prev, child));
-      let next = self.tree.next(child);
-      let next_between = next.map_or(Between::None, |next| self.between(child, next));
-
-      if prev_between != Between::None {
-        let prev = prev.unwrap();
-        if self.tree.force_next_empty_line(prev, self.options) {
-          prev_parts.push(self.docs.hardline());
-          prev_parts.push(self.docs.hardline());
-        } else if prev_between == Between::Hard {
-          prev_parts.push(self.docs.hardline());
-        } else if is_text_like(&self.tree[prev]) {
-          leading.push(self.between_doc(prev_between));
-        } else {
-          let soft = self.docs.softline();
-          leading.push(self.docs.if_break(Docs::EMPTY, soft, Some(ids[index - 1])));
+      let mut before = [Docs::EMPTY; 2];
+      let mut leading = Docs::EMPTY;
+      let mut trailing = Docs::EMPTY;
+      let mut after = [Docs::EMPTY; 2];
+      if let Some(prev) = prev {
+        let between = self.between(prev, child);
+        if between != Between::None {
+          if self.tree.force_next_empty_line(prev, self.options) {
+            before = [self.docs.hardline(); 2];
+          } else if between == Between::Hard {
+            before[0] = self.docs.hardline();
+          } else if is_text_like(&self.tree[prev]) {
+            leading = self.between_doc(between);
+          } else {
+            let soft = self.docs.softline();
+            leading = self.docs.if_break(Docs::EMPTY, soft, current);
+          }
         }
       }
-
-      if next_between != Between::None {
-        let next = next.unwrap();
-        let next_is_text = is_text_like(&self.tree[next]);
-        if self.tree.force_next_empty_line(child, self.options) {
-          if next_is_text {
-            next_parts.push(self.docs.hardline());
-            next_parts.push(self.docs.hardline());
+      if let Some(next) = next {
+        let between = self.between(child, next);
+        if between != Between::None {
+          let next_is_text = is_text_like(&self.tree[next]);
+          if self.tree.force_next_empty_line(child, self.options) {
+            if next_is_text {
+              after = [self.docs.hardline(); 2];
+            }
+          } else if between == Between::Hard {
+            if next_is_text {
+              after[0] = self.docs.hardline();
+            }
+          } else {
+            trailing = self.between_doc(between);
           }
-        } else if next_between == Between::Hard {
-          if next_is_text {
-            next_parts.push(self.docs.hardline());
-          }
-        } else {
-          trailing.push(self.between_doc(next_between));
         }
       }
 
       let printed = self.print_child(child);
-      let mut inner = vec![printed];
-      inner.extend(trailing);
-      let inner = self.docs.concat(&inner);
-      let inner = self.docs.group_with(inner, Some(ids[index]), false);
-      leading.push(inner);
-      let outer = self.docs.concat(&leading);
+      let inner = self.docs.concat(&[printed, trailing]);
+      let inner = self.docs.group_with(inner, Some(group), false);
+      let outer = self.docs.concat(&[leading, inner]);
       let outer = self.docs.group(outer);
-      prev_parts.push(outer);
-      prev_parts.extend(next_parts);
-      parts.push(self.docs.concat(&prev_parts));
+      let doc = self.docs.concat(&[before[0], before[1], outer, after[0], after[1]]);
+      self.stack.push(doc);
     }
-    self.docs.concat(&parts)
+    self.concat_from(mark)
+  }
+
+  /// The concatenation of what was pushed onto the stack since `mark`, which it takes off again.
+  fn concat_from(&mut self, mark: usize) -> Doc {
+    let doc = self.docs.concat(&self.stack[mark..]);
+    self.stack.truncate(mark);
+    doc
   }
 
   // ───────────────────────────── `print/element.js` ─────────────────────────────

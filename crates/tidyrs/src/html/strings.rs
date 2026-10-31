@@ -13,7 +13,20 @@ pub(crate) fn index_of_any(text: &[u8], chars: &[u8]) -> Option<usize> {
 }
 
 pub(crate) fn index_of(text: &[u8], needle: &[u8]) -> Option<usize> {
-  memchr::memmem::find(text, needle)
+  let Some((&first, rest)) = needle.split_first() else { return Some(0) };
+  if needle.len() > 8 {
+    return memchr::memmem::find(text, needle);
+  }
+  // A searcher costs more to set up than a short needle saves.
+  let mut from = 0;
+  while let Some(at) = memchr::memchr(first, &text[from..]) {
+    let at = from + at;
+    if text[at + 1..].starts_with(rest) {
+      return Some(at);
+    }
+    from = at + 1;
+  }
+  None
 }
 
 pub(crate) fn contains(text: &[u8], needle: &[u8]) -> bool {

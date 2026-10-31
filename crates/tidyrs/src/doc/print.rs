@@ -1,6 +1,6 @@
 //! Prettier's `printDocToString` (`src/document/printer`), step for step.
 
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 use super::{Align, Doc, Docs, GroupId, Line, Node, width};
 
@@ -64,12 +64,14 @@ struct Indent<'a> {
   length: usize,
   queue: Vec<Step<'a>>,
   root: u32,
+  /// `makeIndent` of this indent, once made.
+  indented: Option<u32>,
 }
 
 /// Every indent of one run, with `makeIndent` and `makeAlign` memoized.
 struct Indents<'a> {
   list: Vec<Indent<'a>>,
-  made: HashMap<(u32, Step<'a>), u32>,
+  made: FxHashMap<(u32, Step<'a>), u32>,
   tabs: bool,
   tab_width: usize,
 }
@@ -78,10 +80,11 @@ const ROOT: u32 = 0;
 
 impl<'a> Indents<'a> {
   fn new(options: &Options) -> Self {
-    let root = Indent { value: String::new(), length: 0, queue: Vec::new(), root: ROOT };
+    let root =
+      Indent { value: String::new(), length: 0, queue: Vec::new(), root: ROOT, indented: None };
     Self {
       list: vec![root],
-      made: HashMap::new(),
+      made: FxHashMap::default(),
       tabs: options.tabs,
       tab_width: options.tab_width,
     }
@@ -101,6 +104,7 @@ impl<'a> Indents<'a> {
           length: parent.length,
           queue: parent.queue.clone(),
           root: indent,
+          indented: None,
         };
         self.list.push(marked);
         self.list.len() as u32 - 1
@@ -114,7 +118,11 @@ impl<'a> Indents<'a> {
 
   /// `generateIndent`.
   fn make(&mut self, indent: u32, step: Step<'a>) -> u32 {
-    if let Some(&made) = self.made.get(&(indent, step)) {
+    if step == Step::Indent {
+      if let Some(made) = self.list[indent as usize].indented {
+        return made;
+      }
+    } else if let Some(&made) = self.made.get(&(indent, step)) {
       return made;
     }
     let parent = self.get(indent);
@@ -170,9 +178,13 @@ impl<'a> Indents<'a> {
     }
     flush(&mut value, &mut length, &mut tabs, &mut spaces, false);
     let root = parent.root;
-    self.list.push(Indent { value, length, queue, root });
+    self.list.push(Indent { value, length, queue, root, indented: None });
     let made = self.list.len() as u32 - 1;
-    self.made.insert((indent, step), made);
+    if step == Step::Indent {
+      self.list[indent as usize].indented = Some(made);
+    } else {
+      self.made.insert((indent, step), made);
+    }
     made
   }
 }
@@ -210,9 +222,7 @@ impl Modes {
 }
 
 /// Prints `doc`, breaking its groups to fit in `options.width` columns.
-pub fn print<'a>(docs: &mut Docs<'a>, doc: Doc, options: &Options) -> String {
-  docs.propagate(doc);
-  let docs = &*docs;
+pub fn print<'a>(docs: &Docs<'a>, doc: Doc, options: &Options) -> String {
   let eol = options.eol.text();
   let mut indents = Indents::new(options);
   let mut modes = Modes(Vec::new());

@@ -143,7 +143,10 @@ pub fn format(
     }
     None => source.into(),
   };
+  let clock = std::time::Instant::now();
   let mut tree = ast::Tree::default();
+  tree.nodes.reserve(content.len() / 32);
+  tree.attrs.reserve(content.len() / 32);
   parse::parse(&content, matter, settings.parser, &mut tree).map_err(|error| match error {
     parse::ParseError::Syntax(error) => Error::Syntax {
       message: String::from_utf8_lossy(&error.message()).into_owned(),
@@ -151,6 +154,7 @@ pub fn format(
     },
     parse::ParseError::NestedTooDeeply => Error::TooDeep,
   })?;
+  let parsed = clock.elapsed();
   let typescript = settings.parser == Parser::Vue && has_typescript_script(&tree);
   let options = Options {
     parser: settings.parser,
@@ -168,6 +172,7 @@ pub fn format(
   if !preprocess::preprocess(&mut tree, &options) {
     return Err(Error::TooDeep);
   }
+  let preprocessed = clock.elapsed();
   let bump = bumpalo::Bump::new();
   let mut docs = crate::doc::Docs::with_capacity(&bump, source.len());
   let doc = print::Printer::new(&text, &tree, &options, &mut docs, embed).print_root();
@@ -177,17 +182,20 @@ pub fn format(
     tabs: settings.tabs,
     eol: settings.eol,
   };
+  let built = clock.elapsed();
+  let output = crate::doc::print(&mut docs, doc, &print);
   if std::env::var_os("TIDYRS_STATS").is_some() {
+    let printed = clock.elapsed();
+    let ms = |d: std::time::Duration| d.as_secs_f64() * 1000.0;
     eprintln!(
-      "bytes {} tree {} attrs {} docs {} node {}B",
-      source.len(),
-      tree.nodes.len(),
-      tree.attrs.len(),
-      docs.stats(),
-      std::mem::size_of::<crate::doc::NodeSize>()
+      "phases {:.3} {:.3} {:.3} {:.3}",
+      ms(parsed),
+      ms(preprocessed - parsed),
+      ms(built - preprocessed),
+      ms(printed - built)
     );
   }
-  Ok(crate::doc::print(&mut docs, doc, &print))
+  Ok(output)
 }
 
 /// `isVueSfcWithTypescriptScript`: a root `<script>` with `lang="ts"` or `lang="tsx"`.
