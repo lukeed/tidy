@@ -214,7 +214,11 @@ impl<'a> Docs<'a> {
     if text.is_empty() {
       return;
     }
-    let size = width(text) as u32;
+    self.sized(text, width(text) as u32);
+  }
+
+  /// A text whose width is known.
+  pub(crate) fn sized(&mut self, text: &'a str, size: u32) {
     self.texts.push((text, size));
     if let Some(Element::Text { count, width, .. }) = self.elements.get_mut(self.run as usize) {
       *count += 1;

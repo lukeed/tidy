@@ -662,8 +662,8 @@ impl<'p, 'a> Printer<'p, 'a> {
 
   fn print_attribute(&mut self, id: Id, index: usize) {
     let attr = &self.tree.attrs(id)[index];
-    if let Some(text) = self.verbatim(attr) {
-      return self.docs.text(text);
+    if let Some((text, size)) = self.verbatim(attr) {
+      return self.docs.sized(text, size);
     }
     if embed::attribute(self, id, index) {
       return;
@@ -690,9 +690,9 @@ impl<'p, 'a> Printer<'p, 'a> {
     self.bytes(quote);
   }
 
-  /// The source of an attribute that prints as it is written: `name="value"` with nothing to escape, collapse, or
-  /// format.
-  fn verbatim(&self, attr: &ast::Attribute<'_>) -> Option<&'a str> {
+  /// The source of an attribute that prints as it is written, `name="value"` with nothing to escape, collapse, or
+  /// format, and its width.
+  fn verbatim(&self, attr: &ast::Attribute<'_>) -> Option<(&'a str, u32)> {
     let (value, span) = (attr.value?, attr.value_span?);
     let name = &attr.name[..];
     let start = attr.span.start as usize;
@@ -706,10 +706,20 @@ impl<'p, 'a> Printer<'p, 'a> {
         .get(start..span.start as usize + 1)
         .is_some_and(|written| written.starts_with(name) && written.ends_with(b"=\""))
       && !matches!(name, b"srcset" | b"allow" | b"style")
-      && !embed::is_event_handler(name)
-      && memchr::memchr2(b'&', b'\n', value).is_none()
-      && (name != b"class" || is_collapsed(value));
-    plain.then(|| &self.source[start..span.end as usize])
+      && !embed::is_event_handler(name);
+    if !plain {
+      return None;
+    }
+    let (special, printable) = scan(value);
+    if special || (name == b"class" && !(printable && is_collapsed(value))) {
+      return None;
+    }
+    let text = &self.source[start..span.end as usize];
+    let size = match printable && name.is_ascii() {
+      true => text.len(),
+      false => crate::doc::width(text),
+    };
+    Some((text, size as u32))
   }
 
   // ───────────────────────────── `embed.js` ─────────────────────────────
@@ -790,12 +800,25 @@ pub(crate) fn raw_name<'t>((namespace, name): (&'t [u8], &'t [u8])) -> Cow<'t, [
   }
 }
 
-/// True if trimming the class names and joining them with single spaces gives them back.
+/// Whether an attribute value has `&` or a line break, and whether it is all printable ASCII, in one pass that the
+/// compiler can vectorize.
+fn scan(value: &[u8]) -> (bool, bool) {
+  let (chunks, rest) = value.as_chunks::<16>();
+  let fold = |(special, printable): (bool, bool), &byte: &u8| {
+    (special | (byte == b'&') | (byte == b'\n'), printable & (byte.wrapping_sub(0x20) < 0x60))
+  };
+  let state = chunks.iter().fold((false, true), |state, chunk| chunk.iter().fold(state, fold));
+  rest.iter().fold(state, fold)
+}
+
+/// True if trimming the printable ASCII class names and joining them with single spaces gives them back.
 fn is_collapsed(value: &[u8]) -> bool {
-  value.iter().all(|&byte| byte == b' ' || (0x21..0x80).contains(&byte))
-    && !value.starts_with(b" ")
+  !value.starts_with(b" ")
     && !value.ends_with(b" ")
-    && memchr::memmem::find(value, b"  ").is_none()
+    && !value
+      .iter()
+      .zip(&value[1.min(value.len())..])
+      .fold(false, |double, (&a, &b)| double | ((a == b' ') & (b == b' ')))
 }
 
 /// `getPreferredQuote(text, '"')`
