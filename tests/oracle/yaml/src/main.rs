@@ -12,16 +12,31 @@ use cst::{Item, Key, Node, Prop, ScalarKind, Source, Tree};
 use serde_json::{Map, Value, json};
 
 fn main() {
+  let worker = std::thread::Builder::new().stack_size(1 << 30).spawn(run).unwrap();
+  worker.join().unwrap();
+}
+
+/// Reads a JSON file, as deep as its trees go.
+fn read(path: &str) -> Vec<Value> {
+  use serde::Deserialize;
+  let text = std::fs::read_to_string(path).unwrap();
+  let mut deserializer = serde_json::Deserializer::from_str(&text);
+  deserializer.disable_recursion_limit();
+  Vec::<Value>::deserialize(&mut deserializer).unwrap()
+}
+
+fn run() {
   let args: Vec<String> = std::env::args().skip(1).collect();
   match args.first().map(String::as_str) {
     Some("cst") => cst(&args[1], args.get(2).and_then(|it| it.parse().ok()).unwrap_or(5)),
+    Some("ast") => ast(&args[1], args.get(2).and_then(|it| it.parse().ok()).unwrap_or(5)),
     Some("accepts") => accepts(&args[1], args.get(2).and_then(|it| it.parse().ok()).unwrap_or(10)),
     _ => eprintln!("usage: cst <yaml-cst.json> [show]"),
   }
 }
 
 fn cst(path: &str, show: usize) {
-  let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+  let cases = read(path);
   let (mut same, mut shown) = (0, 0);
   for case in &cases {
     let name = case["name"].as_str().unwrap();
@@ -46,15 +61,163 @@ fn cst(path: &str, show: usize) {
   println!("\ncst: {same}/{} same", cases.len());
 }
 
+/// Compares the trees of Prettier's YAML parser with tidy's.
+fn ast(path: &str, show: usize) {
+  let cases = read(path);
+  let (mut same, mut shown) = (0, 0);
+  for case in &cases {
+    let name = case["name"].as_str().unwrap();
+    let text = case["text"].as_str().unwrap();
+    let actual = match tidy::yaml::parse(text) {
+      Ok(root) => {
+        let dump = AstDump { root: &root, utf16: utf16_offsets(text) };
+        json!({ "ast": dump.node(root.root) })
+      }
+      Err(error) => json!({ "error": error.to_string() }),
+    };
+    let expected = json!({ "ast": case["ast"] });
+    if actual == expected {
+      same += 1;
+      continue;
+    }
+    if shown < show {
+      shown += 1;
+      println!("\n✗ {name}\n  text {:?}", text.chars().take(200).collect::<String>());
+      first_difference(&expected, &actual, "");
+    }
+  }
+  println!("\nast: {same}/{} same", cases.len());
+}
+
+struct AstDump<'d> {
+  root: &'d tidy::yaml::Root,
+  utf16: Vec<u32>,
+}
+
+impl AstDump<'_> {
+  fn point(&self, point: tidy::yaml::Point) -> Value {
+    json!([point.line, point.column, self.utf16[point.offset as usize]])
+  }
+
+  fn node(&self, id: u32) -> Value {
+    use tidy::yaml::{Chomping, Kind};
+    let node = self.root.node(id);
+    let kind = match node.kind {
+      Kind::Root => "root",
+      Kind::Document => "document",
+      Kind::DocumentHead => "documentHead",
+      Kind::DocumentBody => "documentBody",
+      Kind::Directive => "directive",
+      Kind::Comment => "comment",
+      Kind::Tag => "tag",
+      Kind::Anchor => "anchor",
+      Kind::Alias => "alias",
+      Kind::BlockLiteral => "blockLiteral",
+      Kind::BlockFolded => "blockFolded",
+      Kind::Plain => "plain",
+      Kind::QuoteSingle => "quoteSingle",
+      Kind::QuoteDouble => "quoteDouble",
+      Kind::Mapping => "mapping",
+      Kind::MappingItem => "mappingItem",
+      Kind::MappingKey => "mappingKey",
+      Kind::MappingValue => "mappingValue",
+      Kind::Sequence => "sequence",
+      Kind::SequenceItem => "sequenceItem",
+      Kind::FlowMapping => "flowMapping",
+      Kind::FlowMappingItem => "flowMappingItem",
+      Kind::FlowSequence => "flowSequence",
+      Kind::FlowSequenceItem => "flowSequenceItem",
+    };
+    let mut map = Map::new();
+    map.insert("type".into(), json!(kind));
+    map.insert("start".into(), self.point(node.position.start));
+    map.insert("end".into(), self.point(node.position.end));
+    let valued = matches!(
+      node.kind,
+      Kind::Comment
+        | Kind::Tag
+        | Kind::Anchor
+        | Kind::Alias
+        | Kind::BlockLiteral
+        | Kind::BlockFolded
+        | Kind::Plain
+        | Kind::QuoteSingle
+        | Kind::QuoteDouble
+        | Kind::Directive
+    );
+    if valued {
+      map.insert("value".into(), json!(node.value));
+    }
+    if node.kind == Kind::Directive {
+      map.insert("parameters".into(), json!(node.parameters));
+    }
+    let leaf = matches!(
+      node.kind,
+      Kind::Comment
+        | Kind::Tag
+        | Kind::Anchor
+        | Kind::Alias
+        | Kind::BlockLiteral
+        | Kind::BlockFolded
+        | Kind::Plain
+        | Kind::QuoteSingle
+        | Kind::QuoteDouble
+        | Kind::Directive
+    );
+    if !leaf {
+      map.insert(
+        "children".into(),
+        Value::Array(node.children.iter().map(|it| self.node(*it)).collect()),
+      );
+    }
+    let list = |ids: &[u32]| Value::Array(ids.iter().map(|it| self.node(*it)).collect());
+    if !node.leading_comments.is_empty() {
+      map.insert("leadingComments".into(), list(&node.leading_comments));
+    }
+    if !node.end_comments.is_empty() {
+      map.insert("endComments".into(), list(&node.end_comments));
+    }
+    if !node.middle_comments.is_empty() {
+      map.insert("middleComments".into(), list(&node.middle_comments));
+    }
+    for (key, value) in [
+      ("trailingComment", node.trailing_comment),
+      ("indicatorComment", node.indicator_comment),
+      ("tag", node.tag),
+      ("anchor", node.anchor),
+    ] {
+      if let Some(value) = value {
+        map.insert(key.into(), self.node(value));
+      }
+    }
+    if matches!(node.kind, Kind::BlockLiteral | Kind::BlockFolded) {
+      let chomping = match node.chomping {
+        Chomping::Clip => "clip",
+        Chomping::Keep => "keep",
+        Chomping::Strip => "strip",
+      };
+      map.insert("chomping".into(), json!(chomping));
+      map.insert("indent".into(), json!(node.indent));
+    }
+    if node.directives_end_marker {
+      map.insert("directivesEndMarker".into(), json!(true));
+    }
+    if node.document_end_marker {
+      map.insert("documentEndMarker".into(), json!(true));
+    }
+    Value::Object(map)
+  }
+}
+
 /// Compares which inputs Prettier's parser accepts with which tidy's does.
 fn accepts(path: &str, show: usize) {
-  let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+  let cases = read(path);
   let (mut same, mut shown) = (0, 0);
   for case in &cases {
     let name = case["name"].as_str().unwrap();
     let text = case["text"].as_str().unwrap();
     let expected = case["accepted"].as_bool().unwrap();
-    let actual = tidy::yaml::validate(text);
+    let actual = tidy::yaml::parse(text).map(|_| ());
     if expected == actual.is_ok() {
       same += 1;
       continue;
