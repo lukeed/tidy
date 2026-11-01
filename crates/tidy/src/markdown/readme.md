@@ -85,7 +85,7 @@ Every option starts from a preset. `prettier` is the default; `preserve` keeps e
 | `numbering` | `keep`, `auto`                             | `auto`            | `keep`          |
 | `rule`      | `keep`, `dash`, `asterisk`, `underscore`   | `dash`            | `keep`          |
 | `fence`     | `keep`, `backtick`, `tilde`                | `backtick`        | `keep`          |
-| `heading`   | `keep`, `atx`                              | `atx`             | `keep`          |
+| `heading`   | `keep`, `atx`                              | `keep`            | `keep`          |
 | `ignore`    | any name                                   | `prettier-ignore` | `mdtidy-ignore` |
 
 A few of these bend on purpose, the same way Prettier does:

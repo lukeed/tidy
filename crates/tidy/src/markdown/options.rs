@@ -131,7 +131,7 @@ impl From<Preset> for Options {
         numbering: Numbering::Auto,
         rule: Rule::Dash,
         fence: Fence::Backtick,
-        heading: Heading::Atx,
+        heading: Heading::Keep,
         ignore: "prettier-ignore".into(),
       },
       Preset::Preserve => Self {

@@ -5,7 +5,7 @@
 //! written, so escapes, entities, links, and HTML stay exactly as they were.
 //!
 //! ```
-//! let output = mdtidy::format("Title\n=====\n\n* one\n* two\n", &mdtidy::Options::default());
+//! let output = mdtidy::format("# Title\n* one\n* two\n", &mdtidy::Options::default());
 //! assert_eq!(output, "# Title\n\n- one\n- two\n");
 //! ```
 

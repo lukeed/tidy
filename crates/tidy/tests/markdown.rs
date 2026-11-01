@@ -14,9 +14,13 @@ fn separates_blocks_with_one_blank_line() {
 }
 
 #[test]
-fn turns_setext_headings_into_atx() {
-  assert_eq!(prettier("Title\n=====\n\nSub\n---\n"), "# Title\n\n## Sub\n");
-  assert_eq!(preserve("Title\n=====\n"), "Title\n=====\n");
+fn keeps_setext_headings() {
+  let source = "Title\n===\n\nA\nB\n---------\n\n> Quote\n> -----\n";
+  assert_eq!(prettier(source), source);
+  assert_eq!(preserve(source), source);
+  let atx = Options { heading: Heading::Atx, ..Options::default() };
+  assert_eq!(mdtidy::format("Title\n=====\n\nSub\n---\n", &atx), "# Title\n\n## Sub\n");
+  assert_eq!(mdtidy::format("A\nB\n===\n", &atx), "# A B\n");
   assert_eq!(prettier("# Closed #\n"), "# Closed\n");
 }
 
@@ -386,7 +390,7 @@ fn keeps_front_matter() {
 
 #[test]
 fn reads_front_matter_only_at_the_start() {
-  assert_eq!(prettier("x\n\n---\na: 1\n---\n"), "x\n\n---\n\n## a: 1\n");
+  assert_eq!(prettier("x\n\n---\na: 1\n---\n"), "x\n\n---\n\na: 1\n---\n");
   assert_eq!(prettier("3. a\n\n   ---\n   **P**\n---\n"), "3. a\n\n   ***\n\n   **P**\n\n---\n");
 }
 
@@ -467,12 +471,4 @@ fn hands_code_to_the_caller() {
 fn checks() {
   assert!(mdtidy::check("- a\n", &Options::default()));
   assert!(!mdtidy::check("* a\n", &Options::default()));
-}
-
-#[test]
-fn keeps_headings_with_keep() {
-  let options = Options { heading: Heading::Keep, ..Options::default() };
-  assert_eq!(mdtidy::format("A\nB\n===\n", &options), "A\nB\n===\n");
-  assert_eq!(prettier("A\nB\n===\n"), "# A B\n");
-  assert_eq!(mdtidy::format("> A\n> ---\n", &options), "> A\n> ---\n");
 }
