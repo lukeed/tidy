@@ -16,6 +16,7 @@ mod stack;
 mod strings;
 mod syntax;
 mod text;
+pub mod toml;
 pub mod xml;
 
 pub use options::{Formatter, Language, Options, Shared, format};

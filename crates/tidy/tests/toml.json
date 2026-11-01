@@ -1,0 +1,2522 @@
+[
+  {
+    "input": "",
+    "output": "\n"
+  },
+  {
+    "input": "\n\n",
+    "output": "\n"
+  },
+  {
+    "input": "\n\n",
+    "output": "\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "\n\n",
+    "output": "\n",
+    "set": "tabs"
+  },
+  {
+    "input": "\n\n",
+    "output": "\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "\n\n",
+    "output": "\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "\n\n",
+    "output": "\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "\n\n",
+    "output": "\n",
+    "set": "reorder"
+  },
+  {
+    "input": "\n\n",
+    "output": "\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "\n\n",
+    "output": "",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "# only a comment",
+    "output": "# only a comment\n"
+  },
+  {
+    "input": "# only a comment",
+    "output": "# only a comment\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "# only a comment",
+    "output": "# only a comment\n",
+    "set": "tabs"
+  },
+  {
+    "input": "# only a comment",
+    "output": "# only a comment\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "# only a comment",
+    "output": "# only a comment\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "# only a comment",
+    "output": "# only a comment\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "# only a comment",
+    "output": "# only a comment\n",
+    "set": "reorder"
+  },
+  {
+    "input": "# only a comment",
+    "output": "# only a comment\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "# only a comment",
+    "output": "# only a comment",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a=1",
+    "output": "a = 1\n"
+  },
+  {
+    "input": "a = 1 # c",
+    "output": "a = 1 # c\n"
+  },
+  {
+    "input": "a = 1 # c",
+    "output": "a = 1 # c\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = 1 # c",
+    "output": "a = 1 # c\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = 1 # c",
+    "output": "a = 1 # c\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = 1 # c",
+    "output": "a=1 # c\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = 1 # c",
+    "output": "a = 1 # c\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = 1 # c",
+    "output": "a = 1 # c\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = 1 # c",
+    "output": "a = 1 # c\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = 1 # c",
+    "output": "a = 1 # c",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a=1\nb=2",
+    "output": "a = 1\nb = 2\n"
+  },
+  {
+    "input": "a=1\nb=2",
+    "output": "a = 1\nb = 2\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a=1\nb=2",
+    "output": "a = 1\nb = 2\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a=1\nb=2",
+    "output": "a = 1\nb = 2\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a=1\nb=2",
+    "output": "a=1\nb=2\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a=1\nb=2",
+    "output": "a = 1\nb = 2\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a=1\nb=2",
+    "output": "a = 1\nb = 2\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a=1\nb=2",
+    "output": "a = 1\nb = 2\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a=1\nb=2",
+    "output": "a = 1\r\nb = 2",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a=1\n\n\n\n\nb=2",
+    "output": "a = 1\n\n\nb = 2\n"
+  },
+  {
+    "input": "a=1\n\n\n\n\nb=2",
+    "output": "a = 1\n\n\nb = 2\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a=1\n\n\n\n\nb=2",
+    "output": "a = 1\n\n\nb = 2\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a=1\n\n\n\n\nb=2",
+    "output": "a = 1\n\n\nb = 2\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a=1\n\n\n\n\nb=2",
+    "output": "a=1\n\n\nb=2\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a=1\n\n\n\n\nb=2",
+    "output": "a = 1\n\n\nb = 2\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a=1\n\n\n\n\nb=2",
+    "output": "a = 1\n\n\nb = 2\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a=1\n\n\n\n\nb=2",
+    "output": "a = 1\n\n\nb = 2\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a=1\n\n\n\n\nb=2",
+    "output": "a = 1\r\nb = 2",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a=1\n  \n  \nb=2",
+    "output": "a = 1\n\n\nb = 2\n"
+  },
+  {
+    "input": "a=1\n  \n  \nb=2",
+    "output": "a = 1\n\n\nb = 2\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a=1\n  \n  \nb=2",
+    "output": "a = 1\n\n\nb = 2\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a=1\n  \n  \nb=2",
+    "output": "a = 1\n\n\nb = 2\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a=1\n  \n  \nb=2",
+    "output": "a=1\n\n\nb=2\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a=1\n  \n  \nb=2",
+    "output": "a = 1\n\n\nb = 2\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a=1\n  \n  \nb=2",
+    "output": "a = 1\n\n\nb = 2\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a=1\n  \n  \nb=2",
+    "output": "a = 1\n\n\nb = 2\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a=1\n  \n  \nb=2",
+    "output": "a = 1\r\nb = 2",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = [1,2,3]",
+    "output": "a = [1, 2, 3]\n"
+  },
+  {
+    "input": "a = [1,2,3]",
+    "output": "a = [1, 2, 3]\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = [1,2,3]",
+    "output": "a = [1, 2, 3]\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = [1,2,3]",
+    "output": "a = [1, 2, 3]\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = [1,2,3]",
+    "output": "a=[ 1, 2, 3 ]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = [1,2,3]",
+    "output": "a = [1, 2, 3]\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = [1,2,3]",
+    "output": "a = [1, 2, 3]\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = [1,2,3]",
+    "output": "a = [1, 2, 3]\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = [1,2,3]",
+    "output": "a = [1, 2, 3]",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = [\n1,\n2,\n]",
+    "output": "a = [1, 2]\n"
+  },
+  {
+    "input": "a = [\n1,\n2,\n]",
+    "output": "a = [1, 2]\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = [\n1,\n2,\n]",
+    "output": "a = [1, 2]\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = [\n1,\n2,\n]",
+    "output": "a = [1, 2]\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = [\n1,\n2,\n]",
+    "output": "a=[ 1, 2 ]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = [\n1,\n2,\n]",
+    "output": "a = [1, 2]\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = [\n1,\n2,\n]",
+    "output": "a = [1, 2]\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = [\n1,\n2,\n]",
+    "output": "a = [\n  1,\n  2,\n]\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = [\n1,\n2,\n]",
+    "output": "a = [1, 2]",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = [ # c\n  1,\n  2, # d\n]",
+    "output": "a = [ # c\n  1,\n  2, # d\n]\n"
+  },
+  {
+    "input": "a = [ # c\n  1,\n  2, # d\n]",
+    "output": "a = [ # c\n    1,\n    2, # d\n]\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = [ # c\n  1,\n  2, # d\n]",
+    "output": "a = [ # c\n\t1,\n\t2, # d\n]\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = [ # c\n  1,\n  2, # d\n]",
+    "output": "a = [ # c\n  1,\n  2, # d\n]\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = [ # c\n  1,\n  2, # d\n]",
+    "output": "a=[ # c\n  1,\n  2  # d\n]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = [ # c\n  1,\n  2, # d\n]",
+    "output": "a = [ # c\n  1,\n  2, # d\n]\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = [ # c\n  1,\n  2, # d\n]",
+    "output": "a = [ # c\n  1,\n  2, # d\n]\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = [ # c\n  1,\n  2, # d\n]",
+    "output": "a = [ # c\n  1,\n  2, # d\n]\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = [ # c\n  1,\n  2, # d\n]",
+    "output": "a = [ # c\r\n  1,\r\n  2, # d\r\n]",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = [\n  1, # one\n  22, # twenty-two\n  333 # three\n]",
+    "output": "a = [\n  1,   # one\n  22,  # twenty-two\n  333, # three\n]\n"
+  },
+  {
+    "input": "a = [\n  1, # one\n  22, # twenty-two\n  333 # three\n]",
+    "output": "a = [\n    1,   # one\n    22,  # twenty-two\n    333, # three\n]\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = [\n  1, # one\n  22, # twenty-two\n  333 # three\n]",
+    "output": "a = [\n\t1,   # one\n\t22,  # twenty-two\n\t333, # three\n]\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = [\n  1, # one\n  22, # twenty-two\n  333 # three\n]",
+    "output": "a = [\n  1, # one\n  22, # twenty-two\n  333, # three\n]\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = [\n  1, # one\n  22, # twenty-two\n  333 # three\n]",
+    "output": "a=[\n  1,  # one\n  22, # twenty-two\n  333 # three\n]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = [\n  1, # one\n  22, # twenty-two\n  333 # three\n]",
+    "output": "a = [\n  1,   # one\n  22,  # twenty-two\n  333, # three\n]\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = [\n  1, # one\n  22, # twenty-two\n  333 # three\n]",
+    "output": "a = [\n  1,   # one\n  22,  # twenty-two\n  333, # three\n]\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = [\n  1, # one\n  22, # twenty-two\n  333 # three\n]",
+    "output": "a = [\n  1,   # one\n  22,  # twenty-two\n  333, # three\n]\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = [\n  1, # one\n  22, # twenty-two\n  333 # three\n]",
+    "output": "a = [\r\n  1,   # one\r\n  22,  # twenty-two\r\n  333, # three\r\n]",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = [\n  # leading\n  1,\n\n  2,\n]",
+    "output": "a = [\n  # leading\n  1,\n\n  2,\n]\n"
+  },
+  {
+    "input": "a = [\n  # leading\n  1,\n\n  2,\n]",
+    "output": "a = [\n    # leading\n    1,\n\n    2,\n]\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = [\n  # leading\n  1,\n\n  2,\n]",
+    "output": "a = [\n\t# leading\n\t1,\n\n\t2,\n]\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = [\n  # leading\n  1,\n\n  2,\n]",
+    "output": "a = [\n  # leading\n  1,\n\n  2,\n]\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = [\n  # leading\n  1,\n\n  2,\n]",
+    "output": "a=[\n  # leading\n  1,\n\n  2\n]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = [\n  # leading\n  1,\n\n  2,\n]",
+    "output": "a = [\n  # leading\n  1,\n\n  2,\n]\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = [\n  # leading\n  1,\n\n  2,\n]",
+    "output": "a = [\n  # leading\n  1,\n\n  2,\n]\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = [\n  # leading\n  1,\n\n  2,\n]",
+    "output": "a = [\n  # leading\n  1,\n\n  2,\n]\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = [\n  # leading\n  1,\n\n  2,\n]",
+    "output": "a = [\r\n  # leading\r\n  1,\r\n  2,\r\n]",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = [ ]",
+    "output": "a = []\n"
+  },
+  {
+    "input": "a = [ ]",
+    "output": "a = []\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = [ ]",
+    "output": "a = []\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = [ ]",
+    "output": "a = []\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = [ ]",
+    "output": "a=[  ]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = [ ]",
+    "output": "a = []\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = [ ]",
+    "output": "a = []\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = [ ]",
+    "output": "a = []\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = [ ]",
+    "output": "a = []",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = []",
+    "output": "a = []\n"
+  },
+  {
+    "input": "a = []",
+    "output": "a = []\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = []",
+    "output": "a = []\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = []",
+    "output": "a = []\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = []",
+    "output": "a=[  ]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = []",
+    "output": "a = []\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = []",
+    "output": "a = []\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = []",
+    "output": "a = []\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = []",
+    "output": "a = []",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = [[1, 2], [3, 4]]",
+    "output": "a = [[1, 2], [3, 4]]\n"
+  },
+  {
+    "input": "a = [[1, 2], [3, 4]]",
+    "output": "a = [[1, 2], [3, 4]]\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = [[1, 2], [3, 4]]",
+    "output": "a = [[1, 2], [3, 4]]\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = [[1, 2], [3, 4]]",
+    "output": "a = [[1, 2], [3, 4]]\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = [[1, 2], [3, 4]]",
+    "output": "a=[ [ 1, 2 ], [ 3, 4 ] ]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = [[1, 2], [3, 4]]",
+    "output": "a = [[1, 2], [3, 4]]\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = [[1, 2], [3, 4]]",
+    "output": "a = [[1, 2], [3, 4]]\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = [[1, 2], [3, 4]]",
+    "output": "a = [[1, 2], [3, 4]]\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = [[1, 2], [3, 4]]",
+    "output": "a = [[1, 2], [3, 4]]",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = [\n[1,\n2],\n[3]\n]",
+    "output": "a = [[1, 2], [3]]\n"
+  },
+  {
+    "input": "a = [\n[1,\n2],\n[3]\n]",
+    "output": "a = [[1, 2], [3]]\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = [\n[1,\n2],\n[3]\n]",
+    "output": "a = [[1, 2], [3]]\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = [\n[1,\n2],\n[3]\n]",
+    "output": "a = [[1, 2], [3]]\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = [\n[1,\n2],\n[3]\n]",
+    "output": "a=[ [ 1, 2 ], [ 3 ] ]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = [\n[1,\n2],\n[3]\n]",
+    "output": "a = [[1, 2], [3]]\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = [\n[1,\n2],\n[3]\n]",
+    "output": "a = [[1, 2], [3]]\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = [\n[1,\n2],\n[3]\n]",
+    "output": "a = [\n  [\n    1,\n    2,\n  ],\n  [3],\n]\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = [\n[1,\n2],\n[3]\n]",
+    "output": "a = [[1, 2], [3]]",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = [\"aaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbb\", \"cccccccccccccccccccccccccc\", \"ddddd\"]",
+    "output": "a = [\n  \"aaaaaaaaaaaaaaaaaaaa\",\n  \"bbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"cccccccccccccccccccccccccc\",\n  \"ddddd\",\n]\n"
+  },
+  {
+    "input": "a = [\"aaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbb\", \"cccccccccccccccccccccccccc\", \"ddddd\"]",
+    "output": "a = [\n    \"aaaaaaaaaaaaaaaaaaaa\",\n    \"bbbbbbbbbbbbbbbbbbbbbbbbbb\",\n    \"cccccccccccccccccccccccccc\",\n    \"ddddd\",\n]\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = [\"aaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbb\", \"cccccccccccccccccccccccccc\", \"ddddd\"]",
+    "output": "a = [\n\t\"aaaaaaaaaaaaaaaaaaaa\",\n\t\"bbbbbbbbbbbbbbbbbbbbbbbbbb\",\n\t\"cccccccccccccccccccccccccc\",\n\t\"ddddd\",\n]\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = [\"aaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbb\", \"cccccccccccccccccccccccccc\", \"ddddd\"]",
+    "output": "a = [\n  \"aaaaaaaaaaaaaaaaaaaa\",\n  \"bbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"cccccccccccccccccccccccccc\",\n  \"ddddd\",\n]\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = [\"aaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbb\", \"cccccccccccccccccccccccccc\", \"ddddd\"]",
+    "output": "a=[\n  \"aaaaaaaaaaaaaaaaaaaa\",\n  \"bbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"cccccccccccccccccccccccccc\",\n  \"ddddd\"\n]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = [\"aaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbb\", \"cccccccccccccccccccccccccc\", \"ddddd\"]",
+    "output": "a = [\n  \"aaaaaaaaaaaaaaaaaaaa\",\n  \"bbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"cccccccccccccccccccccccccc\",\n  \"ddddd\",\n]\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = [\"aaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbb\", \"cccccccccccccccccccccccccc\", \"ddddd\"]",
+    "output": "a = [\n  \"aaaaaaaaaaaaaaaaaaaa\",\n  \"bbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"cccccccccccccccccccccccccc\",\n  \"ddddd\",\n]\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = [\"aaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbb\", \"cccccccccccccccccccccccccc\", \"ddddd\"]",
+    "output": "a = [\"aaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbb\", \"cccccccccccccccccccccccccc\", \"ddddd\"]\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = [\"aaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbb\", \"cccccccccccccccccccccccccc\", \"ddddd\"]",
+    "output": "a = [\r\n  \"aaaaaaaaaaaaaaaaaaaa\",\r\n  \"bbbbbbbbbbbbbbbbbbbbbbbbbb\",\r\n  \"cccccccccccccccccccccccccc\",\r\n  \"ddddd\",\r\n]",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = { b = 1, c = [1,2] }",
+    "output": "a = { b = 1, c = [1, 2] }\n"
+  },
+  {
+    "input": "a = { b = 1, c = [1,2] }",
+    "output": "a = { b = 1, c = [1, 2] }\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = { b = 1, c = [1,2] }",
+    "output": "a = { b = 1, c = [1, 2] }\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = { b = 1, c = [1,2] }",
+    "output": "a = { b = 1, c = [1, 2] }\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = { b = 1, c = [1,2] }",
+    "output": "a={b=1, c=[ 1, 2 ]}\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = { b = 1, c = [1,2] }",
+    "output": "a = { b = 1, c = [1, 2] }\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = { b = 1, c = [1,2] }",
+    "output": "a = { b = 1, c = [1, 2] }\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = { b = 1, c = [1,2] }",
+    "output": "a = { b = 1, c = [1, 2] }\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = { b = 1, c = [1,2] }",
+    "output": "a = { b = 1, c = [1, 2] }",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = {}",
+    "output": "a = {}\n"
+  },
+  {
+    "input": "a = {}",
+    "output": "a = {}\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = {}",
+    "output": "a = {}\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = {}",
+    "output": "a = {}\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = {}",
+    "output": "a={}\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = {}",
+    "output": "a = {}\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = {}",
+    "output": "a = {}\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = {}",
+    "output": "a = {}\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = {}",
+    "output": "a = {}",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = { }",
+    "output": "a = {}\n"
+  },
+  {
+    "input": "a = { }",
+    "output": "a = {}\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = { }",
+    "output": "a = {}\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = { }",
+    "output": "a = {}\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = { }",
+    "output": "a={}\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = { }",
+    "output": "a = {}\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = { }",
+    "output": "a = {}\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = { }",
+    "output": "a = {}\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = { }",
+    "output": "a = {}",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = {b=1}",
+    "output": "a = { b = 1 }\n"
+  },
+  {
+    "input": "a = {b=1}",
+    "output": "a = { b = 1 }\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = {b=1}",
+    "output": "a = { b = 1 }\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = {b=1}",
+    "output": "a = { b = 1 }\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = {b=1}",
+    "output": "a={b=1}\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = {b=1}",
+    "output": "a = { b = 1 }\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = {b=1}",
+    "output": "a = { b = 1 }\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = {b=1}",
+    "output": "a = { b = 1 }\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = {b=1}",
+    "output": "a = { b = 1 }",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = { b = { c = 1 } } # c",
+    "output": "a = { b = { c = 1 } } # c\n"
+  },
+  {
+    "input": "a = { b = { c = 1 } } # c",
+    "output": "a = { b = { c = 1 } } # c\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = { b = { c = 1 } } # c",
+    "output": "a = { b = { c = 1 } } # c\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = { b = { c = 1 } } # c",
+    "output": "a = { b = { c = 1 } } # c\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = { b = { c = 1 } } # c",
+    "output": "a={b={c=1}} # c\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = { b = { c = 1 } } # c",
+    "output": "a = { b = { c = 1 } } # c\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = { b = { c = 1 } } # c",
+    "output": "a = { b = { c = 1 } } # c\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = { b = { c = 1 } } # c",
+    "output": "a = { b = { c = 1 } } # c\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = { b = { c = 1 } } # c",
+    "output": "a = { b = { c = 1 } } # c",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = { b = [\"aaaaaaaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"ccccccccccccccc\"] }",
+    "output": "a = { b = [\n  \"aaaaaaaaaaaaaaaaaaaaaaaaa\",\n  \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"ccccccccccccccc\",\n] }\n"
+  },
+  {
+    "input": "a = { b = [\"aaaaaaaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"ccccccccccccccc\"] }",
+    "output": "a = { b = [\n    \"aaaaaaaaaaaaaaaaaaaaaaaaa\",\n    \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n    \"ccccccccccccccc\",\n] }\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = { b = [\"aaaaaaaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"ccccccccccccccc\"] }",
+    "output": "a = { b = [\n\t\"aaaaaaaaaaaaaaaaaaaaaaaaa\",\n\t\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n\t\"ccccccccccccccc\",\n] }\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = { b = [\"aaaaaaaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"ccccccccccccccc\"] }",
+    "output": "a = { b = [\n  \"aaaaaaaaaaaaaaaaaaaaaaaaa\",\n  \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"ccccccccccccccc\",\n] }\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = { b = [\"aaaaaaaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"ccccccccccccccc\"] }",
+    "output": "a={b=[\n  \"aaaaaaaaaaaaaaaaaaaaaaaaa\",\n  \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"ccccccccccccccc\"\n]}\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = { b = [\"aaaaaaaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"ccccccccccccccc\"] }",
+    "output": "a = { b = [\n  \"aaaaaaaaaaaaaaaaaaaaaaaaa\",\n  \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"ccccccccccccccc\",\n] }\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = { b = [\"aaaaaaaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"ccccccccccccccc\"] }",
+    "output": "a = { b = [\n  \"aaaaaaaaaaaaaaaaaaaaaaaaa\",\n  \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"ccccccccccccccc\",\n] }\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = { b = [\"aaaaaaaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"ccccccccccccccc\"] }",
+    "output": "a = { b = [\"aaaaaaaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"ccccccccccccccc\"] }\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = { b = [\"aaaaaaaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"ccccccccccccccc\"] }",
+    "output": "a = { b = [\r\n  \"aaaaaaaaaaaaaaaaaaaaaaaaa\",\r\n  \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\r\n  \"ccccccccccccccc\",\r\n] }",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "[table]\na=1\n[table.sub]\nb=2\n\n[[arr]]\nc=3\n[[arr]]\nd=4",
+    "output": "[table]\na = 1\n[table.sub]\nb = 2\n\n[[arr]]\nc = 3\n[[arr]]\nd = 4\n"
+  },
+  {
+    "input": "[table]\na=1\n[table.sub]\nb=2\n\n[[arr]]\nc=3\n[[arr]]\nd=4",
+    "output": "[table]\na = 1\n[table.sub]\nb = 2\n\n[[arr]]\nc = 3\n[[arr]]\nd = 4\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "[table]\na=1\n[table.sub]\nb=2\n\n[[arr]]\nc=3\n[[arr]]\nd=4",
+    "output": "[table]\na = 1\n[table.sub]\nb = 2\n\n[[arr]]\nc = 3\n[[arr]]\nd = 4\n",
+    "set": "tabs"
+  },
+  {
+    "input": "[table]\na=1\n[table.sub]\nb=2\n\n[[arr]]\nc=3\n[[arr]]\nd=4",
+    "output": "[table]\na = 1\n[table.sub]\nb = 2\n\n[[arr]]\nc = 3\n[[arr]]\nd = 4\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "[table]\na=1\n[table.sub]\nb=2\n\n[[arr]]\nc=3\n[[arr]]\nd=4",
+    "output": "[table]\na=1\n[table.sub]\nb=2\n\n[[arr]]\nc=3\n[[arr]]\nd=4\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "[table]\na=1\n[table.sub]\nb=2\n\n[[arr]]\nc=3\n[[arr]]\nd=4",
+    "output": "[table]\n  a = 1\n  [table.sub]\n    b = 2\n\n[[arr]]\n  c = 3\n[[arr]]\n  d = 4\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "[table]\na=1\n[table.sub]\nb=2\n\n[[arr]]\nc=3\n[[arr]]\nd=4",
+    "output": "[table]\na = 1\n[table.sub]\nb = 2\n\n[[arr]]\nc = 3\n[[arr]]\nd = 4\n",
+    "set": "reorder"
+  },
+  {
+    "input": "[table]\na=1\n[table.sub]\nb=2\n\n[[arr]]\nc=3\n[[arr]]\nd=4",
+    "output": "[table]\na = 1\n[table.sub]\nb = 2\n\n[[arr]]\nc = 3\n[[arr]]\nd = 4\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "[table]\na=1\n[table.sub]\nb=2\n\n[[arr]]\nc=3\n[[arr]]\nd=4",
+    "output": "[table]\r\na = 1\r\n[table.sub]\r\nb = 2\r\n[[arr]]\r\nc = 3\r\n[[arr]]\r\nd = 4",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "[ table ] # c\na=1",
+    "output": "[table] # c\na = 1\n"
+  },
+  {
+    "input": "[ table ] # c\na=1",
+    "output": "[table] # c\na = 1\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "[ table ] # c\na=1",
+    "output": "[table] # c\na = 1\n",
+    "set": "tabs"
+  },
+  {
+    "input": "[ table ] # c\na=1",
+    "output": "[table] # c\na = 1\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "[ table ] # c\na=1",
+    "output": "[table] # c\na=1\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "[ table ] # c\na=1",
+    "output": "[table] # c\n  a = 1\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "[ table ] # c\na=1",
+    "output": "[table] # c\na = 1\n",
+    "set": "reorder"
+  },
+  {
+    "input": "[ table ] # c\na=1",
+    "output": "[table] # c\na = 1\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "[ table ] # c\na=1",
+    "output": "[table] # c\r\na = 1",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "[[ arr ]]\na=1",
+    "output": "!error"
+  },
+  {
+    "input": "[[ arr ]]\na=1",
+    "output": "!error",
+    "set": "indent 4"
+  },
+  {
+    "input": "[[ arr ]]\na=1",
+    "output": "!error",
+    "set": "tabs"
+  },
+  {
+    "input": "[[ arr ]]\na=1",
+    "output": "!error",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "[[ arr ]]\na=1",
+    "output": "!error",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "[[ arr ]]\na=1",
+    "output": "!error",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "[[ arr ]]\na=1",
+    "output": "!error",
+    "set": "reorder"
+  },
+  {
+    "input": "[[ arr ]]\na=1",
+    "output": "!error",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "[[ arr ]]\na=1",
+    "output": "!error",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "[[a]",
+    "output": "[[a]\n"
+  },
+  {
+    "input": "[[a]",
+    "output": "[[a]\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "[[a]",
+    "output": "[[a]\n",
+    "set": "tabs"
+  },
+  {
+    "input": "[[a]",
+    "output": "[[a]\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "[[a]",
+    "output": "[[a]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "[[a]",
+    "output": "[[a]\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "[[a]",
+    "output": "[[a]\n",
+    "set": "reorder"
+  },
+  {
+    "input": "[[a]",
+    "output": "[[a]\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "[[a]",
+    "output": "[[a]",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "[[a] ]",
+    "output": "!error"
+  },
+  {
+    "input": "[[a] ]",
+    "output": "!error",
+    "set": "indent 4"
+  },
+  {
+    "input": "[[a] ]",
+    "output": "!error",
+    "set": "tabs"
+  },
+  {
+    "input": "[[a] ]",
+    "output": "!error",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "[[a] ]",
+    "output": "!error",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "[[a] ]",
+    "output": "!error",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "[[a] ]",
+    "output": "!error",
+    "set": "reorder"
+  },
+  {
+    "input": "[[a] ]",
+    "output": "!error",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "[[a] ]",
+    "output": "!error",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "[a.b.c]\nx=1",
+    "output": "[a.b.c]\nx = 1\n"
+  },
+  {
+    "input": "[a.b.c]\nx=1",
+    "output": "[a.b.c]\nx = 1\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "[a.b.c]\nx=1",
+    "output": "[a.b.c]\nx = 1\n",
+    "set": "tabs"
+  },
+  {
+    "input": "[a.b.c]\nx=1",
+    "output": "[a.b.c]\nx = 1\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "[a.b.c]\nx=1",
+    "output": "[a.b.c]\nx=1\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "[a.b.c]\nx=1",
+    "output": "[a.b.c]\n  x = 1\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "[a.b.c]\nx=1",
+    "output": "[a.b.c]\nx = 1\n",
+    "set": "reorder"
+  },
+  {
+    "input": "[a.b.c]\nx=1",
+    "output": "[a.b.c]\nx = 1\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "[a.b.c]\nx=1",
+    "output": "[a.b.c]\r\nx = 1",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "[\"quoted key\".'lit']\nx=1",
+    "output": "[\"quoted key\".'lit']\nx = 1\n"
+  },
+  {
+    "input": "[\"quoted key\".'lit']\nx=1",
+    "output": "[\"quoted key\".'lit']\nx = 1\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "[\"quoted key\".'lit']\nx=1",
+    "output": "[\"quoted key\".'lit']\nx = 1\n",
+    "set": "tabs"
+  },
+  {
+    "input": "[\"quoted key\".'lit']\nx=1",
+    "output": "[\"quoted key\".'lit']\nx = 1\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "[\"quoted key\".'lit']\nx=1",
+    "output": "[\"quoted key\".'lit']\nx=1\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "[\"quoted key\".'lit']\nx=1",
+    "output": "[\"quoted key\".'lit']\n  x = 1\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "[\"quoted key\".'lit']\nx=1",
+    "output": "[\"quoted key\".'lit']\nx = 1\n",
+    "set": "reorder"
+  },
+  {
+    "input": "[\"quoted key\".'lit']\nx=1",
+    "output": "[\"quoted key\".'lit']\nx = 1\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "[\"quoted key\".'lit']\nx=1",
+    "output": "[\"quoted key\".'lit']\r\nx = 1",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "# a\n# b\n[t]\n# c\nx=1 # d\n# e\n\n# f",
+    "output": "# a\n# b\n[t]\n# c\nx = 1 # d\n# e\n\n# f\n"
+  },
+  {
+    "input": "# a\n# b\n[t]\n# c\nx=1 # d\n# e\n\n# f",
+    "output": "# a\n# b\n[t]\n# c\nx = 1 # d\n# e\n\n# f\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "# a\n# b\n[t]\n# c\nx=1 # d\n# e\n\n# f",
+    "output": "# a\n# b\n[t]\n# c\nx = 1 # d\n# e\n\n# f\n",
+    "set": "tabs"
+  },
+  {
+    "input": "# a\n# b\n[t]\n# c\nx=1 # d\n# e\n\n# f",
+    "output": "# a\n# b\n[t]\n# c\nx = 1 # d\n# e\n\n# f\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "# a\n# b\n[t]\n# c\nx=1 # d\n# e\n\n# f",
+    "output": "# a\n# b\n[t]\n# c\nx=1 # d\n# e\n\n# f\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "# a\n# b\n[t]\n# c\nx=1 # d\n# e\n\n# f",
+    "output": "# a\n# b\n[t]\n  # c\n  x = 1 # d\n  # e\n\n  # f\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "# a\n# b\n[t]\n# c\nx=1 # d\n# e\n\n# f",
+    "output": "# a\n# b\n[t]\n# c\nx = 1 # d\n# e\n\n# f\n",
+    "set": "reorder"
+  },
+  {
+    "input": "# a\n# b\n[t]\n# c\nx=1 # d\n# e\n\n# f",
+    "output": "# a\n# b\n[t]\n# c\nx = 1 # d\n# e\n\n# f\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "# a\n# b\n[t]\n# c\nx=1 # d\n# e\n\n# f",
+    "output": "# a\r\n# b\r\n[t]\r\n# c\r\nx = 1 # d\r\n# e\r\n# f",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "x=1\n# c\ny=2",
+    "output": "x = 1\n# c\ny = 2\n"
+  },
+  {
+    "input": "x=1\n# c\ny=2",
+    "output": "x = 1\n# c\ny = 2\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "x=1\n# c\ny=2",
+    "output": "x = 1\n# c\ny = 2\n",
+    "set": "tabs"
+  },
+  {
+    "input": "x=1\n# c\ny=2",
+    "output": "x = 1\n# c\ny = 2\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "x=1\n# c\ny=2",
+    "output": "x=1\n# c\ny=2\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "x=1\n# c\ny=2",
+    "output": "x = 1\n# c\ny = 2\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "x=1\n# c\ny=2",
+    "output": "x = 1\n# c\ny = 2\n",
+    "set": "reorder"
+  },
+  {
+    "input": "x=1\n# c\ny=2",
+    "output": "x = 1\n# c\ny = 2\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "x=1\n# c\ny=2",
+    "output": "x = 1\r\n# c\r\ny = 2",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "x=1 # aaaa\nyyyy=2 # b\nz = 3",
+    "output": "x = 1    # aaaa\nyyyy = 2 # b\nz = 3\n"
+  },
+  {
+    "input": "x=1 # aaaa\nyyyy=2 # b\nz = 3",
+    "output": "x = 1    # aaaa\nyyyy = 2 # b\nz = 3\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "x=1 # aaaa\nyyyy=2 # b\nz = 3",
+    "output": "x = 1    # aaaa\nyyyy = 2 # b\nz = 3\n",
+    "set": "tabs"
+  },
+  {
+    "input": "x=1 # aaaa\nyyyy=2 # b\nz = 3",
+    "output": "x    = 1 # aaaa\nyyyy = 2 # b\nz    = 3\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "x=1 # aaaa\nyyyy=2 # b\nz = 3",
+    "output": "x=1    # aaaa\nyyyy=2 # b\nz=3\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "x=1 # aaaa\nyyyy=2 # b\nz = 3",
+    "output": "x = 1    # aaaa\nyyyy = 2 # b\nz = 3\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "x=1 # aaaa\nyyyy=2 # b\nz = 3",
+    "output": "x = 1    # aaaa\nyyyy = 2 # b\nz = 3\n",
+    "set": "reorder"
+  },
+  {
+    "input": "x=1 # aaaa\nyyyy=2 # b\nz = 3",
+    "output": "x = 1    # aaaa\nyyyy = 2 # b\nz = 3\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "x=1 # aaaa\nyyyy=2 # b\nz = 3",
+    "output": "x = 1    # aaaa\r\nyyyy = 2 # b\r\nz = 3",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "dob = 1979-05-27T07:32:00-08:00",
+    "output": "dob = 1979-05-27T07:32:00-08:00\n"
+  },
+  {
+    "input": "d = 1979-05-27",
+    "output": "d = 1979-05-27\n"
+  },
+  {
+    "input": "t = 07:32:00",
+    "output": "t = 07:32:00\n"
+  },
+  {
+    "input": "t = 07:32:00.999",
+    "output": "t = 07:32:00.999\n"
+  },
+  {
+    "input": "dt = 1979-05-27 07:32:00",
+    "output": "dt = 1979-05-27 07:32:00\n"
+  },
+  {
+    "input": "1979-05-27 = 1",
+    "output": "1979-05-27 = 1\n"
+  },
+  {
+    "input": "d = 1979-05-27T07",
+    "output": "!error"
+  },
+  {
+    "input": "d = 1979-05-27 # c",
+    "output": "d = 1979-05-27 # c\n"
+  },
+  {
+    "input": "d = 1979-05-27 # c",
+    "output": "d = 1979-05-27 # c\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "d = 1979-05-27 # c",
+    "output": "d = 1979-05-27 # c\n",
+    "set": "tabs"
+  },
+  {
+    "input": "d = 1979-05-27 # c",
+    "output": "d = 1979-05-27 # c\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "d = 1979-05-27 # c",
+    "output": "d=1979-05-27 # c\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "d = 1979-05-27 # c",
+    "output": "d = 1979-05-27 # c\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "d = 1979-05-27 # c",
+    "output": "d = 1979-05-27 # c\n",
+    "set": "reorder"
+  },
+  {
+    "input": "d = 1979-05-27 # c",
+    "output": "d = 1979-05-27 # c\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "d = 1979-05-27 # c",
+    "output": "d = 1979-05-27 # c",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "x = 9e+",
+    "output": "!error"
+  },
+  {
+    "input": "x = 1.5e+3",
+    "output": "x = 1.5e+3\n"
+  },
+  {
+    "input": "x = +inf",
+    "output": "x = +inf\n"
+  },
+  {
+    "input": "x = -nan",
+    "output": "x = -nan\n"
+  },
+  {
+    "input": "inf = 1",
+    "output": "inf = 1\n"
+  },
+  {
+    "input": "x = 0x_1",
+    "output": "!error"
+  },
+  {
+    "input": "x = 0xDEAD_BEEF",
+    "output": "x = 0xDEAD_BEEF\n"
+  },
+  {
+    "input": "x = 0o755",
+    "output": "x = 0o755\n"
+  },
+  {
+    "input": "x = 0b1010",
+    "output": "x = 0b1010\n"
+  },
+  {
+    "input": "x = 1_000",
+    "output": "x = 1_000\n"
+  },
+  {
+    "input": "x = 01",
+    "output": "!error"
+  },
+  {
+    "input": "x = +0",
+    "output": "x = +0\n"
+  },
+  {
+    "input": "x = 1__0",
+    "output": "!error"
+  },
+  {
+    "input": "0.1 = 1",
+    "output": "!error"
+  },
+  {
+    "input": "1.2.3 = 1",
+    "output": "1.2.3 = 1\n"
+  },
+  {
+    "input": "s = \"a\\u0041\\n\"",
+    "output": "s = \"a\\u0041\\n\"\n"
+  },
+  {
+    "input": "s = \"bad\\x\"",
+    "output": "!error"
+  },
+  {
+    "input": "s = 'lit\\x'",
+    "output": "s = 'lit\\x'\n"
+  },
+  {
+    "input": "s = \"\"\"\nml\n\"\"\"",
+    "output": "s = \"\"\"\nml\n\"\"\"\n"
+  },
+  {
+    "input": "s = \"\"\"\nml\n\"\"\"",
+    "output": "s = \"\"\"\nml\n\"\"\"\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "s = \"\"\"\nml\n\"\"\"",
+    "output": "s = \"\"\"\nml\n\"\"\"\n",
+    "set": "tabs"
+  },
+  {
+    "input": "s = \"\"\"\nml\n\"\"\"",
+    "output": "s = \"\"\"\nml\n\"\"\"\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "s = \"\"\"\nml\n\"\"\"",
+    "output": "s=\"\"\"\nml\n\"\"\"\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "s = \"\"\"\nml\n\"\"\"",
+    "output": "s = \"\"\"\nml\n\"\"\"\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "s = \"\"\"\nml\n\"\"\"",
+    "output": "s = \"\"\"\nml\n\"\"\"\n",
+    "set": "reorder"
+  },
+  {
+    "input": "s = \"\"\"\nml\n\"\"\"",
+    "output": "s = \"\"\"\nml\n\"\"\"\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "s = \"\"\"\nml\n\"\"\"",
+    "output": "s = \"\"\"\nml\n\"\"\"",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "s = '''\nml\n'''",
+    "output": "s = '''\nml\n'''\n"
+  },
+  {
+    "input": "s = '''\nml\n'''",
+    "output": "s = '''\nml\n'''\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "s = '''\nml\n'''",
+    "output": "s = '''\nml\n'''\n",
+    "set": "tabs"
+  },
+  {
+    "input": "s = '''\nml\n'''",
+    "output": "s = '''\nml\n'''\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "s = '''\nml\n'''",
+    "output": "s='''\nml\n'''\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "s = '''\nml\n'''",
+    "output": "s = '''\nml\n'''\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "s = '''\nml\n'''",
+    "output": "s = '''\nml\n'''\n",
+    "set": "reorder"
+  },
+  {
+    "input": "s = '''\nml\n'''",
+    "output": "s = '''\nml\n'''\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "s = '''\nml\n'''",
+    "output": "s = '''\nml\n'''",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "s = \"\"\"a\\\n   b\"\"\"",
+    "output": "s = \"\"\"a\\\n   b\"\"\"\n"
+  },
+  {
+    "input": "s = \"\"\"a\\\n   b\"\"\"",
+    "output": "s = \"\"\"a\\\n   b\"\"\"\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "s = \"\"\"a\\\n   b\"\"\"",
+    "output": "s = \"\"\"a\\\n   b\"\"\"\n",
+    "set": "tabs"
+  },
+  {
+    "input": "s = \"\"\"a\\\n   b\"\"\"",
+    "output": "s = \"\"\"a\\\n   b\"\"\"\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "s = \"\"\"a\\\n   b\"\"\"",
+    "output": "s=\"\"\"a\\\n   b\"\"\"\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "s = \"\"\"a\\\n   b\"\"\"",
+    "output": "s = \"\"\"a\\\n   b\"\"\"\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "s = \"\"\"a\\\n   b\"\"\"",
+    "output": "s = \"\"\"a\\\n   b\"\"\"\n",
+    "set": "reorder"
+  },
+  {
+    "input": "s = \"\"\"a\\\n   b\"\"\"",
+    "output": "s = \"\"\"a\\\n   b\"\"\"\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "s = \"\"\"a\\\n   b\"\"\"",
+    "output": "s = \"\"\"a\\\n   b\"\"\"",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "s = \"\"\"\"\"\"",
+    "output": "s = \"\"\"\"\"\"\n"
+  },
+  {
+    "input": "s = \"\"\"a\"\"\"\"\"",
+    "output": "s = \"\"\"a\"\"\"\"\"\n"
+  },
+  {
+    "input": "s = ''''''",
+    "output": "s = ''''''\n"
+  },
+  {
+    "input": "s = '''a'''''",
+    "output": "s = '''a'''''\n"
+  },
+  {
+    "input": "a=1\r\nb=2\r\n",
+    "output": "a = 1\nb = 2\n"
+  },
+  {
+    "input": "a=1\r\nb=2\r\n",
+    "output": "a = 1\nb = 2\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a=1\r\nb=2\r\n",
+    "output": "a = 1\nb = 2\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a=1\r\nb=2\r\n",
+    "output": "a = 1\nb = 2\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a=1\r\nb=2\r\n",
+    "output": "a=1\nb=2\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a=1\r\nb=2\r\n",
+    "output": "a = 1\nb = 2\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a=1\r\nb=2\r\n",
+    "output": "a = 1\nb = 2\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a=1\r\nb=2\r\n",
+    "output": "a = 1\nb = 2\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a=1\r\nb=2\r\n",
+    "output": "a = 1\r\nb = 2",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = [\r\n1,\r\n2\r\n]\r\n",
+    "output": "a = [1, 2]\n"
+  },
+  {
+    "input": "a = [\r\n1,\r\n2\r\n]\r\n",
+    "output": "a = [1, 2]\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = [\r\n1,\r\n2\r\n]\r\n",
+    "output": "a = [1, 2]\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = [\r\n1,\r\n2\r\n]\r\n",
+    "output": "a = [1, 2]\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = [\r\n1,\r\n2\r\n]\r\n",
+    "output": "a=[ 1, 2 ]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = [\r\n1,\r\n2\r\n]\r\n",
+    "output": "a = [1, 2]\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = [\r\n1,\r\n2\r\n]\r\n",
+    "output": "a = [1, 2]\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = [\r\n1,\r\n2\r\n]\r\n",
+    "output": "a = [\n  1,\n  2,\n]\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = [\r\n1,\r\n2\r\n]\r\n",
+    "output": "a = [1, 2]",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a\t=\t1",
+    "output": "a = 1\n"
+  },
+  {
+    "input": "a = 1\nb = 2 c = 3",
+    "output": "!error"
+  },
+  {
+    "input": "a = 1\nb = 2 c = 3",
+    "output": "!error",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = 1\nb = 2 c = 3",
+    "output": "!error",
+    "set": "tabs"
+  },
+  {
+    "input": "a = 1\nb = 2 c = 3",
+    "output": "!error",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = 1\nb = 2 c = 3",
+    "output": "!error",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = 1\nb = 2 c = 3",
+    "output": "!error",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = 1\nb = 2 c = 3",
+    "output": "!error",
+    "set": "reorder"
+  },
+  {
+    "input": "a = 1\nb = 2 c = 3",
+    "output": "!error",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = 1\nb = 2 c = 3",
+    "output": "!error",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a.b = 1\na . c = 2",
+    "output": "a.b = 1\na.c = 2\n"
+  },
+  {
+    "input": "a.b = 1\na . c = 2",
+    "output": "a.b = 1\na.c = 2\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a.b = 1\na . c = 2",
+    "output": "a.b = 1\na.c = 2\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a.b = 1\na . c = 2",
+    "output": "a.b = 1\na.c = 2\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a.b = 1\na . c = 2",
+    "output": "a.b=1\na.c=2\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a.b = 1\na . c = 2",
+    "output": "a.b = 1\na.c = 2\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a.b = 1\na . c = 2",
+    "output": "a.b = 1\na.c = 2\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a.b = 1\na . c = 2",
+    "output": "a.b = 1\na.c = 2\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a.b = 1\na . c = 2",
+    "output": "a.b = 1\r\na.c = 2",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "\"a.b\" = 1",
+    "output": "\"a.b\" = 1\n"
+  },
+  {
+    "input": "a = true\nb = false\nc = tru",
+    "output": "!error"
+  },
+  {
+    "input": "a = true\nb = false\nc = tru",
+    "output": "!error",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = true\nb = false\nc = tru",
+    "output": "!error",
+    "set": "tabs"
+  },
+  {
+    "input": "a = true\nb = false\nc = tru",
+    "output": "!error",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = true\nb = false\nc = tru",
+    "output": "!error",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = true\nb = false\nc = tru",
+    "output": "!error",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = true\nb = false\nc = tru",
+    "output": "!error",
+    "set": "reorder"
+  },
+  {
+    "input": "a = true\nb = false\nc = tru",
+    "output": "!error",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = true\nb = false\nc = tru",
+    "output": "!error",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = [1, # c\n2]",
+    "output": "a = [\n  1, # c\n  2,\n]\n"
+  },
+  {
+    "input": "a = [1, # c\n2]",
+    "output": "a = [\n    1, # c\n    2,\n]\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = [1, # c\n2]",
+    "output": "a = [\n\t1, # c\n\t2,\n]\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = [1, # c\n2]",
+    "output": "a = [\n  1, # c\n  2,\n]\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = [1, # c\n2]",
+    "output": "a=[\n  1, # c\n  2\n]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = [1, # c\n2]",
+    "output": "a = [\n  1, # c\n  2,\n]\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = [1, # c\n2]",
+    "output": "a = [\n  1, # c\n  2,\n]\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = [1, # c\n2]",
+    "output": "a = [\n  1, # c\n  2,\n]\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = [1, # c\n2]",
+    "output": "a = [\r\n  1, # c\r\n  2,\r\n]",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "a = [1 # c\n, 2]",
+    "output": "a = [\n  1, # c\n  2,\n]\n"
+  },
+  {
+    "input": "a = [1 # c\n, 2]",
+    "output": "a = [\n    1, # c\n    2,\n]\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "a = [1 # c\n, 2]",
+    "output": "a = [\n\t1, # c\n\t2,\n]\n",
+    "set": "tabs"
+  },
+  {
+    "input": "a = [1 # c\n, 2]",
+    "output": "a = [\n  1, # c\n  2,\n]\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "a = [1 # c\n, 2]",
+    "output": "a=[\n  1, # c\n  2\n]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "a = [1 # c\n, 2]",
+    "output": "a = [\n  1, # c\n  2,\n]\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "a = [1 # c\n, 2]",
+    "output": "a = [\n  1, # c\n  2,\n]\n",
+    "set": "reorder"
+  },
+  {
+    "input": "a = [1 # c\n, 2]",
+    "output": "a = [\n  1, # c\n  2,\n]\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "a = [1 # c\n, 2]",
+    "output": "a = [\r\n  1, # c\r\n  2,\r\n]",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "[t] # header comment\n# body\nk = 1",
+    "output": "[t] # header comment\n# body\nk = 1\n"
+  },
+  {
+    "input": "[t] # header comment\n# body\nk = 1",
+    "output": "[t] # header comment\n# body\nk = 1\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "[t] # header comment\n# body\nk = 1",
+    "output": "[t] # header comment\n# body\nk = 1\n",
+    "set": "tabs"
+  },
+  {
+    "input": "[t] # header comment\n# body\nk = 1",
+    "output": "[t] # header comment\n# body\nk = 1\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "[t] # header comment\n# body\nk = 1",
+    "output": "[t] # header comment\n# body\nk=1\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "[t] # header comment\n# body\nk = 1",
+    "output": "[t] # header comment\n  # body\n  k = 1\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "[t] # header comment\n# body\nk = 1",
+    "output": "[t] # header comment\n# body\nk = 1\n",
+    "set": "reorder"
+  },
+  {
+    "input": "[t] # header comment\n# body\nk = 1",
+    "output": "[t] # header comment\n# body\nk = 1\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "[t] # header comment\n# body\nk = 1",
+    "output": "[t] # header comment\r\n# body\r\nk = 1",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "x = [\n  \"a\",\n\n\n\n  \"b\",\n]",
+    "output": "x = [\"a\", \"b\"]\n"
+  },
+  {
+    "input": "x = [\n  \"a\",\n\n\n\n  \"b\",\n]",
+    "output": "x = [\"a\", \"b\"]\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "x = [\n  \"a\",\n\n\n\n  \"b\",\n]",
+    "output": "x = [\"a\", \"b\"]\n",
+    "set": "tabs"
+  },
+  {
+    "input": "x = [\n  \"a\",\n\n\n\n  \"b\",\n]",
+    "output": "x = [\"a\", \"b\"]\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "x = [\n  \"a\",\n\n\n\n  \"b\",\n]",
+    "output": "x=[ \"a\", \"b\" ]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "x = [\n  \"a\",\n\n\n\n  \"b\",\n]",
+    "output": "x = [\"a\", \"b\"]\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "x = [\n  \"a\",\n\n\n\n  \"b\",\n]",
+    "output": "x = [\"a\", \"b\"]\n",
+    "set": "reorder"
+  },
+  {
+    "input": "x = [\n  \"a\",\n\n\n\n  \"b\",\n]",
+    "output": "x = [\n  \"a\",\n\n\n  \"b\",\n]\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "x = [\n  \"a\",\n\n\n\n  \"b\",\n]",
+    "output": "x = [\"a\", \"b\"]",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "x = [\n  1,\n  \n  \n  2\n]",
+    "output": "x = [1, 2]\n"
+  },
+  {
+    "input": "x = [\n  1,\n  \n  \n  2\n]",
+    "output": "x = [1, 2]\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "x = [\n  1,\n  \n  \n  2\n]",
+    "output": "x = [1, 2]\n",
+    "set": "tabs"
+  },
+  {
+    "input": "x = [\n  1,\n  \n  \n  2\n]",
+    "output": "x = [1, 2]\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "x = [\n  1,\n  \n  \n  2\n]",
+    "output": "x=[ 1, 2 ]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "x = [\n  1,\n  \n  \n  2\n]",
+    "output": "x = [1, 2]\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "x = [\n  1,\n  \n  \n  2\n]",
+    "output": "x = [1, 2]\n",
+    "set": "reorder"
+  },
+  {
+    "input": "x = [\n  1,\n  \n  \n  2\n]",
+    "output": "x = [\n  1,\n\n\n  2,\n]\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "x = [\n  1,\n  \n  \n  2\n]",
+    "output": "x = [1, 2]",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "key = \"value\"\n\n\n\n[t]\n\n\n\nk = 1\n\n\n",
+    "output": "key = \"value\"\n\n\n[t]\n\n\nk = 1\n"
+  },
+  {
+    "input": "key = \"value\"\n\n\n\n[t]\n\n\n\nk = 1\n\n\n",
+    "output": "key = \"value\"\n\n\n[t]\n\n\nk = 1\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "key = \"value\"\n\n\n\n[t]\n\n\n\nk = 1\n\n\n",
+    "output": "key = \"value\"\n\n\n[t]\n\n\nk = 1\n",
+    "set": "tabs"
+  },
+  {
+    "input": "key = \"value\"\n\n\n\n[t]\n\n\n\nk = 1\n\n\n",
+    "output": "key = \"value\"\n\n\n[t]\n\n\nk = 1\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "key = \"value\"\n\n\n\n[t]\n\n\n\nk = 1\n\n\n",
+    "output": "key=\"value\"\n\n\n[t]\n\n\nk=1\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "key = \"value\"\n\n\n\n[t]\n\n\n\nk = 1\n\n\n",
+    "output": "key = \"value\"\n\n\n[t]\n\n\n  k = 1\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "key = \"value\"\n\n\n\n[t]\n\n\n\nk = 1\n\n\n",
+    "output": "key = \"value\"\n\n\n[t]\n\n\nk = 1\n",
+    "set": "reorder"
+  },
+  {
+    "input": "key = \"value\"\n\n\n\n[t]\n\n\n\nk = 1\n\n\n",
+    "output": "key = \"value\"\n\n\n[t]\n\n\nk = 1\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "key = \"value\"\n\n\n\n[t]\n\n\n\nk = 1\n\n\n",
+    "output": "key = \"value\"\r\n[t]\r\nk = 1",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "[a]\n[a.b]\n[a.b.c]\n[d]\n[a.e]",
+    "output": "[a]\n[a.b]\n[a.b.c]\n[d]\n[a.e]\n"
+  },
+  {
+    "input": "[a]\n[a.b]\n[a.b.c]\n[d]\n[a.e]",
+    "output": "[a]\n[a.b]\n[a.b.c]\n[d]\n[a.e]\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "[a]\n[a.b]\n[a.b.c]\n[d]\n[a.e]",
+    "output": "[a]\n[a.b]\n[a.b.c]\n[d]\n[a.e]\n",
+    "set": "tabs"
+  },
+  {
+    "input": "[a]\n[a.b]\n[a.b.c]\n[d]\n[a.e]",
+    "output": "[a]\n[a.b]\n[a.b.c]\n[d]\n[a.e]\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "[a]\n[a.b]\n[a.b.c]\n[d]\n[a.e]",
+    "output": "[a]\n[a.b]\n[a.b.c]\n[d]\n[a.e]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "[a]\n[a.b]\n[a.b.c]\n[d]\n[a.e]",
+    "output": "[a]\n  [a.b]\n    [a.b.c]\n[d]\n  [a.e]\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "[a]\n[a.b]\n[a.b.c]\n[d]\n[a.e]",
+    "output": "[a]\n[a.b]\n[a.b.c]\n[d]\n[a.e]\n",
+    "set": "reorder"
+  },
+  {
+    "input": "[a]\n[a.b]\n[a.b.c]\n[d]\n[a.e]",
+    "output": "[a]\n[a.b]\n[a.b.c]\n[d]\n[a.e]\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "[a]\n[a.b]\n[a.b.c]\n[d]\n[a.e]",
+    "output": "[a]\r\n[a.b]\r\n[a.b.c]\r\n[d]\r\n[a.e]",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "[[a]]\n[a.b]\n[[a]]",
+    "output": "[[a]]\n[a.b]\n[[a]]\n"
+  },
+  {
+    "input": "[[a]]\n[a.b]\n[[a]]",
+    "output": "[[a]]\n[a.b]\n[[a]]\n",
+    "set": "indent 4"
+  },
+  {
+    "input": "[[a]]\n[a.b]\n[[a]]",
+    "output": "[[a]]\n[a.b]\n[[a]]\n",
+    "set": "tabs"
+  },
+  {
+    "input": "[[a]]\n[a.b]\n[[a]]",
+    "output": "[[a]]\n[a.b]\n[[a]]\n",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "[[a]]\n[a.b]\n[[a]]",
+    "output": "[[a]]\n[a.b]\n[[a]]\n",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "[[a]]\n[a.b]\n[[a]]",
+    "output": "[[a]]\n  [a.b]\n[[a]]\n",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "[[a]]\n[a.b]\n[[a]]",
+    "output": "[[a]]\n[a.b]\n[[a]]\n",
+    "set": "reorder"
+  },
+  {
+    "input": "[[a]]\n[a.b]\n[[a]]",
+    "output": "[[a]]\n[a.b]\n[[a]]\n",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "[[a]]\n[a.b]\n[[a]]",
+    "output": "[[a]]\r\n[a.b]\r\n[[a]]",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "k = { a = 1, b = 2, }",
+    "output": "!error"
+  },
+  {
+    "input": "k = { a = 1, b = 2, }",
+    "output": "!error",
+    "set": "indent 4"
+  },
+  {
+    "input": "k = { a = 1, b = 2, }",
+    "output": "!error",
+    "set": "tabs"
+  },
+  {
+    "input": "k = { a = 1, b = 2, }",
+    "output": "!error",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "k = { a = 1, b = 2, }",
+    "output": "!error",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "k = { a = 1, b = 2, }",
+    "output": "!error",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "k = { a = 1, b = 2, }",
+    "output": "!error",
+    "set": "reorder"
+  },
+  {
+    "input": "k = { a = 1, b = 2, }",
+    "output": "!error",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "k = { a = 1, b = 2, }",
+    "output": "!error",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "k = { a = 1\n}",
+    "output": "!error"
+  },
+  {
+    "input": "k = { a = 1\n}",
+    "output": "!error",
+    "set": "indent 4"
+  },
+  {
+    "input": "k = { a = 1\n}",
+    "output": "!error",
+    "set": "tabs"
+  },
+  {
+    "input": "k = { a = 1\n}",
+    "output": "!error",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "k = { a = 1\n}",
+    "output": "!error",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "k = { a = 1\n}",
+    "output": "!error",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "k = { a = 1\n}",
+    "output": "!error",
+    "set": "reorder"
+  },
+  {
+    "input": "k = { a = 1\n}",
+    "output": "!error",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "k = { a = 1\n}",
+    "output": "!error",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "k = [,]",
+    "output": "!error"
+  },
+  {
+    "input": "k = [,]",
+    "output": "!error",
+    "set": "indent 4"
+  },
+  {
+    "input": "k = [,]",
+    "output": "!error",
+    "set": "tabs"
+  },
+  {
+    "input": "k = [,]",
+    "output": "!error",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "k = [,]",
+    "output": "!error",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "k = [,]",
+    "output": "!error",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "k = [,]",
+    "output": "!error",
+    "set": "reorder"
+  },
+  {
+    "input": "k = [,]",
+    "output": "!error",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "k = [,]",
+    "output": "!error",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "k = [1,,2]",
+    "output": "!error"
+  },
+  {
+    "input": "k = [1,,2]",
+    "output": "!error",
+    "set": "indent 4"
+  },
+  {
+    "input": "k = [1,,2]",
+    "output": "!error",
+    "set": "tabs"
+  },
+  {
+    "input": "k = [1,,2]",
+    "output": "!error",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "k = [1,,2]",
+    "output": "!error",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "k = [1,,2]",
+    "output": "!error",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "k = [1,,2]",
+    "output": "!error",
+    "set": "reorder"
+  },
+  {
+    "input": "k = [1,,2]",
+    "output": "!error",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "k = [1,,2]",
+    "output": "!error",
+    "set": "no blank lines, no trailing newline, crlf"
+  },
+  {
+    "input": "k = 1 2",
+    "output": "!error"
+  },
+  {
+    "input": "k =",
+    "output": "!error"
+  },
+  {
+    "input": "= 1",
+    "output": "!error"
+  },
+  {
+    "input": "k = \"multi\nline\"",
+    "output": "!error"
+  },
+  {
+    "input": "k = \"multi\nline\"",
+    "output": "!error",
+    "set": "indent 4"
+  },
+  {
+    "input": "k = \"multi\nline\"",
+    "output": "!error",
+    "set": "tabs"
+  },
+  {
+    "input": "k = \"multi\nline\"",
+    "output": "!error",
+    "set": "align entries, no comment alignment"
+  },
+  {
+    "input": "k = \"multi\nline\"",
+    "output": "!error",
+    "set": "compact, width 40, no trailing comma"
+  },
+  {
+    "input": "k = \"multi\nline\"",
+    "output": "!error",
+    "set": "indent tables and entries"
+  },
+  {
+    "input": "k = \"multi\nline\"",
+    "output": "!error",
+    "set": "reorder"
+  },
+  {
+    "input": "k = \"multi\nline\"",
+    "output": "!error",
+    "set": "no expanding or collapsing, single comments"
+  },
+  {
+    "input": "k = \"multi\nline\"",
+    "output": "!error",
+    "set": "no blank lines, no trailing newline, crlf"
+  }
+]

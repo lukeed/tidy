@@ -99,6 +99,14 @@ messages! {
   InvalidEscape = "Invalid escape sequence",
   InvalidNumber = "Invalid number",
   NotJson = "This is not allowed in JSON",
+  // TOML
+  ExpectedBrace = "Expected \"{\" or \"}\"",
+  ExpectedBracket = "Expected \"[\" or \"]\"",
+  ExpectedComma = "Expected \",\"",
+  ExpectedLineBreak = "Expected a line break",
+  ExpectedValue = "Expected a value",
+  InvalidCharacter = "Invalid character",
+  LineBreakInInlineTable = "An inline table cannot have line breaks",
   // XML
   ExpectedClose = "Expected \">\"",
   ExpectedDeclarationEnd = "Expected \"?>\"",
