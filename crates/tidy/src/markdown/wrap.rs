@@ -97,7 +97,8 @@ impl Paragraph {
   }
 
   /// Fill the words into lines no wider than `width`, or into one line per hard break without it.
-  /// The first line is never an HTML tag alone, which would start an HTML block.
+  /// The first line is never an HTML tag alone, which would start an HTML block, and no line is a
+  /// setext underline or thematic break alone.
   pub(crate) fn fill(&self, width: Option<usize>) -> Vec<String> {
     let mut lines = Vec::new();
     let mut line = String::new();
@@ -115,7 +116,7 @@ impl Paragraph {
           let first = crate::width::width(word.split('\n').next().unwrap_or_default());
           let over = width.is_some_and(|width| used + 1 + first > width);
           let tag = lines.is_empty() && crate::opener::starts_html(&line);
-          if space && over && !tag {
+          if space && over && !tag && !alone(&line) {
             lines.push(std::mem::take(&mut line));
             used = 0;
           } else if space {
@@ -139,12 +140,15 @@ impl Paragraph {
 
   /// The tokens to fill, with words joined across a space that Prettier never breaks, so they fit
   /// or move as one: a space between text and Chinese or Japanese text, and a space before a word
-  /// that would open a block at the start of a line. Beside markup, a space breaks.
+  /// that would open a block at the start of a line, unless it does so only alone on its line and a
+  /// word follows. Beside markup, a space breaks.
   fn units(&self) -> Vec<Unit<'_>> {
-    let mut units: Vec<Unit<'_>> = Vec::with_capacity(self.tokens.len());
+    let tokens = &self.tokens;
+    let mut units: Vec<Unit<'_>> = Vec::with_capacity(tokens.len());
     let mut tail = false;
-    let mut tokens = self.tokens.iter().peekable();
-    while let Some(token) = tokens.next() {
+    let mut index = 0;
+    while let Some(token) = tokens.get(index) {
+      index += 1;
       match token {
         Token::Word { text, tail: prose, .. } => {
           units.push(Unit::Word(Cow::Borrowed(text)));
@@ -152,33 +156,34 @@ impl Paragraph {
         }
         Token::Hard => units.push(Unit::Hard),
         Token::Space | Token::Line => {
-          let next = match tokens.peek() {
-            Some(Token::Word { text, head, tail }) => Some((text, *head, *tail)),
-            _ => None,
+          let (Some(Unit::Word(word)), Some(Token::Word { text: next, head, tail: after })) =
+            (units.last_mut(), tokens.get(index))
+          else {
+            units.push(Unit::Space);
+            continue;
           };
-          let glue = match (units.last(), next) {
-            (Some(Unit::Word(word)), Some((next, head, _))) => {
-              let (before, after) = (word.chars().next_back(), next.chars().next());
-              let beside = match token {
-                Token::Line if tail && head => join(before, after),
-                Token::Space if tail && head => {
-                  (before.is_some_and(cj) || after.is_some_and(cj)).then_some(" ")
-                }
-                _ => None,
-              };
-              beside.or_else(|| opens_block(next).then_some(" "))
+          let (before, first) = (word.chars().next_back(), next.chars().next());
+          let beside = match token {
+            Token::Line if tail && *head => join(before, first),
+            Token::Space if tail && *head => {
+              (before.is_some_and(cj) || first.is_some_and(cj)).then_some(" ")
             }
             _ => None,
           };
-          match (units.last_mut(), next, glue) {
-            (Some(Unit::Word(word)), Some((next, _, prose)), Some(glue)) => {
+          let followed = matches!(
+            (tokens.get(index + 1), tokens.get(index + 2)),
+            (Some(Token::Space | Token::Line), Some(Token::Word { .. }))
+          );
+          let opens = opens_block(next) && !(alone(next) && followed);
+          match beside.or_else(|| opens.then_some(" ")) {
+            Some(glue) => {
               let word = word.to_mut();
               word.push_str(glue);
               word.push_str(next);
-              tail = prose;
-              tokens.next();
+              tail = *after;
+              index += 1;
             }
-            _ => units.push(Unit::Space),
+            None => units.push(Unit::Space),
           }
         }
       }
@@ -225,6 +230,16 @@ fn unclosed(word: &str) -> Option<&'static str> {
     .max_by_key(|&(at, _)| at);
   let (at, close) = opened?;
   (!word[at + 2..].contains(close)).then_some(close)
+}
+
+/// Whether `word` opens a block only when it is alone on its line: a setext underline or a
+/// thematic break.
+fn alone(word: &str) -> bool {
+  let Some(&first) = word.as_bytes().first() else { return false };
+  matches!(first, b'=' | b'-' | b'*' | b'_')
+    && (first == b'=' || word.len() > 1)
+    && word.bytes().all(|byte| byte == first)
+    && opens_block(word)
 }
 
 /// Whether `word` at the start of a line could begin another block and change what the
@@ -297,6 +312,15 @@ mod tests {
       paragraph(&["aaaa bbbb > 設定 > dddd"]).fill(Some(12)),
       ["aaaa", "bbbb > 設定 >", "dddd"]
     );
+  }
+
+  #[test]
+  fn never_leaves_an_underline_alone() {
+    assert_eq!(paragraph(&["aaaa bbbb = cccc"]).fill(Some(9)), ["aaaa bbbb", "= cccc"]);
+    assert_eq!(paragraph(&["aaaa bbbb --- cccc"]).fill(Some(9)), ["aaaa bbbb", "--- cccc"]);
+    assert_eq!(paragraph(&["aaaa bbbb cc ==="]).fill(Some(9)), ["aaaa bbbb", "cc ==="]);
+    assert_eq!(paragraph(&["aaaa ***"]).fill(Some(4)), ["aaaa ***"]);
+    assert_eq!(paragraph(&["aaa bb = cccc"]).fill(Some(8)), ["aaa bb =", "cccc"]);
   }
 
   #[test]
