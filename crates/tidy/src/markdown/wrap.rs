@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 /// A paragraph collected as words, to be filled into lines.
 #[derive(Debug, Default)]
 pub(crate) struct Paragraph {
@@ -76,30 +78,33 @@ impl Paragraph {
   }
 
   /// Fill the words into lines no wider than `width`, or into one line per hard break without it.
+  /// A line never starts with something that opens a block, and the first line is never an HTML
+  /// tag alone, which would start an HTML block.
   pub(crate) fn fill(&self, width: Option<usize>) -> Vec<String> {
     let mut lines = Vec::new();
     let mut line = String::new();
     let mut used = 0;
     let mut space = false;
-    for token in &self.tokens {
-      match token {
-        Token::Space => space = !line.is_empty(),
-        Token::Hard => {
+    for unit in self.units() {
+      match unit {
+        Unit::Space => space = !line.is_empty(),
+        Unit::Hard => {
           lines.push(std::mem::take(&mut line));
           used = 0;
           space = false;
         }
-        Token::Word(word) => {
+        Unit::Word(word) => {
           let first = crate::width::width(word.split('\n').next().unwrap_or_default());
           let over = width.is_some_and(|width| used + 1 + first > width);
-          if space && over && !opens_block(word) {
+          let tag = lines.is_empty() && crate::opener::starts_html(&line);
+          if space && over && !tag && !opens_block(&word) {
             lines.push(std::mem::take(&mut line));
             used = 0;
           } else if space {
             line.push(' ');
             used += 1;
           }
-          line.push_str(word);
+          line.push_str(&word);
           used = match word.rsplit_once('\n') {
             Some((_, last)) => crate::width::width(last),
             None => used + first,
@@ -113,6 +118,45 @@ impl Paragraph {
     }
     lines
   }
+
+  /// The tokens to fill, with words joined across a space beside Chinese or Japanese text, which
+  /// Prettier never breaks, so they fit or move as one.
+  fn units(&self) -> Vec<Unit<'_>> {
+    let mut units: Vec<Unit<'_>> = Vec::with_capacity(self.tokens.len());
+    let mut tokens = self.tokens.iter().peekable();
+    while let Some(token) = tokens.next() {
+      match token {
+        Token::Word(word) => units.push(Unit::Word(Cow::Borrowed(word))),
+        Token::Hard => units.push(Unit::Hard),
+        Token::Space => {
+          let next = match tokens.peek() {
+            Some(Token::Word(next)) => Some(next),
+            _ => None,
+          };
+          match (units.last_mut(), next) {
+            (Some(Unit::Word(word)), Some(next))
+              if word.chars().next_back().is_some_and(cj)
+                || next.chars().next().is_some_and(cj) =>
+            {
+              let word = word.to_mut();
+              word.push(' ');
+              word.push_str(next);
+              tokens.next();
+            }
+            _ => units.push(Unit::Space),
+          }
+        }
+      }
+    }
+    units
+  }
+}
+
+/// A word or group of words to fill, a place to break, or a hard break.
+enum Unit<'a> {
+  Word(Cow<'a, str>),
+  Space,
+  Hard,
 }
 
 /// The closer that a Liquid tag opened in `word` still waits for.
@@ -128,21 +172,27 @@ fn unclosed(word: &str) -> Option<&'static str> {
 /// Whether `word` at the start of a line could begin another block and change what the
 /// paragraph means, so the line must not break before it.
 fn opens_block(word: &str) -> bool {
-  let bytes = word.as_bytes();
-  let Some(&first) = bytes.first() else { return false };
-  let run = bytes.iter().take_while(|&&byte| byte == first).count();
-  match first {
-    b'>' | b'<' => true,
-    b'#' => run <= 6 && run == bytes.len(),
-    b'-' | b'+' | b'*' if bytes.len() == 1 => true,
-    b'-' | b'*' | b'_' | b'=' => run == bytes.len() && (run >= 3 || matches!(first, b'-' | b'=')),
-    b'`' | b'~' => run >= 3,
-    byte if byte.is_ascii_digit() => {
-      let digits = bytes.iter().take_while(|byte| byte.is_ascii_digit()).count();
-      digits + 1 == bytes.len() && matches!(bytes[digits], b'.' | b')')
-    }
-    _ => false,
-  }
+  crate::opener::interrupts(word).is_some()
+}
+
+/// Whether `char` is Chinese or Japanese, which Prettier never breaks a line beside. Korean breaks
+/// at spaces like Latin text.
+fn cj(char: char) -> bool {
+  matches!(
+    char,
+    '\u{2E80}'..='\u{2FDF}'
+      | '\u{3000}'..='\u{303F}'
+      | '\u{3040}'..='\u{30FF}'
+      | '\u{3100}'..='\u{312F}'
+      | '\u{31A0}'..='\u{31FF}'
+      | '\u{3200}'..='\u{32FF}'
+      | '\u{3400}'..='\u{4DBF}'
+      | '\u{4E00}'..='\u{9FFF}'
+      | '\u{F900}'..='\u{FAFF}'
+      | '\u{FE30}'..='\u{FE4F}'
+      | '\u{FF00}'..='\u{FFEF}'
+      | '\u{20000}'..='\u{3FFFF}'
+  )
 }
 
 #[cfg(test)]
@@ -172,6 +222,12 @@ mod tests {
   fn keeps_hard_breaks() {
     let paragraph = paragraph(&["one", "\\", "two"]);
     assert_eq!(paragraph.fill(None), ["one\\", "two"]);
+  }
+
+  #[test]
+  fn keeps_chinese_and_japanese_beside_their_spaces() {
+    assert_eq!(paragraph(&["aaa 不肖 bbb ccc"]).fill(Some(4)), ["aaa 不肖 bbb", "ccc"]);
+    assert_eq!(paragraph(&["aaa 한국 bbb"]).fill(Some(4)), ["aaa", "한국", "bbb"]);
   }
 
   #[test]

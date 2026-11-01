@@ -13,6 +13,9 @@ pub(super) struct Link {
   pub(super) text: usize,
   pub(super) end: usize,
   pub(super) tail: Option<String>,
+  /// An inline link, whose text Prettier never breaks across lines. A reference link's text breaks
+  /// like other text.
+  pub(super) inline: bool,
 }
 
 /// An image whose alt text is skipped to be copied as written, before Prettier's form of the rest.
@@ -258,7 +261,8 @@ impl<'s> Writer<'s, '_> {
           self.skip = 1;
         } else {
           self.atom("[");
-          self.link = Some(Link { text: range.start + 1, end, tail });
+          let inline = link_type == LinkType::Inline;
+          self.link = Some(Link { text: range.start + 1, end, tail, inline });
         }
       }
       _ => {}

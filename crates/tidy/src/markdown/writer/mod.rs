@@ -336,7 +336,7 @@ impl<'s> Writer<'s, '_> {
         if self.table.is_some() || (self.heading.is_some() && self.options.heading == Heading::Atx)
         {
           self.atom(" ");
-        } else if self.link.is_some() && self.wraps() {
+        } else if self.link.as_ref().is_some_and(|link| link.inline) && self.wraps() {
           self.paragraph.get_or_insert_default().atom(" ");
         } else if self.heading.is_none() && self.wraps() {
           let next = events.peek(0).map_or(self.source.len(), |(_, range)| range.start);
@@ -719,7 +719,7 @@ impl<'s> Writer<'s, '_> {
   fn text(&mut self, text: &'s str, at: usize) {
     let text =
       if self.options.wrap == Wrap::Preserve { self.guard(text, at) } else { collapse(text) };
-    if self.link.is_none() && self.wraps() {
+    if !self.link.as_ref().is_some_and(|link| link.inline) && self.wraps() {
       self.paragraph.get_or_insert_default().text(&text);
     } else {
       self.atom(&text);

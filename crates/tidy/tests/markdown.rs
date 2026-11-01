@@ -448,6 +448,34 @@ fn keeps_inline_html_and_code_when_wrapping() {
 }
 
 #[test]
+fn wraps_like_prettier() {
+  let narrow = Options { wrap: Wrap::Always, width: 24, ..Options::default() };
+  let cases = [
+    (
+      "Please read and follow our [Code of Conduct][coc] now.\n\n[coc]: /c\n",
+      "Please read and follow\nour [Code of\nConduct][coc] now.\n\n[coc]: /c\n",
+    ),
+    (
+      "Read the [inline link text](https://x.y/z) now please.\n",
+      "Read the\n[inline link text](https://x.y/z)\nnow please.\n",
+    ),
+    (
+      "One two three <kbd>help</kbd> four five six seven.\n",
+      "One two three\n<kbd>help</kbd> four\nfive six seven.\n",
+    ),
+    ("One two three four <div>x</div> five six.\n", "One two three four <div>x</div>\nfive six.\n"),
+    (
+      "Arend, mgechev and 不肖・高橋 more words here.\n",
+      "Arend, mgechev\nand 不肖・高橋 more\nwords here.\n",
+    ),
+    ("aaa bbb 한국어 단어 ccc ddd eee.\n", "aaa bbb 한국어 단어 ccc\nddd eee.\n"),
+  ];
+  for (source, expected) in cases {
+    assert_eq!(mdtidy::format(source, &narrow), expected, "{source}");
+  }
+}
+
+#[test]
 fn never_wraps_into_a_block() {
   let options = Options { wrap: Wrap::Always, width: 5, ..Options::default() };
   assert_eq!(mdtidy::format("aaaa - b\n", &options), "aaaa -\nb\n");
