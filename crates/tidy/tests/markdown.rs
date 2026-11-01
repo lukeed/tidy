@@ -296,6 +296,15 @@ fn caps_list_numbers() {
 }
 
 #[test]
+fn widens_lists_before_indented_code() {
+  assert_eq!(prettier(" -    one\n\n     two\n"), " -    one\n\n     two\n");
+  assert_eq!(prettier("1.   a\n\n    code\n"), "1.   a\n\n    code\n");
+  let nested = "1. a\n    1. b\n100. c\n\n    code\n";
+  assert_eq!(prettier(nested), "1.   a\n     1. b\n2.   c\n\n    code\n");
+  assert_eq!(prettier("- x\n  1.  y\n"), "- x\n  1.  y\n");
+}
+
+#[test]
 fn quotes_and_nesting() {
   assert_eq!(prettier(">a\n>\n>b\n"), "> a\n>\n> b\n");
   assert_eq!(prettier("> - a\n>   > b\n"), "> - a\n>   > b\n");

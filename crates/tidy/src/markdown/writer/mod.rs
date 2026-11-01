@@ -18,7 +18,7 @@ use crate::wrap::Paragraph;
 use crate::{Code, Emphasis, Heading, Numbering, Options, Rule, Strong, Wrap};
 use code::{Block, fence};
 use inline::{Image, Link, collapse, span};
-use list::{Adjacent, List, TAB, aligned};
+use list::{Adjacent, List, TAB, aligned, widen};
 
 /// The syntax mdtidy reads: CommonMark with GFM tables, task lists, strikethrough, footnotes, and
 /// front matter.
@@ -400,6 +400,7 @@ impl<'s> Writer<'s, '_> {
         self.settle(range.start, false);
         self.block(range.start);
         self.adjacent = None;
+        let least = self.least(events);
         let items = self.scan(events, ordered);
         let numbers: Vec<u64> = items.iter().map(|item| item.number).collect();
         let repeats = match numbers[..] {
@@ -409,10 +410,11 @@ impl<'s> Writer<'s, '_> {
         };
         let aligned = self.options.numbering == Numbering::Auto
           && self.lists.iter().all(|list| list.aligned)
-          && aligned(&items);
+          && least == 0
+          && (!ordered || aligned(&items));
         let start = first.unwrap_or(1);
         let list =
-          List { spread: false, items: 0, ordered, nth, start, repeats, aligned, width: 0 };
+          List { spread: false, items: 0, ordered, nth, start, repeats, aligned, width: 0, least };
         self.lists.push(list);
       }
       Tag::Item => {
@@ -425,7 +427,7 @@ impl<'s> Writer<'s, '_> {
         list.spread = loose;
         let index = list.items;
         list.items += 1;
-        let aligned = list.aligned;
+        let (aligned, least) = (list.aligned, list.least);
         self.separate();
         self.adjacent = None;
         let mut marker = self.marker(range.start, index);
@@ -433,6 +435,7 @@ impl<'s> Writer<'s, '_> {
         if aligned && !marker.len().is_multiple_of(TAB) {
           marker.extend(std::iter::repeat_n(' ', TAB - marker.len() % TAB));
         }
+        widen(&mut marker, least);
         let width = marker.len();
         let item = Container::Item { width, marker: Some(marker), hang: false, loose };
         self.containers.push(item);

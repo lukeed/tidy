@@ -1,4 +1,4 @@
-use pulldown_cmark::Event;
+use pulldown_cmark::{CodeBlockKind, Event, Tag};
 
 use super::{Events, Writer, blank, is_block};
 use crate::{Bullet, Numbering};
@@ -17,6 +17,8 @@ pub(super) struct List {
   pub(super) aligned: bool,
   /// The content indent of the last item. A block after the list indented this far would join it.
   pub(super) width: usize,
+  /// The width every marker needs, so an indented code block after the list stays out of it.
+  pub(super) least: usize,
 }
 
 /// The list that ended last, while nothing else followed it at the same depth.
@@ -173,4 +175,47 @@ impl<'s> Writer<'s, '_> {
     }
     false
   }
+
+  /// The marker width Prettier gives the list that just started when an indented code block
+  /// follows it: wider than the code's indent, so the code doesn't join the last item.
+  pub(super) fn least(&self, events: &mut Events<'s>) -> usize {
+    let mut depth = 0usize;
+    let mut index = 0;
+    while let Some((event, _)) = events.peek(index) {
+      index += 1;
+      match event {
+        Event::Start(_) => depth += 1,
+        Event::End(_) if depth == 0 => break,
+        Event::End(_) => depth -= 1,
+        _ => {}
+      }
+    }
+    if !matches!(
+      events.peek(index),
+      Some((Event::Start(Tag::CodeBlock(CodeBlockKind::Indented)), _))
+    ) {
+      return 0;
+    }
+    let indent = match events.peek(index + 1) {
+      Some((Event::Text(text), _)) => text
+        .chars()
+        .take_while(|char| matches!(char, ' ' | '\t'))
+        .map(|char| if char == '\t' { 4 } else { 1 })
+        .sum(),
+      _ => 0,
+    };
+    4 + indent + 1
+  }
+}
+
+/// Widen `marker` to `least`, as Prettier does: up to four spaces after it, then up to three before.
+pub(super) fn widen(marker: &mut String, least: usize) {
+  if marker.len() >= least {
+    return;
+  }
+  marker.truncate(marker.trim_end().len());
+  let after = (least - marker.len()).min(4);
+  marker.extend(std::iter::repeat_n(' ', after));
+  let before = least.saturating_sub(marker.len()).min(3);
+  marker.insert_str(0, &" ".repeat(before));
 }
