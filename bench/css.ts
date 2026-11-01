@@ -39,7 +39,7 @@ let expected = new Map<string, string>();
 for (let [name, list] of Object.entries(sources)) {
 	for (let { repo, extensions, path } of list) {
 		let patterns = extensions.map((extension) => `${path ? `${path}/` : ""}*.${extension}`);
-		let files = (await $`git -C ${join(oss, repo)} ls-files -- ${patterns}`.nothrow().text()).split("\n").filter(Boolean);
+		let files = (await $`git -C ${join(oss, repo)} ls-files -z -- ${patterns}`.nothrow().text()).split("\0").filter(Boolean);
 		for (let file of files) {
 			if (/node_modules|\/dist\/|\.min\.css$|(^|\/)\./.test(file)) continue;
 			let source = await Bun.file(join(oss, repo, file)).text().catch(() => undefined);

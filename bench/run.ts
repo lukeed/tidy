@@ -1,7 +1,9 @@
 // Compares tidyrs with Prettier, bun fmt, markup_fmt (the engine of dprint-plugin-markup), and a naive formatter on
 // @lukeed/html. Every tool checks the files and leaves embedded code alone, except that tidyrs always formats style
 // sheets, so it does more work than the others. Each set runs in both orders. The
-// Handlebars corpus is Ghost's templates that Prettier can parse; only tidyrs, bun and Prettier format Handlebars.
+// Handlebars corpus is Ghost's templates that Prettier can parse; only tidyrs, bun and Prettier format Handlebars. The XML
+// corpus is the files of Maven, Lucide's icons and DocBook's style sheets that @prettier/plugin-xml can parse; only tidyrs,
+// markup_fmt and Prettier with that plugin format XML.
 //
 //   mise run bench -- [--runs <n>] [--oss <dir>]
 import { $ } from "bun";
@@ -34,17 +36,27 @@ let sources: Record<string, { repo: string; extensions: string[] }[]> = {
 		{ repo: "npmx.dev", extensions: ["vue"] },
 	],
 	handlebars: [{ repo: "ghost", extensions: ["hbs"] }],
+	xml: [
+		{ repo: "maven", extensions: ["xml"] },
+		{ repo: "lucide", extensions: ["svg"] },
+		{ repo: "docbook-xsl", extensions: ["xsl", "xml"] },
+	],
+};
+let parsers: Record<string, Record<string, unknown>> = {
+	handlebars: { parser: "glimmer" },
+	xml: { parser: "xml", plugins: ["@prettier/plugin-xml"] },
 };
 for (let [name, list] of Object.entries(sources)) {
 	for (let { repo, extensions } of list) {
 		let patterns = extensions.map((extension) => `*.${extension}`);
-		let files = (await $`git -C ${join(oss, repo)} ls-files -- ${patterns}`.text()).split("\n").filter(Boolean);
+		let files = (await $`git -C ${join(oss, repo)} ls-files -z -- ${patterns}`.text()).split("\0").filter(Boolean);
 		for (let file of files) {
 			if (/node_modules|\/dist\/|\/build\/|(^|\/)\./.test(file)) continue;
 			let to = join(corpus, name, repo, file);
-			if (name === "handlebars") {
-				let source = await Bun.file(join(oss, repo, file)).text();
-				let parses = await prettierApi.format(source, { parser: "glimmer" }).then(() => true, () => false);
+			if (parsers[name]) {
+				let source = await Bun.file(join(oss, repo, file)).text().catch(() => undefined);
+				if (source === undefined) continue;
+				let parses = await prettierApi.format(source, parsers[name]).then(() => true, () => false);
 				if (!parses) continue;
 			}
 			mkdirSync(dirname(to), { recursive: true });
@@ -64,13 +76,13 @@ function size(path: string): [number, number] {
 }
 
 let prettier = join(root, "node_modules/.bin/prettier");
-let tools = (dir: string): Record<string, string> => ({
+let tools = (dir: string, name: string): Record<string, string> => ({
 	tidyrs: `${target}/release/tidyrs ${dir} --check`,
 	"tidyrs (1 thread)": `${target}/release/tidyrs ${dir} --check --threads 1`,
 	bun: `bun fmt --cwd=${dir} --check --no-config --no-editorconfig --no-script --embedded-language-formatting off`,
 	"bun (1 thread)": `bun fmt --cwd=${dir} --check --no-config --no-editorconfig --no-script --embedded-language-formatting off --threads 1`,
 	markup_fmt: `${target}/dprint/release/dprint-bench ${dir}`,
-	prettier: `${prettier} --check ${dir} --no-config --embedded-language-formatting off --log-level silent`,
+	prettier: `${prettier} --check ${dir} --no-config --embedded-language-formatting off --log-level silent${name === "xml" ? " --plugin @prettier/plugin-xml" : ""}`,
 	naive: `bun ${root}/bench/naive.ts ${dir}`,
 	"naive (1 thread)": `bun ${root}/bench/naive.ts ${dir} --threads 1`,
 });
@@ -78,12 +90,16 @@ let tools = (dir: string): Record<string, string> => ({
 type Result = { command: string; mean: number };
 
 let rows: string[] = [];
-for (let name of ["html", "vue", "pages", "handlebars"]) {
+/** The tools that don't format a corpus. */
+let unsupported: Record<string, string[]> = {
+	handlebars: ["markup_fmt", "naive", "naive (1 thread)"],
+	xml: ["bun", "bun (1 thread)", "naive", "naive (1 thread)"],
+};
+for (let name of ["html", "vue", "pages", "handlebars", "xml"]) {
 	let dir = join(corpus, name);
 	let [files, bytes] = size(dir);
-	let all = tools(dir);
-	let markup = ["markup_fmt", "naive", "naive (1 thread)"];
-	let commands = Object.fromEntries(Object.entries(all).filter(([tool]) => name !== "handlebars" || !markup.includes(tool)));
+	let all = tools(dir, name);
+	let commands = Object.fromEntries(Object.entries(all).filter(([tool]) => !unsupported[name]?.includes(tool)));
 	let means: Record<string, number[]> = {};
 	for (let order of [Object.keys(commands), Object.keys(commands).reverse()]) {
 		let file = join(target, "bench.json");

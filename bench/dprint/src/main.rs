@@ -19,6 +19,7 @@ fn main() {
       Some("vue") => Language::Vue,
       Some("svelte") => Language::Svelte,
       Some("astro") => Language::Astro,
+      Some("xml" | "svg" | "xsd" | "xsl" | "xslt" | "wsdl") => Language::Xml,
       _ => Language::Html,
     };
     let output = format_text(&text, language, &options, |code, _| Ok::<_, ()>(code.into()));
