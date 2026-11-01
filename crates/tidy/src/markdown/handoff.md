@@ -9,7 +9,7 @@ State as of 2026-11-01. Nothing is pushed or published. Starship uses this repo 
 3. Pick the work:
    - **A formatting rule**: write the failing case in `crates/mdtidy/tests/format.rs` first, then change `writer.rs`. Done when the case passes, both oracles hold, and the Prettier match didn't drop.
    - **The Node binding**: see [napi-rs](#napi-rs). Done when `bun test` passes in `crates/mdtidy_napi` and `index.d.ts` reads as intended.
-   - **The folder walk**: the CLI walks, reads, formats and writes through `tidy_walk`, a std-only crate shared with tidy, in `~/repos/oss/tidyrs` (design: `/tmp/tidy-walk-design.md`, revision 3). It is a path dependency, and tidyrs has no remote yet, so CI can't build this workspace until Luke decides how to share it. mdtidy sets `io` to the core count and `workers: 0`, which beat tidy_walk's macOS default here (CLI `--check`: A+B 33.8 ms, C 54 ms).
+   - **The folder walk**: the CLI walks, reads, formats and writes through `tidy_walk`, a std-only crate shared with tidy, in `~/repos/oss/tidyrs` (design: `/tmp/tidy-walk-design.md`, revision 3). It is a path dependency, and tidyrs has no remote yet, so CI can't build this workspace until Luke decides how to share it. mdtidy sets `io` to the core count and `workers: 0`, which beat tidy_walk's macOS default here (CLI `--check`: A+B 33.8 ms, C 54 ms). Once mdtidy merges into tidy and one walk covers trees of many small files, drop the override and use the default (io 6, workers = cores): one pool is 42% slower on such trees.
    - **Publishing**: ask Luke first. Every package is unpublished on purpose.
 4. Commit each slice on its own: conventional subject under 28 characters, the reason in the body.
 
