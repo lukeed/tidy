@@ -1,6 +1,6 @@
 //! `angular-html-parser` 10.12: `ml_parser/parser.ts`.
 
-use super::ast::{Attribute, Id, Kind, Node, Span, StartTagComment, Tree};
+use super::ast::{Attribute, Flags, Id, Kind, Node, Span, Tree};
 use super::data::{self, TagDefinition};
 use super::error::{ErrorKind, SyntaxError};
 use super::lexer::{self, ContentType, GetTagContentType, LexedAttribute, Parts, Token, TokenType};
@@ -385,7 +385,7 @@ impl<'a> TreeBuilder<'a, '_, '_> {
 
   fn consume_element_start_tag(&mut self, start_tag_token: Token) {
     let first_attr = self.tree.attrs.len() as u32;
-    let first_comment = self.tree.start_tag_comments.len() as u32;
+    let mut has_comments = false;
     loop {
       match self.peek().kind {
         TokenType::AttrName => {
@@ -394,14 +394,8 @@ impl<'a> TreeBuilder<'a, '_, '_> {
           self.tree.attrs.push(attr);
         }
         TokenType::InElementComment => {
-          let token = self.advance();
-          if let Parts::Comment(content, is_single_line) = token.parts {
-            self.tree.start_tag_comments.push(StartTagComment {
-              span: token.span,
-              value: content.of(self.text),
-              is_single_line,
-            });
-          }
+          self.advance();
+          has_comments = true;
         }
         _ => break,
       }
@@ -430,7 +424,7 @@ impl<'a> TreeBuilder<'a, '_, '_> {
     node.namespace = full_name.prefix;
     node.tag_definition = definition;
     node.attrs = (first_attr, self.tree.attrs.len() as u32);
-    node.start_tag_comments = (first_comment, self.tree.start_tag_comments.len() as u32);
+    node.flags.set(Flags::HAS_START_TAG_COMMENTS, has_comments);
     let is_closed_by_child =
       self.container().and_then(|it| self.definition_of_node(it)).is_some_and(|it| {
         // The lookup uses the child's full name, and no list has a name with a namespace.
@@ -545,20 +539,9 @@ impl<'a> TreeBuilder<'a, '_, '_> {
     }
   }
 
-  /// Makes a block, with its parameters, whose start span ends where the next token starts.
-  fn block(&mut self, token: Token, has_end: bool) -> (Node<'a>, Option<Id>) {
-    // Prettier's `normalizeAngularControlFlowBlock`.
-    let mut parameters = None;
-    while let Some(token) = self.advance_if(TokenType::BlockParameter) {
-      let mut node = Node::new(Kind::AngularControlFlowBlockParameter, token.span);
-      node.value = Cow::Borrowed(token.span.of(self.text));
-      let parameter = self.tree.add(node);
-      let list = *parameters.get_or_insert_with(|| {
-        self.tree.add(Node::new(Kind::AngularControlFlowBlockParameters, token.span))
-      });
-      self.tree[list].span.end = token.span.end;
-      self.tree.append_child(list, parameter);
-    }
+  /// Makes a block, after its parameters, whose start span ends where the next token starts.
+  fn block(&mut self, token: Token, has_end: bool) -> Node<'a> {
+    while self.advance_if(TokenType::BlockParameter).is_some() {}
     if has_end {
       self.advance_if(TokenType::BlockOpenEnd);
     }
@@ -567,19 +550,12 @@ impl<'a> TreeBuilder<'a, '_, '_> {
     node.set_start_span(span);
     node.name_span = token.span;
     node.name = Cow::Borrowed(self.value_of(token));
-    (node, parameters)
-  }
-
-  fn push_block(&mut self, (block, parameters): (Node<'a>, Option<Id>)) {
-    self.push_container(block, false);
-    if let (Some(block), Some(parameters)) = (self.container(), parameters) {
-      self.tree.set_parameters(block, parameters);
-    }
+    node
   }
 
   fn consume_block_open(&mut self, token: Token) {
     let block = self.block(token, true);
-    self.push_block(block);
+    self.push_container(block, false);
   }
 
   fn consume_block_close(&mut self, token: Token) {
@@ -595,8 +571,8 @@ impl<'a> TreeBuilder<'a, '_, '_> {
 
   fn consume_incomplete_block(&mut self, token: Token) {
     let block = self.block(token, false);
-    let start = block.0.span.start;
-    self.push_block(block);
+    let start = block.span.start;
+    self.push_container(block, false);
     self.pop_container(None, Kind::AngularControlFlowBlock, None);
     self.error(start, ErrorKind::IncompleteBlock, self.value_of(token));
   }

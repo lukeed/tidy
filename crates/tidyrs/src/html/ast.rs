@@ -23,8 +23,6 @@ pub(crate) enum Kind {
   IeConditionalEndComment,
   Interpolation,
   AngularControlFlowBlock,
-  AngularControlFlowBlockParameters,
-  AngularControlFlowBlockParameter,
   AngularLetDeclaration,
   AngularIcuExpression,
   AngularIcuCase,
@@ -59,6 +57,7 @@ bitflags::bitflags! {
         const PRESERVES_CONTENT = 1 << 15;
         /// Set on an element in a Vue file that has `v-pre` or an ancestor with `v-pre`.
         const IS_IN_V_PRE = 1 << 16;
+        const HAS_START_TAG_COMMENTS = 1 << 17;
     }
 }
 
@@ -73,8 +72,6 @@ pub(crate) struct Node<'a> {
   /// `$children`: the `children`, the `cases` of an ICU expression, the `expression` of an ICU case.
   first_child: Id,
   last_child: Id,
-  /// Block: its parameters.
-  parameters: Id,
   /// `sourceSpan`
   pub(crate) span: Span,
   pub(crate) start_span: Span,
@@ -83,8 +80,6 @@ pub(crate) struct Node<'a> {
   pub(crate) name_span: Span,
   /// A range of `Tree::attrs`.
   pub(crate) attrs: (u32, u32),
-  /// A range of `Tree::start_tag_comments`.
-  pub(crate) start_tag_comments: (u32, u32),
   /// The name of an element or a block, the `id` of a declaration, or the `type` of an ICU expression.
   pub(crate) name: Cow<'a, [u8]>,
   /// Empty if there's none.
@@ -106,15 +101,6 @@ pub(crate) struct Attribute<'a> {
   pub(crate) namespace: &'a [u8],
   pub(crate) has_explicit_namespace: bool,
   pub(crate) value: Option<&'a [u8]>,
-}
-
-/// A comment in a start tag.
-#[derive(Debug, Copy, Clone)]
-pub(crate) struct StartTagComment<'a> {
-  pub(crate) span: Span,
-  pub(crate) value: &'a [u8],
-  /// It ends at the end of the line.
-  pub(crate) is_single_line: bool,
 }
 
 /// `fullName === name`
@@ -155,13 +141,11 @@ impl<'a> Node<'a> {
       next: NONE,
       first_child: NONE,
       last_child: NONE,
-      parameters: NONE,
       span,
       start_span: Span::default(),
       end_span: Span::default(),
       name_span: Span::default(),
       attrs: (0, 0),
-      start_tag_comments: (0, 0),
       name: Cow::Borrowed(b""),
       namespace: b"",
       value: Cow::Borrowed(b""),
@@ -205,7 +189,6 @@ impl<'a> Node<'a> {
         | Kind::IeConditionalComment
         | Kind::Interpolation
         | Kind::AngularControlFlowBlock
-        | Kind::AngularControlFlowBlockParameters
     )
   }
 
@@ -221,17 +204,12 @@ impl<'a> Node<'a> {
   pub(crate) fn has_attrs(&self) -> bool {
     self.attrs.0 < self.attrs.1
   }
-
-  pub(crate) fn has_start_tag_comments(&self) -> bool {
-    self.start_tag_comments.0 < self.start_tag_comments.1
-  }
 }
 
 #[derive(Default)]
 pub(crate) struct Tree<'a> {
   pub(crate) nodes: Vec<Node<'a>>,
   pub(crate) attrs: Vec<Attribute<'a>>,
-  pub(crate) start_tag_comments: Vec<StartTagComment<'a>>,
   pub(crate) root: Id,
   /// The buffer of the lexer's tokens, kept from one parse to the next.
   pub(crate) tokens: Vec<super::lexer::Token>,
@@ -305,15 +283,6 @@ impl<'a> Tree<'a> {
     some(self[id].last_child)
   }
 
-  pub(crate) fn parameters(&self, id: Id) -> Option<Id> {
-    some(self[id].parameters)
-  }
-
-  pub(crate) fn set_parameters(&mut self, id: Id, parameters: Id) {
-    self[id].parameters = parameters;
-    self[parameters].parent = id;
-  }
-
   pub(crate) fn has_children(&self, id: Id) -> bool {
     self[id].first_child != NONE
   }
@@ -331,11 +300,6 @@ impl<'a> Tree<'a> {
   pub(crate) fn attrs(&self, id: Id) -> &[Attribute<'a>] {
     let (start, end) = self[id].attrs;
     self.attrs.get(start as usize..end as usize).unwrap_or_default()
-  }
-
-  pub(crate) fn start_tag_comments(&self, id: Id) -> &[StartTagComment<'a>] {
-    let (start, end) = self[id].start_tag_comments;
-    self.start_tag_comments.get(start as usize..end as usize).unwrap_or_default()
   }
 
   /// Makes `child`, which must be detached, the last child of `parent`.

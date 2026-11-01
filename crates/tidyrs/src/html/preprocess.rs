@@ -379,7 +379,7 @@ impl<'a> Preprocessor<'_, 'a, '_> {
     let node = &self.tree[id];
     node.kind == Kind::Element
       && !node.has_attrs()
-      && !node.has_start_tag_comments()
+      && !node.has(Flags::HAS_START_TAG_COMMENTS)
       && self.tree.only_child(id).is_some_and(|only| {
         let only = &self.tree[only];
         only.kind == Kind::Text
