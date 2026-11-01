@@ -10,6 +10,8 @@
 // - oxc's CSS formatter and lightningcss (CSS only, which reprints rather than formats) for style sheets;
 // - a naive formatter on @lukeed/html, as a floor for HTML in JavaScript.
 //
+// "all" is every corpus in one tree, and "all-but-xml" leaves out XML, which bun fmt doesn't format.
+//
 //   mise run bench -- [--runs <n>] [--oss <dir>] [--only <corpus,...>]
 import { $ } from "bun";
 import { cpSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
@@ -79,7 +81,10 @@ for (let [name, list] of Object.entries(sources)) {
 	}
 }
 cpSync(join(oss, "html/bench/corpus"), join(corpus, "pages"), { recursive: true });
-for (let name of [...Object.keys(sources), "pages"]) cpSync(join(corpus, name), join(corpus, "all", name), { recursive: true });
+for (let name of [...Object.keys(sources), "pages"]) {
+	cpSync(join(corpus, name), join(corpus, "all", name), { recursive: true });
+	if (name !== "xml") cpSync(join(corpus, name), join(corpus, "all-but-xml", name), { recursive: true });
+}
 
 function size(path: string): [number, number] {
 	if (statSync(path).isFile()) return [1, statSync(path).size];
@@ -105,8 +110,8 @@ let commands = (dir: string): Record<string, string> => ({
 let markup = ["html", "vue", "pages"];
 let sheets = ["css", "scss", "less"];
 let formats: Record<string, string[]> = {
-	bun: [...markup, "handlebars", ...sheets, "markdown", "all"],
-	dprint: [...markup, ...sheets, "xml", "markdown", "all"],
+	bun: [...markup, "handlebars", ...sheets, "markdown", "all-but-xml"],
+	dprint: [...markup, ...sheets, "xml", "markdown", "all", "all-but-xml"],
 	oxc: sheets,
 	lightningcss: ["css"],
 	naive: markup,
@@ -127,7 +132,7 @@ async function time(names: string[], all: Record<string, string>, count: number)
 }
 
 let average = (values: number[]) => (values.reduce((sum, value) => sum + value, 0) / values.length) * 1000;
-let names = ["all", "html", "vue", "pages", "handlebars", "css", "scss", "less", "xml", "markdown"];
+let names = ["all", "all-but-xml", "html", "vue", "pages", "handlebars", "css", "scss", "less", "xml", "markdown"];
 let rows: string[] = [];
 for (let name of names.filter((name) => !only || only.includes(name))) {
 	let dir = join(corpus, name);
@@ -140,8 +145,7 @@ for (let name of names.filter((name) => !only || only.includes(name))) {
 	let sorted = Object.entries(means).sort(([, left], [, right]) => average(left) - average(right));
 	for (let [tool, values] of sorted) {
 		let mean = average(values);
-		let note = name === "all" && tool === "bun" ? "  (skips XML)" : "";
-		rows.push(`  ${tool.padEnd(16)} ${mean.toFixed(1).padStart(9)} ms  ${(mean / ours).toFixed(2).padStart(7)}x${note}`);
+		rows.push(`  ${tool.padEnd(16)} ${mean.toFixed(1).padStart(9)} ms  ${(mean / ours).toFixed(2).padStart(7)}x`);
 	}
 	console.log(rows.slice(-sorted.length - 1).join("\n"));
 }
