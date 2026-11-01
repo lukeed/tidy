@@ -1,7 +1,7 @@
 //! The grammar of `@xml-tools/parser`. Its parser recovers from errors, but the plugin throws on the first one, so this
 //! accepts exactly what the grammar accepts and rejects the rest.
 
-use super::Error;
+use super::Abort;
 use super::ast::{Attribute, Doctype, Element, External, Item, Prolog, Span, Top, Tree};
 use super::lexer::{Kind, Token};
 use crate::stack::Stack;
@@ -21,7 +21,7 @@ pub(crate) struct Parser<'p> {
 impl Parser<'_> {
   /// `document`: a prolog, a doctype, and one element, with comments, processing instructions and whitespace around
   /// them.
-  pub(crate) fn document(&mut self) -> Result<(), Error> {
+  pub(crate) fn document(&mut self) -> Result<(), Abort> {
     if self.kind() == Some(Kind::Declaration) {
       let prolog = self.prolog()?;
       self.tree.top.push(Top::Prolog(prolog));
@@ -54,14 +54,14 @@ impl Parser<'_> {
     }
   }
 
-  fn prolog(&mut self) -> Result<Prolog, Error> {
+  fn prolog(&mut self) -> Result<Prolog, Abort> {
     let open = self.expect(Kind::Declaration, Message::UnexpectedToken)?;
     let attributes = self.attributes()?;
     self.expect(Kind::SpecialClose, Message::ExpectedDeclarationEnd)?;
     Ok(Prolog { open, attributes })
   }
 
-  fn doctype(&mut self) -> Result<Doctype, Error> {
+  fn doctype(&mut self) -> Result<Doctype, Abort> {
     self.expect(Kind::DocType, Message::UnexpectedToken)?;
     let name = self.expect(Kind::Name, Message::ExpectedName)?;
     let mut external = None;
@@ -77,9 +77,9 @@ impl Parser<'_> {
     Ok(Doctype { name, external })
   }
 
-  fn element(&mut self) -> Result<u32, Error> {
+  fn element(&mut self) -> Result<u32, Abort> {
     if !self.stack.has_room() {
-      return Err(Error::TooDeep);
+      return Err(Abort::TooDeep);
     }
     let open = self.expect(Kind::Open, Message::ExpectedElement)?;
     let name = self.expect(Kind::Name, Message::ExpectedName)?;
@@ -104,7 +104,7 @@ impl Parser<'_> {
     Ok(self.tree.elements.len() as u32 - 1)
   }
 
-  fn content(&mut self) -> Result<(u32, u32), Error> {
+  fn content(&mut self) -> Result<(u32, u32), Abort> {
     let mark = self.pending.len();
     while let Some(token) = self.tokens.get(self.at) {
       let span = Span { start: token.start, end: token.end };
@@ -128,7 +128,7 @@ impl Parser<'_> {
     Ok((start, self.tree.items.len() as u32))
   }
 
-  fn attributes(&mut self) -> Result<(u32, u32), Error> {
+  fn attributes(&mut self) -> Result<(u32, u32), Abort> {
     let start = self.tree.attributes.len() as u32;
     while self.kind() == Some(Kind::Name) {
       let name = self.expect(Kind::Name, Message::ExpectedName)?;
@@ -139,7 +139,7 @@ impl Parser<'_> {
     Ok((start, self.tree.attributes.len() as u32))
   }
 
-  fn string(&mut self) -> Result<Span, Error> {
+  fn string(&mut self) -> Result<Span, Abort> {
     self.expect(Kind::String, Message::ExpectedString)
   }
 
@@ -147,7 +147,7 @@ impl Parser<'_> {
     self.tokens.get(self.at).map(|token| token.kind)
   }
 
-  fn expect(&mut self, kind: Kind, message: Message) -> Result<Span, Error> {
+  fn expect(&mut self, kind: Kind, message: Message) -> Result<Span, Abort> {
     match self.tokens.get(self.at) {
       Some(token) if token.kind == kind => {
         self.at += 1;
@@ -157,12 +157,12 @@ impl Parser<'_> {
     }
   }
 
-  fn error(&self, message: Message) -> Error {
+  fn error(&self, message: Message) -> Abort {
     let at = self.tokens.get(self.at).map_or(self.text.len() as u32, |token| token.start);
     self.error_at(message, at)
   }
 
-  fn error_at(&self, message: Message, at: u32) -> Error {
-    Error::Syntax(self.rejection.note(message, at))
+  fn error_at(&self, message: Message, at: u32) -> Abort {
+    Abort::Syntax(self.rejection.note(message, at))
   }
 }

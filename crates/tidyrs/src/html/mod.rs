@@ -17,7 +17,7 @@ mod print;
 mod tag;
 mod utilities;
 
-use crate::Whitespace;
+use crate::{Error, Whitespace};
 
 /// How deep elements may nest before formatting gives up, rather than overflow the stack.
 const MAX_DEPTH: u32 = 1000;
@@ -88,26 +88,6 @@ impl Default for Settings {
     }
   }
 }
-
-/// Why a text can't be formatted.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Error {
-  /// A syntax error, with Prettier's message and the byte offset where it is.
-  Syntax { message: String, at: usize },
-  /// The elements nest too deeply.
-  TooDeep,
-}
-
-impl std::fmt::Display for Error {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      Error::Syntax { message, .. } => f.write_str(message),
-      Error::TooDeep => f.write_str("the elements nest too deeply"),
-    }
-  }
-}
-
-impl std::error::Error for Error {}
 
 /// Formats `text`, handing the code of other languages to `embed`.
 pub fn format(

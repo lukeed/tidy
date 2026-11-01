@@ -3,7 +3,7 @@
 //! The tags are found as tempura's `gen` finds them, and become statements for `super::tokenizer`, as Handlebars'
 //! do. Only `#if` and `#each` have bodies. `#expect`, `#var` and custom blocks are single tags.
 
-use super::Error;
+use super::Abort;
 use super::ast::{Kind, NodeId, Range, Text, Tree};
 use super::parser::{Statement, StatementKind};
 use crate::syntax::{Message, Rejection};
@@ -295,8 +295,8 @@ pub(crate) fn parse(
   tree: &mut Tree,
   statements: &mut Vec<Statement>,
   rejection: &Rejection,
-) -> Result<(), Error> {
-  let reject = |message: Message, at: usize| Error::Syntax(rejection.note(message, at as u32));
+) -> Result<(), Abort> {
+  let reject = |message: Message, at: usize| Abort::Syntax(rejection.note(message, at as u32));
   let mut frames: Vec<Frame> = Vec::new();
   let mut from = 0;
   loop {

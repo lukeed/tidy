@@ -5,7 +5,7 @@
 //! The states are the tokenizer's, and they accept everything it accepts. Text that it drops isn't lost: the node it's
 //! dropped from is marked (`Node::is_verbatim`), or else the whole template is (`Tree::has_lost_text`).
 
-use super::Error;
+use super::Abort;
 use super::ast::{Kind, NOTHING, NodeId, Range, Text, Tree};
 use super::parser::{Statement, StatementKind};
 use crate::stack::Stack;
@@ -274,16 +274,16 @@ impl Builder<'_> {
 
   /// Reports `message` at the tokenizer's position.
   #[cold]
-  fn error(&self, message: Message) -> Error {
+  fn error(&self, message: Message) -> Abort {
     self.error_at(message, self.index)
   }
 
   #[cold]
-  fn error_at(&self, message: Message, at: usize) -> Error {
-    Error::Syntax(self.rejection.note(message, at as u32))
+  fn error_at(&self, message: Message, at: usize) -> Abort {
+    Abort::Syntax(self.rejection.note(message, at as u32))
   }
 
-  fn finish_tag(&mut self) -> Result<(), Error> {
+  fn finish_tag(&mut self) -> Result<(), Abort> {
     if self.tag.is_end {
       return self.finish_end_tag(false);
     }
@@ -320,7 +320,7 @@ impl Builder<'_> {
     Ok(())
   }
 
-  fn finish_end_tag(&mut self, is_void: bool) -> Result<(), Error> {
+  fn finish_end_tag(&mut self, is_void: bool) -> Result<(), Abort> {
     if is_void_tag(self.text(self.tag.name)) && !is_void {
       return Err(self.error_at(Message::EndTagOfVoidElement, self.tag.start));
     }
@@ -355,7 +355,7 @@ impl Builder<'_> {
   }
 
   /// Appends the character before `index`.
-  fn append_to_attribute_name(&mut self) -> Result<(), Error> {
+  fn append_to_attribute_name(&mut self) -> Result<(), Abort> {
     self.tree.append_source(self.source, &mut self.attribute.name, self.index - 1, self.index);
     if self.text(self.attribute.name) == b"as" {
       return self.parse_possible_block_params();
@@ -389,7 +389,7 @@ impl Builder<'_> {
     self.attribute_parts.push(part);
   }
 
-  fn finish_attribute_value(&mut self) -> Result<(), Error> {
+  fn finish_attribute_value(&mut self) -> Result<(), Abort> {
     self.finalize_text_part();
     let position = self.index;
     let Attribute { name, start, value_start, is_quoted, is_dynamic, .. } = self.attribute;
@@ -426,7 +426,7 @@ impl Builder<'_> {
 
   /// Called after `as`. If the piece ends inside the parameters, `@glimmer/syntax` saves the error for the next
   /// mustache or the end of the template. One of those always follows, so it's reported right away.
-  fn parse_possible_block_params(&mut self) -> Result<(), Error> {
+  fn parse_possible_block_params(&mut self) -> Result<(), Abort> {
     match self.peek() {
       Some(next) if is_space(next) => {
         self.state = State::AfterAttributeName;
@@ -514,7 +514,7 @@ impl Builder<'_> {
 
   /// `consume()`, for the places where it matters that it takes one UTF-16 code unit. After half a surrogate pair,
   /// none of those states can continue, so that's an error.
-  fn consume_unit(&mut self) -> Result<(), Error> {
+  fn consume_unit(&mut self) -> Result<(), Abort> {
     self.index += match self.peek() {
       None | Some(..0xC0) => 1,
       Some(0xC0..0xE0) => 2,
@@ -524,7 +524,7 @@ impl Builder<'_> {
     Ok(())
   }
 
-  fn finish_attribute_and_tag(&mut self) -> Result<(), Error> {
+  fn finish_attribute_and_tag(&mut self) -> Result<(), Abort> {
     self.begin_attribute_value(false);
     self.finish_attribute_value()?;
     self.index += 1;
@@ -533,7 +533,7 @@ impl Builder<'_> {
     Ok(())
   }
 
-  fn finish_attribute_before_slash(&mut self) -> Result<(), Error> {
+  fn finish_attribute_before_slash(&mut self) -> Result<(), Abort> {
     self.begin_attribute_value(false);
     self.finish_attribute_value()?;
     self.index += 1;
@@ -541,7 +541,7 @@ impl Builder<'_> {
     Ok(())
   }
 
-  fn quoted_attribute_value(&mut self, quote: u8) -> Result<(), Error> {
+  fn quoted_attribute_value(&mut self, quote: u8) -> Result<(), Abort> {
     let start = self.index;
     match strings::index_of_char_usize(self.rest(), quote) {
       None => {
@@ -572,7 +572,7 @@ impl Builder<'_> {
   }
 
   /// Runs one step. `character` is the current character.
-  fn step(&mut self, character: u8) -> Result<(), Error> {
+  fn step(&mut self, character: u8) -> Result<(), Abort> {
     match self.state {
       State::BeforeData => {
         if character == b'<' && !self.is_ignored_end_tag() {
@@ -945,7 +945,7 @@ impl Builder<'_> {
   }
 
   /// `ContentStatement`: `tokenizePart` and `flushData`.
-  fn content(&mut self, start: usize, end: usize) -> Result<(), Error> {
+  fn content(&mut self, start: usize, end: usize) -> Result<(), Abort> {
     (self.index, self.end) = (start, end);
     // An escaped mustache is only printed with its backslash in a text or an attribute value.
     if self.source[start..end].starts_with(b"{{") {
@@ -999,7 +999,7 @@ impl Builder<'_> {
 
   // ───────────────────────────── HandlebarsNodeVisitors ─────────────────────────────
 
-  fn add_element_modifier(&mut self, mustache: NodeId) -> Result<(), Error> {
+  fn add_element_modifier(&mut self, mustache: NodeId) -> Result<(), Abort> {
     let Kind::Mustache { call, is_trusting, strip } = self.tree.kind(mustache) else {
       return Err(self.error(Message::MisplacedMustache));
     };
@@ -1019,7 +1019,7 @@ impl Builder<'_> {
     Ok(())
   }
 
-  fn mustache(&mut self, mustache: NodeId) -> Result<(), Error> {
+  fn mustache(&mut self, mustache: NodeId) -> Result<(), Abort> {
     if matches!(
       self.tree.kind(mustache),
       Kind::Value { .. } | Kind::Directive { .. } | Kind::Opaque
@@ -1063,7 +1063,7 @@ impl Builder<'_> {
   }
 
   /// Adds a tempura tag. In a start tag it's kept in its place among the attributes, as a modifier would be.
-  fn tempura_tag(&mut self, node: NodeId) -> Result<(), Error> {
+  fn tempura_tag(&mut self, node: NodeId) -> Result<(), Abort> {
     // Like whitespace, the tag ends the name of the element.
     if self.state == State::TagName {
       self.state = State::BeforeAttributeName;
@@ -1093,7 +1093,7 @@ impl Builder<'_> {
     Ok(())
   }
 
-  fn statement(&mut self, index: usize, statement: Statement) -> Result<(), Error> {
+  fn statement(&mut self, index: usize, statement: Statement) -> Result<(), Abort> {
     if let StatementKind::Content = statement.kind {
       return self.content(statement.start as usize, statement.end as usize);
     }
@@ -1171,12 +1171,12 @@ impl Builder<'_> {
   }
 
   /// `parseProgram`
-  fn body(&mut self, (first, last): (usize, usize)) -> Result<Range, Error> {
+  fn body(&mut self, (first, last): (usize, usize)) -> Result<Range, Abort> {
     if first >= last {
       return Ok(Range::default());
     }
     if !self.room.has_room() {
-      return Err(Error::NestedTooDeeply);
+      return Err(Abort::NestedTooDeeply);
     }
     let depth = self.stack.len();
     self.stack.push(Frame { element: NOTHING, base: self.children.len() });
@@ -1201,7 +1201,7 @@ impl Builder<'_> {
   }
 
   /// `Program`
-  fn block(&mut self, statements: (usize, usize), block_params: Range) -> Result<NodeId, Error> {
+  fn block(&mut self, statements: (usize, usize), block_params: Range) -> Result<NodeId, Abort> {
     let body = self.body(statements)?;
     Ok(self.tree.add(Kind::Block { body, block_params }, 0, 0))
   }
@@ -1214,7 +1214,7 @@ pub(crate) fn build(
   front_matter: Option<NodeId>,
   tree: &mut Tree,
   rejection: &Rejection,
-) -> Result<NodeId, Error> {
+) -> Result<NodeId, Abort> {
   let mut builder = Builder {
     source,
     rejection,

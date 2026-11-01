@@ -18,10 +18,10 @@ mod value_parser;
 use self::memo::Memo;
 pub(crate) use self::sink::Document;
 use self::sink::{Output, Sink};
+use crate::Error;
 use crate::doc;
 use crate::embed::{Embed, Kind as Purpose, Request};
 use crate::stack::Stack;
-use crate::syntax::SyntaxError;
 use std::borrow::Cow;
 
 /// The language of a style sheet.
@@ -78,34 +78,8 @@ impl Default for Settings {
   }
 }
 
-/// Why a style sheet could not be formatted.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Failure {
-  /// A syntax error, with its message and the byte offset where it is.
-  Syntax { message: String, at: usize },
-  /// The style sheet nests too deeply.
-  TooDeep,
-}
-
-impl std::fmt::Display for Failure {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      Failure::Syntax { message, .. } => f.write_str(message),
-      Failure::TooDeep => f.write_str("the style sheet nests too deeply"),
-    }
-  }
-}
-
-impl std::error::Error for Failure {}
-
-impl From<SyntaxError> for Failure {
-  fn from(error: SyntaxError) -> Self {
-    Failure::Syntax { message: error.0.text().to_owned(), at: error.1 as usize }
-  }
-}
-
 /// Formats `text`, handing the code of other languages, such as YAML front matter, to `embed`.
-pub fn format(text: &str, settings: &Settings, embed: &mut dyn Embed) -> Result<String, Failure> {
+pub fn format(text: &str, settings: &Settings, embed: &mut dyn Embed) -> Result<String, Error> {
   Formatter::default().format(text, settings, embed).map(str::to_owned)
 }
 
@@ -124,7 +98,7 @@ impl Formatter {
     text: &str,
     settings: &Settings,
     embed: &mut dyn Embed,
-  ) -> Result<&str, Failure> {
+  ) -> Result<&str, Error> {
     let (bom, text) = crate::without_bom(text);
     let embed = if settings.format_embedded { embed } else { &mut crate::embed::Verbatim };
     self.format_text(text, settings, embed)?;
@@ -136,7 +110,7 @@ impl Formatter {
     text: &str,
     settings: &Settings,
     embed: &mut dyn Embed,
-  ) -> Result<(), Failure> {
+  ) -> Result<(), Error> {
     let text = crate::strings::lf(text.as_bytes());
     self.output.clear();
     if crate::strings::trim_js_whitespace(&text).is_empty() {
@@ -176,7 +150,7 @@ pub(crate) fn document(
   is_style_attribute: bool,
   is_cleaned: bool,
   embed: &mut dyn Embed,
-) -> Result<Document, Failure> {
+) -> Result<Document, Error> {
   let text = crate::strings::lf(text.as_bytes());
   let mut memo = Memo::default();
   let style = Style { settings, is_style_attribute };
@@ -266,7 +240,7 @@ fn parse_and_print<'o>(
   mut sink: Sink<'o>,
   memo: &'o mut Memo,
   embed: &mut dyn Embed,
-) -> Result<Sink<'o>, Failure> {
+) -> Result<Sink<'o>, Error> {
   let settings = style.settings;
   let dialect = settings.dialect;
   // The front matter is replaced with spaces before parsing, so all offsets stay valid.
@@ -334,7 +308,7 @@ fn parse_and_print<'o>(
   };
   printer.print_root(&tree, &mut parse::Parsed::default());
   if printer.context.stack.ran_out() || printer.sink.is_too_deep() {
-    return Err(Failure::TooDeep);
+    return Err(Error::TooDeep);
   }
   match printer.failure {
     Some(error) => Err(error.into()),

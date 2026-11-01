@@ -13,6 +13,7 @@ mod parser;
 mod print;
 mod sort;
 
+use crate::Error;
 use crate::Whitespace;
 use crate::doc::{self, Docs};
 use crate::embed::Embed;
@@ -20,7 +21,7 @@ use crate::stack::Stack;
 use crate::syntax::{Message, Rejected, Rejection};
 
 #[derive(Copy, Clone, Debug)]
-enum Error {
+enum Abort {
   Syntax(Rejected),
   TooDeep,
 }
@@ -229,28 +230,8 @@ impl Default for Settings {
   }
 }
 
-/// Why a document could not be formatted.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Failure {
-  /// A syntax error, with its message and the byte offset where it is.
-  Syntax { message: String, at: usize },
-  /// The document nests too deeply.
-  TooDeep,
-}
-
-impl std::fmt::Display for Failure {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      Failure::Syntax { message, .. } => f.write_str(message),
-      Failure::TooDeep => f.write_str("the document nests too deeply"),
-    }
-  }
-}
-
-impl std::error::Error for Failure {}
-
 /// Formats `text`, handing the code of other languages to `embed`.
-pub fn format(text: &str, settings: &Settings, embed: &mut dyn Embed) -> Result<String, Failure> {
+pub fn format(text: &str, settings: &Settings, embed: &mut dyn Embed) -> Result<String, Error> {
   Formatter::default().format(text, settings, embed).map(str::to_owned)
 }
 
@@ -272,7 +253,7 @@ impl Formatter {
     text: &str,
     settings: &Settings,
     embed: &mut dyn Embed,
-  ) -> Result<&str, Failure> {
+  ) -> Result<&str, Error> {
     let (bom, text) = crate::without_bom(text);
     let embed = if settings.format_embedded { embed } else { &mut crate::embed::Verbatim };
     self.format_text(text, settings, embed)?;
@@ -284,7 +265,7 @@ impl Formatter {
     text: &str,
     settings: &Settings,
     embed: &mut dyn Embed,
-  ) -> Result<(), Failure> {
+  ) -> Result<(), Error> {
     let text = match crate::strings::lf(text.as_bytes()) {
       std::borrow::Cow::Borrowed(_) => std::borrow::Cow::Borrowed(text),
       std::borrow::Cow::Owned(bytes) => {
@@ -298,11 +279,11 @@ impl Formatter {
     let rejection = Rejection::default();
     let stack = Stack::new();
     self.parse(&text, &rejection, &stack).map_err(|error| match error {
-      Error::Syntax(_) => {
+      Abort::Syntax(_) => {
         let reason = rejection.reason();
-        Failure::Syntax { message: reason.0.text().to_owned(), at: reason.1 as usize }
+        Error::Syntax { message: reason.0.text().to_owned(), at: reason.1 as usize }
       }
-      Error::TooDeep => Failure::TooDeep,
+      Abort::TooDeep => Error::TooDeep,
     })?;
     self.bump.reset();
     let mut docs = Docs::reuse(&self.bump, &mut self.docs);
@@ -319,7 +300,7 @@ impl Formatter {
     };
     printer.document();
     if printer.stack.ran_out() {
-      return Err(Failure::TooDeep);
+      return Err(Error::TooDeep);
     }
     let options = doc::Options {
       width: settings.width,
@@ -332,16 +313,16 @@ impl Formatter {
     Ok(())
   }
 
-  fn parse(&mut self, text: &str, rejection: &Rejection, stack: &Stack) -> Result<(), Error> {
+  fn parse(&mut self, text: &str, rejection: &Rejection, stack: &Stack) -> Result<(), Abort> {
     if text.len() > u32::MAX as usize {
-      return Err(Error::Syntax(rejection.note(Message::TooLarge, 0)));
+      return Err(Abort::Syntax(rejection.note(Message::TooLarge, 0)));
     }
     self.tokens.clear();
     self.pending.clear();
     self.tree.clear();
     let bytes = text.as_bytes();
     self.tree.breaks.extend(memchr::memchr_iter(b'\n', bytes).map(|at| at as u32));
-    lexer::lex(bytes, &mut self.tokens, rejection).map_err(Error::Syntax)?;
+    lexer::lex(bytes, &mut self.tokens, rejection).map_err(Abort::Syntax)?;
     let mut parser = parser::Parser {
       text,
       tokens: &self.tokens,

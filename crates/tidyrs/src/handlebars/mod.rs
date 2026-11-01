@@ -20,13 +20,14 @@ mod tempura;
 mod text;
 mod tokenizer;
 
+use crate::Error;
 use crate::doc::{self, Docs};
 use crate::embed::Embed;
 use crate::stack::Stack;
 use crate::syntax::{Message, Rejected, Rejection};
 
 #[derive(Copy, Clone, Debug)]
-enum Error {
+enum Abort {
   Syntax(Rejected),
   NestedTooDeeply,
 }
@@ -87,10 +88,10 @@ fn parse(
   dialect: Dialect,
   scratch: &mut Scratch,
   rejection: &Rejection,
-) -> Result<(ast::NodeId, bool), Error> {
+) -> Result<(ast::NodeId, bool), Abort> {
   // Offsets are stored in 31 bits.
   if content.len() > i32::MAX as usize {
-    return Err(Error::Syntax(rejection.note(Message::TooLarge, 0)));
+    return Err(Abort::Syntax(rejection.note(Message::TooLarge, 0)));
   }
   let mut is_tempura = dialect.is_tempura(content);
   let result = statements(content, is_tempura, scratch, rejection);
@@ -100,7 +101,7 @@ fn parse(
     let handlebars = rejection.reason();
     if statements(content, true, scratch, rejection).is_err() {
       rejection.note(handlebars.0, handlebars.1);
-      return Err(result.err().unwrap_or(Error::NestedTooDeeply));
+      return Err(result.err().unwrap_or(Abort::NestedTooDeeply));
     }
     is_tempura = true;
   } else {
@@ -115,7 +116,7 @@ fn statements(
   is_tempura: bool,
   scratch: &mut Scratch,
   rejection: &Rejection,
-) -> Result<(), Error> {
+) -> Result<(), Abort> {
   let Scratch { tokens, statements, tree } = scratch;
   tokens.clear();
   statements.clear();
@@ -135,7 +136,7 @@ fn build(
   front_matter_end: usize,
   scratch: &mut Scratch,
   rejection: &Rejection,
-) -> Result<ast::NodeId, Error> {
+) -> Result<ast::NodeId, Abort> {
   let Scratch { statements, tree, .. } = scratch;
   let front_matter =
     (front_matter_end > 0).then(|| tree.add(ast::Kind::FrontMatter, 0, front_matter_end));
@@ -187,28 +188,8 @@ pub(crate) struct Options {
   pub(crate) is_tempura: bool,
 }
 
-/// Why a template could not be formatted.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Failure {
-  /// A syntax error, with its message and the byte offset where it is.
-  Syntax { message: String, at: usize },
-  /// The template nests too deeply.
-  TooDeep,
-}
-
-impl std::fmt::Display for Failure {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      Failure::Syntax { message, .. } => f.write_str(message),
-      Failure::TooDeep => f.write_str("the template nests too deeply"),
-    }
-  }
-}
-
-impl std::error::Error for Failure {}
-
 /// Formats `text`, handing the code of other languages to `embed`.
-pub fn format(text: &str, settings: &Settings, embed: &mut dyn Embed) -> Result<String, Failure> {
+pub fn format(text: &str, settings: &Settings, embed: &mut dyn Embed) -> Result<String, Error> {
   Formatter::default().format(text, settings, embed).map(str::to_owned)
 }
 
@@ -228,7 +209,7 @@ impl Formatter {
     text: &str,
     settings: &Settings,
     embed: &mut dyn Embed,
-  ) -> Result<&str, Failure> {
+  ) -> Result<&str, Error> {
     let (bom, text) = crate::without_bom(text);
     let embed = if settings.format_embedded { embed } else { &mut crate::embed::Verbatim };
     self.format_text(text, settings, embed)?;
@@ -240,7 +221,7 @@ impl Formatter {
     text: &str,
     settings: &Settings,
     embed: &mut dyn Embed,
-  ) -> Result<(), Failure> {
+  ) -> Result<(), Error> {
     // Prettier also counts a no-break space as whitespace here.
     if text.trim_ascii().is_empty() {
       self.output.clear();
@@ -254,7 +235,7 @@ impl Formatter {
       let is_tempura = settings.dialect.is_tempura(text.as_bytes());
       let indent = if settings.tabs { "\t".to_owned() } else { " ".repeat(settings.tab_width) };
       let Some(formatted) = text::format(&text, is_tempura, &indent) else {
-        return Err(Failure::Syntax {
+        return Err(Error::Syntax {
           message: Message::ExpectedEndOfMustache.text().to_owned(),
           at: 0,
         });
@@ -273,11 +254,11 @@ impl Formatter {
     let (template, is_tempura) =
       parse(content.as_bytes(), front_matter_end, settings.dialect, &mut self.scratch, &rejection)
         .map_err(|error| match error {
-          Error::Syntax(_) => {
+          Abort::Syntax(_) => {
             let reason = rejection.reason();
-            Failure::Syntax { message: reason.0.text().to_owned(), at: reason.1 as usize }
+            Error::Syntax { message: reason.0.text().to_owned(), at: reason.1 as usize }
           }
-          Error::NestedTooDeeply => Failure::TooDeep,
+          Abort::NestedTooDeeply => Error::TooDeep,
         })?;
     if self.scratch.tree.has_lost_text {
       self.output.clear();
@@ -309,7 +290,7 @@ impl Formatter {
     };
     printer.template(template);
     if printer.stack.ran_out() {
-      return Err(Failure::TooDeep);
+      return Err(Error::TooDeep);
     }
     let print = doc::Options {
       width: settings.width,

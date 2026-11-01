@@ -1,6 +1,6 @@
 //! The lexer of `@handlebars/parser` (`src/handlebars.l`). In each state, the first rule that matches wins.
 
-use super::Error;
+use super::Abort;
 use crate::strings;
 use crate::syntax::{Message, Rejection};
 use crate::text::ByteSet;
@@ -152,11 +152,11 @@ impl Lexer<'_> {
 
   /// Reports `message` at the lexer's position.
   #[cold]
-  fn error(&self, message: Message) -> Error {
-    Error::Syntax(self.rejection.note(message, self.at as u32))
+  fn error(&self, message: Message) -> Abort {
+    Abort::Syntax(self.rejection.note(message, self.at as u32))
   }
 
-  fn initial(&mut self) -> Result<(), Error> {
+  fn initial(&mut self) -> Result<(), Abort> {
     let at = self.at;
     let Some(mustache) = self.find(b"{{", at) else {
       if !self.is_without_nul(self.text.len()) {
@@ -185,7 +185,7 @@ impl Lexer<'_> {
   }
 
   /// `[^\x00]{2,}?/("{{"|"\\{{"|"\\\\{{"|<<EOF>>)`
-  fn escaped_mustache(&mut self) -> Result<(), Error> {
+  fn escaped_mustache(&mut self) -> Result<(), Abort> {
     let first = self.at + 2;
     let end = match self.find(b"{{", first) {
       None => self.text.len(),
@@ -208,7 +208,7 @@ impl Lexer<'_> {
   }
 
   /// `[\s\S]*?"--"{RIGHT_STRIP}?"}}"`
-  fn comment(&mut self) -> Result<(), Error> {
+  fn comment(&mut self) -> Result<(), Abort> {
     let mut from = self.at;
     loop {
       let dashes = self.find(b"--", from).ok_or_else(|| self.error(Message::UnclosedComment))?;
@@ -223,7 +223,7 @@ impl Lexer<'_> {
     }
   }
 
-  fn raw(&mut self) -> Result<(), Error> {
+  fn raw(&mut self) -> Result<(), Abort> {
     let rest = &self.text[self.at..];
     if let Some(after) = rest.strip_prefix(b"{{{{") {
       match after {
@@ -256,7 +256,7 @@ impl Lexer<'_> {
   }
 
   /// Reads a token that starts with `{{`.
-  fn open(&mut self) -> Result<(), Error> {
+  fn open(&mut self) -> Result<(), Abort> {
     let rest = &self.text[self.at..];
     if rest.starts_with(b"{{{{") {
       self.token(TokenKind::OpenRawBlock, 4);
@@ -316,7 +316,7 @@ impl Lexer<'_> {
     Ok(())
   }
 
-  fn mustache(&mut self) -> Result<(), Error> {
+  fn mustache(&mut self) -> Result<(), Abort> {
     let rest = &self.text[self.at..];
     let followed_by = |word: &[u8]| rest.strip_prefix(word).is_some_and(is_literal_lookahead);
     match *rest.first().ok_or_else(|| self.error(Message::UnexpectedEnd))? {
@@ -378,7 +378,7 @@ impl Lexer<'_> {
             true => Message::UnexpectedEnd,
             false => Message::UnexpectedCharacter,
           };
-          return Err(Error::Syntax(self.rejection.note(message, (self.at + len) as u32)));
+          return Err(Abort::Syntax(self.rejection.note(message, (self.at + len) as u32)));
         }
         self.token(TokenKind::Id, len);
       }
@@ -410,7 +410,7 @@ pub(crate) fn lex(
   text: &[u8],
   tokens: &mut Vec<Token>,
   rejection: &Rejection,
-) -> Result<(), Error> {
+) -> Result<(), Abort> {
   let mut lexer =
     Lexer { text, rejection, at: 0, states: vec![State::Initial], tokens, next_nul: None };
   loop {

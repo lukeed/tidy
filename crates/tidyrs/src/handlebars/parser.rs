@@ -5,7 +5,7 @@
 //! rejects is only an error once it visits the statement, which it doesn't do inside an HTML comment. Until then the
 //! statement just has `is_valid: false`.
 
-use super::Error;
+use super::Abort;
 use super::ast::{self, Call, Head, Kind, NOTHING, NodeId, Range, Text, Tree};
 use super::lexer::{Token, TokenKind, id_len};
 use crate::stack::Stack;
@@ -184,11 +184,11 @@ impl Parser<'_> {
 
   /// Reports `message` at the last consumed token.
   #[cold]
-  fn error(&self, message: Message) -> Error {
+  fn error(&self, message: Message) -> Abort {
     let token = self.tokens.get(self.at.saturating_sub(1));
     let (kind, start) =
       token.map_or((TokenKind::Eof, self.source.len() as u32), |it| (it.kind, it.start));
-    Error::Syntax(self.rejection.note(
+    Abort::Syntax(self.rejection.note(
       match kind {
         TokenKind::Eof => Message::UnexpectedEnd,
         _ => message,
@@ -197,16 +197,16 @@ impl Parser<'_> {
     ))
   }
 
-  fn expect(&mut self, kind: TokenKind) -> Result<Token, Error> {
+  fn expect(&mut self, kind: TokenKind) -> Result<Token, Abort> {
     let token = self.next();
     if token.kind == kind { Ok(token) } else { Err(self.error(expected(kind))) }
   }
 
   /// Call before parsing anything that can nest.
-  fn enter(&self) -> Result<(), Error> {
+  fn enter(&self) -> Result<(), Abort> {
     match self.stack.has_room() {
       true => Ok(()),
-      false => Err(Error::NestedTooDeeply),
+      false => Err(Abort::NestedTooDeeply),
     }
   }
 
@@ -318,7 +318,7 @@ impl Parser<'_> {
   }
 
   /// `expr`
-  fn expression(&mut self) -> Result<Expression, Error> {
+  fn expression(&mut self) -> Result<Expression, Abort> {
     let token = self.peek();
     match token.kind {
       TokenKind::OpenSexpr => {
@@ -361,7 +361,7 @@ impl Parser<'_> {
   }
 
   /// `helperName`: an expression that isn't entirely in parentheses.
-  fn helper_name(&mut self) -> Result<Expression, Error> {
+  fn helper_name(&mut self) -> Result<Expression, Abort> {
     let expression = self.expression()?;
     match expression.class {
       Class::SubExpression | Class::HashLiteral => Err(self.error(Message::UnexpectedToken)),
@@ -370,7 +370,7 @@ impl Parser<'_> {
   }
 
   /// Parses `hashSegment+` into `pending`. Returns true if all values are valid.
-  fn hash(&mut self) -> Result<bool, Error> {
+  fn hash(&mut self) -> Result<bool, Abort> {
     let mut is_valid = true;
     while self.is_at_hash() {
       let token = self.next();
@@ -397,7 +397,7 @@ impl Parser<'_> {
   }
 
   /// `expr* hash?` after `path`, plus `acceptCallNodes` from `@glimmer/syntax`.
-  fn call(&mut self, path: Expression) -> Result<(Call, bool), Error> {
+  fn call(&mut self, path: Expression) -> Result<(Call, bool), Abort> {
     let base = self.pending.len();
     let mut is_valid = true;
     while Self::can_start_expression(self.peek().kind) && !self.is_at_hash() {
@@ -421,7 +421,7 @@ impl Parser<'_> {
   }
 
   /// `sexpr`
-  fn sub_expression(&mut self) -> Result<Expression, Error> {
+  fn sub_expression(&mut self) -> Result<Expression, Abort> {
     self.enter()?;
     let open = self.next();
     let expression = if self.is_at_hash() {
@@ -452,7 +452,7 @@ impl Parser<'_> {
   }
 
   /// `pathSegments`, `preparePath`, and `PathExpression` from `@glimmer/syntax`.
-  fn path(&mut self, prefix: Prefix) -> Result<Expression, Error> {
+  fn path(&mut self, prefix: Prefix) -> Result<Expression, Abort> {
     let mut segments = Vec::<Segment>::new();
     let mut token = self.expect(TokenKind::Id)?;
     let (start, is_data) = match prefix {
@@ -627,7 +627,7 @@ impl Parser<'_> {
   }
 
   /// `blockParams`
-  fn block_params(&mut self) -> Result<Range, Error> {
+  fn block_params(&mut self) -> Result<Range, Abort> {
     self.next();
     let mut names = Vec::<Text>::new();
     while self.peek().kind == TokenKind::Id {
@@ -655,7 +655,7 @@ impl Parser<'_> {
     open: Token,
     close: TokenKind,
     allows_block_params: bool,
-  ) -> Result<Header, Error> {
+  ) -> Result<Header, Abort> {
     self.has_dropped = false;
     let path = self.helper_name()?;
     let (call, is_valid) = self.call(path)?;
@@ -675,18 +675,18 @@ impl Parser<'_> {
   }
 
   /// `closeBlock`
-  fn close_block(&mut self, open: Original) -> Result<Strip, Error> {
+  fn close_block(&mut self, open: Original) -> Result<Strip, Abort> {
     let first = self.expect(TokenKind::OpenEndBlock)?;
     let path = self.helper_name()?;
     let last = self.expect(TokenKind::Close)?;
     if !self.closes(open, path.original) {
-      return Err(Error::Syntax(self.rejection.note(Message::WrongNameAtEndOfBlock, first.start)));
+      return Err(Abort::Syntax(self.rejection.note(Message::WrongNameAtEndOfBlock, first.start)));
     }
     Ok(self.strip(first, last))
   }
 
   /// `inverseAndProgram`
-  fn inverse_and_program(&mut self) -> Result<Inverse, Error> {
+  fn inverse_and_program(&mut self) -> Result<Inverse, Abort> {
     let token = self.next();
     self.program()?;
     Ok(Inverse { strip: self.strip(token, token), chained: None, is_verbatim: false })
@@ -733,7 +733,7 @@ impl Parser<'_> {
   }
 
   /// `inverseChain?`
-  fn inverse_chain(&mut self) -> Result<Option<Inverse>, Error> {
+  fn inverse_chain(&mut self) -> Result<Option<Inverse>, Abort> {
     let open = self.peek();
     match open.kind {
       TokenKind::Inverse => self.inverse_and_program().map(Some),
@@ -761,7 +761,7 @@ impl Parser<'_> {
   }
 
   /// `block`
-  fn block(&mut self) -> Result<(), Error> {
+  fn block(&mut self) -> Result<(), Abort> {
     self.enter()?;
     let open = self.next();
     let is_inverted = open.kind == TokenKind::OpenInverse;
@@ -776,7 +776,7 @@ impl Parser<'_> {
       false => self.inverse_chain()?,
     };
     if self.peek().kind == TokenKind::Eof {
-      return Err(Error::Syntax(self.rejection.note(Message::UnclosedBlock, open.start)));
+      return Err(Abort::Syntax(self.rejection.note(Message::UnclosedBlock, open.start)));
     }
     let close = self.close_block(header.path.original)?;
     if is_decorator {
@@ -791,7 +791,7 @@ impl Parser<'_> {
   }
 
   /// `rawBlock`
-  fn raw_block(&mut self) -> Result<(), Error> {
+  fn raw_block(&mut self) -> Result<(), Abort> {
     let open = self.next();
     // `@glimmer/syntax` turns it into an ordinary block, so it's printed verbatim.
     let header = Header {
@@ -807,7 +807,7 @@ impl Parser<'_> {
     let close = self.expect(TokenKind::EndRawBlock)?;
     let name = Text::source(close.start as usize + 5, close.end as usize - 4);
     if !self.closes(header.path.original, Original::Text(name)) {
-      return Err(Error::Syntax(self.rejection.note(Message::WrongNameAtEndOfBlock, close.start)));
+      return Err(Abort::Syntax(self.rejection.note(Message::WrongNameAtEndOfBlock, close.start)));
     }
     let first_end = self.statements.len() as u32;
     self.end_block(index, &header, first_end, None, None, false);
@@ -815,7 +815,7 @@ impl Parser<'_> {
   }
 
   /// `mustache`
-  fn mustache(&mut self) -> Result<(), Error> {
+  fn mustache(&mut self) -> Result<(), Abort> {
     let open = self.next();
     let (close, is_trusting) = match open.kind {
       TokenKind::OpenUnescaped => (TokenKind::CloseUnescaped, true),
@@ -861,7 +861,7 @@ impl Parser<'_> {
   }
 
   /// `partial` or `openPartialBlock`. Returns the name's `original`.
-  fn partial(&mut self) -> Result<Original, Error> {
+  fn partial(&mut self) -> Result<Original, Abort> {
     self.next();
     let path = self.expression()?;
     self.call(path)?;
@@ -885,7 +885,7 @@ impl Parser<'_> {
   }
 
   /// `program`
-  fn program(&mut self) -> Result<(), Error> {
+  fn program(&mut self) -> Result<(), Abort> {
     loop {
       let token = self.peek();
       match token.kind {
@@ -926,7 +926,7 @@ pub(crate) fn parse(
   tree: &mut Tree,
   statements: &mut Vec<Statement>,
   rejection: &Rejection,
-) -> Result<(), Error> {
+) -> Result<(), Abort> {
   let mut parser = Parser {
     source,
     rejection,
