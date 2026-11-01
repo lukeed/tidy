@@ -51,18 +51,19 @@ function settings(options: Record<string, unknown>, file: string): FormatOptions
 	let parsers = options.parsers as string[];
 	let parser: string = parsers?.[0] === "glimmer" ? "handlebars" : parsers?.[0];
 	if (!["html", "vue", "handlebars", "css", "scss", "less"].includes(parser)) return undefined;
+	let whitespace = { css: "auto", strict: "strict", ignore: "ignore" }[(options.htmlWhitespaceSensitivity as string) ?? "css"];
 	return {
 		parser,
-		singleQuote: (options.singleQuote as boolean) ?? false,
-		trailingComma: options.trailingComma as "none" | undefined,
-		embeddedLanguageFormatting: options.embeddedLanguageFormatting as "off" | undefined,
+		quote: options.singleQuote ? "single" : "double",
+		css: { trailingComma: options.trailingComma !== "none" },
+		embedded: options.embeddedLanguageFormatting !== "off",
 		width: (options.printWidth as number) ?? 80,
-		tabWidth: (options.tabWidth as number) ?? 2,
-		useTabs: (options.useTabs as boolean) ?? false,
-		whitespace: (options.htmlWhitespaceSensitivity as "css") ?? "css",
+		indent: (options.tabWidth as number) ?? 2,
+		tabs: (options.useTabs as boolean) ?? false,
+		whitespace: whitespace as "auto",
 		singleAttributePerLine: (options.singleAttributePerLine as boolean) ?? false,
 		bracketSameLine: (options.bracketSameLine as boolean) ?? false,
-		vueIndentScriptAndStyle: (options.vueIndentScriptAndStyle as boolean) ?? false,
+		vue: { indentBlocks: (options.vueIndentScriptAndStyle as boolean) ?? false },
 		filepath: file,
 	};
 }
@@ -104,8 +105,8 @@ async function embedded(request: EmbedRequest, options: FormatOptions, extra: Re
 			return undefined;
 		}
 	}
-	let tab = options.useTabs ? "\t" : " ".repeat(options.tabWidth ?? 2);
-	let width = (request.width ?? 80) - request.indent * (options.tabWidth ?? 2);
+	let tab = options.tabs ? "\t" : " ".repeat(options.indent ?? 2);
+	let width = (request.width ?? 80) - request.indent * (options.indent ?? 2);
 	let handler = request.kind === "attribute" && request.language === "babel";
 	try {
 		let formatted = await prettier.format(request.code, {
@@ -113,8 +114,8 @@ async function embedded(request: EmbedRequest, options: FormatOptions, extra: Re
 			...(request.kind === "attribute" ? { singleQuote: true } : {}),
 			parser: request.language,
 			printWidth: Math.max(width, 0),
-			tabWidth: options.tabWidth,
-			useTabs: options.useTabs,
+			tabWidth: options.indent,
+			useTabs: options.tabs,
 		});
 		formatted = formatted.replace(/\n+$/, "");
 		// Prettier's `__isHtmlInlineEventHandler`, which only the HTML printer can pass: no semicolon after one statement.
@@ -157,7 +158,7 @@ for (let test of all) {
 			["semi", "singleQuote", "trailingComma", "bracketSpacing", "arrowParens", "quoteProps"].includes(name),
 		),
 	);
-	tab = options.useTabs ? "\t" : " ".repeat(options.tabWidth ?? 2);
+	tab = options.tabs ? "\t" : " ".repeat(options.indent ?? 2);
 	let answers = new Map<string, string | undefined>();
 	let actual = "";
 	try {

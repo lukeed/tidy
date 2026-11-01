@@ -1,5 +1,7 @@
 //! A fast markup formatter with Prettier's style by default.
 
+#[cfg(feature = "config")]
+pub mod config;
 pub mod css;
 pub mod doc;
 pub mod embed;
@@ -7,11 +9,14 @@ mod front_matter;
 pub mod handlebars;
 pub mod html;
 mod languages;
+mod settings;
 mod stack;
 mod strings;
 mod syntax;
 mod text;
 pub mod xml;
+
+pub use settings::{Formatter, Language, Settings, Shared, format};
 
 /// Where whitespace is significant, with the same names in each language. Each language has its own default: `Auto`
 /// for HTML, Vue and Handlebars, `Strict` for XML.

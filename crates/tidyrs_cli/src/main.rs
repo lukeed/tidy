@@ -3,12 +3,9 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::{Condvar, Mutex, PoisonError};
 
-use tidyrs::Whitespace;
-use tidyrs::css;
+use tidyrs::config::{Config, Resolver};
 use tidyrs::embed::Verbatim;
-use tidyrs::handlebars::{self, Dialect};
-use tidyrs::html::{self, Parser};
-use tidyrs::xml;
+use tidyrs::{Error, Formatter, Language, Settings, Shared, Whitespace, css, doc, handlebars};
 
 const HELP: &str = "\
 tidyrs: a fast markup formatter
@@ -22,18 +19,25 @@ Usage
   files: .xml, .svg, .plist, .csproj, pom.xml, and the other files that @prettier/plugin-xml formats.
   Style sheets in <style> and style=\"\" are formatted. Scripts are left as they are written.
 
+  Each file takes its settings from the nearest tidy.json, tidy.jsonc or tidy.toml, and from .editorconfig.
+  Options given here override them.
+
 Options
   --check                         List files that aren't formatted, and exit 1 if any
   -w, --write                     Rewrite files in place
-  --parser <name>                 html, vue, handlebars, tempura, css, scss, less, or xml (default: by extension)
+  --parser <name>                 html, vue, handlebars, tempura, css, scss, less, or xml (default: by file name)
+  --stdin-filepath <path>         The path of the text on stdin, for its language and its config files
+  --config <path>                 Use this config for every file instead of the nearest one
+  --no-config                     Read no config files and no .editorconfig
   --width <n>                     Line width (default: 80)
-  --tab-width <n>                 Indent width (default: 2)
-  --use-tabs                      Indent with tabs
-  --whitespace <how>              css (HTML's default), strict (XML's default), preserve (XML), or ignore
+  --indent <n>                    Indent width (default: 2)
+  --tabs                          Indent with tabs
+  --eol <eol>                     lf (default), crlf, or cr
+  --whitespace <how>              strict, auto, or ignore (default: auto, and strict for XML)
+  --quote <quote>                 double (default) or single, in Handlebars and style sheets
   --single-attribute-per-line     Put each attribute on its own line
   --bracket-same-line             Keep the > of a multi-line tag on the last line
-  --vue-indent-script-and-style   Indent the code in Vue's <script> and <style>
-  --single-quote                  Prefer single quotes in Handlebars and style sheets
+  --ignore <name>                 The ignore directive (default: prettier-ignore)
   --threads <n>                   How many files to format at once (default: all cores)
   -v, --version                   Print the version
   -h, --help                      Print this help
@@ -64,24 +68,34 @@ fn run() -> Result<ExitCode, String> {
     println!("tidyrs {}", env!("CARGO_PKG_VERSION"));
     return Ok(ExitCode::SUCCESS);
   }
+  let error = |error: pico_args::Error| error.to_string();
   let check = args.contains("--check");
   let write = args.contains(["-w", "--write"]);
-  let threads: Option<usize> =
-    args.opt_value_from_str("--threads").map_err(|error| error.to_string())?;
-  let language = args
-    .opt_value_from_fn("--parser", |name: &str| match name {
-      "html" => Ok(Language::Markup(Parser::Html)),
-      "vue" => Ok(Language::Markup(Parser::Vue)),
-      "handlebars" | "glimmer" => Ok(Language::Handlebars(Dialect::Handlebars)),
-      "tempura" => Ok(Language::Handlebars(Dialect::Tempura)),
-      "css" => Ok(Language::Css(css::Dialect::Css)),
-      "scss" => Ok(Language::Css(css::Dialect::Scss)),
-      "less" => Ok(Language::Css(css::Dialect::Less)),
-      "xml" => Ok(Language::Xml),
-      other => Err(format!("unknown parser `{other}`")),
-    })
-    .map_err(|error| error.to_string())?;
-  let settings = settings(&mut args)?;
+  let threads: Option<usize> = args.opt_value_from_str("--threads").map_err(error)?;
+  let mut flags = Config::default();
+  let parser: Option<String> = args.opt_value_from_str("--parser").map_err(error)?;
+  let language = match parser.as_deref() {
+    None => None,
+    Some(name) => {
+      let (language, dialect) = match name {
+        "html" => (Language::Html, None),
+        "vue" => (Language::Vue, None),
+        "handlebars" => (Language::Handlebars, None),
+        "tempura" => (Language::Handlebars, Some(handlebars::Dialect::Tempura)),
+        "css" => (Language::Css(css::Dialect::Css), None),
+        "scss" => (Language::Css(css::Dialect::Scss), None),
+        "less" => (Language::Css(css::Dialect::Less), None),
+        "xml" => (Language::Xml, None),
+        other => return Err(format!("unknown parser `{other}`")),
+      };
+      flags.handlebars.dialect = dialect;
+      Some(language)
+    }
+  };
+  let stdin: Option<PathBuf> = args.opt_value_from_str("--stdin-filepath").map_err(error)?;
+  let fixed: Option<PathBuf> = args.opt_value_from_str("--config").map_err(error)?;
+  let no_config = args.contains("--no-config");
+  flags.shared = shared(&mut args)?;
   let mut paths = Vec::new();
   for arg in args.finish() {
     let text = arg.to_string_lossy();
@@ -90,13 +104,25 @@ fn run() -> Result<ExitCode, String> {
     }
     paths.push(PathBuf::from(arg));
   }
+  let resolver = match (no_config, fixed) {
+    (true, _) => None,
+    (false, Some(path)) => Some(Resolver::fixed(Config::read(&path)?)),
+    (false, None) => Some(Resolver::default()),
+  };
+  let sources = Sources { resolver, flags };
 
   if paths.is_empty() || paths == [Path::new("-")] {
     let mut source = String::new();
     std::io::stdin().read_to_string(&mut source).map_err(|error| error.to_string())?;
-    let language = language.unwrap_or(Language::Markup(Parser::Html));
-    let mut formatters = Formatters::default();
-    let output = formatters.format(&source, &settings, language, None)?;
+    let language = language
+      .or_else(|| stdin.as_deref().and_then(|path| Language::of_path(&path.to_string_lossy())))
+      .unwrap_or(Language::Html);
+    let settings = sources.settings(stdin.as_deref())?;
+    let path = stdin.as_deref().map(|path| path.to_string_lossy());
+    let mut formatter = Formatter::default();
+    let output = formatter
+      .format(&source, language, &settings, path.as_deref(), &mut Verbatim)
+      .map_err(|error| describe(&error, &source, path.as_deref().unwrap_or("stdin")))?;
     if check {
       return Ok(if output == source { ExitCode::SUCCESS } else { ExitCode::FAILURE });
     }
@@ -108,9 +134,8 @@ fn run() -> Result<ExitCode, String> {
     let path = &paths[0];
     let source =
       std::fs::read_to_string(path).map_err(|error| format!("{}: {error}", path.display()))?;
-    let mut formatters = Formatters::default();
-    let language = language.unwrap_or_else(|| language_of(path));
-    let output = formatters.format(&source, &settings, language, Some(path))?;
+    let mut formatter = Formatter::default();
+    let output = sources.format(&mut formatter, &source, language, path)?;
     std::io::stdout().write_all(output.as_bytes()).map_err(|error| error.to_string())?;
     return Ok(ExitCode::SUCCESS);
   }
@@ -123,17 +148,16 @@ fn run() -> Result<ExitCode, String> {
   let threads = threads.unwrap_or(cores).max(1);
   let mut outcomes: Vec<(PathBuf, Outcome)> = std::thread::scope(|scope| {
     let workers: Vec<_> =
-      (0..threads).map(|_| scope.spawn(|| work(&queue, &settings, language, write))).collect();
+      (0..threads).map(|_| scope.spawn(|| work(&queue, &sources, language, write))).collect();
     workers.into_iter().flat_map(|worker| worker.join().unwrap_or_default()).collect()
   });
   outcomes.sort_by(|(left, _), (right, _)| left.cmp(right));
 
   let (mut listed, mut errors) = (String::new(), String::new());
   for (path, outcome) in &outcomes {
-    let path = path.display();
     match outcome {
-      Outcome::Changed => listed.push_str(&format!("{path}\n")),
-      Outcome::Failed(error) => errors.push_str(&format!("tidyrs: {path}: {error}\n")),
+      Outcome::Changed => listed.push_str(&format!("{}\n", path.display())),
+      Outcome::Failed(error) => errors.push_str(&format!("tidyrs: {error}\n")),
     }
   }
   std::io::stdout().write_all(listed.as_bytes()).map_err(|error| error.to_string())?;
@@ -144,132 +168,91 @@ fn run() -> Result<ExitCode, String> {
   Ok(if check && !outcomes.is_empty() { ExitCode::FAILURE } else { ExitCode::SUCCESS })
 }
 
-/// What a file is written in.
-#[derive(Clone, Copy)]
-enum Language {
-  Markup(Parser),
-  Handlebars(Dialect),
-  Css(css::Dialect),
-  Xml,
-}
-
-/// The language of the file at `path`, by its extension.
-fn language_of(path: &Path) -> Language {
-  let name = path.to_string_lossy();
-  if let Some(dialect) = css::Dialect::of_path(&name) {
-    return Language::Css(dialect);
-  }
-  if xml::is_xml_path(&name) {
-    return Language::Xml;
-  }
-  match path.extension().and_then(|it| it.to_str()) {
-    Some("vue") => Language::Markup(Parser::Vue),
-    Some("hbs" | "handlebars") => Language::Handlebars(Dialect::Auto),
-    _ => Language::Markup(Parser::Html),
-  }
-}
-
-/// The settings of each formatter.
-#[derive(Clone)]
-struct Settings {
-  html: html::Settings,
-  handlebars: handlebars::Settings,
-  css: css::Settings,
-  xml: xml::Settings,
-}
-
-fn settings(args: &mut pico_args::Arguments) -> Result<Settings, String> {
+/// The shared choices that the flags make.
+fn shared(args: &mut pico_args::Arguments) -> Result<Shared, String> {
   let error = |error: pico_args::Error| error.to_string();
-  let mut settings = html::Settings::default();
-  if let Some(width) = args.opt_value_from_str("--width").map_err(error)? {
-    settings.width = width;
-  }
-  if let Some(width) = args.opt_value_from_str("--tab-width").map_err(error)? {
-    settings.tab_width = width;
-  }
-  settings.tabs = args.contains("--use-tabs");
-  let whitespace = args
-    .opt_value_from_fn("--whitespace", |name: &str| match name {
-      "css" | "strict" | "preserve" | "ignore" => Ok(name.to_owned()),
-      other => Err(format!("unknown whitespace `{other}`")),
-    })
-    .map_err(error)?;
-  settings.whitespace = match whitespace.as_deref() {
-    Some("strict") => Whitespace::Strict,
-    Some("ignore") => Whitespace::Ignore,
-    _ => Whitespace::Auto,
-  };
-  settings.single_attribute_per_line = args.contains("--single-attribute-per-line");
-  settings.bracket_same_line = args.contains("--bracket-same-line");
-  settings.vue_indent_script_and_style = args.contains("--vue-indent-script-and-style");
-  let handlebars = handlebars::Settings {
-    width: settings.width,
-    tab_width: settings.tab_width,
-    tabs: settings.tabs,
-    whitespace: settings.whitespace,
-    single_quote: args.contains("--single-quote"),
-    ..handlebars::Settings::default()
-  };
-  let css = css::Settings {
-    width: settings.width,
-    tab_width: settings.tab_width,
-    tabs: settings.tabs,
-    single_quote: handlebars.single_quote,
-    ..css::Settings::default()
-  };
-  let xml = xml::Settings {
-    width: settings.width,
-    tab_width: settings.tab_width,
-    tabs: settings.tabs,
-    whitespace: match whitespace.as_deref() {
-      Some("preserve") => tidyrs::Whitespace::Auto,
-      Some("ignore") => tidyrs::Whitespace::Ignore,
-      _ => tidyrs::Whitespace::Strict,
-    },
-    bracket_same_line: settings.bracket_same_line,
-    single_attribute_per_line: settings.single_attribute_per_line,
-    ..xml::Settings::default()
-  };
-  Ok(Settings { html: settings, handlebars, css, xml })
-}
-
-/// A formatter for each language, each reusing its buffers.
-#[derive(Default)]
-struct Formatters {
-  html: html::Formatter,
-  handlebars: handlebars::Formatter,
-  css: css::Formatter,
-  xml: xml::Formatter,
-}
-
-impl Formatters {
-  fn format(
-    &mut self,
-    source: &str,
-    settings: &Settings,
-    language: Language,
-    path: Option<&Path>,
-  ) -> Result<&str, String> {
-    let error = |error: &dyn std::fmt::Display| error.to_string();
-    match language {
-      Language::Markup(parser) => {
-        let filepath = path.map(|path| path.to_string_lossy().into_owned());
-        let settings = html::Settings { parser, filepath, ..settings.html.clone() };
-        self.html.format(source, &settings, &mut Verbatim).map_err(|it| error(&it))
+  let mut choice = |name: &'static str, options: &[&str]| -> Result<Option<String>, String> {
+    let value: Option<String> = args.opt_value_from_str(name).map_err(error)?;
+    match value {
+      Some(value) if !options.contains(&value.as_str()) => {
+        Err(format!("unknown {name} `{value}`, expected one of: {}", options.join(", ")))
       }
-      Language::Handlebars(dialect) => {
-        let filepath = path.map(|path| path.to_string_lossy().into_owned());
-        let settings = handlebars::Settings { filepath, dialect, ..settings.handlebars.clone() };
-        self.handlebars.format(source, &settings, &mut Verbatim).map_err(|it| error(&it))
-      }
-      Language::Css(dialect) => {
-        let settings = css::Settings { dialect, ..settings.css.clone() };
-        self.css.format(source, &settings, &mut Verbatim).map_err(|it| error(&it))
-      }
-      Language::Xml => {
-        self.xml.format(source, &settings.xml, &mut Verbatim).map_err(|it| error(&it))
-      }
+      value => Ok(value),
     }
+  };
+  let eol = choice("--eol", &["lf", "crlf", "cr"])?;
+  let whitespace = choice("--whitespace", &["strict", "auto", "ignore"])?;
+  let quote = choice("--quote", &["double", "single"])?;
+  let flag =
+    |args: &mut pico_args::Arguments, name: &'static str| args.contains(name).then_some(true);
+  Ok(Shared {
+    width: args.opt_value_from_str("--width").map_err(error)?,
+    indent: args.opt_value_from_str("--indent").map_err(error)?,
+    tabs: flag(args, "--tabs"),
+    eol: eol.map(|eol| match eol.as_str() {
+      "crlf" => doc::Eol::Crlf,
+      "cr" => doc::Eol::Cr,
+      _ => doc::Eol::Lf,
+    }),
+    whitespace: whitespace.map(|how| match how.as_str() {
+      "strict" => Whitespace::Strict,
+      "ignore" => Whitespace::Ignore,
+      _ => Whitespace::Auto,
+    }),
+    single_quote: quote.map(|quote| quote == "single"),
+    bracket_same_line: flag(args, "--bracket-same-line"),
+    single_attribute_per_line: flag(args, "--single-attribute-per-line"),
+    ignore: args.opt_value_from_str("--ignore").map_err(error)?,
+    format_embedded: None,
+  })
+}
+
+/// Where the settings of each file come from: Prettier's, then the config files around it, then the flags.
+struct Sources {
+  /// `None` with `--no-config`.
+  resolver: Option<Resolver>,
+  flags: Config,
+}
+
+impl Sources {
+  fn settings(&self, path: Option<&Path>) -> Result<Settings, String> {
+    let mut settings = match (&self.resolver, path) {
+      (Some(resolver), Some(path)) => resolver.settings(path)?,
+      _ => Settings::default(),
+    };
+    self.flags.apply(&mut settings);
+    Ok(settings)
+  }
+
+  /// Formats the file at `path`, in `language` or the language of its name.
+  fn format<'f>(
+    &self,
+    formatter: &'f mut Formatter,
+    source: &str,
+    language: Option<Language>,
+    path: &Path,
+  ) -> Result<&'f str, String> {
+    let name = path.to_string_lossy();
+    let language = language
+      .or_else(|| Language::of_path(&name))
+      .ok_or_else(|| format!("{name}: can't tell the language of this file, pass --parser"))?;
+    let settings = self.settings(Some(path)).map_err(|error| format!("{name}: {error}"))?;
+    formatter
+      .format(source, language, &settings, Some(&name), &mut Verbatim)
+      .map_err(|error| describe(&error, source, &name))
+  }
+}
+
+/// An error, with the line and column of a syntax error.
+fn describe(error: &Error, source: &str, name: &str) -> String {
+  match error {
+    Error::Syntax { message, at } => {
+      let before = &source[..(*at).min(source.len())];
+      let line = before.matches('\n').count() + 1;
+      let column = before.rsplit('\n').next().unwrap_or_default().chars().count() + 1;
+      format!("{name}:{line}:{column}: {message}")
+    }
+    Error::TooDeep => format!("{name}: {error}"),
   }
 }
 
@@ -281,17 +264,17 @@ enum Outcome {
 
 fn work(
   queue: &Queue,
-  settings: &Settings,
+  sources: &Sources,
   language: Option<Language>,
   write: bool,
 ) -> Vec<(PathBuf, Outcome)> {
   let mut outcomes = Vec::new();
-  let mut formatters = Formatters::default();
+  let mut formatter = Formatter::default();
   let mut source = String::new();
   while let Some(task) = queue.next() {
     let path = match task {
       Task::Folder(dir) => {
-        queue.done(read(&dir));
+        queue.done(read(&dir, sources.resolver.as_ref()));
         continue;
       }
       Task::File(path) => path,
@@ -299,20 +282,15 @@ fn work(
     source.clear();
     let read = std::fs::File::open(&path).and_then(|mut file| file.read_to_string(&mut source));
     let outcome = match read {
-      Err(error) => Outcome::Failed(error.to_string()),
-      Ok(_) => match formatters.format(
-        &source,
-        settings,
-        language.unwrap_or_else(|| language_of(&path)),
-        Some(&path),
-      ) {
+      Err(error) => Outcome::Failed(format!("{}: {error}", path.display())),
+      Ok(_) => match sources.format(&mut formatter, &source, language, &path) {
         Err(error) => Outcome::Failed(error),
         Ok(output) if output == source => {
           queue.done(Vec::new());
           continue;
         }
         Ok(output) => match write.then(|| std::fs::write(&path, output)) {
-          Some(Err(error)) => Outcome::Failed(error.to_string()),
+          Some(Err(error)) => Outcome::Failed(format!("{}: {error}", path.display())),
           _ => Outcome::Changed,
         },
       },
@@ -376,10 +354,11 @@ impl Queue {
   }
 }
 
-/// The markup, style sheet and XML files in `dir`, and the folders to read next, skipping hidden folders and
-/// `node_modules`.
-fn read(dir: &Path) -> Vec<Task> {
+/// The files in `dir` that tidyrs formats, and the folders to read next, skipping hidden folders and
+/// `node_modules`. Tells `resolver` which config files are there.
+fn read(dir: &Path, resolver: Option<&Resolver>) -> Vec<Task> {
   let mut found = Vec::new();
+  let mut configs = Vec::new();
   let Ok(entries) = std::fs::read_dir(dir) else { return found };
   for entry in entries.flatten() {
     let name = entry.file_name();
@@ -390,13 +369,14 @@ fn read(dir: &Path) -> Vec<Task> {
       if !name.starts_with('.') && name != "node_modules" {
         found.push(Task::Folder(path));
       }
-    } else if matches!(
-      path.extension().and_then(|it| it.to_str()),
-      Some("html" | "htm" | "vue" | "hbs" | "handlebars" | "css" | "scss" | "less")
-    ) || xml::is_xml_path(&path.to_string_lossy())
-    {
+    } else if Language::of_path(&path.to_string_lossy()).is_some() {
       found.push(Task::File(path));
+    } else if name == ".editorconfig" || tidyrs::config::NAMES.iter().any(|it| name == *it) {
+      configs.push(name);
     }
+  }
+  if let Some(resolver) = resolver {
+    resolver.listing(dir, configs.iter().map(|name| name.as_os_str()));
   }
   found
 }

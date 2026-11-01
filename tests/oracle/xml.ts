@@ -40,7 +40,7 @@ let extensions = plugin.languages.flatMap((language) => language.extensions ?? [
 let sets: { name: string; prettier: Record<string, unknown>; tidyrs: FormatOptions }[] = [
 	{ name: "default", prettier: {}, tidyrs: {} },
 	{ name: "ignore", prettier: { xmlWhitespaceSensitivity: "ignore" }, tidyrs: { whitespace: "ignore" } },
-	{ name: "preserve", prettier: { xmlWhitespaceSensitivity: "preserve" }, tidyrs: { whitespace: "preserve" } },
+	{ name: "preserve", prettier: { xmlWhitespaceSensitivity: "preserve" }, tidyrs: { whitespace: "auto" } },
 	{
 		name: "ignore, bracketSameLine",
 		prettier: { xmlWhitespaceSensitivity: "ignore", bracketSameLine: true },
@@ -49,15 +49,15 @@ let sets: { name: string; prettier: Record<string, unknown>; tidyrs: FormatOptio
 	{
 		name: "ignore, no self-closing space",
 		prettier: { xmlWhitespaceSensitivity: "ignore", xmlSelfClosingSpace: false },
-		tidyrs: { whitespace: "ignore", selfClosingSpace: false },
+		tidyrs: { whitespace: "ignore", xml: { selfClosingSpace: false } },
 	},
 	{
 		name: "ignore, sorted",
 		prettier: { xmlWhitespaceSensitivity: "ignore", xmlSortAttributesByKey: true },
-		tidyrs: { whitespace: "ignore", sortAttributes: true },
+		tidyrs: { whitespace: "ignore", xml: { sortAttributes: true } },
 	},
-	{ name: "single quotes", prettier: { xmlQuoteAttributes: "single" }, tidyrs: { quoteAttributes: "single" } },
-	{ name: "double quotes", prettier: { xmlQuoteAttributes: "double" }, tidyrs: { quoteAttributes: "double" } },
+	{ name: "single quotes", prettier: { xmlQuoteAttributes: "single" }, tidyrs: { xml: { attributeQuotes: "single" } } },
+	{ name: "double quotes", prettier: { xmlQuoteAttributes: "double" }, tidyrs: { xml: { attributeQuotes: "double" } } },
 	{
 		name: "ignore, one attribute per line",
 		prettier: { xmlWhitespaceSensitivity: "ignore", singleAttributePerLine: true },
@@ -66,12 +66,12 @@ let sets: { name: string; prettier: Record<string, unknown>; tidyrs: FormatOptio
 	{
 		name: "ignore, width 40, tabs",
 		prettier: { xmlWhitespaceSensitivity: "ignore", printWidth: 40, useTabs: true },
-		tidyrs: { whitespace: "ignore", width: 40, useTabs: true },
+		tidyrs: { whitespace: "ignore", width: 40, tabs: true },
 	},
 	{
 		name: "embedded off",
 		prettier: { embeddedLanguageFormatting: "off" },
-		tidyrs: { embeddedLanguageFormatting: "off" },
+		tidyrs: { embedded: false },
 	},
 ];
 

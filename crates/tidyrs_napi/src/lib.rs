@@ -1,9 +1,9 @@
 use napi::bindgen_prelude::Function;
 use napi_derive::napi;
-use tidyrs::Whitespace;
+use serde_json::{Map, Value};
+use tidyrs::config::Config;
 use tidyrs::embed::{Kind, Request};
-use tidyrs::html::{Parser, Settings};
-use tidyrs::{css, handlebars, xml};
+use tidyrs::{Formatter, Language, Settings, css};
 
 /// A piece of embedded code for the host to format.
 #[napi(object)]
@@ -21,44 +21,53 @@ pub struct EmbedRequest {
 /// Called with each piece of embedded code; returns its formatted text, or `undefined` to keep it.
 type Callback<'a> = Function<'a, EmbedRequest, Option<String>>;
 
-/// Options for `format`.
+/// Options for `format`: the options of a `tidy.json` file, and what to format.
 #[napi(object)]
 #[derive(Default)]
 pub struct FormatOptions {
-  #[napi(ts_type = "'html' | 'vue' | 'handlebars' | 'css' | 'scss' | 'less' | 'xml'")]
+  /// The language. Default: by `filepath`, and HTML without one.
+  #[napi(ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'xml'")]
   pub parser: Option<String>,
+  /// The file's path, which decides the language and some details.
+  pub filepath: Option<String>,
+  /// Hand embedded code to `embed`, and format style sheets. Default: true.
+  pub embedded: Option<bool>,
   /// The line width. Default: 80.
   pub width: Option<u32>,
   /// The width of an indent. Default: 2.
-  pub tab_width: Option<u32>,
-  pub use_tabs: Option<bool>,
-  /// `css` is for HTML and Handlebars only, `preserve` for XML only. Default: `css`, and `strict` for XML.
-  #[napi(ts_type = "'css' | 'strict' | 'preserve' | 'ignore'")]
+  pub indent: Option<u32>,
+  /// Indent with tabs. Default: false.
+  pub tabs: Option<bool>,
+  #[napi(ts_type = "'lf' | 'crlf' | 'cr'")]
+  pub eol: Option<String>,
+  /// Default: `auto`, and `strict` for XML.
+  #[napi(ts_type = "'strict' | 'auto' | 'ignore'")]
   pub whitespace: Option<String>,
-  pub single_attribute_per_line: Option<bool>,
+  /// Quotes in Handlebars and style sheets. Default: `double`.
+  #[napi(ts_type = "'double' | 'single'")]
+  pub quote: Option<String>,
   pub bracket_same_line: Option<bool>,
-  pub vue_indent_script_and_style: Option<bool>,
-  /// Prefer single quotes in Handlebars and style sheets. Default: false.
-  pub single_quote: Option<bool>,
-  /// Prettier's `embeddedLanguageFormatting`. Off, the code of other languages stays as it is written. Default:
-  /// `"auto"`.
-  #[napi(ts_type = "'auto' | 'off'")]
-  pub embedded_language_formatting: Option<String>,
-  /// Prettier's `trailingComma`, for SCSS maps and lists. Default: `"all"`.
-  #[napi(ts_type = "'all' | 'es5' | 'none'")]
-  pub trailing_comma: Option<String>,
-  /// The file's path, which decides some details.
-  pub filepath: Option<String>,
-  /// XML: a space before `/>` and `?>`. Default: true.
-  pub self_closing_space: Option<bool>,
-  /// XML: sort attributes by name, `xmlns` first. Default: false.
-  pub sort_attributes: Option<bool>,
-  /// XML: the quotes around attribute values. Default: `"preserve"`.
-  #[napi(ts_type = "'preserve' | 'single' | 'double'")]
-  pub quote_attributes: Option<String>,
+  pub single_attribute_per_line: Option<bool>,
+  /// The ignore directive. Default: `prettier-ignore`.
+  pub ignore: Option<String>,
+  /// Options for HTML only: the shared ones above.
+  #[napi(ts_type = "Record<string, unknown>")]
+  pub html: Option<Value>,
+  /// Options for Vue only: the shared ones, and `indentBlocks`.
+  #[napi(ts_type = "Record<string, unknown>")]
+  pub vue: Option<Value>,
+  /// Options for Handlebars only: the shared ones, and `dialect`.
+  #[napi(ts_type = "Record<string, unknown>")]
+  pub handlebars: Option<Value>,
+  /// Options for style sheets only: the shared ones, and `trailingComma`.
+  #[napi(ts_type = "Record<string, unknown>")]
+  pub css: Option<Value>,
+  /// Options for XML only: the shared ones, and `selfClosingSpace`, `sortAttributes` and `attributeQuotes`.
+  #[napi(ts_type = "Record<string, unknown>")]
+  pub xml: Option<Value>,
 }
 
-/// Format markup. `embed` receives each piece of code in another language.
+/// Format a file. `embed` receives each piece of code in another language.
 #[napi(
   ts_args_type = "source: string, options?: FormatOptions, embed?: (request: EmbedRequest) => string | undefined"
 )]
@@ -68,23 +77,17 @@ pub fn format(
   embed: Option<Callback<'_>>,
 ) -> napi::Result<String> {
   let options = options.unwrap_or_default();
-  let language = match options.parser.as_deref() {
-    None | Some("html" | "vue") => Language::Markup,
-    Some("handlebars") => Language::Handlebars,
-    Some("css") => Language::Css(css::Dialect::Css),
-    Some("scss") => Language::Css(css::Dialect::Scss),
-    Some("less") => Language::Css(css::Dialect::Less),
-    Some("xml") => Language::Xml,
-    Some(other) => return Err(invalid("parser", other)),
-  };
-  let single_quote = options.single_quote.unwrap_or_default();
-  let trailing_comma = options.trailing_comma.as_deref() != Some("none");
-  let format_embedded = options.embedded_language_formatting.as_deref() != Some("off");
-  let xml = match language {
-    Language::Xml => Some(xml_settings(&options, format_embedded)?),
-    _ => None,
-  };
-  let settings = settings(options, language)?;
+  let error = |error: &dyn std::fmt::Display| napi::Error::from_reason(error.to_string());
+  let (language, dialect) = language(&options)?;
+  let mut config = Config::from_value(&config(&options)).map_err(|it| error(&it))?;
+  if dialect.is_some() {
+    config.handlebars.dialect = dialect;
+  }
+  let mut settings = Settings::default();
+  config.apply(&mut settings);
+  if options.embedded == Some(false) {
+    settings.share(&tidyrs::Shared { format_embedded: Some(false), ..Default::default() });
+  }
   let mut failure = None;
   let mut hook = |request: Request<'_>| -> Option<String> {
     let embed = embed.as_ref()?;
@@ -112,109 +115,59 @@ pub fn format(
       }
     }
   };
-  let error = |error: &dyn std::fmt::Display| napi::Error::from_reason(error.to_string());
-  let output = match language {
-    Language::Css(dialect) => {
-      let settings = css::Settings {
-        dialect,
-        width: settings.width,
-        tab_width: settings.tab_width,
-        tabs: settings.tabs,
-        single_quote,
-        trailing_comma,
-        format_embedded,
-        ..css::Settings::default()
-      };
-      css::format(&source, &settings, &mut hook).map_err(|it| error(&it))?
-    }
-    Language::Handlebars => {
-      let settings = handlebars::Settings {
-        width: settings.width,
-        tab_width: settings.tab_width,
-        tabs: settings.tabs,
-        whitespace: settings.whitespace,
-        single_quote,
-        filepath: settings.filepath.clone(),
-        format_embedded,
-        ..handlebars::Settings::default()
-      };
-      handlebars::format(&source, &settings, &mut hook).map_err(|it| error(&it))?
-    }
-    Language::Xml => {
-      let settings = xml.unwrap_or_default();
-      xml::format(&source, &settings, &mut hook).map_err(|it| error(&it))?
-    }
-    Language::Markup => {
-      let settings = Settings { format_embedded, ..settings };
-      tidyrs::html::format(&source, &settings, &mut hook).map_err(|it| error(&it))?
-    }
-  };
+  let output = Formatter::default()
+    .format(&source, language, &settings, options.filepath.as_deref(), &mut hook)
+    .map(str::to_owned)
+    .map_err(|it| error(&it))?;
   match failure {
     Some(error) => Err(error),
     None => Ok(output),
   }
 }
 
-#[derive(Clone, Copy)]
-enum Language {
-  Markup,
-  Handlebars,
-  Css(css::Dialect),
-  Xml,
-}
-
-fn invalid(name: &str, value: &str) -> napi::Error {
-  napi::Error::from_reason(format!("unknown {name}: {value}"))
-}
-
-fn xml_settings(input: &FormatOptions, format_embedded: bool) -> napi::Result<xml::Settings> {
-  let whitespace = match input.whitespace.as_deref() {
-    None | Some("strict") => tidyrs::Whitespace::Strict,
-    Some("preserve") => tidyrs::Whitespace::Auto,
-    Some("ignore") => tidyrs::Whitespace::Ignore,
-    Some(other) => return Err(invalid("whitespace", other)),
-  };
-  let quotes = match input.quote_attributes.as_deref() {
-    None | Some("preserve") => xml::Quotes::Preserve,
-    Some("single") => xml::Quotes::Single,
-    Some("double") => xml::Quotes::Double,
-    Some(other) => return Err(invalid("quoteAttributes", other)),
-  };
-  let defaults = xml::Settings::default();
-  Ok(xml::Settings {
-    width: input.width.map_or(defaults.width, |width| width as usize),
-    tab_width: input.tab_width.map_or(defaults.tab_width, |width| width as usize),
-    tabs: input.use_tabs.unwrap_or(defaults.tabs),
-    whitespace,
-    self_closing_space: input.self_closing_space.unwrap_or(defaults.self_closing_space),
-    sort_attributes: input.sort_attributes.unwrap_or_default(),
-    quotes,
-    bracket_same_line: input.bracket_same_line.unwrap_or_default(),
-    single_attribute_per_line: input.single_attribute_per_line.unwrap_or_default(),
-    format_embedded,
-    ..defaults
+/// The language of `parser`, or of `filepath`, and the Handlebars dialect that `parser` asks for.
+fn language(
+  options: &FormatOptions,
+) -> napi::Result<(Language, Option<tidyrs::handlebars::Dialect>)> {
+  use tidyrs::handlebars::Dialect;
+  Ok(match options.parser.as_deref() {
+    Some("html") => (Language::Html, None),
+    Some("vue") => (Language::Vue, None),
+    Some("handlebars") => (Language::Handlebars, None),
+    Some("tempura") => (Language::Handlebars, Some(Dialect::Tempura)),
+    Some("css") => (Language::Css(css::Dialect::Css), None),
+    Some("scss") => (Language::Css(css::Dialect::Scss), None),
+    Some("less") => (Language::Css(css::Dialect::Less), None),
+    Some("xml") => (Language::Xml, None),
+    Some(other) => return Err(napi::Error::from_reason(format!("unknown parser: {other}"))),
+    None => {
+      let language = options.filepath.as_deref().and_then(Language::of_path);
+      (language.unwrap_or(Language::Html), None)
+    }
   })
 }
 
-fn settings(input: FormatOptions, language: Language) -> napi::Result<Settings> {
-  let mut settings = Settings::default();
-  if input.parser.as_deref() == Some("vue") {
-    settings.parser = Parser::Vue;
-  }
-  if let Some(whitespace) = input.whitespace.filter(|_| !matches!(language, Language::Xml)) {
-    settings.whitespace = match whitespace.as_str() {
-      "css" => Whitespace::Auto,
-      "strict" => Whitespace::Strict,
-      "ignore" => Whitespace::Ignore,
-      other => return Err(invalid("whitespace", other)),
-    };
-  }
-  settings.width = input.width.map_or(settings.width, |width| width as usize);
-  settings.tab_width = input.tab_width.map_or(settings.tab_width, |width| width as usize);
-  settings.tabs = input.use_tabs.unwrap_or(settings.tabs);
-  settings.single_attribute_per_line = input.single_attribute_per_line.unwrap_or_default();
-  settings.bracket_same_line = input.bracket_same_line.unwrap_or_default();
-  settings.vue_indent_script_and_style = input.vue_indent_script_and_style.unwrap_or_default();
-  settings.filepath = input.filepath;
-  Ok(settings)
+/// The options as a config, which reads and checks them as it reads a `tidy.json` file.
+fn config(options: &FormatOptions) -> Value {
+  let mut map = Map::new();
+  let mut put = |key: &str, value: Option<Value>| {
+    if let Some(value) = value {
+      map.insert(key.to_owned(), value);
+    }
+  };
+  put("width", options.width.map(Value::from));
+  put("indent", options.indent.map(Value::from));
+  put("tabs", options.tabs.map(Value::from));
+  put("eol", options.eol.clone().map(Value::from));
+  put("whitespace", options.whitespace.clone().map(Value::from));
+  put("quote", options.quote.clone().map(Value::from));
+  put("bracketSameLine", options.bracket_same_line.map(Value::from));
+  put("singleAttributePerLine", options.single_attribute_per_line.map(Value::from));
+  put("ignore", options.ignore.clone().map(Value::from));
+  put("html", options.html.clone());
+  put("vue", options.vue.clone());
+  put("handlebars", options.handlebars.clone());
+  put("css", options.css.clone());
+  put("xml", options.xml.clone());
+  Value::Object(map)
 }
