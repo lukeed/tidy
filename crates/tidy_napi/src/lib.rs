@@ -28,7 +28,9 @@ type Callback<'a> = Function<'a, EmbedRequest, Option<String>>;
 #[derive(Default)]
 pub struct FormatOptions {
   /// The language. Default: by `filepath`, and HTML without one.
-  #[napi(ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'xml'")]
+  #[napi(
+    ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'xml' | 'markdown'"
+  )]
   pub parser: Option<String>,
   /// The file's path, which decides the language and some details.
   pub filepath: Option<String>,
@@ -67,6 +69,10 @@ pub struct FormatOptions {
   /// Options for XML only: the shared ones, and `selfClosingSpace`, `sortAttributes` and `attributeQuotes`.
   #[napi(ts_type = "Record<string, unknown>")]
   pub xml: Option<Value>,
+  /// Options for Markdown only: `width` and `ignore`, a `preset` (`prettier` or `preserve`), and `wrap`, `bullet`,
+  /// `emphasis`, `strong`, `numbering`, `rule`, `fence` and `heading`, which override the preset.
+  #[napi(ts_type = "Record<string, unknown>")]
+  pub markdown: Option<Value>,
 }
 
 /// Format a file. `embed` receives each piece of code in another language.
@@ -128,6 +134,19 @@ pub fn format(
   }
 }
 
+/// Whether a file is formatted already. `embed` receives each piece of code in another language, as for `format`.
+#[napi(
+  ts_args_type = "source: string, options?: FormatOptions, embed?: (request: EmbedRequest) => string | undefined"
+)]
+pub fn check(
+  source: String,
+  options: Option<FormatOptions>,
+  embed: Option<Callback<'_>>,
+) -> napi::Result<bool> {
+  let formatted = format(source.clone(), options, embed)?;
+  Ok(formatted == source)
+}
+
 /// The language of `parser`, or of `filepath`, and the Handlebars dialect that `parser` asks for.
 fn language(input: &FormatOptions) -> napi::Result<(Language, Option<tidy::handlebars::Dialect>)> {
   use tidy::handlebars::Dialect;
@@ -140,6 +159,7 @@ fn language(input: &FormatOptions) -> napi::Result<(Language, Option<tidy::handl
     Some("scss") => (Language::Css(css::Dialect::Scss), None),
     Some("less") => (Language::Css(css::Dialect::Less), None),
     Some("xml") => (Language::Xml, None),
+    Some("markdown") => (Language::Markdown, None),
     Some(other) => return Err(napi::Error::from_reason(format!("unknown parser: {other}"))),
     None => {
       let language = input.filepath.as_deref().and_then(Language::of_path);
@@ -170,5 +190,6 @@ fn config(input: &FormatOptions) -> Value {
   put("handlebars", input.handlebars.clone());
   put("css", input.css.clone());
   put("xml", input.xml.clone());
+  put("markdown", input.markdown.clone());
   Value::Object(map)
 }
