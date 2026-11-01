@@ -105,30 +105,32 @@ async function embedded(request: EmbedRequest, options: FormatOptions, extra: Re
 			return undefined;
 		}
 	}
-	let tab = options.tabs ? "\t" : " ".repeat(options.indent ?? 2);
-	let width = (request.width ?? 80) - request.indent * (options.indent ?? 2);
 	let handler = request.kind === "attribute" && request.language === "babel";
 	try {
-		let formatted = await prettier.format(request.code, {
+		let settings = {
 			...extra,
 			...(request.kind === "attribute" ? { singleQuote: true } : {}),
 			parser: request.language,
-			printWidth: Math.max(width, 0),
-			tabWidth: options.indent,
-			useTabs: options.tabs,
-		});
-		formatted = formatted.replace(/\n+$/, "");
+			// Prettier parses a classic script with `__babelSourceType`, which only its HTML printer can pass.
+			...(request.module ? {} : { filepath: "script.cjs" }),
+			printWidth: request.width,
+			tabWidth: options.indent ?? 2,
+			useTabs: options.tabs ?? false,
+		};
+		// The doc printed inside the indents, as Prettier prints it, so that literal lines stay where they are.
+		let { builders, printer } = prettier.doc;
+		let doc: prettier.Doc = [builders.hardline, await prettier.__debug.printToDoc(request.code, settings)];
+		for (let level = 0; level < request.indent; level++) doc = builders.indent(doc);
+		let formatted = printer.printDocToString(doc, settings as prettier.doc.printer.Options).formatted;
+		formatted = formatted.replace(/^\n[\t ]*/, "").replace(/\s+$/, "");
 		// Prettier's `__isHtmlInlineEventHandler`, which only the HTML printer can pass: no semicolon after one statement.
 		if (handler) {
 			let { ast } = await prettier.__debug.parse(request.code, { parser: "babel" });
-			let body = (ast as { program: { body: { type: string }[] } }).program.body;
-			if (body.length === 1 && body[0].type === "ExpressionStatement") formatted = formatted.replace(/;$/, "");
+			let program = (ast as { program: { body: { type: string }[]; directives: unknown[] } }).program;
+			let single = program.body.length === 1 && program.body[0].type === "ExpressionStatement";
+			if (single && program.directives.length === 0) formatted = formatted.replace(/;$/, "").replace(/^;/, "");
 		}
-		let indent = tab.repeat(request.indent);
-		return formatted
-			.split("\n")
-			.map((line, index) => (index === 0 || line === "" ? line : indent + line))
-			.join("\n");
+		return formatted;
 	} catch {
 		return undefined;
 	}
