@@ -582,12 +582,8 @@ impl<'s> Writer<'s, '_> {
         self.marks.push(mark);
       }
       Tag::Strikethrough => {
-        let mark: Cow<'s, str> = if self.options.emphasis == Emphasis::Keep {
-          let count = self.source[range.start..].bytes().take_while(|&byte| byte == b'~').count();
-          self.source[range.start..range.start + count].into()
-        } else {
-          "~~".into()
-        };
+        let count = self.source[range.start..].bytes().take_while(|&byte| byte == b'~').count();
+        let mark: Cow<'s, str> = self.source[range.start..range.start + count].into();
         self.atom(&mark);
         self.marks.push(mark);
       }
