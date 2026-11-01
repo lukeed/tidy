@@ -3,7 +3,7 @@
 
 use crate::embed::Embed;
 use crate::embed::{Kind, Request};
-use crate::{Error, Whitespace, css, doc, handlebars, html, markdown, xml};
+use crate::{Error, Whitespace, css, doc, handlebars, html, json, markdown, xml};
 
 /// A language that tidy formats.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -12,6 +12,7 @@ pub enum Language {
   Vue,
   Handlebars,
   Css(css::Dialect),
+  Json(json::Dialect),
   Xml,
   Markdown,
 }
@@ -21,6 +22,9 @@ impl Language {
   pub fn of_path(path: &str) -> Option<Language> {
     if let Some(dialect) = css::Dialect::of_path(path) {
       return Some(Language::Css(dialect));
+    }
+    if let Some(dialect) = json::Dialect::of_path(path) {
+      return Some(Language::Json(dialect));
     }
     if handlebars::is_handlebars_path(path) {
       return Some(Language::Handlebars);
@@ -46,6 +50,8 @@ pub struct Options {
   pub handlebars: handlebars::Options,
   /// For CSS, SCSS and Less.
   pub css: css::Options,
+  /// For every dialect of JSON.
+  pub json: json::Options,
   pub xml: xml::Options,
   pub markdown: markdown::Options,
 }
@@ -57,6 +63,7 @@ impl Default for Options {
       vue: html::Options { parser: html::Parser::Vue, ..html::Options::default() },
       handlebars: handlebars::Options::default(),
       css: css::Options::default(),
+      json: json::Options::default(),
       xml: xml::Options::default(),
       markdown: markdown::Options::default(),
     }
@@ -70,6 +77,7 @@ impl Options {
     shared.html(&mut self.vue);
     shared.handlebars(&mut self.handlebars);
     shared.css(&mut self.css);
+    shared.json(&mut self.json);
     shared.xml(&mut self.xml);
     shared.markdown(&mut self.markdown);
   }
@@ -86,8 +94,10 @@ pub struct Shared {
   pub eol: Option<doc::Eol>,
   /// HTML, Vue, Handlebars and XML.
   pub whitespace: Option<Whitespace>,
-  /// Prefer single quotes: Handlebars and style sheets.
+  /// Prefer single quotes: Handlebars, style sheets and JSON5.
   pub single_quote: Option<bool>,
+  /// Prettier's `trailingComma` is not `"none"`: SCSS, JSONC and JSON5.
+  pub trailing_comma: Option<bool>,
   /// HTML, Vue and XML.
   pub bracket_same_line: Option<bool>,
   /// HTML, Vue and XML.
@@ -108,6 +118,7 @@ impl Shared {
       eol: other.eol.or(self.eol),
       whitespace: other.whitespace.or(self.whitespace),
       single_quote: other.single_quote.or(self.single_quote),
+      trailing_comma: other.trailing_comma.or(self.trailing_comma),
       bracket_same_line: other.bracket_same_line.or(self.bracket_same_line),
       single_attribute_per_line: other.single_attribute_per_line.or(self.single_attribute_per_line),
       ignore: other.ignore.clone().or_else(|| self.ignore.clone()),
@@ -144,8 +155,19 @@ impl Shared {
     set(&mut options.tabs, self.tabs);
     set(&mut options.eol, self.eol);
     set(&mut options.single_quote, self.single_quote);
+    set(&mut options.trailing_comma, self.trailing_comma);
     set(&mut options.ignore, self.ignore.clone());
     set(&mut options.format_embedded, self.format_embedded);
+  }
+
+  pub fn json(&self, options: &mut json::Options) {
+    set(&mut options.width, self.width);
+    set(&mut options.tab_width, self.indent);
+    set(&mut options.tabs, self.tabs);
+    set(&mut options.eol, self.eol);
+    set(&mut options.single_quote, self.single_quote);
+    set(&mut options.trailing_comma, self.trailing_comma);
+    set(&mut options.ignore, self.ignore.clone());
   }
 
   pub fn xml(&self, options: &mut xml::Options) {
@@ -191,6 +213,7 @@ pub struct Formatter {
   html: html::Formatter,
   handlebars: handlebars::Formatter,
   css: css::Formatter,
+  json: json::Formatter,
   xml: xml::Formatter,
   markdown: String,
 }
@@ -219,6 +242,10 @@ impl Formatter {
       Language::Css(dialect) => {
         let options = css::Options { dialect, ..options.css.clone() };
         self.css.format(text, &options, embed)
+      }
+      Language::Json(dialect) => {
+        let options = json::Options { dialect, ..options.json.clone() };
+        self.json.format(text, &options)
       }
       Language::Xml => self.xml.format(text, &options.xml, embed),
       Language::Markdown => {

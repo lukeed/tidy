@@ -3,7 +3,7 @@ use napi_derive::napi;
 use serde_json::{Map, Value};
 use tidy::config::Config;
 use tidy::embed::{Kind, Request};
-use tidy::{Formatter, Language, Options, css};
+use tidy::{Formatter, Language, Options, css, json};
 
 /// A piece of embedded code for the host to format.
 #[napi(object)]
@@ -29,7 +29,7 @@ type Callback<'a> = Function<'a, EmbedRequest, Option<String>>;
 pub struct FormatOptions {
   /// The language. Default: by `filepath`, and HTML without one.
   #[napi(
-    ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'xml' | 'markdown'"
+    ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'json' | 'jsonc' | 'json5' | 'json-stringify' | 'xml' | 'markdown'"
   )]
   pub parser: Option<String>,
   /// The file's path, which decides the language and some details.
@@ -47,9 +47,11 @@ pub struct FormatOptions {
   /// Default: `auto`, and `strict` for XML.
   #[napi(ts_type = "'strict' | 'auto' | 'ignore'")]
   pub whitespace: Option<String>,
-  /// Quotes in Handlebars and style sheets. Default: `double`.
+  /// Quotes in Handlebars, style sheets and JSON5. Default: `double`.
   #[napi(ts_type = "'double' | 'single'")]
   pub quote: Option<String>,
+  /// Trailing commas in SCSS, JSONC and JSON5. Default: true.
+  pub trailing_comma: Option<bool>,
   pub bracket_same_line: Option<bool>,
   pub single_attribute_per_line: Option<bool>,
   /// The ignore directive. Default: `prettier-ignore`.
@@ -63,9 +65,12 @@ pub struct FormatOptions {
   /// Options for Handlebars only: the shared ones, and `dialect`.
   #[napi(ts_type = "Record<string, unknown>")]
   pub handlebars: Option<Value>,
-  /// Options for style sheets only: the shared ones, and `trailingComma`.
+  /// Options for style sheets only: the shared ones above.
   #[napi(ts_type = "Record<string, unknown>")]
   pub css: Option<Value>,
+  /// Options for JSON only: the shared ones, and `quoteProps`, `bracketSpacing` and `objectWrap`.
+  #[napi(ts_type = "Record<string, unknown>")]
+  pub json: Option<Value>,
   /// Options for XML only: the shared ones, and `selfClosingSpace`, `sortAttributes` and `attributeQuotes`.
   #[napi(ts_type = "Record<string, unknown>")]
   pub xml: Option<Value>,
@@ -158,6 +163,10 @@ fn language(input: &FormatOptions) -> napi::Result<(Language, Option<tidy::handl
     Some("css") => (Language::Css(css::Dialect::Css), None),
     Some("scss") => (Language::Css(css::Dialect::Scss), None),
     Some("less") => (Language::Css(css::Dialect::Less), None),
+    Some("json") => (Language::Json(json::Dialect::Json), None),
+    Some("jsonc") => (Language::Json(json::Dialect::Jsonc), None),
+    Some("json5") => (Language::Json(json::Dialect::Json5), None),
+    Some("json-stringify") => (Language::Json(json::Dialect::Stringify), None),
     Some("xml") => (Language::Xml, None),
     Some("markdown") => (Language::Markdown, None),
     Some(other) => return Err(napi::Error::from_reason(format!("unknown parser: {other}"))),
@@ -182,6 +191,7 @@ fn config(input: &FormatOptions) -> Value {
   put("eol", input.eol.clone().map(Value::from));
   put("whitespace", input.whitespace.clone().map(Value::from));
   put("quote", input.quote.clone().map(Value::from));
+  put("trailingComma", input.trailing_comma.map(Value::from));
   put("bracketSameLine", input.bracket_same_line.map(Value::from));
   put("singleAttributePerLine", input.single_attribute_per_line.map(Value::from));
   put("ignore", input.ignore.clone().map(Value::from));
@@ -189,6 +199,7 @@ fn config(input: &FormatOptions) -> Value {
   put("vue", input.vue.clone());
   put("handlebars", input.handlebars.clone());
   put("css", input.css.clone());
+  put("json", input.json.clone());
   put("xml", input.xml.clone());
   put("markdown", input.markdown.clone());
   Value::Object(map)

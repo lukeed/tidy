@@ -16,7 +16,7 @@
 //! reads them. A tidy config overrides it.
 
 use crate::options::{Options, Shared};
-use crate::{Whitespace, doc, handlebars, markdown, xml};
+use crate::{Whitespace, doc, handlebars, json, markdown, xml};
 use rustc_hash::FxHashMap;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
@@ -34,7 +34,8 @@ pub struct Config {
   pub html: Shared,
   pub vue: Vue,
   pub handlebars: Handlebars,
-  pub css: Css,
+  pub css: Shared,
+  pub json: Json,
   pub xml: Xml,
   pub markdown: Markdown,
 }
@@ -53,10 +54,14 @@ pub struct Handlebars {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Css {
+pub struct Json {
   pub shared: Shared,
-  /// `trailingComma`: SCSS maps and lists that break get a trailing comma.
-  pub trailing_comma: Option<bool>,
+  /// `quoteProps`, which only JSON5 follows.
+  pub quote_props: Option<json::QuoteProps>,
+  /// `bracketSpacing`
+  pub bracket_spacing: Option<bool>,
+  /// `objectWrap`
+  pub object_wrap: Option<json::ObjectWrap>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -123,7 +128,8 @@ impl Config {
         "html" => config.html = shared_only(section("html")?, "html")?,
         "vue" => config.vue = vue(section("vue")?)?,
         "handlebars" => config.handlebars = handlebars(section("handlebars")?)?,
-        "css" => config.css = css(section("css")?)?,
+        "css" => config.css = shared_only(section("css")?, "css")?,
+        "json" => config.json = json(section("json")?)?,
         "xml" => config.xml = xml(section("xml")?)?,
         "markdown" => config.markdown = markdown(section("markdown")?)?,
         _ if shared(&mut config.shared, key, value, "")? => {}
@@ -147,8 +153,11 @@ impl Config {
     set(&mut options.vue.vue_indent_script_and_style, self.vue.indent_blocks);
     self.handlebars.shared.handlebars(&mut options.handlebars);
     set(&mut options.handlebars.dialect, self.handlebars.dialect);
-    self.css.shared.css(&mut options.css);
-    set(&mut options.css.trailing_comma, self.css.trailing_comma);
+    self.css.css(&mut options.css);
+    self.json.shared.json(&mut options.json);
+    set(&mut options.json.quote_props, self.json.quote_props);
+    set(&mut options.json.bracket_spacing, self.json.bracket_spacing);
+    set(&mut options.json.object_wrap, self.json.object_wrap);
     self.xml.shared.xml(&mut options.xml);
     set(&mut options.xml.self_closing_space, self.xml.self_closing_space);
     set(&mut options.xml.sort_attributes, self.xml.sort_attributes);
@@ -200,6 +209,7 @@ fn shared(shared: &mut Shared, key: &str, value: &Value, section: &str) -> Resul
         _ => return Err(format!("`{name}` must be \"double\" or \"single\"")),
       })
     }
+    "trailingComma" => shared.trailing_comma = Some(flag(value, &name)?),
     "bracketSameLine" => shared.bracket_same_line = Some(flag(value, &name)?),
     "singleAttributePerLine" => shared.single_attribute_per_line = Some(flag(value, &name)?),
     "ignore" => match text(value, &name)? {
@@ -256,16 +266,35 @@ fn handlebars(map: &Map<String, Value>) -> Result<Handlebars, String> {
   Ok(options)
 }
 
-fn css(map: &Map<String, Value>) -> Result<Css, String> {
-  let mut css = Css::default();
+fn json(map: &Map<String, Value>) -> Result<Json, String> {
+  let mut options = Json::default();
   for (key, value) in map {
     match key.as_str() {
-      "trailingComma" => css.trailing_comma = Some(flag(value, "css.trailingComma")?),
-      _ if shared(&mut css.shared, key, value, "css")? => {}
-      _ => return Err(format!("unknown option `css.{key}`")),
+      "quoteProps" => {
+        options.quote_props = Some(match text(value, "json.quoteProps")? {
+          "as-needed" => json::QuoteProps::AsNeeded,
+          "consistent" => json::QuoteProps::Consistent,
+          "preserve" => json::QuoteProps::Preserve,
+          _ => {
+            return Err(
+              "`json.quoteProps` must be \"as-needed\", \"consistent\" or \"preserve\"".into(),
+            );
+          }
+        })
+      }
+      "bracketSpacing" => options.bracket_spacing = Some(flag(value, "json.bracketSpacing")?),
+      "objectWrap" => {
+        options.object_wrap = Some(match text(value, "json.objectWrap")? {
+          "preserve" => json::ObjectWrap::Preserve,
+          "collapse" => json::ObjectWrap::Collapse,
+          _ => return Err("`json.objectWrap` must be \"preserve\" or \"collapse\"".into()),
+        })
+      }
+      _ if shared(&mut options.shared, key, value, "json")? => {}
+      _ => return Err(format!("unknown option `json.{key}`")),
     }
   }
-  Ok(css)
+  Ok(options)
 }
 
 fn markdown(map: &Map<String, Value>) -> Result<Markdown, String> {
