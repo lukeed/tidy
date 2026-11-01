@@ -9,6 +9,7 @@ mod front_matter;
 pub mod handlebars;
 pub mod html;
 mod languages;
+pub mod markdown;
 mod options;
 mod stack;
 mod strings;

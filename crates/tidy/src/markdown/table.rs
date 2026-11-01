@@ -1,7 +1,7 @@
 use std::ops::Range;
 
-use crate::Wrap;
-use crate::width::width;
+use crate::markdown::Wrap;
+use crate::markdown::width::width;
 use pulldown_cmark::Alignment;
 
 /// A table collected cell by cell. The first row is the header. Like Prettier, each row keeps the

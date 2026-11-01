@@ -1,8 +1,8 @@
 use pulldown_cmark::Parser;
 
 use super::{Gap, Writer, flags, inline};
-use crate::Wrap;
-use crate::width::width;
+use crate::markdown::Wrap;
+use crate::markdown::width::width;
 
 impl<'s> Writer<'s, '_> {
   /// Write the link reference definitions that come before `at`. pulldown-cmark reports each label

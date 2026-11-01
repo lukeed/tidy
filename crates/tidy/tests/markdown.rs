@@ -1,11 +1,13 @@
-use mdtidy::{Bullet, Emphasis, Fence, Heading, Numbering, Options, Preset, Rule, Strong, Wrap};
+use tidy::markdown::{
+  Bullet, Emphasis, Fence, Heading, Numbering, Options, Preset, Rule, Strong, Wrap,
+};
 
 fn prettier(source: &str) -> String {
-  mdtidy::format(source, &Options::default())
+  tidy::markdown::format(source, &Options::default())
 }
 
 fn preserve(source: &str) -> String {
-  mdtidy::format(source, &Options::from(Preset::Preserve))
+  tidy::markdown::format(source, &Options::from(Preset::Preserve))
 }
 
 #[test]
@@ -22,8 +24,8 @@ fn keeps_setext_headings() {
     assert_eq!(prettier(source), source);
   }
   let atx = Options { heading: Heading::Atx, ..Options::default() };
-  assert_eq!(mdtidy::format("Title\n=====\n\nSub\n---\n", &atx), "# Title\n\n## Sub\n");
-  assert_eq!(mdtidy::format("A\nB\n===\n", &atx), "# A B\n");
+  assert_eq!(tidy::markdown::format("Title\n=====\n\nSub\n---\n", &atx), "# Title\n\n## Sub\n");
+  assert_eq!(tidy::markdown::format("A\nB\n===\n", &atx), "# A B\n");
   assert_eq!(prettier("# Closed #\n"), "# Closed\n");
 }
 
@@ -34,7 +36,7 @@ fn normalizes_bullets_and_alternates_adjacent_lists() {
   assert_eq!(prettier("+ a\n\n- b\n\n* c\n"), "- a\n\n* b\n\n- c\n");
   assert_eq!(preserve("+ a\n+ b\n"), "+ a\n+ b\n");
   let options = Options { bullet: Bullet::Plus, ..Options::default() };
-  assert_eq!(mdtidy::format("- a\n", &options), "+ a\n");
+  assert_eq!(tidy::markdown::format("- a\n", &options), "+ a\n");
 }
 
 #[test]
@@ -47,7 +49,7 @@ fn numbers_ordered_lists_like_prettier() {
   assert_eq!(prettier("1. a\n\n1) b\n"), "1. a\n\n1) b\n");
   assert_eq!(preserve("3) a\n9) b\n"), "3) a\n9) b\n");
   let options = Options { numbering: Numbering::Keep, ..Options::default() };
-  assert_eq!(mdtidy::format("3. a\n9. b\n", &options), "3. a\n9. b\n");
+  assert_eq!(tidy::markdown::format("3. a\n9. b\n", &options), "3. a\n9. b\n");
 }
 
 #[test]
@@ -109,7 +111,7 @@ fn chooses_emphasis_delimiters() {
   assert_eq!(preserve("*a* and __b__\n"), "*a* and __b__\n");
   let options =
     Options { emphasis: Emphasis::Asterisk, strong: Strong::Underscore, ..Options::default() };
-  assert_eq!(mdtidy::format("_a_ **b** c**d**\n", &options), "*a* __b__ c**d**\n");
+  assert_eq!(tidy::markdown::format("_a_ **b** c**d**\n", &options), "*a* __b__ c**d**\n");
   assert_eq!(prettier("~a~ ~~b~~\n"), "~a~ ~~b~~\n");
   assert_eq!(prettier("x ***_a_*** y\n"), "x _**_a_**_ y\n");
   assert_eq!(prettier("_a **b *c*** d_\n"), "_a **b *c*** d_\n");
@@ -121,7 +123,7 @@ fn writes_thematic_breaks() {
   assert_eq!(prettier("- a\n\n  ___\n"), "- a\n\n  ***\n");
   assert_eq!(preserve("_ _ _\n"), "_ _ _\n");
   let options = Options { rule: Rule::Underscore, ..Options::default() };
-  assert_eq!(mdtidy::format("---\n", &options), "___\n");
+  assert_eq!(tidy::markdown::format("---\n", &options), "___\n");
 }
 
 #[test]
@@ -131,7 +133,7 @@ fn fences_code_longer_than_its_content() {
   assert_eq!(prettier("```js   title=\"a\"\nx\n```\n"), "```js title=\"a\"\nx\n```\n");
   assert_eq!(preserve("~~~~js\nx\n~~~~\n"), "~~~~js\nx\n~~~~\n");
   let options = Options { fence: Fence::Tilde, ..Options::default() };
-  assert_eq!(mdtidy::format("```\nx\n```\n", &options), "~~~\nx\n~~~\n");
+  assert_eq!(tidy::markdown::format("```\nx\n```\n", &options), "~~~\nx\n~~~\n");
   assert_eq!(prettier("    indented\n"), "    indented\n");
 }
 
@@ -194,7 +196,7 @@ fn formats_link_text_like_other_text() {
   assert_eq!(prettier("> [a\n> ](u)\n"), "> [a\n> ](u)\n");
   assert_eq!(prettier("[![a][]][b]\n\n[a]: /a\n[b]: /b\n"), "[![a][]][b]\n\n[a]: /a\n[b]: /b\n");
   let never = Options { wrap: Wrap::Always, width: 6, ..Options::default() };
-  assert_eq!(mdtidy::format("x [a b\nc](u) y\n", &never), "x\n[a b c](u)\ny\n");
+  assert_eq!(tidy::markdown::format("x [a b\nc](u) y\n", &never), "x\n[a b c](u)\ny\n");
 }
 
 #[test]
@@ -216,7 +218,10 @@ fn hangs_task_items_after_the_box() {
   let source = "- [ ] a\n\n  <div>x\n  y</div>\n\n  p\n  q\n\n  - n\n    m\n";
   assert_eq!(prettier(source), source);
   let always = Options { wrap: Wrap::Always, width: 14, ..Options::default() };
-  assert_eq!(mdtidy::format("- [ ] aaa bbb ccc ddd\n", &always), "- [ ] aaa bbb\n      ccc ddd\n");
+  assert_eq!(
+    tidy::markdown::format("- [ ] aaa bbb ccc ddd\n", &always),
+    "- [ ] aaa bbb\n      ccc ddd\n"
+  );
 }
 
 #[test]
@@ -329,17 +334,17 @@ fn starts_footnotes_like_prettier() {
   let width = |wrap| Options { wrap, width: 20, ..Options::default() };
   let hung = "[^2]:\n    aaa bbb ccc ddd eee fff ggg hhh\n\n    second\n";
   assert_eq!(
-    mdtidy::format(long, &width(Wrap::Preserve)),
+    tidy::markdown::format(long, &width(Wrap::Preserve)),
     format!("x[^1][^2]\n\n[^1]: aaa bbb ccc ddd eee fff ggg hhh\n\n{hung}")
   );
   assert_eq!(
-    mdtidy::format(long, &width(Wrap::Never)),
+    tidy::markdown::format(long, &width(Wrap::Never)),
     format!("x[^1][^2]\n\n[^1]: aaa bbb ccc ddd eee fff ggg hhh\n\n{hung}")
   );
   let always = "x[^1][^2]\n\n[^1]:\n    aaa bbb ccc ddd\n    eee fff ggg hhh\n\n[^2]:\n    aaa bbb ccc ddd\n    eee fff ggg hhh\n\n    second\n";
-  assert_eq!(mdtidy::format(long, &width(Wrap::Always)), always);
+  assert_eq!(tidy::markdown::format(long, &width(Wrap::Always)), always);
   assert_eq!(
-    mdtidy::format("x[^1]\n\n[^1]: two\n    lines\n", &width(Wrap::Always)),
+    tidy::markdown::format("x[^1]\n\n[^1]: two\n    lines\n", &width(Wrap::Always)),
     "x[^1]\n\n[^1]: two lines\n"
   );
 }
@@ -365,15 +370,21 @@ fn lays_out_liquid_like_prettier() {
   );
   let never = Options { wrap: Wrap::Never, ..Options::default() };
   let source = "{{< a >}}\n{{- b }}\nc\nd\n- e\n";
-  assert_eq!(mdtidy::format(source, &never), "{{< a >}}\n{{- b }}\nc d\n\n- e\n");
+  assert_eq!(tidy::markdown::format(source, &never), "{{< a >}}\n{{- b }}\nc d\n\n- e\n");
   let html =
     "{{< example >}}\n<button type=\"button\">\n  Single toggle\n</button>\n{{< /example >}}\n";
   for wrap in [Wrap::Always, Wrap::Never] {
-    assert_eq!(mdtidy::format(html, &Options { wrap, width: 20, ..Options::default() }), html);
+    assert_eq!(
+      tidy::markdown::format(html, &Options { wrap, width: 20, ..Options::default() }),
+      html
+    );
   }
   let always = Options { wrap: Wrap::Always, width: 12, ..Options::default() };
   let source = "{{- range (index $a) }}\nx {{ if or a b }} y\n";
-  assert_eq!(mdtidy::format(source, &always), "{{- range (index $a) }}\nx\n{{ if or a b }}\ny\n");
+  assert_eq!(
+    tidy::markdown::format(source, &always),
+    "{{- range (index $a) }}\nx\n{{ if or a b }}\ny\n"
+  );
 }
 
 #[test]
@@ -413,7 +424,7 @@ fn keeps_front_matter() {
   assert_eq!(prettier("---\n---\nx\n"), "---\n---\n\nx\n");
   let mut langs = Vec::new();
   for source in ["---\na\n---\n", "+++\na\n+++\n", "---json\n{}\n---\n"] {
-    mdtidy::format_with(source, &Options::default(), |code| {
+    tidy::markdown::format_with(source, &Options::default(), |code| {
       langs.push(code.lang.to_string());
       None
     });
@@ -431,13 +442,13 @@ fn reads_front_matter_only_at_the_start() {
 fn wraps_paragraphs() {
   let source = "one two three\nfour five six seven\n";
   let always = Options { wrap: Wrap::Always, width: 14, ..Options::default() };
-  assert_eq!(mdtidy::format(source, &always), "one two three\nfour five six\nseven\n");
+  assert_eq!(tidy::markdown::format(source, &always), "one two three\nfour five six\nseven\n");
   let never = Options { wrap: Wrap::Never, ..Options::default() };
-  assert_eq!(mdtidy::format(source, &never), "one two three four five six seven\n");
-  assert_eq!(mdtidy::format("- one\n  two\n", &never), "- one two\n");
-  assert_eq!(mdtidy::format("one\\\ntwo\n", &never), "one\\\ntwo\n");
+  assert_eq!(tidy::markdown::format(source, &never), "one two three four five six seven\n");
+  assert_eq!(tidy::markdown::format("- one\n  two\n", &never), "- one two\n");
+  assert_eq!(tidy::markdown::format("one\\\ntwo\n", &never), "one\\\ntwo\n");
   let html = "- a:\n   <details>\n     <x>\n\n     - b\n";
-  assert_eq!(mdtidy::format(html, &never), "- a:\n   <details>\n     <x>\n\n  - b\n");
+  assert_eq!(tidy::markdown::format(html, &never), "- a:\n   <details>\n     <x>\n\n  - b\n");
 }
 
 #[test]
@@ -447,9 +458,12 @@ fn keeps_inline_html_and_code_when_wrapping() {
   let always = Options { wrap: Wrap::Always, width: 20, ..Options::default() };
   let expected =
     "a <span\n  title=\"x\n  y\">b</span> c d e\nf\n\n- a <span\n    title=\"x\">b</span>\n  c\n";
-  assert_eq!(mdtidy::format(source, &always), expected);
+  assert_eq!(tidy::markdown::format(source, &always), expected);
   let never = Options { wrap: Wrap::Never, ..Options::default() };
-  assert_eq!(mdtidy::format("> a `code\n>     span` b\n", &never), "> a `code     span` b\n");
+  assert_eq!(
+    tidy::markdown::format("> a `code\n>     span` b\n", &never),
+    "> a `code     span` b\n"
+  );
 }
 
 #[test]
@@ -479,7 +493,7 @@ fn wraps_like_prettier() {
     ("aaa bbb 한국어 단어 ccc ddd eee.\n", "aaa bbb 한국어 단어 ccc\nddd eee.\n"),
   ];
   for (source, expected) in cases {
-    assert_eq!(mdtidy::format(source, &narrow), expected, "{source}");
+    assert_eq!(tidy::markdown::format(source, &narrow), expected, "{source}");
   }
 }
 
@@ -488,19 +502,19 @@ fn breaks_long_definitions_when_wrapping() {
   let source = "[a]: /short\n[long-label]: https://example.com/a/long/url \"And a title\"\n[b]: https://example.com/a/long/url/without/title\n\n- x [a]\n\n  [c]: https://example.com/inside/an/item \"Title\"\n";
   let expected = "[a]: /short\n[long-label]:\n  https://example.com/a/long/url\n  \"And a title\"\n[b]:\n  https://example.com/a/long/url/without/title\n\n- x [a]\n\n  [c]:\n    https://example.com/inside/an/item\n    \"Title\"\n";
   let always = Options { wrap: Wrap::Always, width: 30, ..Options::default() };
-  assert_eq!(mdtidy::format(source, &always), expected);
+  assert_eq!(tidy::markdown::format(source, &always), expected);
 }
 
 #[test]
 fn joins_chinese_and_japanese_lines_like_prettier() {
   let source =
-    std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/cjk.md"))
+    std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/markdown/cjk.md"))
       .expect("read fixture");
   let expected = "モード: 探索、調査、学習フォーカス: 行動の前に理解する\n\n（エラー修正以外）❌ パフォーマンス\n\n日本語の文 English words\n\nEnglish words 日本語の文\n\nテキスト( 注意)\n\n한국어 日本語\n\nReactコンポーネントフック\n\nこれは English と Textの文\n";
   let never = Options { wrap: Wrap::Never, ..Options::default() };
-  assert_eq!(mdtidy::format(&source, &never), expected);
+  assert_eq!(tidy::markdown::format(&source, &never), expected);
   let link = "[ウィ\nキペディア]\n\n[ウィ キペディア]: /w\n";
-  assert_eq!(mdtidy::format(link, &never), link);
+  assert_eq!(tidy::markdown::format(link, &never), link);
 }
 
 #[test]
@@ -508,33 +522,35 @@ fn keeps_wiki_links_like_prettier() {
   let source = "aaa bbb [[ wiki link here ]] ccc ddd eee\n\nkind: ok [[1,2],3]\n[[x]]  and   more words to wrap here\n\nfoo [[a]] bar   baz\nqux\n\n\\[[not a link]] text that is long enough\n\nalt ![x [[y]]](z) and some text ]]\nend\n";
   let expected = "aaa bbb\n[[ wiki link here ]]\nccc ddd eee\n\nkind: ok [[1,2],3]\n[[x]]  and   more words to wrap here\n\nfoo [[a]]\nbar baz qux\n\n\\[[not a link]] text that is long enough\n\nalt\n![x [[y]]](z)\nand some\ntext ]] end\n";
   let options = Options { wrap: Wrap::Always, width: 12, ..Options::default() };
-  assert_eq!(mdtidy::format(source, &options), expected);
+  assert_eq!(tidy::markdown::format(source, &options), expected);
 }
 
 #[test]
 fn breaks_beside_markup_in_chinese_and_japanese_like_prettier() {
-  let source =
-    std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/cjk-markup.md"))
-      .expect("read fixture");
+  let source = std::fs::read_to_string(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/markdown/cjk-markup.md"
+  ))
+  .expect("read fixture");
   let expected = "请检查差异，如果没有差异请检查\n`git log --oneline` 文件。\n\n**完了です！**\nこれで十三のエージェントにアクセスできます。\n\n- **缺少 `While`** — 当\n  `While` 更合适时使用了\n  `stateIn(scope)`\n\n有关最佳实践，请查阅\n[官方文档](https://e.com/a) 和\n[论坛](https://e.com/b)。\n\n这是 _强调_\n的文字和一些很长的内容需要换行处理。\n";
   let options = Options { wrap: Wrap::Always, width: 30, ..Options::default() };
-  assert_eq!(mdtidy::format(&source, &options), expected);
+  assert_eq!(tidy::markdown::format(&source, &options), expected);
 }
 
 #[test]
 fn never_wraps_into_a_block() {
   let options = Options { wrap: Wrap::Always, width: 5, ..Options::default() };
-  assert_eq!(mdtidy::format("aaaa - b\n", &options), "aaaa -\nb\n");
-  assert_eq!(mdtidy::format("aaaa # b\n", &options), "aaaa #\nb\n");
-  assert_eq!(mdtidy::format("aaaa 1. b\n", &options), "aaaa 1.\nb\n");
+  assert_eq!(tidy::markdown::format("aaaa - b\n", &options), "aaaa -\nb\n");
+  assert_eq!(tidy::markdown::format("aaaa # b\n", &options), "aaaa #\nb\n");
+  assert_eq!(tidy::markdown::format("aaaa 1. b\n", &options), "aaaa 1.\nb\n");
 }
 
 #[test]
 fn ignores_the_next_block() {
   let source = "<!-- prettier-ignore -->\n|a|b|\n|-|-|\n\n* x\n";
   assert_eq!(prettier(source), "<!-- prettier-ignore -->\n|a|b|\n|-|-|\n\n- x\n");
-  let mdtidy = "<!-- mdtidy-ignore -->\n* x\n\n* y\n";
-  assert_eq!(preserve(mdtidy), mdtidy);
+  let tidy = "<!-- tidy-ignore -->\n* x\n\n* y\n";
+  assert_eq!(preserve(tidy), tidy);
 }
 
 #[test]
@@ -568,7 +584,7 @@ fn ignores_files() {
   assert_eq!(prettier(source), source);
   let custom = Options { ignore: "starship-ignore".into(), ..Options::default() };
   assert_eq!(
-    mdtidy::format("<!-- starship-ignore-file -->\n* a\n", &custom),
+    tidy::markdown::format("<!-- starship-ignore-file -->\n* a\n", &custom),
     "<!-- starship-ignore-file -->\n* a\n"
   );
 }
@@ -576,7 +592,7 @@ fn ignores_files() {
 #[test]
 fn hands_code_to_the_caller() {
   let mut seen = Vec::new();
-  let output = mdtidy::format_with("- ```js\n  a\n  ```\n", &Options::default(), |code| {
+  let output = tidy::markdown::format_with("- ```js\n  a\n  ```\n", &Options::default(), |code| {
     seen.push((code.lang.to_string(), code.width));
     Some(code.text.to_uppercase())
   });
@@ -586,6 +602,6 @@ fn hands_code_to_the_caller() {
 
 #[test]
 fn checks() {
-  assert!(mdtidy::check("- a\n", &Options::default()));
-  assert!(!mdtidy::check("* a\n", &Options::default()));
+  assert!(tidy::markdown::check("- a\n", &Options::default()));
+  assert!(!tidy::markdown::check("* a\n", &Options::default()));
 }

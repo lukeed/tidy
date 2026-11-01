@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use pulldown_cmark::TagEnd;
 
 use super::{Writer, collapse, escaped};
-use crate::opener::{Fix, interrupts, liquid, starts_html};
+use crate::markdown::opener::{Fix, interrupts, liquid, starts_html};
 
 impl<'s> Writer<'s, '_> {
   /// Write a soft line break at `at` before the line whose content starts at `next`. A line that

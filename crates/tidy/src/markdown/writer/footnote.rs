@@ -1,8 +1,8 @@
 use pulldown_cmark::{Event, Tag};
 
 use super::{Events, Writer};
-use crate::Wrap;
-use crate::width::width;
+use crate::markdown::Wrap;
+use crate::markdown::width::width;
 
 impl<'s> Writer<'s, '_> {
   /// Whether the footnote definition that just started puts its text on the next line, as

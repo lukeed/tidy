@@ -1,11 +1,12 @@
-//! A fast Markdown formatter.
+//! Markdown, formatted in Prettier's style by default, or keeping its markers with the Preserve preset. It was
+//! mdtidy before it merged into tidy.
 //!
-//! mdtidy formats in one pass over the events of [`pulldown_cmark`], with no tree and no layout
+//! It formats in one pass over the events of [`pulldown_cmark`], with no tree and no layout
 //! document in between. It normalizes how blocks are laid out and copies inline content as
 //! written, so escapes, entities, links, and HTML stay exactly as they were.
 //!
 //! ```
-//! let output = mdtidy::format("# Title\n* one\n* two\n", &mdtidy::Options::default());
+//! let output = tidy::markdown::format("# Title\n* one\n* two\n", &tidy::markdown::Options::default());
 //! assert_eq!(output, "# Title\n\n- one\n- two\n");
 //! ```
 
@@ -43,7 +44,7 @@ pub fn format(source: &str, options: &Options) -> String {
 ///
 /// # Example
 /// ```
-/// let output = mdtidy::format_with("```js\nlet  x\n```\n", &mdtidy::Options::default(), |code| {
+/// let output = tidy::markdown::format_with("```js\nlet  x\n```\n", &tidy::markdown::Options::default(), |code| {
 ///   (code.lang == "js").then(|| code.text.replace("  ", " "))
 /// });
 /// assert_eq!(output, "```js\nlet x\n```\n");

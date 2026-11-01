@@ -1,7 +1,7 @@
 use pulldown_cmark::Event;
 
 use super::{Events, Writer};
-use crate::{Bullet, Numbering};
+use crate::markdown::{Bullet, Numbering};
 
 pub(super) struct List {
   /// The current item has a blank line between its blocks, so a blank line follows it.

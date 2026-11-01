@@ -4,7 +4,7 @@ use std::ops::Range;
 use pulldown_cmark::{LinkType, Tag};
 
 use super::Writer;
-use crate::{Emphasis, Strong};
+use crate::markdown::{Emphasis, Strong};
 
 /// A link whose text is being written. What follows the text is copied as written, unless
 /// Prettier's form of it, `tail`, reads back the same.

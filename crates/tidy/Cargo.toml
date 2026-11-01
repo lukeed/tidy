@@ -1,12 +1,12 @@
 [package]
 name = "tidy"
-description = "A fast markup formatter for HTML, Vue, Svelte, Astro, XML, and Handlebars, with Prettier's style by default"
+description = "A fast formatter for HTML, Vue, Handlebars, CSS, XML and Markdown, with Prettier's style by default"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-keywords = ["html", "formatter", "prettier", "svelte", "vue"]
+keywords = ["html", "markdown", "formatter", "prettier", "vue"]
 categories = ["text-processing", "development-tools"]
 
 [dependencies]
@@ -15,7 +15,9 @@ bumpalo = { workspace = true }
 ec4rs = { version = "1.2.0", optional = true }
 jsonc-parser = { version = "0.34.0", features = ["serde"], optional = true }
 memchr = "2"
+pulldown-cmark = { version = "=0.13.6", default-features = false }
 rustc-hash = "2"
+unicode-width = "0.2"
 serde_json = { version = "1", optional = true }
 toml = { version = "1.1.8", optional = true }
 

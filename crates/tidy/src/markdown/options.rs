@@ -2,9 +2,9 @@
 ///
 /// # Example
 /// ```
-/// use mdtidy::{Options, Preset, Wrap};
+/// use tidy::markdown::{Options, Preset, Wrap};
 /// let options = Options { wrap: Wrap::Always, ..Options::from(Preset::Preserve) };
-/// assert_eq!(options.ignore, "mdtidy-ignore");
+/// assert_eq!(options.ignore, "tidy-ignore");
 /// ```
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Preset {
@@ -145,7 +145,7 @@ impl From<Preset> for Options {
         rule: Rule::Keep,
         fence: Fence::Keep,
         heading: Heading::Keep,
-        ignore: "mdtidy-ignore".into(),
+        ignore: "tidy-ignore".into(),
       },
     }
   }

@@ -1,6 +1,6 @@
 use super::Writer;
-use crate::front::Front;
-use crate::{Code, Fence};
+use crate::markdown::front::Front;
+use crate::markdown::{Code, Fence};
 
 /// A code block collected whole before it's written, for the caller to format.
 pub(super) enum Block {

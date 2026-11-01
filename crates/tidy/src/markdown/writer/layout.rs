@@ -1,5 +1,5 @@
 use super::{BOX, Container, Gap, Writer, blank};
-use crate::Wrap;
+use crate::markdown::Wrap;
 
 impl<'s> Writer<'s, '_> {
   /// Start a block: emit pending reference definitions before it, then separate it.

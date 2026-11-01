@@ -1,10 +1,10 @@
 //! Formatting must keep what a document means and settle after one pass: re-parsing the output
 //! gives the same events as the input, and formatting the output again changes nothing.
-//! `MDTIDY_CORPUS` adds folders of Markdown files to check, separated like `PATH`.
+//! `TIDY_MARKDOWN_CORPUS` adds folders of Markdown files to check, separated like `PATH`.
 
 use std::path::{Path, PathBuf};
 
-use mdtidy::{Options, Preset, Wrap};
+use tidy::markdown::{Options, Preset, Wrap};
 
 #[path = "support/events.rs"]
 mod support;
@@ -13,9 +13,9 @@ use support::events;
 
 fn files() -> Vec<PathBuf> {
   let mut files = Vec::new();
-  let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+  let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/markdown");
   walk(&fixtures, &mut files);
-  if let Some(corpora) = std::env::var_os("MDTIDY_CORPUS") {
+  if let Some(corpora) = std::env::var_os("TIDY_MARKDOWN_CORPUS") {
     std::env::split_paths(&corpora).for_each(|corpus| walk(&corpus, &mut files));
   }
   files.sort();
@@ -38,7 +38,7 @@ fn verify(options: &Options) {
   let mut failures = Vec::new();
   for path in files() {
     let Ok(source) = std::fs::read_to_string(&path) else { continue };
-    let once = mdtidy::format(&source, options);
+    let once = tidy::markdown::format(&source, options);
     let terminated = if source.ends_with('\n') { source.clone() } else { format!("{source}\n") };
     let (before, after) = (events(&terminated), events(&once));
     if before != after {
@@ -50,7 +50,7 @@ fn verify(options: &Options) {
         after.get(index).map_or("<end>", String::as_str),
       ));
     }
-    if mdtidy::format(&once, options) != once {
+    if tidy::markdown::format(&once, options) != once {
       failures.push(format!("{}: changes again on a second pass", path.display()));
     }
   }

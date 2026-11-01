@@ -113,9 +113,9 @@ impl Paragraph {
           space = false;
         }
         Unit::Word(word) => {
-          let first = crate::width::width(word.split('\n').next().unwrap_or_default());
+          let first = crate::markdown::width::width(word.split('\n').next().unwrap_or_default());
           let over = width.is_some_and(|width| used + 1 + first > width);
-          let tag = lines.is_empty() && crate::opener::starts_html(&line);
+          let tag = lines.is_empty() && crate::markdown::opener::starts_html(&line);
           if space && over && !tag && !alone(&line) {
             lines.push(std::mem::take(&mut line));
             used = 0;
@@ -125,7 +125,7 @@ impl Paragraph {
           }
           line.push_str(&word);
           used = match word.rsplit_once('\n') {
-            Some((_, last)) => crate::width::width(last),
+            Some((_, last)) => crate::markdown::width::width(last),
             None => used + first,
           };
           space = false;
@@ -245,7 +245,7 @@ fn alone(word: &str) -> bool {
 /// Whether `word` at the start of a line could begin another block and change what the
 /// paragraph means, so the line must not break before it.
 fn opens_block(word: &str) -> bool {
-  crate::opener::interrupts(word).is_some()
+  crate::markdown::opener::interrupts(word).is_some()
 }
 
 /// Whether `char` is Chinese or Japanese, which Prettier never breaks a line beside. Korean breaks

@@ -14,18 +14,18 @@ mod wiki;
 
 use pulldown_cmark::{CodeBlockKind, Event, OffsetIter, Options as Flags, Parser, Tag, TagEnd};
 
-use crate::directive::{self, Directive};
-use crate::front;
-use crate::table::Table;
-use crate::wrap::Paragraph;
-use crate::{Code, Heading, Numbering, Options, Rule, Wrap};
+use crate::markdown::directive::{self, Directive};
+use crate::markdown::front;
+use crate::markdown::table::Table;
+use crate::markdown::wrap::Paragraph;
+use crate::markdown::{Code, Heading, Numbering, Options, Rule, Wrap};
 use code::{Block, fence};
 use inline::{Image, Link, collapse, span};
 use list::{Adjacent, List, TAB, aligned, widen};
 use survey::Survey;
 use wiki::Wiki;
 
-/// The syntax mdtidy reads: CommonMark with GFM tables, task lists, strikethrough, footnotes, and
+/// The syntax that is read: CommonMark with GFM tables, task lists, strikethrough, footnotes, and
 /// front matter.
 pub(crate) fn flags() -> Flags {
   Flags::ENABLE_TABLES
@@ -353,8 +353,8 @@ impl<'s> Writer<'s, '_> {
           let label = self.link.as_ref().is_some_and(|link| link.label);
           let before = self.source[..range.start].chars().next_back();
           let wide = label
-            && crate::wrap::wide(before)
-            && crate::wrap::wide(self.source[next..].chars().next());
+            && crate::markdown::wrap::wide(before)
+            && crate::markdown::wrap::wide(self.source[next..].chars().next());
           let raw = self.wiki.as_ref().is_some_and(|wiki| wiki.raw);
           let kept = wide || raw || self.liquid_break(range.start, next);
           let paragraph = self.paragraph.get_or_insert_default();
