@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 use std::ops::Range;
 
 mod code;
+mod footnote;
 mod inline;
 mod list;
 
@@ -442,7 +443,14 @@ impl<'s> Writer<'s, '_> {
       }
       Tag::FootnoteDefinition(label) => {
         self.block(range.start);
-        self.containers.push(Container::Footnote { marker: Some(format!("[^{label}]: ")) });
+        let marker = format!("[^{label}]: ");
+        if self.hangs(events, &marker) {
+          self.write(marker.trim_end());
+          self.newline();
+          self.containers.push(Container::Footnote { marker: None });
+        } else {
+          self.containers.push(Container::Footnote { marker: Some(marker) });
+        }
       }
       Tag::Table(alignments) => {
         self.block(range.start);

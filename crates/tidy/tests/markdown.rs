@@ -305,6 +305,30 @@ fn widens_lists_before_indented_code() {
 }
 
 #[test]
+fn starts_footnotes_like_prettier() {
+  let source = "x[^1][^2][^3][^4][^5]\n\n[^1]: one line\n\n[^2]: two\n    lines\n\n[^3]: ```\n    code\n    ```\n\n[^4]: - a\n    - b\n\n[^5]: > q\n";
+  let expected = "x[^1][^2][^3][^4][^5]\n\n[^1]: one line\n\n[^2]:\n    two\n    lines\n\n[^3]:\n    ```\n    code\n    ```\n\n[^4]:\n    - a\n    - b\n\n[^5]: > q\n";
+  assert_eq!(prettier(source), expected);
+  let long = "x[^1][^2]\n\n[^1]: aaa bbb ccc ddd eee fff ggg hhh\n\n[^2]: aaa bbb ccc ddd eee fff ggg hhh\n\n    second\n";
+  let width = |wrap| Options { wrap, width: 20, ..Options::default() };
+  let hung = "[^2]:\n    aaa bbb ccc ddd eee fff ggg hhh\n\n    second\n";
+  assert_eq!(
+    mdtidy::format(long, &width(Wrap::Preserve)),
+    format!("x[^1][^2]\n\n[^1]: aaa bbb ccc ddd eee fff ggg hhh\n\n{hung}")
+  );
+  assert_eq!(
+    mdtidy::format(long, &width(Wrap::Never)),
+    format!("x[^1][^2]\n\n[^1]: aaa bbb ccc ddd eee fff ggg hhh\n\n{hung}")
+  );
+  let always = "x[^1][^2]\n\n[^1]:\n    aaa bbb ccc ddd\n    eee fff ggg hhh\n\n[^2]:\n    aaa bbb ccc ddd\n    eee fff ggg hhh\n\n    second\n";
+  assert_eq!(mdtidy::format(long, &width(Wrap::Always)), always);
+  assert_eq!(
+    mdtidy::format("x[^1]\n\n[^1]: two\n    lines\n", &width(Wrap::Always)),
+    "x[^1]\n\n[^1]: two lines\n"
+  );
+}
+
+#[test]
 fn quotes_and_nesting() {
   assert_eq!(prettier(">a\n>\n>b\n"), "> a\n>\n> b\n");
   assert_eq!(prettier("> - a\n>   > b\n"), "> - a\n>   > b\n");
