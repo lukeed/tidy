@@ -340,6 +340,11 @@ impl<'s> Writer<'s, '_> {
           self.paragraph.get_or_insert_default().atom(" ");
         } else if self.heading.is_none() && self.wraps() {
           let next = events.peek(0).map_or(self.source.len(), |(_, range)| range.start);
+          if self.liquid_html(range.start, next) {
+            self.finish();
+            self.raw = Some(next);
+            return;
+          }
           let kept = self.liquid_break(range.start, next);
           let paragraph = self.paragraph.get_or_insert_default();
           if kept {

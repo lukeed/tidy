@@ -366,6 +366,11 @@ fn lays_out_liquid_like_prettier() {
   let never = Options { wrap: Wrap::Never, ..Options::default() };
   let source = "{{< a >}}\n{{- b }}\nc\nd\n- e\n";
   assert_eq!(mdtidy::format(source, &never), "{{< a >}}\n{{- b }}\nc d\n\n- e\n");
+  let html =
+    "{{< example >}}\n<button type=\"button\">\n  Single toggle\n</button>\n{{< /example >}}\n";
+  for wrap in [Wrap::Always, Wrap::Never] {
+    assert_eq!(mdtidy::format(html, &Options { wrap, width: 20, ..Options::default() }), html);
+  }
   let always = Options { wrap: Wrap::Always, width: 12, ..Options::default() };
   let source = "{{- range (index $a) }}\nx {{ if or a b }} y\n";
   assert_eq!(mdtidy::format(source, &always), "{{- range (index $a) }}\nx\n{{ if or a b }}\ny\n");

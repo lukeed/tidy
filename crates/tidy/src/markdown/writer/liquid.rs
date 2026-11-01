@@ -32,8 +32,7 @@ impl<'s> Writer<'s, '_> {
       None => {}
     }
     self.newline();
-    let quiet = self.marks.is_empty() && self.link.is_none();
-    if quiet && starts_html(line) && liquid(self.current(at)) {
+    if self.liquid_html(at, next) {
       self.raw = Some(next);
       return;
     }
@@ -95,6 +94,14 @@ impl<'s> Writer<'s, '_> {
         found.is_some()
       }
     }
+  }
+
+  /// Whether the line starting at `next` would start an HTML block after the Liquid line that ends
+  /// at `at`, as Prettier's parser reads it, so the rest of the paragraph stays as written.
+  pub(super) fn liquid_html(&self, at: usize, next: usize) -> bool {
+    let line = self.source[next..].split('\n').next().unwrap_or("");
+    let quiet = self.marks.is_empty() && self.link.is_none();
+    quiet && starts_html(line) && liquid(self.current(at))
   }
 
   /// Whether the soft break at `at`, before the line starting at `next`, touches a Liquid line.
