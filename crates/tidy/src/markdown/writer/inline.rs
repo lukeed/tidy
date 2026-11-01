@@ -120,7 +120,8 @@ pub(super) fn collapse(text: &str) -> Cow<'_, str> {
 
 /// A code span rewritten as Prettier writes it, or `None` when `raw` already is: the fewest
 /// backticks that no run inside matches, padded with a space only where the content needs one.
-pub(super) fn span(raw: &str, value: &str) -> Option<String> {
+/// A `joined` span is written from its parsed value, where each line break is one space.
+pub(super) fn span(raw: &str, value: &str, joined: bool) -> Option<String> {
   let ticks = raw.bytes().take_while(|&byte| byte == b'`').count();
   let inner = &raw[ticks..raw.len() - ticks];
   let unpadded = inner
@@ -140,7 +141,8 @@ pub(super) fn span(raw: &str, value: &str) -> Option<String> {
       && edge(bytes.last().copied())
       && bytes.iter().any(|byte| !matches!(byte, b' ' | b'\n')));
   let spaced = inner.starts_with(' ') && inner.ends_with(' ');
-  if ticks == fewest && (unpadded.len() < inner.len()) == pad && (!pad || spaced) {
+  let unpadded = if joined { value } else { unpadded };
+  if !joined && ticks == fewest && (unpadded.len() < inner.len()) == pad && (!pad || spaced) {
     return None;
   }
   let fence = "`".repeat(fewest);

@@ -303,6 +303,18 @@ fn wraps_paragraphs() {
 }
 
 #[test]
+fn keeps_inline_html_and_code_when_wrapping() {
+  let source =
+    "a <span\n  title=\"x\n  y\">b</span> c d e f\n\n- a <span\n    title=\"x\">b</span> c\n";
+  let always = Options { wrap: Wrap::Always, width: 20, ..Options::default() };
+  let expected =
+    "a <span\n  title=\"x\n  y\">b</span> c d e\nf\n\n- a <span\n    title=\"x\">b</span>\n  c\n";
+  assert_eq!(mdtidy::format(source, &always), expected);
+  let never = Options { wrap: Wrap::Never, ..Options::default() };
+  assert_eq!(mdtidy::format("> a `code\n>     span` b\n", &never), "> a `code     span` b\n");
+}
+
+#[test]
 fn never_wraps_into_a_block() {
   let options = Options { wrap: Wrap::Always, width: 5, ..Options::default() };
   assert_eq!(mdtidy::format("aaaa - b\n", &options), "aaaa -\nb\n");

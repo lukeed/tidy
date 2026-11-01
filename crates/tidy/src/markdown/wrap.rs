@@ -28,17 +28,10 @@ impl Paragraph {
     }
   }
 
-  /// Add something that must not break, like a code span or a link. A line ending inside it is
-  /// the same as a space, so it becomes one.
+  /// Add something that must not break, like inline HTML or a link. Line breaks inside it stay as
+  /// written, as Prettier keeps them, because they can be part of what it means.
   pub(crate) fn atom(&mut self, text: &str) {
-    let mut lines = text.split('\n');
-    if let Some(first) = lines.next() {
-      self.glue(first.trim_end_matches('\r'));
-    }
-    for line in lines {
-      self.glue(" ");
-      self.glue(line.trim_start_matches([' ', '\t']).trim_end_matches('\r'));
-    }
+    self.glue(text);
   }
 
   pub(crate) fn space(&mut self) {
@@ -85,8 +78,8 @@ impl Paragraph {
           space = false;
         }
         Token::Word(word) => {
-          let size = word.width();
-          let over = width.is_some_and(|width| used + 1 + size > width);
+          let first = word.split('\n').next().unwrap_or_default().width();
+          let over = width.is_some_and(|width| used + 1 + first > width);
           if space && over && !opens_block(word) {
             lines.push(std::mem::take(&mut line));
             used = 0;
@@ -95,7 +88,10 @@ impl Paragraph {
             used += 1;
           }
           line.push_str(word);
-          used += size;
+          used = match word.rsplit_once('\n') {
+            Some((_, last)) => last.width(),
+            None => used + first,
+          };
           space = false;
         }
       }
@@ -167,7 +163,8 @@ mod tests {
   fn keeps_atoms_whole() {
     let mut paragraph = Paragraph::default();
     paragraph.text("a ");
-    paragraph.atom("`b\n  c`");
-    assert_eq!(paragraph.fill(Some(1)), ["a", "`b c`"]);
+    paragraph.atom("<b\n  c>");
+    paragraph.text(" d e");
+    assert_eq!(paragraph.fill(Some(5)), ["a <b\n  c>", "d e"]);
   }
 }

@@ -249,7 +249,8 @@ impl<'s> Writer<'s, '_> {
       },
       Event::Code(value) => {
         let raw = &self.source[range];
-        match span(raw, &value) {
+        let joined = self.wraps() && raw.contains('\n');
+        match span(raw, &value, joined) {
           Some(span) => self.atom(&span),
           None => self.atom(raw),
         }
