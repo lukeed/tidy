@@ -61,6 +61,37 @@ fn sets_each_language_on_its_own() {
 }
 
 #[test]
+fn sets_json_and_toml() {
+  let config = Config::toml(
+    r#"
+      width = 100
+      trailingComma = false
+
+      [json]
+      quoteProps = "consistent"
+      objectWrap = "collapse"
+      bracketSpacing = false
+
+      [toml]
+      alignEntries = true
+      reorderKeys = true
+      allowedBlankLines = 1
+      indent = 4
+    "#,
+  )
+  .unwrap();
+  let options = options(&config);
+  assert_eq!((options.json.width, options.toml.column_width), (100, 100));
+  assert!(!options.json.trailing_comma && !options.toml.array_trailing_comma);
+  assert_eq!(options.json.quote_props, tidy::json::QuoteProps::Consistent);
+  assert_eq!(options.json.object_wrap, tidy::json::ObjectWrap::Collapse);
+  assert!(!options.json.bracket_spacing);
+  assert!(options.toml.align_entries && options.toml.reorder_keys);
+  assert_eq!((options.toml.allowed_blank_lines, options.toml.tab_width), (1, 4));
+  assert_eq!(options.json.tab_width, 2);
+}
+
+#[test]
 fn names_what_is_wrong() {
   let error = |text: &str| Config::json(text).unwrap_err();
   assert_eq!(error(r#"{ "colour": 1 }"#), "unknown option `colour`");

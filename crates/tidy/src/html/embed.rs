@@ -272,7 +272,7 @@ pub(crate) fn front_matter(printer: &mut Printer<'_, '_>, raw: &[u8]) -> bool {
   };
   let language = match matter.language {
     "yaml" => "yaml",
-    "toml" => return false,
+    "toml" => "toml",
     other => match languages::parser(other) {
       Some(language) => language,
       None => return false,

@@ -29,12 +29,12 @@ type Callback<'a> = Function<'a, EmbedRequest, Option<String>>;
 pub struct FormatOptions {
   /// The language. Default: by `filepath`, and HTML without one.
   #[napi(
-    ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'json' | 'jsonc' | 'json5' | 'json-stringify' | 'xml' | 'markdown'"
+    ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'json' | 'jsonc' | 'json5' | 'json-stringify' | 'toml' | 'xml' | 'markdown'"
   )]
   pub parser: Option<String>,
   /// The file's path, which decides the language and some details.
   pub filepath: Option<String>,
-  /// Hand embedded code to `embed`, and format the style sheets and JSON it declines. Default: true.
+  /// Hand embedded code to `embed`, and format the style sheets, JSON and TOML it declines. Default: true.
   pub embedded: Option<bool>,
   /// The line width. Default: 80.
   pub width: Option<u32>,
@@ -50,7 +50,7 @@ pub struct FormatOptions {
   /// Quotes in Handlebars, style sheets and JSON5. Default: `double`.
   #[napi(ts_type = "'double' | 'single'")]
   pub quote: Option<String>,
-  /// Trailing commas in SCSS, JSONC and JSON5. Default: true.
+  /// Trailing commas in SCSS, JSONC, JSON5 and TOML arrays. Default: true.
   pub trailing_comma: Option<bool>,
   pub bracket_same_line: Option<bool>,
   pub single_attribute_per_line: Option<bool>,
@@ -71,6 +71,9 @@ pub struct FormatOptions {
   /// Options for JSON only: the shared ones, and `quoteProps`, `bracketSpacing` and `objectWrap`.
   #[napi(ts_type = "Record<string, unknown>")]
   pub json: Option<Value>,
+  /// Options for TOML only: the shared ones, and taplo's, in camel case: `alignEntries`, `reorderKeys`, ...
+  #[napi(ts_type = "Record<string, unknown>")]
+  pub toml: Option<Value>,
   /// Options for XML only: the shared ones, and `selfClosingSpace`, `sortAttributes` and `attributeQuotes`.
   #[napi(ts_type = "Record<string, unknown>")]
   pub xml: Option<Value>,
@@ -167,6 +170,7 @@ fn language(input: &FormatOptions) -> napi::Result<(Language, Option<tidy::handl
     Some("jsonc") => (Language::Json(json::Dialect::Jsonc), None),
     Some("json5") => (Language::Json(json::Dialect::Json5), None),
     Some("json-stringify") => (Language::Json(json::Dialect::Stringify), None),
+    Some("toml") => (Language::Toml, None),
     Some("xml") => (Language::Xml, None),
     Some("markdown") => (Language::Markdown, None),
     Some(other) => return Err(napi::Error::from_reason(format!("unknown parser: {other}"))),
@@ -200,6 +204,7 @@ fn config(input: &FormatOptions) -> Value {
   put("handlebars", input.handlebars.clone());
   put("css", input.css.clone());
   put("json", input.json.clone());
+  put("toml", input.toml.clone());
   put("xml", input.xml.clone());
   put("markdown", input.markdown.clone());
   Value::Object(map)

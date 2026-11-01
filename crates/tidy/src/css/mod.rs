@@ -318,23 +318,34 @@ fn parse_and_print<'o>(
 }
 
 /// Prettier's `printEmbedFrontMatter`, which formats YAML front matter with the host, or the front matter as it is
-/// written.
+/// written. TOML front matter is formatted too, which Prettier leaves as it is.
 fn print_front_matter(raw: &[u8], sink: &mut Sink<'_>, options: &Options, embed: &mut dyn Embed) {
   let matter = std::str::from_utf8(raw).ok().and_then(crate::front_matter::parse);
-  let formatted = matter.as_ref().filter(|matter| matter.language == "yaml").and_then(|matter| {
+  let language = matter.as_ref().and_then(|matter| match matter.language {
+    "yaml" => Some("yaml"),
+    "toml" => Some("toml"),
+    _ => None,
+  });
+  let formatted = matter.as_ref().zip(language).and_then(|(matter, language)| {
     let value = matter.value.trim();
     if value.is_empty() {
       return Some(String::new());
     }
     let request = Request {
       code: value,
-      language: "yaml",
+      language,
       kind: Purpose::FrontMatter,
       indent: 0,
       width: options.width,
       module: true,
     };
-    embed.format(request).map(|text| text.trim_end_matches(['\n', '\r']).to_owned())
+    let builtin = || {
+      options
+        .format_embedded
+        .then(|| crate::embed::builtin(&request, options.tab_width, options.tabs))?
+    };
+    let formatted = embed.format(request).or_else(builtin)?;
+    Some(formatted.trim_end_matches(['\n', '\r']).to_owned())
   });
   let (Some(matter), Some(formatted)) = (matter, formatted) else {
     return sink.text(raw);

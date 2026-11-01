@@ -49,15 +49,27 @@ impl Embed for Verbatim {
   }
 }
 
+/// The parser name of a language that tidy formats and Prettier doesn't, so that it is never one of Prettier's: TOML.
+pub(crate) fn own(language: &str) -> Option<&'static str> {
+  (language == "toml").then_some("toml")
+}
+
 /// Formats `request` with tidy's own formatter for its language, as a hook would, for the languages that tidy formats as
-/// text: JSON. `None` if it has none, or the code doesn't parse.
+/// text: JSON and TOML. `None` if it has none, or the code doesn't parse. TOML prints at the start of a line only, since
+/// indenting its lines would change its multi-line strings.
 pub(crate) fn builtin(request: &Request<'_>, tab_width: usize, tabs: bool) -> Option<String> {
-  use crate::json;
+  use crate::{json, toml};
   let dialect = match request.language {
     "json" => json::Dialect::Json,
     "jsonc" => json::Dialect::Jsonc,
     "json5" => json::Dialect::Json5,
     "json-stringify" => json::Dialect::Stringify,
+    "toml" if request.indent == 0 => {
+      let options =
+        toml::Options { column_width: request.width, tab_width, tabs, ..toml::Options::default() };
+      let formatted = toml::format(request.code, &options).ok()?;
+      return Some(formatted.trim_end().to_owned());
+    }
     _ => return None,
   };
   let options =

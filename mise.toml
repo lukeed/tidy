@@ -43,6 +43,20 @@ run = "bun bench/run.ts"
 description = "Time the working tree against a git revision: mise run bench:ab -- [--rev <rev>] <dir>..."
 run = "bun bench/ab.ts"
 
+[tasks."oracle:json"]
+description = "Compare JSON with Prettier: mise run oracle:json -- [filter] [--show=n] [--oss=<dir>]"
+run = "bun tests/oracle/json.ts"
+depends = ["build:napi"]
+
+[tasks."oracle:json:cases"]
+description = "Record what Prettier prints for crates/tidy/tests/json.json"
+run = "bun tests/oracle/json-cases.ts"
+
+[tasks."oracle:toml"]
+description = "Compare TOML with taplo: mise run oracle:toml -- files <dir>... | cases crates/tidy/tests/toml.json | lex [count]"
+dir = "tests/oracle/toml"
+run = "cargo run --release --"
+
 [tasks."oracle:markdown:corpus"]
 description = "Copy the Markdown files of git repos into a corpus: mise run oracle:markdown:corpus -- <out> <repo>..."
 run = "bun tests/oracle/markdown/corpus.ts"

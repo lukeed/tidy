@@ -392,9 +392,15 @@ impl<'a> Printer<'a, '_> {
     self.token(if strips_right { "~}}" } else { "}}" });
   }
 
-  /// Prettier's `printEmbedFrontMatter`, or `printFrontMatter` where that doesn't apply.
+  /// Prettier's `printEmbedFrontMatter`, or `printFrontMatter` where that doesn't apply. TOML front matter is formatted
+  /// too, which Prettier leaves as it is.
   fn print_front_matter(&mut self, raw: &'a str) {
-    let Some(matter) = crate::front_matter::parse(raw).filter(|it| it.language == "yaml") else {
+    let matter = crate::front_matter::parse(raw);
+    let Some((matter, language)) = matter.and_then(|matter| match matter.language {
+      "yaml" => Some((matter, "yaml")),
+      "toml" => Some((matter, "toml")),
+      _ => None,
+    }) else {
       return self.verbatim(raw.as_bytes());
     };
     let value = matter.value.trim();
@@ -402,13 +408,18 @@ impl<'a> Printer<'a, '_> {
     if !value.is_empty() {
       let request = Request {
         code: value,
-        language: "yaml",
+        language,
         kind: Purpose::FrontMatter,
         indent: 0,
         width: self.options.width,
         module: true,
       };
-      match self.embed.format(request) {
+      let options = self.options;
+      let builtin = || {
+        let builtin = options.formats_embedded.then_some(request)?;
+        crate::embed::builtin(&builtin, options.tab_width, options.tabs)
+      };
+      match self.embed.format(request).or_else(builtin) {
         Some(text) => formatted = text.trim_end_matches(['\n', '\r']).to_owned(),
         None => return self.verbatim(raw.as_bytes()),
       }

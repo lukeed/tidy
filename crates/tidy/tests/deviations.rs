@@ -1,9 +1,10 @@
-//! Every known deviation from Prettier 3.9.9, listed in `deviations.md`. Each row holds an input, what Prettier prints
-//! and what tidy prints. A row fails if tidy prints something else, or if Prettier's output is now the same.
+//! Every known deviation from Prettier 3.9.9, and from taplo for TOML, listed in `deviations.md`. Each row holds an
+//! input, what the reference prints and what tidy prints. A row fails if tidy prints something else, or if the
+//! reference's output is now the same.
 
 use serde_json::Value;
 use tidy::embed::Verbatim;
-use tidy::{css, handlebars, html, xml};
+use tidy::{Language, css, handlebars, html, toml, xml};
 
 fn format(parser: &str, input: &str, option: Option<&str>) -> String {
   let whitespace = match option {
@@ -12,12 +13,23 @@ fn format(parser: &str, input: &str, option: Option<&str>) -> String {
     _ => tidy::Whitespace::Auto,
   };
   let result = match parser {
+    "html" | "vue" if input.starts_with("+++") => {
+      let options = tidy::Options::default();
+      tidy::format(input, Language::Html, &options, None, &mut Verbatim)
+        .map_err(|error| error.to_string())
+    }
     "html" | "vue" => {
       let parser = if parser == "vue" { html::Parser::Vue } else { html::Parser::Html };
       let options =
         html::Options { parser, whitespace, format_embedded: false, ..html::Options::default() };
       html::format(input, &options, &mut Verbatim).map_err(|error| error.to_string())
     }
+    "markdown" => {
+      let options = tidy::Options::default();
+      tidy::format(input, Language::Markdown, &options, None, &mut Verbatim)
+        .map_err(|error| error.to_string())
+    }
+    "toml" => toml::format(input, &toml::Options::default()).map_err(|error| error.to_string()),
     "handlebars" => {
       let dialect = handlebars::Dialect::Handlebars;
       let options = handlebars::Options { dialect, whitespace, ..handlebars::Options::default() };

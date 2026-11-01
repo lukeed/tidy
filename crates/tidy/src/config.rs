@@ -16,7 +16,7 @@
 //! reads them. A tidy config overrides it.
 
 use crate::options::{Options, Shared};
-use crate::{Whitespace, doc, handlebars, json, markdown, xml};
+use crate::{Whitespace, doc, handlebars, json, markdown, toml, xml};
 use rustc_hash::FxHashMap;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
@@ -36,6 +36,7 @@ pub struct Config {
   pub handlebars: Handlebars,
   pub css: Shared,
   pub json: Json,
+  pub toml: Toml,
   pub xml: Xml,
   pub markdown: Markdown,
 }
@@ -62,6 +63,29 @@ pub struct Json {
   pub bracket_spacing: Option<bool>,
   /// `objectWrap`
   pub object_wrap: Option<json::ObjectWrap>,
+}
+
+/// taplo's options, by their names in camel case. The shared `width` is its `column_width`, and `trailingComma` its
+/// `array_trailing_comma`.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Toml {
+  pub shared: Shared,
+  pub align_entries: Option<bool>,
+  pub align_comments: Option<bool>,
+  pub align_single_comments: Option<bool>,
+  pub array_auto_expand: Option<bool>,
+  pub array_auto_collapse: Option<bool>,
+  pub inline_table_expand: Option<bool>,
+  pub compact_arrays: Option<bool>,
+  pub compact_inline_tables: Option<bool>,
+  pub compact_entries: Option<bool>,
+  pub indent_tables: Option<bool>,
+  pub indent_entries: Option<bool>,
+  pub trailing_newline: Option<bool>,
+  pub reorder_keys: Option<bool>,
+  pub reorder_arrays: Option<bool>,
+  pub reorder_inline_tables: Option<bool>,
+  pub allowed_blank_lines: Option<usize>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -112,7 +136,8 @@ impl Config {
 
   /// Reads a config from the text of a TOML file.
   pub fn toml(text: &str) -> Result<Config, String> {
-    let table: toml::Table = toml::from_str(text).map_err(|error| error.message().to_owned())?;
+    let table: ::toml::Table =
+      ::toml::from_str(text).map_err(|error| error.message().to_owned())?;
     let value = serde_json::to_value(table).map_err(|error| error.to_string())?;
     Config::from_value(&value)
   }
@@ -130,6 +155,7 @@ impl Config {
         "handlebars" => config.handlebars = handlebars(section("handlebars")?)?,
         "css" => config.css = shared_only(section("css")?, "css")?,
         "json" => config.json = json(section("json")?)?,
+        "toml" => config.toml = toml(section("toml")?)?,
         "xml" => config.xml = xml(section("xml")?)?,
         "markdown" => config.markdown = markdown(section("markdown")?)?,
         _ if shared(&mut config.shared, key, value, "")? => {}
@@ -158,6 +184,7 @@ impl Config {
     set(&mut options.json.quote_props, self.json.quote_props);
     set(&mut options.json.bracket_spacing, self.json.bracket_spacing);
     set(&mut options.json.object_wrap, self.json.object_wrap);
+    self.toml.apply(&mut options.toml);
     self.xml.shared.xml(&mut options.xml);
     set(&mut options.xml.self_closing_space, self.xml.self_closing_space);
     set(&mut options.xml.sort_attributes, self.xml.sort_attributes);
@@ -293,6 +320,60 @@ fn json(map: &Map<String, Value>) -> Result<Json, String> {
       _ if shared(&mut options.shared, key, value, "json")? => {}
       _ => return Err(format!("unknown option `json.{key}`")),
     }
+  }
+  Ok(options)
+}
+
+impl Toml {
+  fn apply(&self, options: &mut toml::Options) {
+    self.shared.toml(options);
+    set(&mut options.align_entries, self.align_entries);
+    set(&mut options.align_comments, self.align_comments);
+    set(&mut options.align_single_comments, self.align_single_comments);
+    set(&mut options.array_auto_expand, self.array_auto_expand);
+    set(&mut options.array_auto_collapse, self.array_auto_collapse);
+    set(&mut options.inline_table_expand, self.inline_table_expand);
+    set(&mut options.compact_arrays, self.compact_arrays);
+    set(&mut options.compact_inline_tables, self.compact_inline_tables);
+    set(&mut options.compact_entries, self.compact_entries);
+    set(&mut options.indent_tables, self.indent_tables);
+    set(&mut options.indent_entries, self.indent_entries);
+    set(&mut options.trailing_newline, self.trailing_newline);
+    set(&mut options.reorder_keys, self.reorder_keys);
+    set(&mut options.reorder_arrays, self.reorder_arrays);
+    set(&mut options.reorder_inline_tables, self.reorder_inline_tables);
+    set(&mut options.allowed_blank_lines, self.allowed_blank_lines);
+  }
+}
+
+fn toml(map: &Map<String, Value>) -> Result<Toml, String> {
+  let mut options = Toml::default();
+  for (key, value) in map {
+    let name = format!("toml.{key}");
+    let field = match key.as_str() {
+      "alignEntries" => &mut options.align_entries,
+      "alignComments" => &mut options.align_comments,
+      "alignSingleComments" => &mut options.align_single_comments,
+      "arrayAutoExpand" => &mut options.array_auto_expand,
+      "arrayAutoCollapse" => &mut options.array_auto_collapse,
+      "inlineTableExpand" => &mut options.inline_table_expand,
+      "compactArrays" => &mut options.compact_arrays,
+      "compactInlineTables" => &mut options.compact_inline_tables,
+      "compactEntries" => &mut options.compact_entries,
+      "indentTables" => &mut options.indent_tables,
+      "indentEntries" => &mut options.indent_entries,
+      "trailingNewline" => &mut options.trailing_newline,
+      "reorderKeys" => &mut options.reorder_keys,
+      "reorderArrays" => &mut options.reorder_arrays,
+      "reorderInlineTables" => &mut options.reorder_inline_tables,
+      "allowedBlankLines" => {
+        options.allowed_blank_lines = Some(number(value, &name)?);
+        continue;
+      }
+      _ if shared(&mut options.shared, key, value, "toml")? => continue,
+      _ => return Err(format!("unknown option `{name}`")),
+    };
+    *field = Some(flag(value, &name)?);
   }
   Ok(options)
 }

@@ -16,10 +16,10 @@ Usage
   Without paths, reads stdin and prints the result.
   With one file, prints the result unless --check or --write is set.
   Folders are searched for .html, .htm, .vue, .hbs, .handlebars, .css, .scss, .less, .md, and .markdown
-  files, for JSON files: .json, .jsonc, .json5, package.json, and the others that Prettier formats, and for
-  XML files: .xml, .svg, .plist, .csproj, pom.xml, and the others that @prettier/plugin-xml formats. Style
-  sheets in <style> and style=\"\", and JSON in scripts and code blocks, are formatted. Other scripts and code
-  blocks are left as written.
+  files, for JSON files: .json, .jsonc, .json5, package.json, and the others that Prettier formats, for .toml
+  files, and for XML files: .xml, .svg, .plist, .csproj, pom.xml, and the others that @prettier/plugin-xml
+  formats. Style sheets in <style> and style=\"\", JSON in scripts and code blocks, and TOML in code blocks and
+  front matter are formatted. Other scripts and code blocks are left as written.
 
   Each file takes its options from the nearest tidy.json, tidy.jsonc or tidy.toml, and from .editorconfig.
   Options given here override them.
@@ -28,7 +28,7 @@ Options
   --check                         List files that aren't formatted, and exit 1 if any
   -w, --write                     Rewrite files in place
   --parser <name>                 html, vue, handlebars, tempura, css, scss, less, json, jsonc, json5,
-                                  json-stringify, xml, or markdown (default: by file name)
+                                  json-stringify, toml, xml, or markdown (default: by file name)
   --stdin-filepath <path>         The path of the text on stdin, for its language and its config files
   --config <path>                 Use this config for every file instead of the nearest one
   --no-config                     Read no config files and no .editorconfig
@@ -38,7 +38,7 @@ Options
   --eol <eol>                     lf (default), crlf, or cr
   --whitespace <how>              strict, auto, or ignore (default: auto, and strict for XML)
   --quote <quote>                 double (default) or single, in Handlebars, style sheets and JSON5
-  --no-trailing-comma             No trailing commas in SCSS, JSONC and JSON5
+  --no-trailing-comma             No trailing commas in SCSS, JSONC, JSON5 and TOML
   --single-attribute-per-line     Put each attribute on its own line
   --bracket-same-line             Keep the > of a multi-line tag on the last line
   --ignore <name>                 The ignore directive (default: prettier-ignore)
@@ -93,6 +93,7 @@ fn run() -> Result<ExitCode, String> {
         "jsonc" => (Language::Json(json::Dialect::Jsonc), None),
         "json5" => (Language::Json(json::Dialect::Json5), None),
         "json-stringify" => (Language::Json(json::Dialect::Stringify), None),
+        "toml" => (Language::Toml, None),
         "xml" => (Language::Xml, None),
         "markdown" => (Language::Markdown, None),
         other => return Err(format!("unknown parser `{other}`")),

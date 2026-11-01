@@ -185,6 +185,7 @@ impl Default for Options {
 pub(crate) struct Context {
   pub(crate) width: usize,
   pub(crate) tab_width: usize,
+  pub(crate) tabs: bool,
   /// `embeddedLanguageFormatting` is `"auto"`.
   pub(crate) formats_embedded: bool,
   /// The template is tempura.
@@ -274,6 +275,7 @@ impl Formatter {
     let context = Context {
       width: options.width,
       tab_width: options.tab_width,
+      tabs: options.tabs,
       formats_embedded: options.format_embedded,
       is_tempura,
     };

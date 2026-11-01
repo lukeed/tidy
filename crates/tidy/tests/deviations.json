@@ -1,2347 +1,2389 @@
 [
- {
-  "id": "hbs-doctype",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<!DOCTYPE html>\n<p   ></p>\n",
-    "prettier": "<p></p>",
-    "tidy": "<!DOCTYPE html>\n<p></p>"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<!doctype html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n<p   ></p>\n",
-    "prettier": "<p></p>",
-    "tidy": "<!doctype html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n<p></p>"
-   }
-  ]
- },
- {
-  "id": "hbs-dropped-markup-kept-as-written",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "a <3 b   ></b>\n",
-    "prettier": "a <b></b>",
-    "tidy": "a <3 b   ></b>\n"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<p   ></p><a",
-    "prettier": "<p></p>",
-    "tidy": "<p   ></p><a"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "< a>b</a><p   ></p>\n",
-    "prettier": "<a>b</a><p></p>",
-    "tidy": "< a>b</a><p   ></p>\n"
-   }
-  ]
- },
- {
-  "id": "hbs-html-comment-start-and-end",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<!---a--><p   ></p>\n",
-    "prettier": "<!-----><p></p>",
-    "tidy": "<!---a--><p></p>"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<!--{{a}}--><p   ></p>\n",
-    "prettier": "{{a}}<!----><p></p>",
-    "tidy": "<!--{{a}}--><p></p>"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<!-- a-{{b}} --><p   ></p>\n",
-    "prettier": "{{b}}<!-- a- --><p></p>",
-    "tidy": "<!-- a-{{b}} --><p></p>"
-   }
-  ]
- },
- {
-  "id": "hbs-escaped-mustache",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<!-- \\{{a}} --><p   ></p>\n",
-    "prettier": "<!-- {{a}} --><p></p>",
-    "tidy": "<!-- \\{{a}} --><p></p>"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<a   \\{{b}}></a>\n",
-    "prettier": "<a {{b}}></a>",
-    "tidy": "<a   \\{{b}}></a>"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<pre   >\\{{a}}</pre>\n",
-    "prettier": "<pre>{{a}}</pre>",
-    "tidy": "<pre>\\{{a}}</pre>"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{! prettier-ignore }}a\\{{b}}<p   ></p>\n",
-    "prettier": "{{! prettier-ignore }}a{{b}}<p></p>",
-    "tidy": "{{! prettier-ignore }}a\\{{b}}<p></p>"
-   }
-  ]
- },
- {
-  "id": "hbs-style-with-mustache",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<style   >a{b:\"\\{{c}}\"}</style>\n",
-    "prettier": "<style>a{b:\"{{c}}\"}</style>",
-    "tidy": "<style>a{b:\"\\{{c}}\"}</style>"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<style   >a{margin: 0 {{b}} 0}</style>\n",
-    "prettier": "<style>a{margin: 0{{b}}0}</style>",
-    "tidy": "<style>a{margin: 0 {{b}} 0}</style>"
-   }
-  ]
- },
- {
-  "id": "hbs-no-break-space",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{#a   }} {{/a}}\n",
-    "prettier": "{{#a}}{{/a}}",
-    "tidy": "{{#a}} {{/a}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<A   > </A>\n",
-    "prettier": "<A />",
-    "tidy": "<A> </A>"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": " \n",
-    "prettier": "",
-    "tidy": " "
-   }
-  ]
- },
- {
-  "id": "hbs-no-break-space-in-class",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<a   class=\"b c\"></a>\n",
-    "prettier": "<a class=\"b c\"></a>",
-    "tidy": "<a class=\"b c\"></a>"
-   }
-  ]
- },
- {
-  "id": "hbs-backslash-before-mustache",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<a   b=\"c\\\\{{d}}\"></a>\n",
-    "prettier": "<a b=\"c\\{{d}}\"></a>",
-    "tidy": "<a b=\"c\\\\{{d}}\"></a>"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "a\\\\{{!   b }}\n",
-    "prettier": "a\\{{!   b }}",
-    "tidy": "a\\\\{{!   b }}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{#a   }}b\\\\{{/a}}\n",
-    "prettier": "{{#a}}b\\{{/a}}",
-    "tidy": "{{#a}}b\\\\{{/a}}"
-   }
-  ]
- },
- {
-  "id": "hbs-both-quotes-in-value",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<a   b=c\"d'e></a>\n",
-    "prettier": "<a b=\"c\"d'e\"></a>",
-    "tidy": "<a b=\"c&quot;d'e\"></a>"
-   }
-  ]
- },
- {
-  "id": "hbs-script-textarea-lines",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<script   >\n  // a\n  b()\n</script>\n",
-    "prettier": "<script>\n  // a b()\n</script>",
-    "tidy": "<script>\n  // a\n  b()\n</script>"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<textarea   >\n  a\n    b\n</textarea>\n",
-    "prettier": "<textarea>\n  a b\n</textarea>",
-    "tidy": "<textarea>\n  a\n    b\n</textarea>"
-   }
-  ]
- },
- {
-  "id": "hbs-pre-descendant-whitespace",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<pre   ><b>a\n  b</b></pre>\n",
-    "prettier": "<pre><b>a b</b></pre>",
-    "tidy": "<pre><b>a\n  b</b></pre>"
-   }
-  ]
- },
- {
-  "id": "hbs-whitespace-block-in-pre-textarea",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<textarea   >{{#a}} {{/a}}</textarea>\n",
-    "prettier": "<textarea>{{#a}}{{/a}}</textarea>",
-    "tidy": "<textarea>{{#a}} {{/a}}</textarea>"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<pre   >{{#a}} {{/a}}</pre>\n",
-    "prettier": "<pre>{{#a}}{{/a}}</pre>",
-    "tidy": "<pre>{{#a}} {{/a}}</pre>"
-   }
-  ]
- },
- {
-  "id": "hbs-void-with-children",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<imG   >a</imG>\n",
-    "prettier": "<imG />",
-    "tidy": "<imG>a</imG>"
-   }
-  ]
- },
- {
-  "id": "hbs-path-round-trip",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{this/a   }}\n",
-    "prettier": "{{a}}",
-    "tidy": "{{this/a}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{@this.a   }}\n",
-    "prettier": "{{@a}}",
-    "tidy": "{{@this.a}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{[this]   }}\n",
-    "prettier": "{{this.this}}",
-    "tidy": "{{[this]}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{[].a   }}\n",
-    "prettier": "{{a}}",
-    "tidy": "{{[].a}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{a.#b   }}\n",
-    "prettier": "{{a.[#b]}}",
-    "tidy": "{{a.#b}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{[]/a   }}\n",
-    "prettier": "{{a}}",
-    "tidy": "{{[]/a}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{@[].a   }}\n",
-    "prettier": "{{@a}}",
-    "tidy": "{{@[].a}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{a.[]   }}\n",
-    "prettier": "{{a.}}",
-    "tidy": "{{a.[]}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{a   [].b c=[].d}}\n",
-    "prettier": "{{a b c=d}}",
-    "tidy": "{{a [].b c=[].d}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{this.this   }}\n",
-    "prettier": "{{this}}",
-    "tidy": "{{this.this}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{a   ...b}}\n",
-    "prettier": "{{a b}}",
-    "tidy": "{{a ...b}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{[a/b]   }}\n",
-    "prettier": "{{a/b}}",
-    "tidy": "{{[a/b]}}"
-   }
-  ]
- },
- {
-  "id": "hbs-bracketed-segment",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{a   [true]}}\n",
-    "prettier": "{{a true}}",
-    "tidy": "{{a [true]}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{a   [-1]}}\n",
-    "prettier": "{{a -1}}",
-    "tidy": "{{a [-1]}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{[else]   }}\n",
-    "prettier": "{{else}}",
-    "tidy": "{{[else]}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{a   [@b]}}\n",
-    "prettier": "{{a @b}}",
-    "tidy": "{{a [@b]}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{a   [b\\]]}}\n",
-    "prettier": "{{a [b]]}}",
-    "tidy": "{{a [b\\]]}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{a   [b\nc]}}\n",
-    "prettier": "{{a [[b\nc]]}}",
-    "tidy": "{{a [b\nc]}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{#[a b]   }}{{else [a b] c}}{{/[a b]}}\n",
-    "prettier": "{{#[a b]}}{{else a b c}}{{/[a b]}}",
-    "tidy": "{{#[a b]}}{{else [a b] c}}{{/[a b]}}"
-   }
-  ]
- },
- {
-  "id": "hbs-hash-key-in-brackets",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{a   [b c]=d}}\n",
-    "prettier": "{{a b c=d}}",
-    "tidy": "{{a [b c]=d}}"
-   }
-  ]
- },
- {
-  "id": "hbs-dropped-arguments",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{\"a\"   b}}\n",
-    "prettier": "{{\"a\"}}",
-    "tidy": "{{\"a\"   b}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{(a=b)   c}}\n",
-    "prettier": "{{ c}}",
-    "tidy": "{{(a=b)   c}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{a   ((b=c) d)}}\n",
-    "prettier": "{{a ( d)}}",
-    "tidy": "{{a   ((b=c) d)}}"
-   }
-  ]
- },
- {
-  "id": "hbs-raw-block",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{{{a}}}}   {{b}} {{{{/a}}}}\n",
-    "prettier": "{{#a}} \\{{b}} {{/a}}",
-    "tidy": "{{{{a}}}}   {{b}} {{{{/a}}}}"
-   }
-  ]
- },
- {
-  "id": "hbs-number-exponent",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{a   1000000000000000000000}}\n",
-    "prettier": "{{a 1e+21}}",
-    "tidy": "{{a 1000000000000000000000}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{a   0.0000001}}\n",
-    "prettier": "{{a 1e-7}}",
-    "tidy": "{{a 0.0000001}}"
-   }
-  ]
- },
- {
-  "id": "hbs-triple-stash-strip",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{{a   }~}}\n",
-    "prettier": "{{{a~}}}",
-    "tidy": "{{{a}~}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "<a   {{{b}}}></a>\n",
-    "prettier": "<a {{b}}></a>",
-    "tidy": "<a {{{b}}}></a>"
-   }
-  ]
- },
- {
-  "id": "hbs-comment-dashes",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{!--   a ~--}}\n",
-    "prettier": "{{!   a ~}}",
-    "tidy": "{{!--   a ~--}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{!----   a --}}\n",
-    "prettier": "{{!--   a }}",
-    "tidy": "{{!----   a --}}"
-   }
-  ]
- },
- {
-  "id": "hbs-else-chain",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{#a   }}{{else if.b c}}{{/a}}\n",
-    "prettier": "{{#a}}{{else if c}}{{/a}}",
-    "tidy": "{{#a}}{{else if.b c}}{{/a}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{#a   }}{{else}}{{~#if b}}c{{/if}}{{/a}}\n",
-    "prettier": "{{#a}}{{else if b}}c{{/a}}",
-    "tidy": "{{#a}}{{else}}{{~#if b}}c{{/if}}{{/a}}"
-   },
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "{{#z   }}y{{else}}{{#if a}}b{{~else if c}}d {{/if}}{{/z}}\n",
-    "prettier": "{{#z}}y{{else if a}}b{{~else if c}}d {{/z}}",
-    "tidy": "{{#z}}y{{else}}{{#if a}}b{{~else if c}}d {{/if}}{{/z}}"
-   }
-  ]
- },
- {
-  "id": "hbs-line-separator-columns",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "a\n {{~! b ~}} <p {{c}} d=\"e\" {{f}} g></p> <!-- {{h}} -->\n {{! prettier-ignore }} {{  i  }} {{!-- j --~}}\n{{k\n  l}} {{~! m }}\n",
-    "prettier": "a  {{! b }}\n<p {{c}} d=\"e\" {{f}} g></p>\n<!--  {{h} -->\n  {{! prettier-ignore }\n {{  i  }\n{{! j }}\n{{k l}}\n{{! m }}",
-    "tidy": "a  {{~! b ~}}\n<p {{c}} d=\"e\" {{f}} g></p>\n<!-- {{h}} -->\n {{! prettier-ignore }}\n{{  i  }}\n{{! j ~}}\n{{k l}}\n{{~! m }}"
-   }
-  ]
- },
- {
-  "id": "hbs-ws-ignore-escaped-mustache",
-  "rows": [
-   {
-    "parsers": [
-     "handlebars"
-    ],
-    "input": "p \\{{a}} {{q   }}\n",
-    "prettier": "p\\{{a}} {{q}}",
-    "tidy": "p \\{{a}} {{q}}",
-    "whitespace": "ignore"
-   }
-  ]
- },
- {
-  "id": "css-escaped-space-before-semicolon",
-  "rows": [
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "x{@extend   .a\\ ;}\n@extend .a\\ ;\nx{@include   .a\\ ;}\n@include .a\\ ;\nx{@media   .a\\ ;}\n@media .a\\ ;\nx{@supports   .a\\ ;}\n@supports .a\\ ;\nx{@container   .a\\ ;}\n@container .a\\ ;\nx{@layer   .a\\ ;}\n@layer .a\\ ;\nx{@import   .a\\ ;}\n@import .a\\ ;\nx{@custom   .a\\ ;}\n@custom .a\\ ;\n@last .a\\ ",
-    "prettier": "x {\n  @extend .a\\;\n}\n@extend .a\\;\nx {\n  @include .a\\;\n}\n@include .a\\;\nx {\n  @media .a\\;\n}\n@media .a\\;\nx {\n  @supports .a\\;\n}\n@supports .a\\;\nx {\n  @container .a\\;\n}\n@container .a\\;\nx {\n  @layer .a\\;\n}\n@layer .a\\;\nx {\n  @import .a\\;\n}\n@import .a\\;\nx {\n  @custom .a\\;\n}\n@custom .a\\;\n@last .a\\;\n",
-    "tidy": "x {\n  @extend .a\\ ;\n}\n@extend .a\\ ;\nx {\n  @include .a\\ ;\n}\n@include .a\\ ;\nx {\n  @media .a\\ ;\n}\n@media .a\\ ;\nx {\n  @supports .a\\ ;\n}\n@supports .a\\ ;\nx {\n  @container .a\\ ;\n}\n@container .a\\ ;\nx {\n  @layer .a\\ ;\n}\n@layer .a\\ ;\nx {\n  @import .a\\ ;\n}\n@import .a\\ ;\nx {\n  @custom .a\\ ;\n}\n@custom .a\\ ;\n@last .a\\ ;\n"
-   },
-   {
-    "parsers": [
-     "scss"
-    ],
-    "input": "@media (a\\ ){b{c:d}}\n@each   .a\\ ;\n",
-    "prettier": "@media (a\\) {\n  b {\n    c: d;\n  }\n}\n@each .a\\ ;\n",
-    "tidy": "@media (a\\ ) {\n  b {\n    c: d;\n  }\n}\n@each .a\\ ;\n"
-   },
-   {
-    "parsers": [
-     "scss"
-    ],
-    "input": "a{@extend .a\\ ;}\n",
-    "prettier": "a {\n  @extend .a\\;\n}\n",
-    "tidy": "a {\n  @extend .a\\ ;\n}\n"
-   },
-   {
-    "parsers": [
-     "css"
-    ],
-    "input": "@media .a\\ ;\n",
-    "prettier": "@media .a\\;\n",
-    "tidy": "@media .a\\ ;\n"
-   }
-  ]
- },
- {
-  "id": "css-escaped-space-in-value",
-  "rows": [
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{b:Font\\ Awesome\\ 5}\n",
-    "prettier": "a {\n  b: Font\\Awesome\\5;\n}\n",
-    "tidy": "a {\n  b: Font\\ Awesome\\ 5;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{b:a\\g   c}\n",
-    "prettier": "a {\n  b: a\\gc;\n}\n",
-    "tidy": "a {\n  b: a\\g c;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{b:d\\  e}\n",
-    "prettier": "a {\n  b: d\\e;\n}\n",
-    "tidy": "a {\n  b: d\\  e;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{b:d\\ -5}\n",
-    "prettier": "a {\n  b: d\\-5;\n}\n",
-    "tidy": "a {\n  b: d\\ -5;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{b:d\\ }\n",
-    "prettier": "a {\n  b: d\\;\n}\n",
-    "tidy": "a {\n  b: d\\ ;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{b:(a\\ )}\n",
-    "prettier": "a {\n  b: (a\\);\n}\n",
-    "tidy": "a {\n  b: (a\\ );\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{b:f(b a\\ )}\n",
-    "prettier": "a {\n  b: f(b a\\);\n}\n",
-    "tidy": "a {\n  b: f(b a\\ );\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{b:f(a\\ , b)}\n",
-    "prettier": "a {\n  b: f(a\\, b);\n}\n",
-    "tidy": "a {\n  b: f(a\\ , b);\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{b:a\\ , b}\n",
-    "prettier": "a {\n  b: a\\, b;\n}\n",
-    "tidy": "a {\n  b: a\\ , b;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{b:d\\\\   e}\n",
-    "prettier": "a {\n  b: d\\\\e;\n}\n",
-    "tidy": "a {\n  b: d\\\\ e;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{b:x d\\h   f g}\n",
-    "prettier": "a {\n  b: x d\\hf g;\n}\n",
-    "tidy": "a {\n  b: x d\\h f g;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{b:a\\b   c}\n",
-    "prettier": "a {\n  b: a\\bc;\n}\n",
-    "tidy": "a {\n  b: a\\b  c;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{b:x d\\e   f g}\n",
-    "prettier": "a {\n  b: x d\\ef g;\n}\n",
-    "tidy": "a {\n  b: x d\\e  f g;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{b:a\\b c}\n",
-    "prettier": "a {\n  b: a\\bc;\n}\n",
-    "tidy": "a {\n  b: a\\b c;\n}\n"
-   }
-  ]
- },
- {
-  "id": "css-selector-without-namespace",
-  "rows": [
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "x |b{c:d}\n",
-    "prettier": "x|b {\n  c: d;\n}\n",
-    "tidy": "x |b {\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "x,|b,y{c:d}\n",
-    "prettier": "x,\n,|b,\ny {\n  c: d;\n}\n",
-    "tidy": "x,\n|b,\ny {\n  c: d;\n}\n"
-   }
-  ]
- },
- {
-  "id": "css-non-ascii-lowercase",
-  "rows": [
-   {
-    "parsers": [
-     "css"
-    ],
-    "input": "@media (KA){a{b:c}}\n",
-    "prettier": "@media (ka) {\n  a {\n    b: c;\n  }\n}\n",
-    "tidy": "@media (Ka) {\n  a {\n    b: c;\n  }\n}\n"
-   }
-  ]
- },
- {
-  "id": "less-variable-colon-without-space",
-  "rows": [
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a:1px solid #ccc;\n",
-    "prettier": "@a: 1pxsolid #ccc;\n",
-    "tidy": "@a: 1px solid #ccc;\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a:0 1px 2px rgba(0,0,0,.05);\n",
-    "prettier": "@a: 01px 2px rgba(0, 0, 0, 0.05);\n",
-    "tidy": "@a: 0 1px 2px rgba(0, 0, 0, 0.05);\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a:@b - @c;\n",
-    "prettier": "@a: @b- @c;\n",
-    "tidy": "@a: @b - @c;\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a:0 -@b;\n",
-    "prettier": "@a: 0-@b;\n",
-    "tidy": "@a: 0 -@b;\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a:-1px -2px;\n",
-    "prettier": "@a: -1px-2px;\n",
-    "tidy": "@a: -1px -2px;\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a:10px ./ 2;\n",
-    "prettier": "@a: 10px./ 2;\n",
-    "tidy": "@a: 10px ./ 2;\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a:screen and (min-width:1px);\n",
-    "prettier": "@a: screenand (min-width: 1px);\n",
-    "tidy": "@a: screen and (min-width: 1px);\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a:1px solid!important;\n",
-    "prettier": "@a: 1pxsolid!important;\n",
-    "tidy": "@a: 1px solid!important;\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a:1px\n  solid;\n",
-    "prettier": "@a: 1pxsolid;\n",
-    "tidy": "@a: 1px solid;\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": ".a{@b:1px solid red;c:@b}\n",
-    "prettier": ".a {\n  @b: 1pxsolid red;\n  c: @b;\n}\n",
-    "tidy": ".a {\n  @b: 1px solid red;\n  c: @b;\n}\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": ".a(){@b:1px solid;}\n",
-    "prettier": ".a() {\n  @b: 1pxsolid;\n}\n",
-    "tidy": ".a() {\n  @b: 1px solid;\n}\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a:{@b:1px solid}\n",
-    "prettier": "@a: {\n  @b: 1pxsolid;\n};\n",
-    "tidy": "@a: {\n  @b: 1px solid;\n};\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a:1px // b\n solid;\n",
-    "prettier": "@a: 1px  //\n  solid;\n",
-    "tidy": "@a: 1px // b\n  solid;\n"
-   }
-  ]
- },
- {
-  "id": "less-variable-comment",
-  "rows": [
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a: 1px /* why */ solid;\n",
-    "prettier": "@a: 1px solid;\n",
-    "tidy": "@a: 1px /* why */ solid;\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a: \"Helvetica Neue\" /* mac */, Arial /* win */, sans-serif;\n",
-    "prettier": "@a: \"Helvetica Neue\", Arial, sans-serif;\n",
-    "tidy": "@a:\n  \"Helvetica Neue\" /* mac */,\n  Arial /* win */,\n  sans-serif;\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a: /* why */ 1px;\n",
-    "prettier": "@a: 1px;\n",
-    "tidy": "@a: /* why */ 1px;\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a: darken(@b, 10% /* why */);\n",
-    "prettier": "@a: darken(@b, 10%);\n",
-    "tidy": "@a: darken(@b, 10% /* why */);\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a: (1 /* why */ + 2);\n",
-    "prettier": "@a: (1 + 2);\n",
-    "tidy": "@a: (1 /* why */ + 2);\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a: red ! /* why */ important;\n",
-    "prettier": "@a: red ! important;\n",
-    "tidy": "@a: red ! /* why */ important;\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a: b /* c */ d/* e */f;\n",
-    "prettier": "@a: b d  c */ d f;\n",
-    "tidy": "@a: b /* c */ d /* e */ f;\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a : 1px /* why */ solid;\n",
-    "prettier": "@a: 1px solid;\n",
-    "tidy": "@a: 1px /* why */ solid;\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "x{@a: 1px /* why */ solid}\n",
-    "prettier": "x {\n  @a: 1px solid;\n}\n",
-    "tidy": "x {\n  @a: 1px /* why */ solid;\n}\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a:1px /* why */ solid;\n",
-    "prettier": "@a: 1pxsolid;\n",
-    "tidy": "@a: 1px /* why */ solid;\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a:1px/* why */solid;\n",
-    "prettier": "@a: 1pxsolid;\n",
-    "tidy": "@a: 1px /* why */ solid;\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a:b(c)/* d */e;\n",
-    "prettier": "@a: b(c) )/* d * e;\n",
-    "tidy": "@a: b(c) /* d */ e;\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a:darken(@b,10%/* why */);\n",
-    "prettier": "@a: darken(@b, 10% %/* why *);\n",
-    "tidy": "@a: darken(@b, 10% /* why */);\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@a:b /* c */ d/* e */f;\n",
-    "prettier": "@a: bd /* c */ f;\n",
-    "tidy": "@a: b /* c */ d /* e */ f;\n"
-   }
-  ]
- },
- {
-  "id": "css-comment-only-at-rule-params",
-  "rows": [
-   {
-    "parsers": [
-     "scss"
-    ],
-    "input": "@if $a {\n  b: c;\n} @else /* why */ {\n  d: e;\n}\n",
-    "prettier": "@if $a {\n  b: c;\n} @else  /* why * {\n  d: e;\n}\n",
-    "tidy": "@if $a {\n  b: c;\n} @else /* why */ {\n  d: e;\n}\n"
-   },
-   {
-    "parsers": [
-     "scss"
-    ],
-    "input": "@else /* a */ /* b */ {\n}\n@function /* a */ {\n}\n@return /* a */;\n",
-    "prettier": "@else  /* a *  /* b * {\n}\n@function  /* a * {\n}\n@return  /* a *;\n",
-    "tidy": "@else /* a */ /* b */ {\n}\n@function /* a */ {\n}\n@return /* a */;\n"
-   }
-  ]
- },
- {
-  "id": "css-line-comment-before-brace-or-semicolon",
-  "rows": [
-   {
-    "parsers": [
-     "scss"
-    ],
-    "input": "@if $a {\n  b: c;\n} @else // why\n{\n  d: e;\n}\n",
-    "prettier": "@if $a {\n  b: c;\n} @else  { // wh\n  d: e;\n}\n",
-    "tidy": "@if $a {\n  b: c;\n} @else // why\n{\n  d: e;\n}\n"
-   },
-   {
-    "parsers": [
-     "scss",
-     "less"
-    ],
-    "input": "@media (min-width: 1px) // Why\n{\n  a {\n    b: c;\n  }\n}\n",
-    "prettier": "@media (min-width: 1px) // Why {\n  a {\n    b: c;\n  }\n}\n",
-    "tidy": "@media (min-width: 1px) // Why\n{\n  a {\n    b: c;\n  }\n}\n"
-   },
-   {
-    "parsers": [
-     "scss"
-    ],
-    "input": "@media screen // Why\n  and (min-width: 1px) {\n  a {\n    b: c;\n  }\n}\n",
-    "prettier": "@media screen // Why and (min-width: 1px) {\n  a {\n    b: c;\n  }\n}\n",
-    "tidy": "@media screen // Why\n  and (min-width: 1px) {\n  a {\n    b: c;\n  }\n}\n"
-   },
-   {
-    "parsers": [
-     "scss"
-    ],
-    "input": "@if $a// why\n{\n  b: c;\n}\n",
-    "prettier": "@if $a// why {\n  b: c;\n}\n",
-    "tidy": "@if $a // why\n{\n  b: c;\n}\n"
-   },
-   {
-    "parsers": [
-     "scss"
-    ],
-    "input": "a {\n  @extend .b // why\n  ;\n  c: d\n}\n",
-    "prettier": "a {\n  @extend .b // why;\n  c: d;\n}\n",
-    "tidy": "a {\n  @extend .b; // why\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "scss"
-    ],
-    "input": "@warn \"a\" // why\n;\n@b c // why\n;\n",
-    "prettier": "@warn \"a\" // why;\n@b c // why;\n",
-    "tidy": "@warn \"a\"; // why\n@b c; // why\n"
-   },
-   {
-    "parsers": [
-     "scss"
-    ],
-    "input": "$a: b// why\n;\n$c: 1;\n",
-    "prettier": "$a: b// why;\n$c: 1;\n",
-    "tidy": "$a: b; // why\n$c: 1;\n"
-   },
-   {
-    "parsers": [
-     "scss"
-    ],
-    "input": "a { b: c// why\n; d: e }\n",
-    "prettier": "a {\n  b: c// why;\n  d: e;\n}\n",
-    "tidy": "a {\n  b: c; // why\n  d: e;\n}\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": ".a() // why\n;\n.b();\n",
-    "prettier": ".a() // why;\n.b();\n",
-    "tidy": ".a(); // why\n.b();\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": ".a() // \"why\"\n;\n.b();\n",
-    "prettier": ".a() //  why;\n.b();\n",
-    "tidy": ".a(); // \"why\"\n.b();\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "a { b: c//\"why\"\n; d: e }\n",
-    "prettier": "a {\n  b: c// why;\n  d: e;\n}\n",
-    "tidy": "a {\n  b: c; //\"why\"\n  d: e;\n}\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "@plugin \"a\" // 'why'\n;\n",
-    "prettier": "@plugin \"a\" //  why;\n",
-    "tidy": "@plugin \"a\"; // 'why'\n"
-   }
-  ]
- },
- {
-  "id": "css-nth-and-keyframe-sign",
-  "rows": [
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": ":nth-child(+n+3){c:d}\n",
-    "prettier": ":nth-child(+ n + 3) {\n  c: d;\n}\n",
-    "tidy": ":nth-child(+n + 3) {\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": ":nth-child(+3){c:d}\n",
-    "prettier": ":nth-child(+ 3) {\n  c: d;\n}\n",
-    "tidy": ":nth-child(+3) {\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "li:nth-child(+2n+1){c:d}\n",
-    "prettier": "li:nth-child(+ 2n + 1) {\n  c: d;\n}\n",
-    "tidy": "li:nth-child(+2n + 1) {\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": ":nth-last-child(+n + 2){c:d}\n",
-    "prettier": ":nth-last-child(+ n + 2) {\n  c: d;\n}\n",
-    "tidy": ":nth-last-child(+n + 2) {\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": ":nth-col(+2){c:d}\n",
-    "prettier": ":nth-col(+ 2) {\n  c: d;\n}\n",
-    "tidy": ":nth-col(+2) {\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": ":NTH-CHILD(+N+3 of .a){c:d}\n",
-    "prettier": ":nth-child(+ N + 3 of .a) {\n  c: d;\n}\n",
-    "tidy": ":nth-child(+N + 3 of .a) {\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "@keyframes x{+50%{a:b}}\n",
-    "prettier": "@keyframes x {\n  + 50% {\n    a: b;\n  }\n}\n",
-    "tidy": "@keyframes x {\n  +50% {\n    a: b;\n  }\n}\n"
-   }
-  ]
- },
- {
-  "id": "css-hex-escape-space-in-selector",
-  "rows": [
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": ".\\31  .b{c:d}\n",
-    "prettier": ".\\31 .b {\n  c: d;\n}\n",
-    "tidy": ".\\31  .b {\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "#\\31  li{c:d}\n",
-    "prettier": "#\\31 li {\n  c: d;\n}\n",
-    "tidy": "#\\31  li {\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": ".\\e9  a{c:d}\n",
-    "prettier": ".\\e9 a {\n  c: d;\n}\n",
-    "tidy": ".\\e9  a {\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": ".\\31 \\30  .b{c:d}\n",
-    "prettier": ".\\31 \\30 .b {\n  c: d;\n}\n",
-    "tidy": ".\\31 \\30  .b {\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": ".\\000031  b{c:d}\n",
-    "prettier": ".\\000031 b {\n  c: d;\n}\n",
-    "tidy": ".\\000031  b {\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a:not(.\\31  b){c:d}\n",
-    "prettier": "a:not(.\\31 b) {\n  c: d;\n}\n",
-    "tidy": "a:not(.\\31  b) {\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": ".\\31 \n.b{c:d}\n",
-    "prettier": ".\\31 .b {\n  c: d;\n}\n",
-    "tidy": ".\\31  .b {\n  c: d;\n}\n"
-   }
-  ]
- },
- {
-  "id": "css-attribute-value-escape",
-  "rows": [
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "[a=x\\31 i]{c:d}\n",
-    "prettier": "[a=\"x\\31\" i] {\n  c: d;\n}\n",
-    "tidy": "[a=\"x\\31 i\"] {\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "[a=b\\ c]{c:d}\n",
-    "prettier": "[a=\"b\\\" c] {\n  c: d;\n}\n",
-    "tidy": "[a=\"b\\ c\"] {\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "[a=b\\ c i]{c:d}\n",
-    "prettier": "[a=\"b\\\" c i] {\n  c: d;\n}\n",
-    "tidy": "[a=\"b\\ c\" i] {\n  c: d;\n}\n"
-   }
-  ]
- },
- {
-  "id": "css-hex-escape-space-in-value",
-  "rows": [
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{animation-name:\\31  x}\n",
-    "prettier": "a {\n  animation-name: \\31 x;\n}\n",
-    "tidy": "a {\n  animation-name: \\31  x;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{b:\\31  x \\e9  \"y\" \\31 z}\n",
-    "prettier": "a {\n  b: \\31 x \\e9\"y\" \\31 z;\n}\n",
-    "tidy": "a {\n  b: \\31  x \\e9  \"y\" \\31 z;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a {\n  animation-name: word word word word word word word word word word word wo \\31 abcdefghijklmnop;\n}\n",
-    "prettier": "a {\n  animation-name: word word word word word word word word word word word wo \\31\n    abcdefghijklmnop;\n}\n",
-    "tidy": "a {\n  animation-name: word word word word word word word word word word word wo\n    \\31 abcdefghijklmnop;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a {\n  --x: word word word word word word word word word word word word word wo \\31 abcdefghijklmnop;\n}\n",
-    "prettier": "a {\n  --x: word word word word word word word word word word word word word wo \\31\n    abcdefghijklmnop;\n}\n",
-    "tidy": "a {\n  --x: word word word word word word word word word word word word word wo\n    \\31 abcdefghijklmnop;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a {\n  b: word word word word word word word word word word word word word wor x\\31 abcdefghijklmnop;\n}\n",
-    "prettier": "a {\n  b: word word word word word word word word word word word word word wor x\\31\n    abcdefghijklmnop;\n}\n",
-    "tidy": "a {\n  b: word word word word word word word word word word word word word wor\n    x\\31 abcdefghijklmnop;\n}\n"
-   }
-  ]
- },
- {
-  "id": "css-author-defined-names",
-  "rows": [
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "@plugin \"@tailwindcss/typography\" {className:wysiwyg}\n",
-    "prettier": "@plugin \"@tailwindcss/typography\" {\n  classname: wysiwyg;\n}\n",
-    "tidy": "@plugin \"@tailwindcss/typography\" {\n  className: wysiwyg;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "@plugin \"./my-plugin.js\" {darkMode:class;maxWidth:10px}\n",
-    "prettier": "@plugin \"./my-plugin.js\" {\n  darkmode: class;\n  maxwidth: 10px;\n}\n",
-    "tidy": "@plugin \"./my-plugin.js\" {\n  darkMode: class;\n  maxWidth: 10px;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "@font-feature-values Font One {@styleset {niceStyle:12} @swash {Fancy:1}}\n",
-    "prettier": "@font-feature-values Font One {\n  @styleset {\n    nicestyle: 12;\n  }\n  @swash {\n    fancy: 1;\n  }\n}\n",
-    "tidy": "@font-feature-values Font One {\n  @styleset {\n    niceStyle: 12;\n  }\n  @swash {\n    Fancy: 1;\n  }\n}\n"
-   },
-   {
-    "parsers": [
-     "css"
-    ],
-    "input": "@plugin \"a\" {maxWidth:1px}\nb{maxWidth:1px}\n@plugin \"a\" {maxWidth:1px}\n",
-    "prettier": "@plugin \"a\" {\n  maxwidth: 1px;\n}\nb {\n  maxwidth: 1px;\n}\n@plugin \"a\" {\n  maxwidth: 1px;\n}\n",
-    "tidy": "@plugin \"a\" {\n  maxWidth: 1px;\n}\nb {\n  maxwidth: 1px;\n}\n@plugin \"a\" {\n  maxWidth: 1px;\n}\n"
-   }
-  ]
- },
- {
-  "id": "css-custom-property-values",
-  "rows": [
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:#FFF}\n",
-    "prettier": "a {\n  --x: #fff;\n}\n",
-    "tidy": "a {\n  --x: #FFF;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:#AbCdEf}\n",
-    "prettier": "a {\n  --x: #abcdef;\n}\n",
-    "tidy": "a {\n  --x: #AbCdEf;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:1E3}\n",
-    "prettier": "a {\n  --x: 1e3;\n}\n",
-    "tidy": "a {\n  --x: 1E3;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:1PX}\n",
-    "prettier": "a {\n  --x: 1px;\n}\n",
-    "tidy": "a {\n  --x: 1PX;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:.50}\n",
-    "prettier": "a {\n  --x: 0.5;\n}\n",
-    "tidy": "a {\n  --x: .50;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:0.50em 1.0em}\n",
-    "prettier": "a {\n  --x: 0.5em 1em;\n}\n",
-    "tidy": "a {\n  --x: 0.50em 1.0em;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:+.5}\n",
-    "prettier": "a {\n  --x: +0.5;\n}\n",
-    "tidy": "a {\n  --x: +.5;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:1.}\n",
-    "prettier": "a {\n  --x: 1;\n}\n",
-    "tidy": "a {\n  --x: 1.;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:INHERIT}\n",
-    "prettier": "a {\n  --x: inherit;\n}\n",
-    "tidy": "a {\n  --x: INHERIT;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:'a'}\n",
-    "prettier": "a {\n  --x: \"a\";\n}\n",
-    "tidy": "a {\n  --x: 'a';\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:\"a\",'b'}\n",
-    "prettier": "a {\n  --x: \"a\", \"b\";\n}\n",
-    "tidy": "a {\n  --x: \"a\",'b';\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:1,000}\n",
-    "prettier": "a {\n  --x: 1, 000;\n}\n",
-    "tidy": "a {\n  --x: 1,000;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:16:9}\n",
-    "prettier": "a {\n  --x: 16: 9;\n}\n",
-    "tidy": "a {\n  --x: 16:9;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:a,b}\n",
-    "prettier": "a {\n  --x: a, b;\n}\n",
-    "tidy": "a {\n  --x: a,b;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:a ,b}\n",
-    "prettier": "a {\n  --x: a, b;\n}\n",
-    "tidy": "a {\n  --x: a,b;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:a*b}\n",
-    "prettier": "a {\n  --x: a * b;\n}\n",
-    "tidy": "a {\n  --x: a*b;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:a+b}\n",
-    "prettier": "a {\n  --x: a + b;\n}\n",
-    "tidy": "a {\n  --x: a+b;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:a:b}\n",
-    "prettier": "a {\n  --x: a: b;\n}\n",
-    "tidy": "a {\n  --x: a:b;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:(a:b)}\n",
-    "prettier": "a {\n  --x: (a: b);\n}\n",
-    "tidy": "a {\n  --x: (a:b);\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:rgba(0,0,0,.5)}\n",
-    "prettier": "a {\n  --x: rgba(0, 0, 0, 0.5);\n}\n",
-    "tidy": "a {\n  --x: rgba(0,0,0,.5);\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:translate(1PX,2PX)}\n",
-    "prettier": "a {\n  --x: translate(1px, 2px);\n}\n",
-    "tidy": "a {\n  --x: translate(1PX,2PX);\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:calc( 1PX + .50EM )}\n",
-    "prettier": "a {\n  --x: calc(1px + 0.5em);\n}\n",
-    "tidy": "a {\n  --x: calc(1PX + .50EM);\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:[{\"a\":1}]}\n",
-    "prettier": "a {\n  --x: [{\"a\": 1}];\n}\n",
-    "tidy": "a {\n  --x: [{\"a\":1}];\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:['red' ]}\n",
-    "prettier": "a {\n  --x: [ \"red\"];\n}\n",
-    "tidy": "a {\n  --x: ['red'];\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:[ 'red', 'green', 'blue' ]}\n",
-    "prettier": "a {\n  --x: [ \"red\", \"green\", \"blue\"];\n}\n",
-    "tidy": "a {\n  --x: [ 'red', 'green', 'blue'];\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:#FFF   RED}\n",
-    "prettier": "a {\n  --x: #fff RED;\n}\n",
-    "tidy": "a {\n  --x: #FFF RED;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:#FFF,\n     #EEE}\n",
-    "prettier": "a {\n  --x: #fff, #eee;\n}\n",
-    "tidy": "a {\n  --x: #FFF, #EEE;\n}\n"
-   },
-   {
-    "parsers": [
-     "css"
-    ],
-    "input": "a{--X:   #FFF   !important;--y:#FFF!IMPORTANT;--z:a:b   c   !important;COLOR:#FFF}\n",
-    "prettier": "a {\n  --X: #fff !important;\n  --y: #fff !important;\n  --z: a: b c !important;\n  color: #fff;\n}\n",
-    "tidy": "a {\n  --X: #FFF !important;\n  --y: #FFF !important;\n  --z: a:b c !important;\n  color: #fff;\n}\n"
-   },
-   {
-    "parsers": [
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:#FFF // c\n}\n",
-    "prettier": "a {\n  --x: #fff; // c\n}\n",
-    "tidy": "a {\n  --x: #FFF; // c\n}\n"
-   }
-  ]
- },
- {
-  "id": "css-custom-property-line-breaks",
-  "rows": [
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a {\n  --x: 1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000;\n}\n",
-    "prettier": "a {\n  --x:\n    1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1,\n    000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000;\n}\n",
-    "tidy": "a {\n  --x:\n    1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a {\n  --x: -apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",sans-serif,\"Apple Color Emoji\";\n}\n",
-    "prettier": "a {\n  --x:\n    -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\",\n    Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\";\n}\n",
-    "tidy": "a {\n  --x:\n    -apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",sans-serif,\"Apple Color Emoji\";\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a {\n  --x: -apple-system, BlinkMacSystemFont,\"Segoe UI\", Roboto,\"Helvetica Neue\", Arial,\"Noto Sans\", sans-serif,\"Apple Color Emoji\";\n}\n",
-    "prettier": "a {\n  --x:\n    -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\",\n    Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\";\n}\n",
-    "tidy": "a {\n  --x:\n    -apple-system, BlinkMacSystemFont,\"Segoe UI\", Roboto,\"Helvetica Neue\",\n    Arial,\"Noto Sans\", sans-serif,\"Apple Color Emoji\";\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a {\n  --x: rgba(000000000000000000000,000000000000000000000,000000000000000000000,000000000000000000000,.5);\n}\n",
-    "prettier": "a {\n  --x: rgba(\n    000000000000000000000,\n    000000000000000000000,\n    000000000000000000000,\n    000000000000000000000,\n    0.5\n  );\n}\n",
-    "tidy": "a {\n  --x: rgba(\n    000000000000000000000,000000000000000000000,000000000000000000000,000000000000000000000,.5\n  );\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a {\n  --x: f(aaaaaaaaaaaaaaaaaaaaaaaaa,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, cccccccccccccccccccccccc,ddddddddddddddddddddddd);\n}\n",
-    "prettier": "a {\n  --x: f(\n    aaaaaaaaaaaaaaaaaaaaaaaaa,\n    bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,\n    cccccccccccccccccccccccc,\n    ddddddddddddddddddddddd\n  );\n}\n",
-    "tidy": "a {\n  --x: f(\n    aaaaaaaaaaaaaaaaaaaaaaaaa,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,\n    cccccccccccccccccccccccc,ddddddddddddddddddddddd\n  );\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a {\n  --x: f( aaaaaaaaaaaaaaaaaaaaaaaaa,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,cccccccccccccccccccccccc,ddddddddddddddddddddddd );\n}\n",
-    "prettier": "a {\n  --x: f(\n    aaaaaaaaaaaaaaaaaaaaaaaaa,\n    bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,\n    cccccccccccccccccccccccc,\n    ddddddddddddddddddddddd\n  );\n}\n",
-    "tidy": "a {\n  --x: f(\n    aaaaaaaaaaaaaaaaaaaaaaaaa,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,cccccccccccccccccccccccc,ddddddddddddddddddddddd\n  );\n}\n"
-   }
-  ]
- },
- {
-  "id": "css-custom-property-json",
-  "rows": [
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:{\"a\":1,\"b\":[1,2]}}\n",
-    "prettier": "a {\n  --x: {\n    \"a\":1,\"b\": [1, 2];\n  };\n}\n",
-    "tidy": "a {\n  --x: {\"a\":1,\"b\":[1,2]};\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "scss",
-     "less"
-    ],
-    "input": "a{--x:{ \"a\": 1 }}\n",
-    "prettier": "a {\n  --x: {\n    \"a\":1;\n  };\n}\n",
-    "tidy": "a {\n  --x: { \"a\": 1 };\n}\n"
-   }
-  ]
- },
- {
-  "id": "css-custom-property-url",
-  "rows": [
-   {
-    "parsers": [
-     "css",
-     "less"
-    ],
-    "input": "a{--x:https://Example.com/A;c:d}\n",
-    "prettier": "a {\n  --x: https: ; //Example.com/A\n  c: d;\n}\n",
-    "tidy": "a {\n  --x: https://Example.com/A;\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "a{--x:https://*.example.com/*;c:d}\n",
-    "prettier": "a {\n  --x: https: ; //*.example.com/*\n  c: d;\n}\n",
-    "tidy": "a {\n  --x: https://*.example.com/*;\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "less"
-    ],
-    "input": "a{--x:https://example.com/a?b=\"c\"&d='e';c:d}\n",
-    "prettier": "a {\n  --x: https: ; //example.com/a?b=\"c\"&d='e'\n  c: d;\n}\n",
-    "tidy": "a {\n  --x: https://example.com/a?b=\"c\"&d='e';\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "less"
-    ],
-    "input": "a{--x:http://x.y/z /* note */ \"s\";c:d}\n",
-    "prettier": "a {\n  --x: http: ; //x.y/z /* note */ \"s\"\n  c: d;\n}\n",
-    "tidy": "a {\n  --x: http://x.y/z /* note */ \"s\";\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css"
-    ],
-    "input": "a{--x:http://b/\"c\" !important;c:d}\n",
-    "prettier": "a {\n  --x: http:  !important; //b/\"c\"\n  c: d;\n}\n",
-    "tidy": "a {\n  --x: http://b/\"c\" !important;\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "a{--x:http://b/\"c\" !important;c:d}\n",
-    "prettier": "a {\n  --x: http:  !important; //b/\"c\n  c: d;\n}\n",
-    "tidy": "a {\n  --x: http://b/\"c\" !important;\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css",
-     "less"
-    ],
-    "input": "a{--x:{\"u\":http://\"c\"};c:d}\n",
-    "prettier": "a {\n  --x: {\n    \"u\":http: ;//\"c\"\n  };\n  c: d;\n}\n",
-    "tidy": "a {\n  --x: {\"u\":http://\"c\"};\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css"
-    ],
-    "input": "a{--x://Example.com/A;c:d}\n",
-    "prettier": "a {\n  --x: ;//Example.com/A\n  c: d;\n}\n",
-    "tidy": "a {\n  --x: //Example.com/A;\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css"
-    ],
-    "input": "a{--x:#FFF // b;c:d}\n",
-    "prettier": "a {\n  --x: #fff; // b\n  c: d;\n}\n",
-    "tidy": "a {\n  --x: #FFF // b;\n  c: d;\n}\n"
-   },
-   {
-    "parsers": [
-     "css"
-    ],
-    "input": "a {\n  --hosts: https://*.example.com/*;\n  --query: https://example.com/a?b=\"c\"&d='e';\n  --note: http://x.y/z /* note */ \"s\";\n}\n",
-    "prettier": "a {\n  --hosts: https: //*.example.com/*; --query: https: //example.com/a?b=\"c\"&d='e';\n    --note: http: ; //x.y/z /* note */ \"s\"\n}\n",
-    "tidy": "a {\n  --hosts: https://*.example.com/*;\n  --query: https://example.com/a?b=\"c\"&d='e';\n  --note: http://x.y/z /* note */ \"s\";\n}\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "a {\n  --hosts: https://*.example.com/*;\n  --query: https://example.com/a?b=\"c\"&d='e';\n  --note: http://x.y/z /* note */ \"s\";\n}\n",
-    "prettier": "a {\n  --hosts: https: ; //*.example.com/*\n  --query: https: ; //example.com/a?b=\"c\"&d='e'\n  --note: http: ; //x.y/z /* note */ \"s\"\n}\n",
-    "tidy": "a {\n  --hosts: https://*.example.com/*;\n  --query: https://example.com/a?b=\"c\"&d='e';\n  --note: http://x.y/z /* note */ \"s\";\n}\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "a { --a: https://a.example.com; --b: \"see\" https://b.example.com; }\n",
-    "prettier": "a {\n  --a: https: ; //a.example.com\n  --b: see https: ; //b.example.com\n}\n",
-    "tidy": "a {\n  --a: https://a.example.com;\n  --b: \"see\" https://b.example.com;\n}\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "a { --a: https://a.example.com; --b: 'see' https://b.example.com; }\n",
-    "prettier": "a {\n  --a: https: ; //a.example.com\n  --b: see https: ; //b.example.com\n}\n",
-    "tidy": "a {\n  --a: https://a.example.com;\n  --b: 'see' https://b.example.com;\n}\n"
-   },
-   {
-    "parsers": [
-     "less"
-    ],
-    "input": "a { --a: https://a.example.com; --b: *see* https://b.example.com; }\n",
-    "prettier": "a {\n  --a: https: ; //a.example.com\n  --b: see https: ; //b.example.com\n}\n",
-    "tidy": "a {\n  --a: https://a.example.com;\n  --b: *see* https://b.example.com;\n}\n"
-   }
-  ]
- },
- {
-  "id": "html-pre-without-end-tag",
-  "rows": [
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<pre   ><b>a</b>\n",
-    "prettier": "<pre>>\n",
-    "tidy": "<pre><b>a</b>\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<pre   >a<b>c\n",
-    "prettier": "<pre>>\n",
-    "tidy": "<pre>a<b>c\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<p>x</p><pre   class=\"y\"><i>a</i>\n  b\n",
-    "prettier": "<p>x</p>\n<pre class=\"y\">>\n",
-    "tidy": "<p>x</p>\n<pre class=\"y\"><i>a</i>\n  b\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<listing   ><b>a\n",
-    "prettier": "<listing>>\n",
-    "tidy": "<listing><b>a\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<b>a</b><pre   ><i>x</i>\n",
-    "prettier": "<b>a</b>><pre>>\n",
-    "tidy": "<b>a</b><pre><i>x</i>\n",
-    "whitespace": "strict"
-   }
-  ]
- },
- {
-  "id": "html-unquoted-attribute-value",
-  "rows": [
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<meta name=viewport content=width=device-width,initial-scale=1>\n",
-    "prettier": "<meta name=\"viewport\" content=\"width\" =\"device-width,initial-scale\" =\"1\" />\n",
-    "tidy": "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<img src=a.png?v=1>\n",
-    "prettier": "<img src=\"a.png?v\" =\"1\" />\n",
-    "tidy": "<img src=\"a.png?v=1\" />\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<script src=a.js?v=2></script>\n",
-    "prettier": "<script src=\"a.js?v\" =\"2\"></script>\n",
-    "tidy": "<script src=\"a.js?v=2\"></script>\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<a href=?page=2&sort=name>next</a>\n",
-    "prettier": "<a href=\"?page\" =\"2&sort\" =\"name\">next</a>\n",
-    "tidy": "<a href=\"?page=2&sort=name\">next</a>\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<p class=a=b id=c>x</p>\n",
-    "prettier": "<p class=\"a\" =\"b\" id=\"c\">x</p>\n",
-    "tidy": "<p class=\"a=b\" id=\"c\">x</p>\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<input value=a/>\n",
-    "prettier": "<input value=\"a\" />\n",
-    "tidy": "<input value=\"a/\" />\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<p title=a b>x</p>\n",
-    "prettier": "<p title=\"a\" b>x</p>\n",
-    "tidy": "<p title=\"a b\">x</p>\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<a href=/x?a=1>x</a>\n",
-    "prettier": "ERROR: SyntaxError: Opening tag \"a\" not terminated. (1:1)",
-    "tidy": "<a href=\"/x?a=1\">x</a>\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<link href=https://fonts.googleapis.com/css?family=Roboto rel=stylesheet>\n",
-    "prettier": "ERROR: SyntaxError: Opening tag \"link\" not terminated. (1:1)",
-    "tidy": "<link href=\"https://fonts.googleapis.com/css?family=Roboto\" rel=\"stylesheet\" />\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<a href=a/>x</a>\n",
-    "prettier": "ERROR: SyntaxError: Unexpected closing tag \"a\". It may happen when the tag has already been closed by another tag. For more info see https://www.w3.org/TR/html5/syntax.html#closing-elements-that-have-implied-end-tags (1:13)",
-    "tidy": "<a href=\"a/\">x</a>\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<p title=a\"b>x</p>\n",
-    "prettier": "ERROR: SyntaxError: Opening tag \"p\" not terminated. (1:1)",
-    "tidy": "<p title='a\"b'>x</p>\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<p title=a'b>x</p>\n",
-    "prettier": "ERROR: SyntaxError: Opening tag \"p\" not terminated. (1:1)",
-    "tidy": "<p title=\"a'b\">x</p>\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<p title=a<b>x</p>\n",
-    "prettier": "ERROR: SyntaxError: Opening tag \"p\" not terminated. (1:1)",
-    "tidy": "<p title=\"a<b\">x</p>\n"
-   },
-   {
-    "parsers": [
-     "vue"
-    ],
-    "input": "<template><img src=a.png?v=1></template>\n",
-    "prettier": "<template><img src=\"a.png?v\" =\"1\" /></template>\n",
-    "tidy": "<template><img src=\"a.png?v=1\" /></template>\n"
-   }
-  ]
- },
- {
-  "id": "html-whitespace-only-pre-textarea",
-  "rows": [
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<textarea>\n\n</textarea>\n",
-    "prettier": "<textarea> </textarea>\n",
-    "tidy": "<textarea>\n\n</textarea>\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<textarea>   </textarea>\n",
-    "prettier": "<textarea> </textarea>\n",
-    "tidy": "<textarea>   </textarea>\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<pre> </pre>\n",
-    "prettier": "<pre></pre>\n",
-    "tidy": "<pre> </pre>\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<pre>\n\n</pre>\n",
-    "prettier": "<pre></pre>\n",
-    "tidy": "<pre>\n\n</pre>\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<div><pre>  </pre></div>\n",
-    "prettier": "<div><pre></pre></div>\n",
-    "tidy": "<div><pre>  </pre></div>\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<b>a</b><pre> </pre>\n",
-    "prettier": "<b>a</b>\n<pre></pre>\n",
-    "tidy": "<b>a</b>\n<pre> </pre>\n"
-   }
-  ]
- },
- {
-  "id": "html-ignored-void-without-slash",
-  "rows": [
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<!-- prettier-ignore --><img   src=b><i>c</i>\n",
-    "prettier": "<!-- prettier-ignore --><img   src=/><i>c</i>\n",
-    "tidy": "<!-- prettier-ignore --><img   src=b><i>c</i>\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<!-- prettier-ignore -->\n<br><br>\n",
-    "prettier": "<!-- prettier-ignore -->\n<b/><br />\n",
-    "tidy": "<!-- prettier-ignore -->\n<br><br />\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<p>\n  <!-- prettier-ignore -->\n  <input   type=text>x\n</p>\n",
-    "prettier": "<p>\n  <!-- prettier-ignore -->\n  <input   type=tex/>x\n</p>\n",
-    "tidy": "<p>\n  <!-- prettier-ignore -->\n  <input   type=text>x\n</p>\n"
-   }
-  ]
- },
- {
-  "id": "html-text-after-nul",
-  "rows": [
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<p   a>b</p>\n<p>c\u0000d</p>\n<p>e</p>\n",
-    "prettier": "<p a>b</p>\n<p>c</p>\n",
-    "tidy": "!error Unexpected NUL character"
-   },
-   {
-    "parsers": [
-     "vue"
-    ],
-    "input": "<template>\n<p>b\u0000c</p>\n</template>\n<script>\nlet a  = 1\n</script>\n",
-    "prettier": "<template>\n  <p>b</p>\n</template>\n",
-    "tidy": "!error Unexpected NUL character"
-   }
-  ]
- },
- {
-  "id": "html-borrowed-markers-once",
-  "rows": [
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<a><b><!-- prettier-ignore -->\n<i></i></b></a>\n",
-    "prettier": "<a\n  ><b\n    ><!-- prettier-ignore -->\n    <i></i>></b\n></a>\n",
-    "tidy": "<a\n  ><b\n    ><!-- prettier-ignore -->\n    <i></i></b\n></a>\n",
-    "whitespace": "strict"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<span><!--[if a]><p>b<![endif]--></span>\n",
-    "prettier": "<span\n  >><!--[if a]><p>b<![endif]--></span</span\n>\n",
-    "tidy": "<span\n  ><!--[if a]><p>b<![endif]--></span\n>\n"
-   },
-   {
-    "parsers": [
-     "html"
-    ],
-    "input": "<b>a</b><pre   ><i>x</i>\n",
-    "prettier": "<b>a</b>><pre>>\n",
-    "tidy": "<b>a</b><pre><i>x</i>\n",
-    "whitespace": "strict"
-   }
-  ]
- },
- {
-  "id": "xml-embed-by-name",
-  "rows": [
-   {
-    "parsers": [
-     "xml"
-    ],
-    "input": "<article>\n  <remark>Use *this*   or  _that_.</remark>\n</article>\n",
-    "prettier": "<article>\n  <remark>\nUse _this_ or _that_.\n  </remark>\n</article>\n",
-    "tidy": "<article>\n  <remark>Use *this*   or  _that_.</remark>\n</article>\n"
-   },
-   {
-    "parsers": [
-     "xml"
-    ],
-    "input": "<config><yaml>a:   1\nb:    [1,2]</yaml></config>\n",
-    "prettier": "<config><yaml>\na: 1\nb: [1, 2]\n  </yaml></config>\n",
-    "tidy": "<config><yaml>a:   1\nb:    [1,2]</yaml></config>\n"
-   },
-   {
-    "parsers": [
-     "xml"
-    ],
-    "input": "<a><json>{\"a\":1}</json></a>\n",
-    "prettier": "<a><json>\n{ \"a\": 1 }\n  </json></a>\n",
-    "tidy": "<a><json>{\"a\":1}</json></a>\n"
-   }
-  ]
- },
- {
-  "id": "xml-hex-character-reference",
-  "rows": [
-   {
-    "parsers": [
-     "xml"
-    ],
-    "input": "<a>one &amp; two &#65; three &#x41; four</a>\n",
-    "prettier": "<a>\n  one &amp; two &#65; three &#x4 1; four\n</a>\n",
-    "tidy": "<a>\n  one &amp; two &#65; three &#x41; four\n</a>\n",
-    "whitespace": "ignore"
-   },
-   {
-    "parsers": [
-     "xml"
-    ],
-    "input": "<a><b>&#x41;</b><c>&#65;</c></a>\n",
-    "prettier": "<a>\n  <b>&#x41;</b>\n  <c>\n    &#65;\n  </c>\n</a>\n",
-    "tidy": "<a>\n  <b>\n    &#x41;\n  </b>\n  <c>\n    &#65;\n  </c>\n</a>\n",
-    "whitespace": "preserve"
-   }
-  ]
- },
- {
-  "id": "xml-ignore-trims-xml-whitespace",
-  "rows": [
-   {
-    "parsers": [
-     "xml"
-    ],
-    "input": "<a><b> </b><c> x </c></a>\n",
-    "prettier": "<a>\n  <b></b>\n  <c>x</c>\n</a>\n",
-    "tidy": "<a>\n  <b> </b>\n  <c> x </c>\n</a>\n",
-    "whitespace": "ignore"
-   }
-  ]
- }
+  {
+    "id": "hbs-doctype",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<!DOCTYPE html>\n<p   ></p>\n",
+        "prettier": "<p></p>",
+        "tidy": "<!DOCTYPE html>\n<p></p>"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<!doctype html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n<p   ></p>\n",
+        "prettier": "<p></p>",
+        "tidy": "<!doctype html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n<p></p>"
+      }
+    ]
+  },
+  {
+    "id": "hbs-dropped-markup-kept-as-written",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "a <3 b   ></b>\n",
+        "prettier": "a <b></b>",
+        "tidy": "a <3 b   ></b>\n"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<p   ></p><a",
+        "prettier": "<p></p>",
+        "tidy": "<p   ></p><a"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "< a>b</a><p   ></p>\n",
+        "prettier": "<a>b</a><p></p>",
+        "tidy": "< a>b</a><p   ></p>\n"
+      }
+    ]
+  },
+  {
+    "id": "hbs-html-comment-start-and-end",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<!---a--><p   ></p>\n",
+        "prettier": "<!-----><p></p>",
+        "tidy": "<!---a--><p></p>"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<!--{{a}}--><p   ></p>\n",
+        "prettier": "{{a}}<!----><p></p>",
+        "tidy": "<!--{{a}}--><p></p>"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<!-- a-{{b}} --><p   ></p>\n",
+        "prettier": "{{b}}<!-- a- --><p></p>",
+        "tidy": "<!-- a-{{b}} --><p></p>"
+      }
+    ]
+  },
+  {
+    "id": "hbs-escaped-mustache",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<!-- \\{{a}} --><p   ></p>\n",
+        "prettier": "<!-- {{a}} --><p></p>",
+        "tidy": "<!-- \\{{a}} --><p></p>"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<a   \\{{b}}></a>\n",
+        "prettier": "<a {{b}}></a>",
+        "tidy": "<a   \\{{b}}></a>"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<pre   >\\{{a}}</pre>\n",
+        "prettier": "<pre>{{a}}</pre>",
+        "tidy": "<pre>\\{{a}}</pre>"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{! prettier-ignore }}a\\{{b}}<p   ></p>\n",
+        "prettier": "{{! prettier-ignore }}a{{b}}<p></p>",
+        "tidy": "{{! prettier-ignore }}a\\{{b}}<p></p>"
+      }
+    ]
+  },
+  {
+    "id": "hbs-style-with-mustache",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<style   >a{b:\"\\{{c}}\"}</style>\n",
+        "prettier": "<style>a{b:\"{{c}}\"}</style>",
+        "tidy": "<style>a{b:\"\\{{c}}\"}</style>"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<style   >a{margin: 0 {{b}} 0}</style>\n",
+        "prettier": "<style>a{margin: 0{{b}}0}</style>",
+        "tidy": "<style>a{margin: 0 {{b}} 0}</style>"
+      }
+    ]
+  },
+  {
+    "id": "hbs-no-break-space",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{#a   }} {{/a}}\n",
+        "prettier": "{{#a}}{{/a}}",
+        "tidy": "{{#a}} {{/a}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<A   > </A>\n",
+        "prettier": "<A />",
+        "tidy": "<A> </A>"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": " \n",
+        "prettier": "",
+        "tidy": " "
+      }
+    ]
+  },
+  {
+    "id": "hbs-no-break-space-in-class",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<a   class=\"b c\"></a>\n",
+        "prettier": "<a class=\"b c\"></a>",
+        "tidy": "<a class=\"b c\"></a>"
+      }
+    ]
+  },
+  {
+    "id": "hbs-backslash-before-mustache",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<a   b=\"c\\\\{{d}}\"></a>\n",
+        "prettier": "<a b=\"c\\{{d}}\"></a>",
+        "tidy": "<a b=\"c\\\\{{d}}\"></a>"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "a\\\\{{!   b }}\n",
+        "prettier": "a\\{{!   b }}",
+        "tidy": "a\\\\{{!   b }}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{#a   }}b\\\\{{/a}}\n",
+        "prettier": "{{#a}}b\\{{/a}}",
+        "tidy": "{{#a}}b\\\\{{/a}}"
+      }
+    ]
+  },
+  {
+    "id": "hbs-both-quotes-in-value",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<a   b=c\"d'e></a>\n",
+        "prettier": "<a b=\"c\"d'e\"></a>",
+        "tidy": "<a b=\"c&quot;d'e\"></a>"
+      }
+    ]
+  },
+  {
+    "id": "hbs-script-textarea-lines",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<script   >\n  // a\n  b()\n</script>\n",
+        "prettier": "<script>\n  // a b()\n</script>",
+        "tidy": "<script>\n  // a\n  b()\n</script>"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<textarea   >\n  a\n    b\n</textarea>\n",
+        "prettier": "<textarea>\n  a b\n</textarea>",
+        "tidy": "<textarea>\n  a\n    b\n</textarea>"
+      }
+    ]
+  },
+  {
+    "id": "hbs-pre-descendant-whitespace",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<pre   ><b>a\n  b</b></pre>\n",
+        "prettier": "<pre><b>a b</b></pre>",
+        "tidy": "<pre><b>a\n  b</b></pre>"
+      }
+    ]
+  },
+  {
+    "id": "hbs-whitespace-block-in-pre-textarea",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<textarea   >{{#a}} {{/a}}</textarea>\n",
+        "prettier": "<textarea>{{#a}}{{/a}}</textarea>",
+        "tidy": "<textarea>{{#a}} {{/a}}</textarea>"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<pre   >{{#a}} {{/a}}</pre>\n",
+        "prettier": "<pre>{{#a}}{{/a}}</pre>",
+        "tidy": "<pre>{{#a}} {{/a}}</pre>"
+      }
+    ]
+  },
+  {
+    "id": "hbs-void-with-children",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<imG   >a</imG>\n",
+        "prettier": "<imG />",
+        "tidy": "<imG>a</imG>"
+      }
+    ]
+  },
+  {
+    "id": "hbs-path-round-trip",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{this/a   }}\n",
+        "prettier": "{{a}}",
+        "tidy": "{{this/a}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{@this.a   }}\n",
+        "prettier": "{{@a}}",
+        "tidy": "{{@this.a}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{[this]   }}\n",
+        "prettier": "{{this.this}}",
+        "tidy": "{{[this]}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{[].a   }}\n",
+        "prettier": "{{a}}",
+        "tidy": "{{[].a}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{a.#b   }}\n",
+        "prettier": "{{a.[#b]}}",
+        "tidy": "{{a.#b}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{[]/a   }}\n",
+        "prettier": "{{a}}",
+        "tidy": "{{[]/a}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{@[].a   }}\n",
+        "prettier": "{{@a}}",
+        "tidy": "{{@[].a}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{a.[]   }}\n",
+        "prettier": "{{a.}}",
+        "tidy": "{{a.[]}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{a   [].b c=[].d}}\n",
+        "prettier": "{{a b c=d}}",
+        "tidy": "{{a [].b c=[].d}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{this.this   }}\n",
+        "prettier": "{{this}}",
+        "tidy": "{{this.this}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{a   ...b}}\n",
+        "prettier": "{{a b}}",
+        "tidy": "{{a ...b}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{[a/b]   }}\n",
+        "prettier": "{{a/b}}",
+        "tidy": "{{[a/b]}}"
+      }
+    ]
+  },
+  {
+    "id": "hbs-bracketed-segment",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{a   [true]}}\n",
+        "prettier": "{{a true}}",
+        "tidy": "{{a [true]}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{a   [-1]}}\n",
+        "prettier": "{{a -1}}",
+        "tidy": "{{a [-1]}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{[else]   }}\n",
+        "prettier": "{{else}}",
+        "tidy": "{{[else]}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{a   [@b]}}\n",
+        "prettier": "{{a @b}}",
+        "tidy": "{{a [@b]}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{a   [b\\]]}}\n",
+        "prettier": "{{a [b]]}}",
+        "tidy": "{{a [b\\]]}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{a   [b\nc]}}\n",
+        "prettier": "{{a [[b\nc]]}}",
+        "tidy": "{{a [b\nc]}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{#[a b]   }}{{else [a b] c}}{{/[a b]}}\n",
+        "prettier": "{{#[a b]}}{{else a b c}}{{/[a b]}}",
+        "tidy": "{{#[a b]}}{{else [a b] c}}{{/[a b]}}"
+      }
+    ]
+  },
+  {
+    "id": "hbs-hash-key-in-brackets",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{a   [b c]=d}}\n",
+        "prettier": "{{a b c=d}}",
+        "tidy": "{{a [b c]=d}}"
+      }
+    ]
+  },
+  {
+    "id": "hbs-dropped-arguments",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{\"a\"   b}}\n",
+        "prettier": "{{\"a\"}}",
+        "tidy": "{{\"a\"   b}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{(a=b)   c}}\n",
+        "prettier": "{{ c}}",
+        "tidy": "{{(a=b)   c}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{a   ((b=c) d)}}\n",
+        "prettier": "{{a ( d)}}",
+        "tidy": "{{a   ((b=c) d)}}"
+      }
+    ]
+  },
+  {
+    "id": "hbs-raw-block",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{{{a}}}}   {{b}} {{{{/a}}}}\n",
+        "prettier": "{{#a}} \\{{b}} {{/a}}",
+        "tidy": "{{{{a}}}}   {{b}} {{{{/a}}}}"
+      }
+    ]
+  },
+  {
+    "id": "hbs-number-exponent",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{a   1000000000000000000000}}\n",
+        "prettier": "{{a 1e+21}}",
+        "tidy": "{{a 1000000000000000000000}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{a   0.0000001}}\n",
+        "prettier": "{{a 1e-7}}",
+        "tidy": "{{a 0.0000001}}"
+      }
+    ]
+  },
+  {
+    "id": "hbs-triple-stash-strip",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{{a   }~}}\n",
+        "prettier": "{{{a~}}}",
+        "tidy": "{{{a}~}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "<a   {{{b}}}></a>\n",
+        "prettier": "<a {{b}}></a>",
+        "tidy": "<a {{{b}}}></a>"
+      }
+    ]
+  },
+  {
+    "id": "hbs-comment-dashes",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{!--   a ~--}}\n",
+        "prettier": "{{!   a ~}}",
+        "tidy": "{{!--   a ~--}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{!----   a --}}\n",
+        "prettier": "{{!--   a }}",
+        "tidy": "{{!----   a --}}"
+      }
+    ]
+  },
+  {
+    "id": "hbs-else-chain",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{#a   }}{{else if.b c}}{{/a}}\n",
+        "prettier": "{{#a}}{{else if c}}{{/a}}",
+        "tidy": "{{#a}}{{else if.b c}}{{/a}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{#a   }}{{else}}{{~#if b}}c{{/if}}{{/a}}\n",
+        "prettier": "{{#a}}{{else if b}}c{{/a}}",
+        "tidy": "{{#a}}{{else}}{{~#if b}}c{{/if}}{{/a}}"
+      },
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "{{#z   }}y{{else}}{{#if a}}b{{~else if c}}d {{/if}}{{/z}}\n",
+        "prettier": "{{#z}}y{{else if a}}b{{~else if c}}d {{/z}}",
+        "tidy": "{{#z}}y{{else}}{{#if a}}b{{~else if c}}d {{/if}}{{/z}}"
+      }
+    ]
+  },
+  {
+    "id": "hbs-line-separator-columns",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "a\n {{~! b ~}} <p {{c}} d=\"e\" {{f}} g></p> <!-- {{h}} -->\n {{! prettier-ignore }} {{  i  }} {{!-- j --~}}\n{{k\n  l}} {{~! m }}\n",
+        "prettier": "a  {{! b }}\n<p {{c}} d=\"e\" {{f}} g></p>\n<!--  {{h} -->\n  {{! prettier-ignore }\n {{  i  }\n{{! j }}\n{{k l}}\n{{! m }}",
+        "tidy": "a  {{~! b ~}}\n<p {{c}} d=\"e\" {{f}} g></p>\n<!-- {{h}} -->\n {{! prettier-ignore }}\n{{  i  }}\n{{! j ~}}\n{{k l}}\n{{~! m }}"
+      }
+    ]
+  },
+  {
+    "id": "hbs-ws-ignore-escaped-mustache",
+    "rows": [
+      {
+        "parsers": [
+          "handlebars"
+        ],
+        "input": "p \\{{a}} {{q   }}\n",
+        "prettier": "p\\{{a}} {{q}}",
+        "tidy": "p \\{{a}} {{q}}",
+        "whitespace": "ignore"
+      }
+    ]
+  },
+  {
+    "id": "css-escaped-space-before-semicolon",
+    "rows": [
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "x{@extend   .a\\ ;}\n@extend .a\\ ;\nx{@include   .a\\ ;}\n@include .a\\ ;\nx{@media   .a\\ ;}\n@media .a\\ ;\nx{@supports   .a\\ ;}\n@supports .a\\ ;\nx{@container   .a\\ ;}\n@container .a\\ ;\nx{@layer   .a\\ ;}\n@layer .a\\ ;\nx{@import   .a\\ ;}\n@import .a\\ ;\nx{@custom   .a\\ ;}\n@custom .a\\ ;\n@last .a\\ ",
+        "prettier": "x {\n  @extend .a\\;\n}\n@extend .a\\;\nx {\n  @include .a\\;\n}\n@include .a\\;\nx {\n  @media .a\\;\n}\n@media .a\\;\nx {\n  @supports .a\\;\n}\n@supports .a\\;\nx {\n  @container .a\\;\n}\n@container .a\\;\nx {\n  @layer .a\\;\n}\n@layer .a\\;\nx {\n  @import .a\\;\n}\n@import .a\\;\nx {\n  @custom .a\\;\n}\n@custom .a\\;\n@last .a\\;\n",
+        "tidy": "x {\n  @extend .a\\ ;\n}\n@extend .a\\ ;\nx {\n  @include .a\\ ;\n}\n@include .a\\ ;\nx {\n  @media .a\\ ;\n}\n@media .a\\ ;\nx {\n  @supports .a\\ ;\n}\n@supports .a\\ ;\nx {\n  @container .a\\ ;\n}\n@container .a\\ ;\nx {\n  @layer .a\\ ;\n}\n@layer .a\\ ;\nx {\n  @import .a\\ ;\n}\n@import .a\\ ;\nx {\n  @custom .a\\ ;\n}\n@custom .a\\ ;\n@last .a\\ ;\n"
+      },
+      {
+        "parsers": [
+          "scss"
+        ],
+        "input": "@media (a\\ ){b{c:d}}\n@each   .a\\ ;\n",
+        "prettier": "@media (a\\) {\n  b {\n    c: d;\n  }\n}\n@each .a\\ ;\n",
+        "tidy": "@media (a\\ ) {\n  b {\n    c: d;\n  }\n}\n@each .a\\ ;\n"
+      },
+      {
+        "parsers": [
+          "scss"
+        ],
+        "input": "a{@extend .a\\ ;}\n",
+        "prettier": "a {\n  @extend .a\\;\n}\n",
+        "tidy": "a {\n  @extend .a\\ ;\n}\n"
+      },
+      {
+        "parsers": [
+          "css"
+        ],
+        "input": "@media .a\\ ;\n",
+        "prettier": "@media .a\\;\n",
+        "tidy": "@media .a\\ ;\n"
+      }
+    ]
+  },
+  {
+    "id": "css-escaped-space-in-value",
+    "rows": [
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{b:Font\\ Awesome\\ 5}\n",
+        "prettier": "a {\n  b: Font\\Awesome\\5;\n}\n",
+        "tidy": "a {\n  b: Font\\ Awesome\\ 5;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{b:a\\g   c}\n",
+        "prettier": "a {\n  b: a\\gc;\n}\n",
+        "tidy": "a {\n  b: a\\g c;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{b:d\\  e}\n",
+        "prettier": "a {\n  b: d\\e;\n}\n",
+        "tidy": "a {\n  b: d\\  e;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{b:d\\ -5}\n",
+        "prettier": "a {\n  b: d\\-5;\n}\n",
+        "tidy": "a {\n  b: d\\ -5;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{b:d\\ }\n",
+        "prettier": "a {\n  b: d\\;\n}\n",
+        "tidy": "a {\n  b: d\\ ;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{b:(a\\ )}\n",
+        "prettier": "a {\n  b: (a\\);\n}\n",
+        "tidy": "a {\n  b: (a\\ );\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{b:f(b a\\ )}\n",
+        "prettier": "a {\n  b: f(b a\\);\n}\n",
+        "tidy": "a {\n  b: f(b a\\ );\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{b:f(a\\ , b)}\n",
+        "prettier": "a {\n  b: f(a\\, b);\n}\n",
+        "tidy": "a {\n  b: f(a\\ , b);\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{b:a\\ , b}\n",
+        "prettier": "a {\n  b: a\\, b;\n}\n",
+        "tidy": "a {\n  b: a\\ , b;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{b:d\\\\   e}\n",
+        "prettier": "a {\n  b: d\\\\e;\n}\n",
+        "tidy": "a {\n  b: d\\\\ e;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{b:x d\\h   f g}\n",
+        "prettier": "a {\n  b: x d\\hf g;\n}\n",
+        "tidy": "a {\n  b: x d\\h f g;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{b:a\\b   c}\n",
+        "prettier": "a {\n  b: a\\bc;\n}\n",
+        "tidy": "a {\n  b: a\\b  c;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{b:x d\\e   f g}\n",
+        "prettier": "a {\n  b: x d\\ef g;\n}\n",
+        "tidy": "a {\n  b: x d\\e  f g;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{b:a\\b c}\n",
+        "prettier": "a {\n  b: a\\bc;\n}\n",
+        "tidy": "a {\n  b: a\\b c;\n}\n"
+      }
+    ]
+  },
+  {
+    "id": "css-selector-without-namespace",
+    "rows": [
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "x |b{c:d}\n",
+        "prettier": "x|b {\n  c: d;\n}\n",
+        "tidy": "x |b {\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "x,|b,y{c:d}\n",
+        "prettier": "x,\n,|b,\ny {\n  c: d;\n}\n",
+        "tidy": "x,\n|b,\ny {\n  c: d;\n}\n"
+      }
+    ]
+  },
+  {
+    "id": "css-non-ascii-lowercase",
+    "rows": [
+      {
+        "parsers": [
+          "css"
+        ],
+        "input": "@media (KA){a{b:c}}\n",
+        "prettier": "@media (ka) {\n  a {\n    b: c;\n  }\n}\n",
+        "tidy": "@media (Ka) {\n  a {\n    b: c;\n  }\n}\n"
+      }
+    ]
+  },
+  {
+    "id": "less-variable-colon-without-space",
+    "rows": [
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a:1px solid #ccc;\n",
+        "prettier": "@a: 1pxsolid #ccc;\n",
+        "tidy": "@a: 1px solid #ccc;\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a:0 1px 2px rgba(0,0,0,.05);\n",
+        "prettier": "@a: 01px 2px rgba(0, 0, 0, 0.05);\n",
+        "tidy": "@a: 0 1px 2px rgba(0, 0, 0, 0.05);\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a:@b - @c;\n",
+        "prettier": "@a: @b- @c;\n",
+        "tidy": "@a: @b - @c;\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a:0 -@b;\n",
+        "prettier": "@a: 0-@b;\n",
+        "tidy": "@a: 0 -@b;\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a:-1px -2px;\n",
+        "prettier": "@a: -1px-2px;\n",
+        "tidy": "@a: -1px -2px;\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a:10px ./ 2;\n",
+        "prettier": "@a: 10px./ 2;\n",
+        "tidy": "@a: 10px ./ 2;\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a:screen and (min-width:1px);\n",
+        "prettier": "@a: screenand (min-width: 1px);\n",
+        "tidy": "@a: screen and (min-width: 1px);\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a:1px solid!important;\n",
+        "prettier": "@a: 1pxsolid!important;\n",
+        "tidy": "@a: 1px solid!important;\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a:1px\n  solid;\n",
+        "prettier": "@a: 1pxsolid;\n",
+        "tidy": "@a: 1px solid;\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": ".a{@b:1px solid red;c:@b}\n",
+        "prettier": ".a {\n  @b: 1pxsolid red;\n  c: @b;\n}\n",
+        "tidy": ".a {\n  @b: 1px solid red;\n  c: @b;\n}\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": ".a(){@b:1px solid;}\n",
+        "prettier": ".a() {\n  @b: 1pxsolid;\n}\n",
+        "tidy": ".a() {\n  @b: 1px solid;\n}\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a:{@b:1px solid}\n",
+        "prettier": "@a: {\n  @b: 1pxsolid;\n};\n",
+        "tidy": "@a: {\n  @b: 1px solid;\n};\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a:1px // b\n solid;\n",
+        "prettier": "@a: 1px  //\n  solid;\n",
+        "tidy": "@a: 1px // b\n  solid;\n"
+      }
+    ]
+  },
+  {
+    "id": "less-variable-comment",
+    "rows": [
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a: 1px /* why */ solid;\n",
+        "prettier": "@a: 1px solid;\n",
+        "tidy": "@a: 1px /* why */ solid;\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a: \"Helvetica Neue\" /* mac */, Arial /* win */, sans-serif;\n",
+        "prettier": "@a: \"Helvetica Neue\", Arial, sans-serif;\n",
+        "tidy": "@a:\n  \"Helvetica Neue\" /* mac */,\n  Arial /* win */,\n  sans-serif;\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a: /* why */ 1px;\n",
+        "prettier": "@a: 1px;\n",
+        "tidy": "@a: /* why */ 1px;\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a: darken(@b, 10% /* why */);\n",
+        "prettier": "@a: darken(@b, 10%);\n",
+        "tidy": "@a: darken(@b, 10% /* why */);\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a: (1 /* why */ + 2);\n",
+        "prettier": "@a: (1 + 2);\n",
+        "tidy": "@a: (1 /* why */ + 2);\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a: red ! /* why */ important;\n",
+        "prettier": "@a: red ! important;\n",
+        "tidy": "@a: red ! /* why */ important;\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a: b /* c */ d/* e */f;\n",
+        "prettier": "@a: b d  c */ d f;\n",
+        "tidy": "@a: b /* c */ d /* e */ f;\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a : 1px /* why */ solid;\n",
+        "prettier": "@a: 1px solid;\n",
+        "tidy": "@a: 1px /* why */ solid;\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "x{@a: 1px /* why */ solid}\n",
+        "prettier": "x {\n  @a: 1px solid;\n}\n",
+        "tidy": "x {\n  @a: 1px /* why */ solid;\n}\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a:1px /* why */ solid;\n",
+        "prettier": "@a: 1pxsolid;\n",
+        "tidy": "@a: 1px /* why */ solid;\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a:1px/* why */solid;\n",
+        "prettier": "@a: 1pxsolid;\n",
+        "tidy": "@a: 1px /* why */ solid;\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a:b(c)/* d */e;\n",
+        "prettier": "@a: b(c) )/* d * e;\n",
+        "tidy": "@a: b(c) /* d */ e;\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a:darken(@b,10%/* why */);\n",
+        "prettier": "@a: darken(@b, 10% %/* why *);\n",
+        "tidy": "@a: darken(@b, 10% /* why */);\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@a:b /* c */ d/* e */f;\n",
+        "prettier": "@a: bd /* c */ f;\n",
+        "tidy": "@a: b /* c */ d /* e */ f;\n"
+      }
+    ]
+  },
+  {
+    "id": "css-comment-only-at-rule-params",
+    "rows": [
+      {
+        "parsers": [
+          "scss"
+        ],
+        "input": "@if $a {\n  b: c;\n} @else /* why */ {\n  d: e;\n}\n",
+        "prettier": "@if $a {\n  b: c;\n} @else  /* why * {\n  d: e;\n}\n",
+        "tidy": "@if $a {\n  b: c;\n} @else /* why */ {\n  d: e;\n}\n"
+      },
+      {
+        "parsers": [
+          "scss"
+        ],
+        "input": "@else /* a */ /* b */ {\n}\n@function /* a */ {\n}\n@return /* a */;\n",
+        "prettier": "@else  /* a *  /* b * {\n}\n@function  /* a * {\n}\n@return  /* a *;\n",
+        "tidy": "@else /* a */ /* b */ {\n}\n@function /* a */ {\n}\n@return /* a */;\n"
+      }
+    ]
+  },
+  {
+    "id": "css-line-comment-before-brace-or-semicolon",
+    "rows": [
+      {
+        "parsers": [
+          "scss"
+        ],
+        "input": "@if $a {\n  b: c;\n} @else // why\n{\n  d: e;\n}\n",
+        "prettier": "@if $a {\n  b: c;\n} @else  { // wh\n  d: e;\n}\n",
+        "tidy": "@if $a {\n  b: c;\n} @else // why\n{\n  d: e;\n}\n"
+      },
+      {
+        "parsers": [
+          "scss",
+          "less"
+        ],
+        "input": "@media (min-width: 1px) // Why\n{\n  a {\n    b: c;\n  }\n}\n",
+        "prettier": "@media (min-width: 1px) // Why {\n  a {\n    b: c;\n  }\n}\n",
+        "tidy": "@media (min-width: 1px) // Why\n{\n  a {\n    b: c;\n  }\n}\n"
+      },
+      {
+        "parsers": [
+          "scss"
+        ],
+        "input": "@media screen // Why\n  and (min-width: 1px) {\n  a {\n    b: c;\n  }\n}\n",
+        "prettier": "@media screen // Why and (min-width: 1px) {\n  a {\n    b: c;\n  }\n}\n",
+        "tidy": "@media screen // Why\n  and (min-width: 1px) {\n  a {\n    b: c;\n  }\n}\n"
+      },
+      {
+        "parsers": [
+          "scss"
+        ],
+        "input": "@if $a// why\n{\n  b: c;\n}\n",
+        "prettier": "@if $a// why {\n  b: c;\n}\n",
+        "tidy": "@if $a // why\n{\n  b: c;\n}\n"
+      },
+      {
+        "parsers": [
+          "scss"
+        ],
+        "input": "a {\n  @extend .b // why\n  ;\n  c: d\n}\n",
+        "prettier": "a {\n  @extend .b // why;\n  c: d;\n}\n",
+        "tidy": "a {\n  @extend .b; // why\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "scss"
+        ],
+        "input": "@warn \"a\" // why\n;\n@b c // why\n;\n",
+        "prettier": "@warn \"a\" // why;\n@b c // why;\n",
+        "tidy": "@warn \"a\"; // why\n@b c; // why\n"
+      },
+      {
+        "parsers": [
+          "scss"
+        ],
+        "input": "$a: b// why\n;\n$c: 1;\n",
+        "prettier": "$a: b// why;\n$c: 1;\n",
+        "tidy": "$a: b; // why\n$c: 1;\n"
+      },
+      {
+        "parsers": [
+          "scss"
+        ],
+        "input": "a { b: c// why\n; d: e }\n",
+        "prettier": "a {\n  b: c// why;\n  d: e;\n}\n",
+        "tidy": "a {\n  b: c; // why\n  d: e;\n}\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": ".a() // why\n;\n.b();\n",
+        "prettier": ".a() // why;\n.b();\n",
+        "tidy": ".a(); // why\n.b();\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": ".a() // \"why\"\n;\n.b();\n",
+        "prettier": ".a() //  why;\n.b();\n",
+        "tidy": ".a(); // \"why\"\n.b();\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "a { b: c//\"why\"\n; d: e }\n",
+        "prettier": "a {\n  b: c// why;\n  d: e;\n}\n",
+        "tidy": "a {\n  b: c; //\"why\"\n  d: e;\n}\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "@plugin \"a\" // 'why'\n;\n",
+        "prettier": "@plugin \"a\" //  why;\n",
+        "tidy": "@plugin \"a\"; // 'why'\n"
+      }
+    ]
+  },
+  {
+    "id": "css-nth-and-keyframe-sign",
+    "rows": [
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": ":nth-child(+n+3){c:d}\n",
+        "prettier": ":nth-child(+ n + 3) {\n  c: d;\n}\n",
+        "tidy": ":nth-child(+n + 3) {\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": ":nth-child(+3){c:d}\n",
+        "prettier": ":nth-child(+ 3) {\n  c: d;\n}\n",
+        "tidy": ":nth-child(+3) {\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "li:nth-child(+2n+1){c:d}\n",
+        "prettier": "li:nth-child(+ 2n + 1) {\n  c: d;\n}\n",
+        "tidy": "li:nth-child(+2n + 1) {\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": ":nth-last-child(+n + 2){c:d}\n",
+        "prettier": ":nth-last-child(+ n + 2) {\n  c: d;\n}\n",
+        "tidy": ":nth-last-child(+n + 2) {\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": ":nth-col(+2){c:d}\n",
+        "prettier": ":nth-col(+ 2) {\n  c: d;\n}\n",
+        "tidy": ":nth-col(+2) {\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": ":NTH-CHILD(+N+3 of .a){c:d}\n",
+        "prettier": ":nth-child(+ N + 3 of .a) {\n  c: d;\n}\n",
+        "tidy": ":nth-child(+N + 3 of .a) {\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "@keyframes x{+50%{a:b}}\n",
+        "prettier": "@keyframes x {\n  + 50% {\n    a: b;\n  }\n}\n",
+        "tidy": "@keyframes x {\n  +50% {\n    a: b;\n  }\n}\n"
+      }
+    ]
+  },
+  {
+    "id": "css-hex-escape-space-in-selector",
+    "rows": [
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": ".\\31  .b{c:d}\n",
+        "prettier": ".\\31 .b {\n  c: d;\n}\n",
+        "tidy": ".\\31  .b {\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "#\\31  li{c:d}\n",
+        "prettier": "#\\31 li {\n  c: d;\n}\n",
+        "tidy": "#\\31  li {\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": ".\\e9  a{c:d}\n",
+        "prettier": ".\\e9 a {\n  c: d;\n}\n",
+        "tidy": ".\\e9  a {\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": ".\\31 \\30  .b{c:d}\n",
+        "prettier": ".\\31 \\30 .b {\n  c: d;\n}\n",
+        "tidy": ".\\31 \\30  .b {\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": ".\\000031  b{c:d}\n",
+        "prettier": ".\\000031 b {\n  c: d;\n}\n",
+        "tidy": ".\\000031  b {\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a:not(.\\31  b){c:d}\n",
+        "prettier": "a:not(.\\31 b) {\n  c: d;\n}\n",
+        "tidy": "a:not(.\\31  b) {\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": ".\\31 \n.b{c:d}\n",
+        "prettier": ".\\31 .b {\n  c: d;\n}\n",
+        "tidy": ".\\31  .b {\n  c: d;\n}\n"
+      }
+    ]
+  },
+  {
+    "id": "css-attribute-value-escape",
+    "rows": [
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "[a=x\\31 i]{c:d}\n",
+        "prettier": "[a=\"x\\31\" i] {\n  c: d;\n}\n",
+        "tidy": "[a=\"x\\31 i\"] {\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "[a=b\\ c]{c:d}\n",
+        "prettier": "[a=\"b\\\" c] {\n  c: d;\n}\n",
+        "tidy": "[a=\"b\\ c\"] {\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "[a=b\\ c i]{c:d}\n",
+        "prettier": "[a=\"b\\\" c i] {\n  c: d;\n}\n",
+        "tidy": "[a=\"b\\ c\" i] {\n  c: d;\n}\n"
+      }
+    ]
+  },
+  {
+    "id": "css-hex-escape-space-in-value",
+    "rows": [
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{animation-name:\\31  x}\n",
+        "prettier": "a {\n  animation-name: \\31 x;\n}\n",
+        "tidy": "a {\n  animation-name: \\31  x;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{b:\\31  x \\e9  \"y\" \\31 z}\n",
+        "prettier": "a {\n  b: \\31 x \\e9\"y\" \\31 z;\n}\n",
+        "tidy": "a {\n  b: \\31  x \\e9  \"y\" \\31 z;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a {\n  animation-name: word word word word word word word word word word word wo \\31 abcdefghijklmnop;\n}\n",
+        "prettier": "a {\n  animation-name: word word word word word word word word word word word wo \\31\n    abcdefghijklmnop;\n}\n",
+        "tidy": "a {\n  animation-name: word word word word word word word word word word word wo\n    \\31 abcdefghijklmnop;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a {\n  --x: word word word word word word word word word word word word word wo \\31 abcdefghijklmnop;\n}\n",
+        "prettier": "a {\n  --x: word word word word word word word word word word word word word wo \\31\n    abcdefghijklmnop;\n}\n",
+        "tidy": "a {\n  --x: word word word word word word word word word word word word word wo\n    \\31 abcdefghijklmnop;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a {\n  b: word word word word word word word word word word word word word wor x\\31 abcdefghijklmnop;\n}\n",
+        "prettier": "a {\n  b: word word word word word word word word word word word word word wor x\\31\n    abcdefghijklmnop;\n}\n",
+        "tidy": "a {\n  b: word word word word word word word word word word word word word wor\n    x\\31 abcdefghijklmnop;\n}\n"
+      }
+    ]
+  },
+  {
+    "id": "css-author-defined-names",
+    "rows": [
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "@plugin \"@tailwindcss/typography\" {className:wysiwyg}\n",
+        "prettier": "@plugin \"@tailwindcss/typography\" {\n  classname: wysiwyg;\n}\n",
+        "tidy": "@plugin \"@tailwindcss/typography\" {\n  className: wysiwyg;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "@plugin \"./my-plugin.js\" {darkMode:class;maxWidth:10px}\n",
+        "prettier": "@plugin \"./my-plugin.js\" {\n  darkmode: class;\n  maxwidth: 10px;\n}\n",
+        "tidy": "@plugin \"./my-plugin.js\" {\n  darkMode: class;\n  maxWidth: 10px;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "@font-feature-values Font One {@styleset {niceStyle:12} @swash {Fancy:1}}\n",
+        "prettier": "@font-feature-values Font One {\n  @styleset {\n    nicestyle: 12;\n  }\n  @swash {\n    fancy: 1;\n  }\n}\n",
+        "tidy": "@font-feature-values Font One {\n  @styleset {\n    niceStyle: 12;\n  }\n  @swash {\n    Fancy: 1;\n  }\n}\n"
+      },
+      {
+        "parsers": [
+          "css"
+        ],
+        "input": "@plugin \"a\" {maxWidth:1px}\nb{maxWidth:1px}\n@plugin \"a\" {maxWidth:1px}\n",
+        "prettier": "@plugin \"a\" {\n  maxwidth: 1px;\n}\nb {\n  maxwidth: 1px;\n}\n@plugin \"a\" {\n  maxwidth: 1px;\n}\n",
+        "tidy": "@plugin \"a\" {\n  maxWidth: 1px;\n}\nb {\n  maxwidth: 1px;\n}\n@plugin \"a\" {\n  maxWidth: 1px;\n}\n"
+      }
+    ]
+  },
+  {
+    "id": "css-custom-property-values",
+    "rows": [
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:#FFF}\n",
+        "prettier": "a {\n  --x: #fff;\n}\n",
+        "tidy": "a {\n  --x: #FFF;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:#AbCdEf}\n",
+        "prettier": "a {\n  --x: #abcdef;\n}\n",
+        "tidy": "a {\n  --x: #AbCdEf;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:1E3}\n",
+        "prettier": "a {\n  --x: 1e3;\n}\n",
+        "tidy": "a {\n  --x: 1E3;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:1PX}\n",
+        "prettier": "a {\n  --x: 1px;\n}\n",
+        "tidy": "a {\n  --x: 1PX;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:.50}\n",
+        "prettier": "a {\n  --x: 0.5;\n}\n",
+        "tidy": "a {\n  --x: .50;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:0.50em 1.0em}\n",
+        "prettier": "a {\n  --x: 0.5em 1em;\n}\n",
+        "tidy": "a {\n  --x: 0.50em 1.0em;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:+.5}\n",
+        "prettier": "a {\n  --x: +0.5;\n}\n",
+        "tidy": "a {\n  --x: +.5;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:1.}\n",
+        "prettier": "a {\n  --x: 1;\n}\n",
+        "tidy": "a {\n  --x: 1.;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:INHERIT}\n",
+        "prettier": "a {\n  --x: inherit;\n}\n",
+        "tidy": "a {\n  --x: INHERIT;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:'a'}\n",
+        "prettier": "a {\n  --x: \"a\";\n}\n",
+        "tidy": "a {\n  --x: 'a';\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:\"a\",'b'}\n",
+        "prettier": "a {\n  --x: \"a\", \"b\";\n}\n",
+        "tidy": "a {\n  --x: \"a\",'b';\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:1,000}\n",
+        "prettier": "a {\n  --x: 1, 000;\n}\n",
+        "tidy": "a {\n  --x: 1,000;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:16:9}\n",
+        "prettier": "a {\n  --x: 16: 9;\n}\n",
+        "tidy": "a {\n  --x: 16:9;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:a,b}\n",
+        "prettier": "a {\n  --x: a, b;\n}\n",
+        "tidy": "a {\n  --x: a,b;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:a ,b}\n",
+        "prettier": "a {\n  --x: a, b;\n}\n",
+        "tidy": "a {\n  --x: a,b;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:a*b}\n",
+        "prettier": "a {\n  --x: a * b;\n}\n",
+        "tidy": "a {\n  --x: a*b;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:a+b}\n",
+        "prettier": "a {\n  --x: a + b;\n}\n",
+        "tidy": "a {\n  --x: a+b;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:a:b}\n",
+        "prettier": "a {\n  --x: a: b;\n}\n",
+        "tidy": "a {\n  --x: a:b;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:(a:b)}\n",
+        "prettier": "a {\n  --x: (a: b);\n}\n",
+        "tidy": "a {\n  --x: (a:b);\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:rgba(0,0,0,.5)}\n",
+        "prettier": "a {\n  --x: rgba(0, 0, 0, 0.5);\n}\n",
+        "tidy": "a {\n  --x: rgba(0,0,0,.5);\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:translate(1PX,2PX)}\n",
+        "prettier": "a {\n  --x: translate(1px, 2px);\n}\n",
+        "tidy": "a {\n  --x: translate(1PX,2PX);\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:calc( 1PX + .50EM )}\n",
+        "prettier": "a {\n  --x: calc(1px + 0.5em);\n}\n",
+        "tidy": "a {\n  --x: calc(1PX + .50EM);\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:[{\"a\":1}]}\n",
+        "prettier": "a {\n  --x: [{\"a\": 1}];\n}\n",
+        "tidy": "a {\n  --x: [{\"a\":1}];\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:['red' ]}\n",
+        "prettier": "a {\n  --x: [ \"red\"];\n}\n",
+        "tidy": "a {\n  --x: ['red'];\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:[ 'red', 'green', 'blue' ]}\n",
+        "prettier": "a {\n  --x: [ \"red\", \"green\", \"blue\"];\n}\n",
+        "tidy": "a {\n  --x: [ 'red', 'green', 'blue'];\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:#FFF   RED}\n",
+        "prettier": "a {\n  --x: #fff RED;\n}\n",
+        "tidy": "a {\n  --x: #FFF RED;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:#FFF,\n     #EEE}\n",
+        "prettier": "a {\n  --x: #fff, #eee;\n}\n",
+        "tidy": "a {\n  --x: #FFF, #EEE;\n}\n"
+      },
+      {
+        "parsers": [
+          "css"
+        ],
+        "input": "a{--X:   #FFF   !important;--y:#FFF!IMPORTANT;--z:a:b   c   !important;COLOR:#FFF}\n",
+        "prettier": "a {\n  --X: #fff !important;\n  --y: #fff !important;\n  --z: a: b c !important;\n  color: #fff;\n}\n",
+        "tidy": "a {\n  --X: #FFF !important;\n  --y: #FFF !important;\n  --z: a:b c !important;\n  color: #fff;\n}\n"
+      },
+      {
+        "parsers": [
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:#FFF // c\n}\n",
+        "prettier": "a {\n  --x: #fff; // c\n}\n",
+        "tidy": "a {\n  --x: #FFF; // c\n}\n"
+      }
+    ]
+  },
+  {
+    "id": "css-custom-property-line-breaks",
+    "rows": [
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a {\n  --x: 1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000;\n}\n",
+        "prettier": "a {\n  --x:\n    1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1,\n    000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000;\n}\n",
+        "tidy": "a {\n  --x:\n    1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a {\n  --x: -apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",sans-serif,\"Apple Color Emoji\";\n}\n",
+        "prettier": "a {\n  --x:\n    -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\",\n    Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\";\n}\n",
+        "tidy": "a {\n  --x:\n    -apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",sans-serif,\"Apple Color Emoji\";\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a {\n  --x: -apple-system, BlinkMacSystemFont,\"Segoe UI\", Roboto,\"Helvetica Neue\", Arial,\"Noto Sans\", sans-serif,\"Apple Color Emoji\";\n}\n",
+        "prettier": "a {\n  --x:\n    -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\",\n    Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\";\n}\n",
+        "tidy": "a {\n  --x:\n    -apple-system, BlinkMacSystemFont,\"Segoe UI\", Roboto,\"Helvetica Neue\",\n    Arial,\"Noto Sans\", sans-serif,\"Apple Color Emoji\";\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a {\n  --x: rgba(000000000000000000000,000000000000000000000,000000000000000000000,000000000000000000000,.5);\n}\n",
+        "prettier": "a {\n  --x: rgba(\n    000000000000000000000,\n    000000000000000000000,\n    000000000000000000000,\n    000000000000000000000,\n    0.5\n  );\n}\n",
+        "tidy": "a {\n  --x: rgba(\n    000000000000000000000,000000000000000000000,000000000000000000000,000000000000000000000,.5\n  );\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a {\n  --x: f(aaaaaaaaaaaaaaaaaaaaaaaaa,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, cccccccccccccccccccccccc,ddddddddddddddddddddddd);\n}\n",
+        "prettier": "a {\n  --x: f(\n    aaaaaaaaaaaaaaaaaaaaaaaaa,\n    bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,\n    cccccccccccccccccccccccc,\n    ddddddddddddddddddddddd\n  );\n}\n",
+        "tidy": "a {\n  --x: f(\n    aaaaaaaaaaaaaaaaaaaaaaaaa,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,\n    cccccccccccccccccccccccc,ddddddddddddddddddddddd\n  );\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a {\n  --x: f( aaaaaaaaaaaaaaaaaaaaaaaaa,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,cccccccccccccccccccccccc,ddddddddddddddddddddddd );\n}\n",
+        "prettier": "a {\n  --x: f(\n    aaaaaaaaaaaaaaaaaaaaaaaaa,\n    bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,\n    cccccccccccccccccccccccc,\n    ddddddddddddddddddddddd\n  );\n}\n",
+        "tidy": "a {\n  --x: f(\n    aaaaaaaaaaaaaaaaaaaaaaaaa,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,cccccccccccccccccccccccc,ddddddddddddddddddddddd\n  );\n}\n"
+      }
+    ]
+  },
+  {
+    "id": "css-custom-property-json",
+    "rows": [
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:{\"a\":1,\"b\":[1,2]}}\n",
+        "prettier": "a {\n  --x: {\n    \"a\":1,\"b\": [1, 2];\n  };\n}\n",
+        "tidy": "a {\n  --x: {\"a\":1,\"b\":[1,2]};\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "scss",
+          "less"
+        ],
+        "input": "a{--x:{ \"a\": 1 }}\n",
+        "prettier": "a {\n  --x: {\n    \"a\":1;\n  };\n}\n",
+        "tidy": "a {\n  --x: { \"a\": 1 };\n}\n"
+      }
+    ]
+  },
+  {
+    "id": "css-custom-property-url",
+    "rows": [
+      {
+        "parsers": [
+          "css",
+          "less"
+        ],
+        "input": "a{--x:https://Example.com/A;c:d}\n",
+        "prettier": "a {\n  --x: https: ; //Example.com/A\n  c: d;\n}\n",
+        "tidy": "a {\n  --x: https://Example.com/A;\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "a{--x:https://*.example.com/*;c:d}\n",
+        "prettier": "a {\n  --x: https: ; //*.example.com/*\n  c: d;\n}\n",
+        "tidy": "a {\n  --x: https://*.example.com/*;\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "less"
+        ],
+        "input": "a{--x:https://example.com/a?b=\"c\"&d='e';c:d}\n",
+        "prettier": "a {\n  --x: https: ; //example.com/a?b=\"c\"&d='e'\n  c: d;\n}\n",
+        "tidy": "a {\n  --x: https://example.com/a?b=\"c\"&d='e';\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "less"
+        ],
+        "input": "a{--x:http://x.y/z /* note */ \"s\";c:d}\n",
+        "prettier": "a {\n  --x: http: ; //x.y/z /* note */ \"s\"\n  c: d;\n}\n",
+        "tidy": "a {\n  --x: http://x.y/z /* note */ \"s\";\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css"
+        ],
+        "input": "a{--x:http://b/\"c\" !important;c:d}\n",
+        "prettier": "a {\n  --x: http:  !important; //b/\"c\"\n  c: d;\n}\n",
+        "tidy": "a {\n  --x: http://b/\"c\" !important;\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "a{--x:http://b/\"c\" !important;c:d}\n",
+        "prettier": "a {\n  --x: http:  !important; //b/\"c\n  c: d;\n}\n",
+        "tidy": "a {\n  --x: http://b/\"c\" !important;\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css",
+          "less"
+        ],
+        "input": "a{--x:{\"u\":http://\"c\"};c:d}\n",
+        "prettier": "a {\n  --x: {\n    \"u\":http: ;//\"c\"\n  };\n  c: d;\n}\n",
+        "tidy": "a {\n  --x: {\"u\":http://\"c\"};\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css"
+        ],
+        "input": "a{--x://Example.com/A;c:d}\n",
+        "prettier": "a {\n  --x: ;//Example.com/A\n  c: d;\n}\n",
+        "tidy": "a {\n  --x: //Example.com/A;\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css"
+        ],
+        "input": "a{--x:#FFF // b;c:d}\n",
+        "prettier": "a {\n  --x: #fff; // b\n  c: d;\n}\n",
+        "tidy": "a {\n  --x: #FFF // b;\n  c: d;\n}\n"
+      },
+      {
+        "parsers": [
+          "css"
+        ],
+        "input": "a {\n  --hosts: https://*.example.com/*;\n  --query: https://example.com/a?b=\"c\"&d='e';\n  --note: http://x.y/z /* note */ \"s\";\n}\n",
+        "prettier": "a {\n  --hosts: https: //*.example.com/*; --query: https: //example.com/a?b=\"c\"&d='e';\n    --note: http: ; //x.y/z /* note */ \"s\"\n}\n",
+        "tidy": "a {\n  --hosts: https://*.example.com/*;\n  --query: https://example.com/a?b=\"c\"&d='e';\n  --note: http://x.y/z /* note */ \"s\";\n}\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "a {\n  --hosts: https://*.example.com/*;\n  --query: https://example.com/a?b=\"c\"&d='e';\n  --note: http://x.y/z /* note */ \"s\";\n}\n",
+        "prettier": "a {\n  --hosts: https: ; //*.example.com/*\n  --query: https: ; //example.com/a?b=\"c\"&d='e'\n  --note: http: ; //x.y/z /* note */ \"s\"\n}\n",
+        "tidy": "a {\n  --hosts: https://*.example.com/*;\n  --query: https://example.com/a?b=\"c\"&d='e';\n  --note: http://x.y/z /* note */ \"s\";\n}\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "a { --a: https://a.example.com; --b: \"see\" https://b.example.com; }\n",
+        "prettier": "a {\n  --a: https: ; //a.example.com\n  --b: see https: ; //b.example.com\n}\n",
+        "tidy": "a {\n  --a: https://a.example.com;\n  --b: \"see\" https://b.example.com;\n}\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "a { --a: https://a.example.com; --b: 'see' https://b.example.com; }\n",
+        "prettier": "a {\n  --a: https: ; //a.example.com\n  --b: see https: ; //b.example.com\n}\n",
+        "tidy": "a {\n  --a: https://a.example.com;\n  --b: 'see' https://b.example.com;\n}\n"
+      },
+      {
+        "parsers": [
+          "less"
+        ],
+        "input": "a { --a: https://a.example.com; --b: *see* https://b.example.com; }\n",
+        "prettier": "a {\n  --a: https: ; //a.example.com\n  --b: see https: ; //b.example.com\n}\n",
+        "tidy": "a {\n  --a: https://a.example.com;\n  --b: *see* https://b.example.com;\n}\n"
+      }
+    ]
+  },
+  {
+    "id": "html-pre-without-end-tag",
+    "rows": [
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<pre   ><b>a</b>\n",
+        "prettier": "<pre>>\n",
+        "tidy": "<pre><b>a</b>\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<pre   >a<b>c\n",
+        "prettier": "<pre>>\n",
+        "tidy": "<pre>a<b>c\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<p>x</p><pre   class=\"y\"><i>a</i>\n  b\n",
+        "prettier": "<p>x</p>\n<pre class=\"y\">>\n",
+        "tidy": "<p>x</p>\n<pre class=\"y\"><i>a</i>\n  b\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<listing   ><b>a\n",
+        "prettier": "<listing>>\n",
+        "tidy": "<listing><b>a\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<b>a</b><pre   ><i>x</i>\n",
+        "prettier": "<b>a</b>><pre>>\n",
+        "tidy": "<b>a</b><pre><i>x</i>\n",
+        "whitespace": "strict"
+      }
+    ]
+  },
+  {
+    "id": "html-unquoted-attribute-value",
+    "rows": [
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<meta name=viewport content=width=device-width,initial-scale=1>\n",
+        "prettier": "<meta name=\"viewport\" content=\"width\" =\"device-width,initial-scale\" =\"1\" />\n",
+        "tidy": "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<img src=a.png?v=1>\n",
+        "prettier": "<img src=\"a.png?v\" =\"1\" />\n",
+        "tidy": "<img src=\"a.png?v=1\" />\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<script src=a.js?v=2></script>\n",
+        "prettier": "<script src=\"a.js?v\" =\"2\"></script>\n",
+        "tidy": "<script src=\"a.js?v=2\"></script>\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<a href=?page=2&sort=name>next</a>\n",
+        "prettier": "<a href=\"?page\" =\"2&sort\" =\"name\">next</a>\n",
+        "tidy": "<a href=\"?page=2&sort=name\">next</a>\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<p class=a=b id=c>x</p>\n",
+        "prettier": "<p class=\"a\" =\"b\" id=\"c\">x</p>\n",
+        "tidy": "<p class=\"a=b\" id=\"c\">x</p>\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<input value=a/>\n",
+        "prettier": "<input value=\"a\" />\n",
+        "tidy": "<input value=\"a/\" />\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<p title=a b>x</p>\n",
+        "prettier": "<p title=\"a\" b>x</p>\n",
+        "tidy": "<p title=\"a b\">x</p>\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<a href=/x?a=1>x</a>\n",
+        "prettier": "ERROR: SyntaxError: Opening tag \"a\" not terminated. (1:1)",
+        "tidy": "<a href=\"/x?a=1\">x</a>\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<link href=https://fonts.googleapis.com/css?family=Roboto rel=stylesheet>\n",
+        "prettier": "ERROR: SyntaxError: Opening tag \"link\" not terminated. (1:1)",
+        "tidy": "<link href=\"https://fonts.googleapis.com/css?family=Roboto\" rel=\"stylesheet\" />\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<a href=a/>x</a>\n",
+        "prettier": "ERROR: SyntaxError: Unexpected closing tag \"a\". It may happen when the tag has already been closed by another tag. For more info see https://www.w3.org/TR/html5/syntax.html#closing-elements-that-have-implied-end-tags (1:13)",
+        "tidy": "<a href=\"a/\">x</a>\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<p title=a\"b>x</p>\n",
+        "prettier": "ERROR: SyntaxError: Opening tag \"p\" not terminated. (1:1)",
+        "tidy": "<p title='a\"b'>x</p>\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<p title=a'b>x</p>\n",
+        "prettier": "ERROR: SyntaxError: Opening tag \"p\" not terminated. (1:1)",
+        "tidy": "<p title=\"a'b\">x</p>\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<p title=a<b>x</p>\n",
+        "prettier": "ERROR: SyntaxError: Opening tag \"p\" not terminated. (1:1)",
+        "tidy": "<p title=\"a<b\">x</p>\n"
+      },
+      {
+        "parsers": [
+          "vue"
+        ],
+        "input": "<template><img src=a.png?v=1></template>\n",
+        "prettier": "<template><img src=\"a.png?v\" =\"1\" /></template>\n",
+        "tidy": "<template><img src=\"a.png?v=1\" /></template>\n"
+      }
+    ]
+  },
+  {
+    "id": "html-whitespace-only-pre-textarea",
+    "rows": [
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<textarea>\n\n</textarea>\n",
+        "prettier": "<textarea> </textarea>\n",
+        "tidy": "<textarea>\n\n</textarea>\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<textarea>   </textarea>\n",
+        "prettier": "<textarea> </textarea>\n",
+        "tidy": "<textarea>   </textarea>\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<pre> </pre>\n",
+        "prettier": "<pre></pre>\n",
+        "tidy": "<pre> </pre>\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<pre>\n\n</pre>\n",
+        "prettier": "<pre></pre>\n",
+        "tidy": "<pre>\n\n</pre>\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<div><pre>  </pre></div>\n",
+        "prettier": "<div><pre></pre></div>\n",
+        "tidy": "<div><pre>  </pre></div>\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<b>a</b><pre> </pre>\n",
+        "prettier": "<b>a</b>\n<pre></pre>\n",
+        "tidy": "<b>a</b>\n<pre> </pre>\n"
+      }
+    ]
+  },
+  {
+    "id": "html-ignored-void-without-slash",
+    "rows": [
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<!-- prettier-ignore --><img   src=b><i>c</i>\n",
+        "prettier": "<!-- prettier-ignore --><img   src=/><i>c</i>\n",
+        "tidy": "<!-- prettier-ignore --><img   src=b><i>c</i>\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<!-- prettier-ignore -->\n<br><br>\n",
+        "prettier": "<!-- prettier-ignore -->\n<b/><br />\n",
+        "tidy": "<!-- prettier-ignore -->\n<br><br />\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<p>\n  <!-- prettier-ignore -->\n  <input   type=text>x\n</p>\n",
+        "prettier": "<p>\n  <!-- prettier-ignore -->\n  <input   type=tex/>x\n</p>\n",
+        "tidy": "<p>\n  <!-- prettier-ignore -->\n  <input   type=text>x\n</p>\n"
+      }
+    ]
+  },
+  {
+    "id": "html-text-after-nul",
+    "rows": [
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<p   a>b</p>\n<p>c\u0000d</p>\n<p>e</p>\n",
+        "prettier": "<p a>b</p>\n<p>c</p>\n",
+        "tidy": "!error Unexpected NUL character"
+      },
+      {
+        "parsers": [
+          "vue"
+        ],
+        "input": "<template>\n<p>b\u0000c</p>\n</template>\n<script>\nlet a  = 1\n</script>\n",
+        "prettier": "<template>\n  <p>b</p>\n</template>\n",
+        "tidy": "!error Unexpected NUL character"
+      }
+    ]
+  },
+  {
+    "id": "html-borrowed-markers-once",
+    "rows": [
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<a><b><!-- prettier-ignore -->\n<i></i></b></a>\n",
+        "prettier": "<a\n  ><b\n    ><!-- prettier-ignore -->\n    <i></i>></b\n></a>\n",
+        "tidy": "<a\n  ><b\n    ><!-- prettier-ignore -->\n    <i></i></b\n></a>\n",
+        "whitespace": "strict"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<span><!--[if a]><p>b<![endif]--></span>\n",
+        "prettier": "<span\n  >><!--[if a]><p>b<![endif]--></span</span\n>\n",
+        "tidy": "<span\n  ><!--[if a]><p>b<![endif]--></span\n>\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "<b>a</b><pre   ><i>x</i>\n",
+        "prettier": "<b>a</b>><pre>>\n",
+        "tidy": "<b>a</b><pre><i>x</i>\n",
+        "whitespace": "strict"
+      }
+    ]
+  },
+  {
+    "id": "xml-embed-by-name",
+    "rows": [
+      {
+        "parsers": [
+          "xml"
+        ],
+        "input": "<article>\n  <remark>Use *this*   or  _that_.</remark>\n</article>\n",
+        "prettier": "<article>\n  <remark>\nUse _this_ or _that_.\n  </remark>\n</article>\n",
+        "tidy": "<article>\n  <remark>Use *this*   or  _that_.</remark>\n</article>\n"
+      },
+      {
+        "parsers": [
+          "xml"
+        ],
+        "input": "<config><yaml>a:   1\nb:    [1,2]</yaml></config>\n",
+        "prettier": "<config><yaml>\na: 1\nb: [1, 2]\n  </yaml></config>\n",
+        "tidy": "<config><yaml>a:   1\nb:    [1,2]</yaml></config>\n"
+      },
+      {
+        "parsers": [
+          "xml"
+        ],
+        "input": "<a><json>{\"a\":1}</json></a>\n",
+        "prettier": "<a><json>\n{ \"a\": 1 }\n  </json></a>\n",
+        "tidy": "<a><json>{\"a\":1}</json></a>\n"
+      }
+    ]
+  },
+  {
+    "id": "xml-hex-character-reference",
+    "rows": [
+      {
+        "parsers": [
+          "xml"
+        ],
+        "input": "<a>one &amp; two &#65; three &#x41; four</a>\n",
+        "prettier": "<a>\n  one &amp; two &#65; three &#x4 1; four\n</a>\n",
+        "tidy": "<a>\n  one &amp; two &#65; three &#x41; four\n</a>\n",
+        "whitespace": "ignore"
+      },
+      {
+        "parsers": [
+          "xml"
+        ],
+        "input": "<a><b>&#x41;</b><c>&#65;</c></a>\n",
+        "prettier": "<a>\n  <b>&#x41;</b>\n  <c>\n    &#65;\n  </c>\n</a>\n",
+        "tidy": "<a>\n  <b>\n    &#x41;\n  </b>\n  <c>\n    &#65;\n  </c>\n</a>\n",
+        "whitespace": "preserve"
+      }
+    ]
+  },
+  {
+    "id": "xml-ignore-trims-xml-whitespace",
+    "rows": [
+      {
+        "parsers": [
+          "xml"
+        ],
+        "input": "<a><b> </b><c> x </c></a>\n",
+        "prettier": "<a>\n  <b></b>\n  <c>x</c>\n</a>\n",
+        "tidy": "<a>\n  <b> </b>\n  <c> x </c>\n</a>\n",
+        "whitespace": "ignore"
+      }
+    ]
+  },
+  {
+    "id": "toml-byte-order-mark",
+    "rows": [
+      {
+        "parsers": [
+          "toml"
+        ],
+        "input": "﻿a=1",
+        "prettier": "!error unexpected token",
+        "tidy": "﻿a = 1\n"
+      }
+    ]
+  },
+  {
+    "id": "toml-embedded",
+    "rows": [
+      {
+        "parsers": [
+          "markdown"
+        ],
+        "input": "+++\ntitle=\"x\"\n+++\n\n```toml\na=1\n```\n",
+        "prettier": "+++\ntitle=\"x\"\n+++\n\n```toml\na=1\n```\n",
+        "tidy": "+++\ntitle = \"x\"\n+++\n\n```toml\na = 1\n```\n"
+      },
+      {
+        "parsers": [
+          "scss"
+        ],
+        "input": "+++\na=1\n+++\n\na{b:c}\n",
+        "prettier": "+++\na=1\n+++\n\na {\n  b: c;\n}\n",
+        "tidy": "+++\na = 1\n+++\n\na {\n  b: c;\n}\n"
+      },
+      {
+        "parsers": [
+          "html"
+        ],
+        "input": "+++\na=1\n+++\n<div></div>\n",
+        "prettier": "+++\na=1\n+++\n\n<div></div>\n",
+        "tidy": "+++\na = 1\n+++\n\n<div></div>\n"
+      }
+    ]
+  }
 ]

@@ -3,7 +3,7 @@
 
 use crate::embed::Embed;
 use crate::embed::{Kind, Request};
-use crate::{Error, Whitespace, css, doc, handlebars, html, json, markdown, xml};
+use crate::{Error, Whitespace, css, doc, handlebars, html, json, markdown, toml, xml};
 
 /// A language that tidy formats.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -13,6 +13,7 @@ pub enum Language {
   Handlebars,
   Css(css::Dialect),
   Json(json::Dialect),
+  Toml,
   Xml,
   Markdown,
 }
@@ -25,6 +26,9 @@ impl Language {
     }
     if let Some(dialect) = json::Dialect::of_path(path) {
       return Some(Language::Json(dialect));
+    }
+    if toml::is_toml_path(path) {
+      return Some(Language::Toml);
     }
     if handlebars::is_handlebars_path(path) {
       return Some(Language::Handlebars);
@@ -52,6 +56,7 @@ pub struct Options {
   pub css: css::Options,
   /// For every dialect of JSON.
   pub json: json::Options,
+  pub toml: toml::Options,
   pub xml: xml::Options,
   pub markdown: markdown::Options,
 }
@@ -64,6 +69,7 @@ impl Default for Options {
       handlebars: handlebars::Options::default(),
       css: css::Options::default(),
       json: json::Options::default(),
+      toml: toml::Options::default(),
       xml: xml::Options::default(),
       markdown: markdown::Options::default(),
     }
@@ -78,6 +84,7 @@ impl Options {
     shared.handlebars(&mut self.handlebars);
     shared.css(&mut self.css);
     shared.json(&mut self.json);
+    shared.toml(&mut self.toml);
     shared.xml(&mut self.xml);
     shared.markdown(&mut self.markdown);
   }
@@ -96,7 +103,7 @@ pub struct Shared {
   pub whitespace: Option<Whitespace>,
   /// Prefer single quotes: Handlebars, style sheets and JSON5.
   pub single_quote: Option<bool>,
-  /// Prettier's `trailingComma` is not `"none"`: SCSS, JSONC and JSON5.
+  /// Prettier's `trailingComma` is not `"none"`: SCSS, JSONC, JSON5, and TOML arrays.
   pub trailing_comma: Option<bool>,
   /// HTML, Vue and XML.
   pub bracket_same_line: Option<bool>,
@@ -170,6 +177,14 @@ impl Shared {
     set(&mut options.ignore, self.ignore.clone());
   }
 
+  pub fn toml(&self, options: &mut toml::Options) {
+    set(&mut options.column_width, self.width);
+    set(&mut options.tab_width, self.indent);
+    set(&mut options.tabs, self.tabs);
+    set(&mut options.eol, self.eol);
+    set(&mut options.array_trailing_comma, self.trailing_comma);
+  }
+
   pub fn xml(&self, options: &mut xml::Options) {
     set(&mut options.width, self.width);
     set(&mut options.tab_width, self.indent);
@@ -214,6 +229,7 @@ pub struct Formatter {
   handlebars: handlebars::Formatter,
   css: css::Formatter,
   json: json::Formatter,
+  toml: toml::Formatter,
   xml: xml::Formatter,
   markdown: String,
 }
@@ -247,12 +263,13 @@ impl Formatter {
         let options = json::Options { dialect, ..options.json.clone() };
         self.json.format(text, &options)
       }
+      Language::Toml => self.toml.format(text, &options.toml),
       Language::Xml => self.xml.format(text, &options.xml, embed),
       Language::Markdown => {
         let (bom, text) = crate::without_bom(text);
         self.markdown = match options.markdown.format_embedded {
           true => markdown::format_with(text, &options.markdown, |code| {
-            let language = crate::languages::parser(code.lang)?;
+            let language = crate::languages::parser(code.lang).or(crate::embed::own(code.lang))?;
             let request = Request {
               code: code.text,
               language,

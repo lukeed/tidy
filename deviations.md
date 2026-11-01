@@ -1,6 +1,6 @@
 # Deviations from Prettier
 
-tidy prints what Prettier 3.9.9 prints, and XML what `@prettier/plugin-xml` 3.4.2 prints, except where this file says otherwise. Markdown follows Prettier 3.9.10, and its deviations are in [`markdown-divergences.md`](markdown-divergences.md), which is generated from its cases. Each entry below says what tidy prints instead, why, where the rule is, and whether Luke has signed it off. `crates/tidy/tests/deviations.json` holds every input that was checked against both tools, and `cargo test --test deviations` fails if tidy stops printing what an entry says.
+tidy prints what Prettier 3.9.9 prints, XML what `@prettier/plugin-xml` 3.4.2 prints, and TOML, which Prettier doesn't format, what taplo 0.14.0 prints by default, except where this file says otherwise. Markdown follows Prettier 3.9.10, and its deviations are in [`markdown-divergences.md`](markdown-divergences.md), which is generated from its cases. Each entry below says what tidy prints instead, why, where the rule is, and whether Luke has signed it off. `crates/tidy/tests/deviations.json` holds every input that was checked against both tools, and `cargo test --test deviations` fails if tidy stops printing what an entry says.
 
 ## Process
 
@@ -65,6 +65,8 @@ Most entries come from bun's ports, which correct the places where Prettier's ou
 | [xml-hex-character-reference](#xml-hex-character-reference) | xml | proposed |
 | [xml-ignore-trims-xml-whitespace](#xml-ignore-trims-xml-whitespace) | xml | proposed |
 | [html-borrowed-markers-once](#html-borrowed-markers-once) | html | approved 2026-11-01 |
+| [toml-byte-order-mark](#toml-byte-order-mark) | toml | proposed |
+| [toml-embedded](#toml-embedded) | markdown/css/html/handlebars | approved 2026-11-01 |
 | [the rule in step 2](#process) | all | proposed |
 | [tempura and text mode](#beyond-prettier) | handlebars | approved 2026-10-31 |
 
@@ -766,6 +768,38 @@ tidy:     "<a>\n  <b>\u00a0</b>\n  <c>\u00a0x\u00a0</c>\n</a>\n"
 ```
 
 In the corpus of `tests/oracle/xml.ts`, this changes 9 files. One is an SVG of Vite's documentation, where `<tspan>` elements that hold a no-break space put the spaces between "Vite", "Dev" and "Server", and the plugin removes them.
+
+## TOML
+
+The reference is the taplo 0.14.0 crate, run as `taplo fmt` runs it. `tests/oracle/toml` compares the two, and checks tidy's lexer against logos 0.12, which taplo's is built with.
+
+### toml-byte-order-mark
+
+- Status: proposed
+- Why: taplo's lexer has no token for U+FEFF, so `taplo fmt` rejects a file that starts with a byte order mark. tidy keeps the mark, as it does in every other language, and formats the rest.
+- Where: crates/tidy/src/toml/mod.rs (`Formatter::format`)
+- Parser: toml
+
+```
+input:  "\u{feff}a=1"
+taplo:  error: unexpected token
+tidy:   "\u{feff}a = 1\n"
+```
+
+Found in `vlang/v`, `vlib/toml/tests/testdata/toml_with_utf8_bom.toml`, the only file of the corpus that the oracle prints differently.
+
+### toml-embedded
+
+- Status: approved 2026-11-01
+- Why: Prettier has no TOML formatter, so it leaves TOML front matter (`+++`) and ```` ```toml ```` code blocks as they are written. tidy formats them with taplo's style, as it formats YAML front matter and JSON code blocks with Prettier's.
+- Where: crates/tidy/src/embed.rs (`own`, `builtin`)
+- Parser: markdown, css, scss, less, html, vue, handlebars
+
+```
+input:    "+++\ntitle=\"x\"\n+++\n\n```toml\na=1\n```\n"
+Prettier: "+++\ntitle=\"x\"\n+++\n\n```toml\na=1\n```\n"
+tidy:     "+++\ntitle = \"x\"\n+++\n\n```toml\na = 1\n```\n"
+```
 
 ## Beyond Prettier
 
