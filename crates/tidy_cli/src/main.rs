@@ -39,7 +39,7 @@ Options
   --single-attribute-per-line     Put each attribute on its own line
   --bracket-same-line             Keep the > of a multi-line tag on the last line
   --ignore <name>                 The ignore directive (default: prettier-ignore)
-  --threads <n>                   How many files to format at once (default: all cores)
+  --threads <n>                   How many files to format at once (default: all cores); 1 uses one thread
   -v, --version                   Print the version
   -h, --help                      Print this help
 
@@ -146,11 +146,11 @@ fn run() -> Result<ExitCode, String> {
   }
 
   let mut options = tidy_walk::Options { wanted: &wanted, ..tidy_walk::Options::default() };
-  if let Some(threads) = threads.map(|threads| threads.max(1)) {
-    match options.workers {
-      0 => options.io = threads,
-      _ => options.workers = threads,
-    }
+  match threads.map(|threads| threads.max(1)) {
+    Some(1) => (options.io, options.workers) = (1, 0),
+    Some(threads) if options.workers == 0 => options.io = threads,
+    Some(threads) => (options.io, options.workers) = (options.io.min(threads), threads),
+    None => {}
   }
   let listing = |dir: &Path, entries: &[tidy_walk::Entry]| {
     if let Some(resolver) = &sources.resolver {
