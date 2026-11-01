@@ -112,6 +112,9 @@ pub struct Options {
   /// at the top level keep everything between them, and `<!-- name-file -->` at the top keeps the
   /// whole file.
   pub ignore: String,
+  /// Prettier's `embeddedLanguageFormatting`: whether [`crate::format`] hands code blocks and front matter to its
+  /// embed hook. [`format_with`](super::format_with) always hands them to its callback.
+  pub format_embedded: bool,
 }
 
 impl Default for Options {
@@ -134,6 +137,7 @@ impl From<Preset> for Options {
         fence: Fence::Backtick,
         heading: Heading::Keep,
         ignore: "prettier-ignore".into(),
+        format_embedded: true,
       },
       Preset::Preserve => Self {
         width: 80,
@@ -146,6 +150,7 @@ impl From<Preset> for Options {
         fence: Fence::Keep,
         heading: Heading::Keep,
         ignore: "tidy-ignore".into(),
+        format_embedded: true,
       },
     }
   }

@@ -16,7 +16,7 @@
 //! reads them. A tidy config overrides it.
 
 use crate::options::{Options, Shared};
-use crate::{Whitespace, doc, handlebars, xml};
+use crate::{Whitespace, doc, handlebars, markdown, xml};
 use rustc_hash::FxHashMap;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
@@ -36,6 +36,7 @@ pub struct Config {
   pub handlebars: Handlebars,
   pub css: Css,
   pub xml: Xml,
+  pub markdown: Markdown,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -56,6 +57,21 @@ pub struct Css {
   pub shared: Shared,
   /// `trailingComma`: SCSS maps and lists that break get a trailing comma.
   pub trailing_comma: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Markdown {
+  pub shared: Shared,
+  /// Sets every style option first; the others override it.
+  pub preset: Option<markdown::Preset>,
+  pub wrap: Option<markdown::Wrap>,
+  pub bullet: Option<markdown::Bullet>,
+  pub emphasis: Option<markdown::Emphasis>,
+  pub strong: Option<markdown::Strong>,
+  pub numbering: Option<markdown::Numbering>,
+  pub rule: Option<markdown::Rule>,
+  pub fence: Option<markdown::Fence>,
+  pub heading: Option<markdown::Heading>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -109,6 +125,7 @@ impl Config {
         "handlebars" => config.handlebars = handlebars(section("handlebars")?)?,
         "css" => config.css = css(section("css")?)?,
         "xml" => config.xml = xml(section("xml")?)?,
+        "markdown" => config.markdown = markdown(section("markdown")?)?,
         _ if shared(&mut config.shared, key, value, "")? => {}
         _ => return Err(format!("unknown option `{key}`")),
       }
@@ -118,30 +135,35 @@ impl Config {
 
   /// Applies the config to `options`: the shared choices to every language, and then each language's own.
   pub fn apply(&self, options: &mut Options) {
+    if let Some(preset) = self.markdown.preset {
+      let width = options.markdown.width;
+      let format_embedded = options.markdown.format_embedded;
+      options.markdown =
+        markdown::Options { width, format_embedded, ..markdown::Options::from(preset) };
+    }
     options.share(&self.shared);
     self.html.html(&mut options.html);
     self.vue.shared.html(&mut options.vue);
-    if let Some(indent) = self.vue.indent_blocks {
-      options.vue.vue_indent_script_and_style = indent;
-    }
+    set(&mut options.vue.vue_indent_script_and_style, self.vue.indent_blocks);
     self.handlebars.shared.handlebars(&mut options.handlebars);
-    if let Some(dialect) = self.handlebars.dialect {
-      options.handlebars.dialect = dialect;
-    }
+    set(&mut options.handlebars.dialect, self.handlebars.dialect);
     self.css.shared.css(&mut options.css);
-    if let Some(comma) = self.css.trailing_comma {
-      options.css.trailing_comma = comma;
-    }
+    set(&mut options.css.trailing_comma, self.css.trailing_comma);
     self.xml.shared.xml(&mut options.xml);
-    if let Some(space) = self.xml.self_closing_space {
-      options.xml.self_closing_space = space;
-    }
-    if let Some(sort) = self.xml.sort_attributes {
-      options.xml.sort_attributes = sort;
-    }
-    if let Some(quotes) = self.xml.quotes {
-      options.xml.quotes = quotes;
-    }
+    set(&mut options.xml.self_closing_space, self.xml.self_closing_space);
+    set(&mut options.xml.sort_attributes, self.xml.sort_attributes);
+    set(&mut options.xml.quotes, self.xml.quotes);
+    let markdown = &self.markdown;
+    markdown.shared.markdown(&mut options.markdown);
+    let style = &mut options.markdown;
+    set(&mut style.wrap, markdown.wrap);
+    set(&mut style.bullet, markdown.bullet);
+    set(&mut style.emphasis, markdown.emphasis);
+    set(&mut style.strong, markdown.strong);
+    set(&mut style.numbering, markdown.numbering);
+    set(&mut style.rule, markdown.rule);
+    set(&mut style.fence, markdown.fence);
+    set(&mut style.heading, markdown.heading);
   }
 }
 
@@ -246,6 +268,33 @@ fn css(map: &Map<String, Value>) -> Result<Css, String> {
   Ok(css)
 }
 
+fn markdown(map: &Map<String, Value>) -> Result<Markdown, String> {
+  fn choice<T: std::str::FromStr<Err = String>>(
+    value: &Value,
+    key: &str,
+  ) -> Result<Option<T>, String> {
+    let name = format!("markdown.{key}");
+    text(value, &name)?.parse().map(Some).map_err(|error: String| format!("`{name}`: {error}"))
+  }
+  let mut options = Markdown::default();
+  for (key, value) in map {
+    match key.as_str() {
+      "preset" => options.preset = choice(value, key)?,
+      "wrap" => options.wrap = choice(value, key)?,
+      "bullet" => options.bullet = choice(value, key)?,
+      "emphasis" => options.emphasis = choice(value, key)?,
+      "strong" => options.strong = choice(value, key)?,
+      "numbering" => options.numbering = choice(value, key)?,
+      "rule" => options.rule = choice(value, key)?,
+      "fence" => options.fence = choice(value, key)?,
+      "heading" => options.heading = choice(value, key)?,
+      _ if shared(&mut options.shared, key, value, "markdown")? => {}
+      _ => return Err(format!("unknown option `markdown.{key}`")),
+    }
+  }
+  Ok(options)
+}
+
 fn xml(map: &Map<String, Value>) -> Result<Xml, String> {
   let mut options = Xml::default();
   for (key, value) in map {
@@ -269,6 +318,12 @@ fn xml(map: &Map<String, Value>) -> Result<Xml, String> {
     }
   }
   Ok(options)
+}
+
+fn set<T>(field: &mut T, value: Option<T>) {
+  if let Some(value) = value {
+    *field = value;
+  }
 }
 
 fn number(value: &Value, name: &str) -> Result<usize, String> {

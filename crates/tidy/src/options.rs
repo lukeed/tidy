@@ -2,7 +2,8 @@
 //! own, with its own options: `tidy::css::format(text, &options.css, embed)`.
 
 use crate::embed::Embed;
-use crate::{Error, Whitespace, css, doc, handlebars, html, xml};
+use crate::embed::{Kind, Request};
+use crate::{Error, Whitespace, css, doc, handlebars, html, markdown, xml};
 
 /// A language that tidy formats.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -12,6 +13,7 @@ pub enum Language {
   Handlebars,
   Css(css::Dialect),
   Xml,
+  Markdown,
 }
 
 impl Language {
@@ -30,6 +32,7 @@ impl Language {
     match extension.as_str() {
       "html" | "htm" | "xht" | "xhtml" => Some(Language::Html),
       "vue" => Some(Language::Vue),
+      "md" | "markdown" => Some(Language::Markdown),
       _ => None,
     }
   }
@@ -44,6 +47,7 @@ pub struct Options {
   /// For CSS, SCSS and Less.
   pub css: css::Options,
   pub xml: xml::Options,
+  pub markdown: markdown::Options,
 }
 
 impl Default for Options {
@@ -54,6 +58,7 @@ impl Default for Options {
       handlebars: handlebars::Options::default(),
       css: css::Options::default(),
       xml: xml::Options::default(),
+      markdown: markdown::Options::default(),
     }
   }
 }
@@ -66,6 +71,7 @@ impl Options {
     shared.handlebars(&mut self.handlebars);
     shared.css(&mut self.css);
     shared.xml(&mut self.xml);
+    shared.markdown(&mut self.markdown);
   }
 }
 
@@ -153,6 +159,12 @@ impl Shared {
     set(&mut options.ignore, self.ignore.clone());
     set(&mut options.format_embedded, self.format_embedded);
   }
+
+  pub fn markdown(&self, options: &mut markdown::Options) {
+    set(&mut options.width, self.width);
+    set(&mut options.ignore, self.ignore.clone());
+    set(&mut options.format_embedded, self.format_embedded);
+  }
 }
 
 fn set<T>(field: &mut T, value: Option<T>) {
@@ -180,6 +192,7 @@ pub struct Formatter {
   handlebars: handlebars::Formatter,
   css: css::Formatter,
   xml: xml::Formatter,
+  markdown: String,
 }
 
 impl Formatter {
@@ -208,6 +221,29 @@ impl Formatter {
         self.css.format(text, &options, embed)
       }
       Language::Xml => self.xml.format(text, &options.xml, embed),
+      Language::Markdown => {
+        let (bom, text) = crate::without_bom(text);
+        self.markdown = match options.markdown.format_embedded {
+          true => markdown::format_with(text, &options.markdown, |code| {
+            let language = crate::languages::parser(code.lang)?;
+            let request = Request {
+              code: code.text,
+              language,
+              kind: Kind::Block,
+              indent: 0,
+              width: code.width,
+              module: true,
+            };
+            embed.format(request).or_else(|| {
+              let dialect = css::Dialect::of_path(&format!("code.{language}"))?;
+              let options = css::Options { dialect, width: code.width, ..options.css.clone() };
+              css::format(code.text, &options, &mut *embed).ok()
+            })
+          }),
+          false => markdown::format(text, &options.markdown),
+        };
+        Ok(crate::with_bom(bom, &mut self.markdown))
+      }
     }
   }
 }

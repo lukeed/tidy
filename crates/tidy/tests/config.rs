@@ -136,3 +136,24 @@ fn formats_by_language() {
   assert_eq!(Language::of_path("a.rs"), None);
   assert_eq!(Language::of_path("icons/a.svg"), Some(Language::Xml));
 }
+
+#[test]
+fn sets_markdown_from_a_preset_and_its_own_options() {
+  let config = Config::toml(
+    "width = 100\nignore = \"skip\"\n[markdown]\npreset = \"preserve\"\nwrap = \"always\"\nbullet = \"plus\"\n",
+  )
+  .unwrap();
+  let markdown = options(&config).markdown;
+  assert_eq!(markdown.width, 100);
+  assert_eq!(markdown.ignore, "skip");
+  assert_eq!(markdown.wrap, tidy::markdown::Wrap::Always);
+  assert_eq!(markdown.bullet, tidy::markdown::Bullet::Plus);
+  assert_eq!(markdown.emphasis, tidy::markdown::Emphasis::Keep);
+  let preserve =
+    options(&Config::json(r#"{ "markdown": { "preset": "preserve" } }"#).unwrap()).markdown;
+  assert_eq!(preserve.ignore, "tidy-ignore");
+  assert_eq!(
+    Config::json(r#"{ "markdown": { "wrap": "sometimes" } }"#).unwrap_err(),
+    "`markdown.wrap`: unknown wrap `sometimes`, expected one of: preserve, always, never"
+  );
+}
