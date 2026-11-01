@@ -468,7 +468,10 @@ fn wraps_like_prettier() {
       "One two three <kbd>help</kbd> four five six seven.\n",
       "One two three\n<kbd>help</kbd> four\nfive six seven.\n",
     ),
-    ("One two three four <div>x</div> five six.\n", "One two three four <div>x</div>\nfive six.\n"),
+    (
+      "One two three four <div>x</div> five six.\n",
+      "One two three\nfour <div>x</div> five\nsix.\n",
+    ),
     (
       "Arend, mgechev and 不肖・高橋 more words here.\n",
       "Arend, mgechev\nand 不肖・高橋 more\nwords here.\n",

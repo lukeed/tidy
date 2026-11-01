@@ -97,8 +97,7 @@ impl Paragraph {
   }
 
   /// Fill the words into lines no wider than `width`, or into one line per hard break without it.
-  /// A line never starts with something that opens a block, and the first line is never an HTML
-  /// tag alone, which would start an HTML block.
+  /// The first line is never an HTML tag alone, which would start an HTML block.
   pub(crate) fn fill(&self, width: Option<usize>) -> Vec<String> {
     let mut lines = Vec::new();
     let mut line = String::new();
@@ -116,7 +115,7 @@ impl Paragraph {
           let first = crate::width::width(word.split('\n').next().unwrap_or_default());
           let over = width.is_some_and(|width| used + 1 + first > width);
           let tag = lines.is_empty() && crate::opener::starts_html(&line);
-          if space && over && !tag && !opens_block(&word) {
+          if space && over && !tag {
             lines.push(std::mem::take(&mut line));
             used = 0;
           } else if space {
@@ -138,8 +137,9 @@ impl Paragraph {
     lines
   }
 
-  /// The tokens to fill, with words joined across a space beside Chinese or Japanese text, which
-  /// Prettier never breaks, so they fit or move as one. Beside markup, the space breaks.
+  /// The tokens to fill, with words joined across a space that Prettier never breaks, so they fit
+  /// or move as one: a space between text and Chinese or Japanese text, and a space before a word
+  /// that would open a block at the start of a line. Beside markup, a space breaks.
   fn units(&self) -> Vec<Unit<'_>> {
     let mut units: Vec<Unit<'_>> = Vec::with_capacity(self.tokens.len());
     let mut tail = false;
@@ -153,21 +153,25 @@ impl Paragraph {
         Token::Hard => units.push(Unit::Hard),
         Token::Space | Token::Line => {
           let next = match tokens.peek() {
-            Some(Token::Word { text, head: true, tail }) => Some((text, *tail)),
+            Some(Token::Word { text, head, tail }) => Some((text, *head, *tail)),
             _ => None,
           };
           let glue = match (units.last(), next) {
-            (Some(Unit::Word(word)), Some((next, _))) if tail => {
+            (Some(Unit::Word(word)), Some((next, head, _))) => {
               let (before, after) = (word.chars().next_back(), next.chars().next());
-              match token {
-                Token::Line => join(before, after),
-                _ => (before.is_some_and(cj) || after.is_some_and(cj)).then_some(" "),
-              }
+              let beside = match token {
+                Token::Line if tail && head => join(before, after),
+                Token::Space if tail && head => {
+                  (before.is_some_and(cj) || after.is_some_and(cj)).then_some(" ")
+                }
+                _ => None,
+              };
+              beside.or_else(|| opens_block(next).then_some(" "))
             }
             _ => None,
           };
           match (units.last_mut(), next, glue) {
-            (Some(Unit::Word(word)), Some((next, prose)), Some(glue)) => {
+            (Some(Unit::Word(word)), Some((next, _, prose)), Some(glue)) => {
               let word = word.to_mut();
               word.push_str(glue);
               word.push_str(next);
@@ -289,6 +293,10 @@ mod tests {
     assert_eq!(paragraph(&["aaaa - bbbb 1. cccc"]).fill(Some(4)), ["aaaa -", "bbbb 1.", "cccc"]);
     assert_eq!(paragraph(&["a ## b"]).fill(Some(1)), ["a ##", "b"]);
     assert_eq!(paragraph(&["a #b"]).fill(Some(1)), ["a", "#b"]);
+    assert_eq!(
+      paragraph(&["aaaa bbbb > 設定 > dddd"]).fill(Some(12)),
+      ["aaaa", "bbbb > 設定 >", "dddd"]
+    );
   }
 
   #[test]
