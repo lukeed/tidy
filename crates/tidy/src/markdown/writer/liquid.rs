@@ -1,6 +1,8 @@
+use std::borrow::Cow;
+
 use pulldown_cmark::TagEnd;
 
-use super::{Writer, escaped};
+use super::{Writer, collapse, escaped};
 use crate::opener::{Fix, interrupts, liquid, starts_html};
 
 impl<'s> Writer<'s, '_> {
@@ -10,6 +12,11 @@ impl<'s> Writer<'s, '_> {
   /// how CommonMark reads the lines: an HTML block start after it keeps the rest of the paragraph
   /// as written, and a lazy Liquid line, with the lazy lines after it, stays at the left margin.
   pub(super) fn soft(&mut self, at: usize, next: usize) {
+    if self.held.is_some() && self.containers.is_empty() {
+      let start = self.source[..next].rfind('\n').map_or(0, |index| index + 1);
+      self.newline();
+      return self.write(&self.source[start..next]);
+    }
     let line = self.source[next..].split('\n').next().unwrap_or("");
     match interrupts(line).filter(|_| !escaped(self.source, next)) {
       Some(Fix::Keep) if self.containers.is_empty() => {
@@ -34,6 +41,60 @@ impl<'s> Writer<'s, '_> {
     self.lazy = margin && (self.lazy || liquid(line));
     self.bare = self.lazy;
     self.stray = self.lazy && liquid(line);
+  }
+
+  /// `text`, starting at `at` in the source, with each run of spaces collapsed except inside a
+  /// Liquid tag, which Prettier keeps as written. A tag can stay open across lines and paragraphs,
+  /// so `held` keeps the closer it waits for, but only if that closer comes later.
+  pub(super) fn guard(&mut self, text: &'s str, at: usize) -> Cow<'s, str> {
+    if self.held.is_none() && !text.contains('{') {
+      return collapse(text);
+    }
+    let mut out = String::with_capacity(text.len());
+    let mut offset = 0;
+    while offset < text.len() {
+      let rest = &text[offset..];
+      match self.held {
+        Some(close) => match rest.find(close) {
+          Some(found) => {
+            out.push_str(&rest[..found + 2]);
+            offset += found + 2;
+            self.held = None;
+          }
+          None => return Cow::Owned(out + rest),
+        },
+        None => {
+          let next = [("{{", "}}"), ("{%", "%}")]
+            .into_iter()
+            .filter_map(|(open, close)| rest.find(open).map(|found| (found, close)))
+            .min_by_key(|&(found, _)| found);
+          let Some((found, close)) = next else { return Cow::Owned(out + &collapse(rest)) };
+          out.push_str(&collapse(&rest[..found]));
+          out.push_str(&rest[found..found + 2]);
+          offset += found + 2;
+          if self.closes(close, at + offset) {
+            self.held = Some(close);
+          }
+        }
+      }
+    }
+    Cow::Owned(out)
+  }
+
+  /// Whether `close` comes at or after `from`. Queries move forward through the document, so the
+  /// next closer found, or that none is left, is kept per closer to search each part only once.
+  fn closes(&mut self, close: &'static str, from: usize) -> bool {
+    let kind = usize::from(close == "%}");
+    match self.closers[kind] {
+      Some(found) if found >= from => true,
+      None if self.searched[kind] <= from => false,
+      _ => {
+        let found = memchr::memmem::find(&self.source.as_bytes()[from..], close.as_bytes());
+        self.closers[kind] = found.map(|found| from + found);
+        self.searched[kind] = from;
+        found.is_some()
+      }
+    }
   }
 
   /// Whether the soft break at `at`, before the line starting at `next`, touches a Liquid line.

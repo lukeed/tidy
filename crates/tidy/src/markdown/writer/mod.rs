@@ -89,6 +89,9 @@ pub(crate) fn format(
     lazy: false,
     bare: false,
     stray: false,
+    held: None,
+    closers: [None, None],
+    searched: [usize::MAX, usize::MAX],
     previous: None,
     surveyed: Survey::default(),
     raw: None,
@@ -219,6 +222,11 @@ struct Writer<'s, 'o> {
   /// The last line written is a lazy Liquid line, which Prettier reads as a block after the
   /// container, so the block after it stays beside it.
   stray: bool,
+  /// The closer of a Liquid tag still open, across lines and paragraphs.
+  held: Option<&'static str>,
+  /// The next `}}` and `%}` found, and where each search started, so `closes` scans once.
+  closers: [Option<usize>; 2],
+  searched: [usize; 2],
   /// The depth of the last block that ended, and whether it was a paragraph, code, or HTML, after
   /// which a nested list keeps its blank line.
   previous: Option<(usize, bool)>,
@@ -310,7 +318,7 @@ impl<'s> Writer<'s, '_> {
           } else {
             range.start
           };
-          self.text(&self.source[start..range.end]);
+          self.text(&self.source[start..range.end], start);
         }
       },
       Event::Code(value) => {
@@ -780,8 +788,9 @@ impl<'s> Writer<'s, '_> {
         || matches!(self.containers.last(), Some(Container::Item { .. })))
   }
 
-  fn text(&mut self, text: &str) {
-    let text = collapse(text);
+  fn text(&mut self, text: &'s str, at: usize) {
+    let text =
+      if self.options.wrap == Wrap::Preserve { self.guard(text, at) } else { collapse(text) };
     if self.link.is_none() && self.wraps() {
       self.paragraph.get_or_insert_default().text(&text);
     } else {

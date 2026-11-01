@@ -385,6 +385,16 @@ fn keeps_repeated_definitions() {
 }
 
 #[test]
+fn keeps_liquid_tags_as_written() {
+  for source in ["{{ foo\n\nbar   baz\n\nqux }}\n", "{% liquid\n if user\n    x  y\n%}\n"] {
+    assert_eq!(prettier(source), source, "{source}");
+  }
+  assert_eq!(prettier("{{ a  b }}  c   d\n"), "{{ a  b }} c d\n");
+  assert_eq!(prettier("a {% if  x %}   b\n"), "a {% if  x %} b\n");
+  assert_eq!(prettier("x {{ a   b\n"), "x {{ a b\n");
+}
+
+#[test]
 fn quotes_and_nesting() {
   assert_eq!(prettier(">a\n>\n>b\n"), "> a\n>\n> b\n");
   assert_eq!(prettier("> - a\n>   > b\n"), "> - a\n>   > b\n");
