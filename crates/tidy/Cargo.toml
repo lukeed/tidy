@@ -1,5 +1,5 @@
 [package]
-name = "tidyrs"
+name = "tidy"
 description = "A fast markup formatter for HTML, Vue, Svelte, Astro, XML, and Handlebars, with Prettier's style by default"
 version.workspace = true
 edition.workspace = true

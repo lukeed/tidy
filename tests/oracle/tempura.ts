@@ -5,7 +5,7 @@
 import { $ } from "bun";
 import { join } from "node:path";
 import * as prettier from "prettier";
-import { format, type EmbedRequest } from "../../crates/tidyrs_napi/index.js";
+import { format, type EmbedRequest } from "../../crates/tidy_napi/index.js";
 import { transform } from "tempura";
 
 let home = process.env.HOME!;

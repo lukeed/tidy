@@ -7,11 +7,11 @@ CARGO_TARGET_DIR = "{{config_root}}/target"
 
 [tasks.build]
 description = "Build the library and CLI"
-run = "cargo build --workspace --exclude tidyrs_napi"
+run = "cargo build --workspace --exclude tidy_napi"
 
 [tasks."build:napi"]
 description = "Build the Node addon for this platform"
-dir = "crates/tidyrs_napi"
+dir = "crates/tidy_napi"
 run = "bunx napi build --platform --release --esm"
 
 [tasks.fmt]
@@ -28,7 +28,7 @@ run = "cargo clippy --workspace --all-targets -- -D warnings"
 
 [tasks.test]
 description = "Run all tests"
-run = ["cargo test --workspace", "bun test --cwd crates/tidyrs_napi"]
+run = ["cargo test --workspace", "bun test --cwd crates/tidy_napi"]
 depends = ["build:napi"]
 
 [tasks.check]

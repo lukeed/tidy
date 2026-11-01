@@ -3,11 +3,11 @@
 //
 //   bun tests/oracle/conformance.ts [language=html] [filter] [--show=n] [--builtin-css]
 //
-// With `--builtin-css`, the hook declines style sheets, so tidyrs formats them itself.
+// With `--builtin-css`, the hook declines style sheets, so tidy formats them itself.
 import { $, Glob } from "bun";
 import { join, relative } from "node:path";
 import * as prettier from "prettier";
-import { format, type EmbedRequest, type FormatOptions } from "../../crates/tidyrs_napi/index.js";
+import { format, type EmbedRequest, type FormatOptions } from "../../crates/tidy_napi/index.js";
 
 let args = Bun.argv.slice(2).filter((arg) => !arg.startsWith("--"));
 let show = Number(Bun.argv.find((arg) => arg.startsWith("--show="))?.slice(7) ?? 5);
@@ -186,9 +186,9 @@ for (let test of all) {
 
 for (let failure of failed.slice(0, show)) {
 	console.log(`\n✗ ${failure.name}`);
-	await Bun.write("/tmp/tidyrs-expected", failure.expected);
-	await Bun.write("/tmp/tidyrs-actual", failure.actual);
-	let diff = await $`diff -u /tmp/tidyrs-expected /tmp/tidyrs-actual`.nothrow().text();
+	await Bun.write("/tmp/tidy-expected", failure.expected);
+	await Bun.write("/tmp/tidy-actual", failure.actual);
+	let diff = await $`diff -u /tmp/tidy-expected /tmp/tidy-actual`.nothrow().text();
 	console.log(diff.split("\n").slice(2).join("\n"));
 }
 let total = passed + failed.length;

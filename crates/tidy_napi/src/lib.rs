@@ -1,9 +1,9 @@
 use napi::bindgen_prelude::Function;
 use napi_derive::napi;
 use serde_json::{Map, Value};
-use tidyrs::config::Config;
-use tidyrs::embed::{Kind, Request};
-use tidyrs::{Formatter, Language, Settings, css};
+use tidy::config::Config;
+use tidy::embed::{Kind, Request};
+use tidy::{Formatter, Language, Settings, css};
 
 /// A piece of embedded code for the host to format.
 #[napi(object)]
@@ -88,7 +88,7 @@ pub fn format(
   let mut settings = Settings::default();
   config.apply(&mut settings);
   if options.embedded == Some(false) {
-    settings.share(&tidyrs::Shared { format_embedded: Some(false), ..Default::default() });
+    settings.share(&tidy::Shared { format_embedded: Some(false), ..Default::default() });
   }
   let mut failure = None;
   let mut hook = |request: Request<'_>| -> Option<String> {
@@ -131,8 +131,8 @@ pub fn format(
 /// The language of `parser`, or of `filepath`, and the Handlebars dialect that `parser` asks for.
 fn language(
   options: &FormatOptions,
-) -> napi::Result<(Language, Option<tidyrs::handlebars::Dialect>)> {
-  use tidyrs::handlebars::Dialect;
+) -> napi::Result<(Language, Option<tidy::handlebars::Dialect>)> {
+  use tidy::handlebars::Dialect;
   Ok(match options.parser.as_deref() {
     Some("html") => (Language::Html, None),
     Some("vue") => (Language::Vue, None),

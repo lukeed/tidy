@@ -11,7 +11,7 @@ license = "MIT"
 repository = "https://github.com/lukeed/tidyrs"
 
 [workspace.dependencies]
-tidyrs = { path = "crates/tidyrs" }
+tidy = { path = "crates/tidy" }
 bumpalo = "3.19"
 
 [workspace.lints.rust]

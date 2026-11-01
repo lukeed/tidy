@@ -145,7 +145,7 @@ for (let i = 0; i < count; i++) {
 }
 
 let root = new URL("../..", import.meta.url).pathname;
-let actual: string[] = await $`cargo run -q -p tidyrs --example doc < ${new Response(JSON.stringify(cases))}`
+let actual: string[] = await $`cargo run -q -p tidy --example doc < ${new Response(JSON.stringify(cases))}`
 	.cwd(root)
 	.env({ ...process.env, CARGO_TARGET_DIR: `${root}target` })
 	.json();
@@ -158,7 +158,7 @@ for (let i = 0; i < count; i++) {
 	if (failed <= 3) {
 		console.log(`case ${i}: ${JSON.stringify(cases[i])}`);
 		console.log(`prettier: ${JSON.stringify(expected[i])}`);
-		console.log(`tidyrs:   ${JSON.stringify(actual[i])}`);
+		console.log(`tidy:     ${JSON.stringify(actual[i])}`);
 	}
 }
 let errors = expected.filter((text) => text.startsWith("!error")).length;

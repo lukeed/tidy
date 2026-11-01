@@ -1,6 +1,6 @@
 [package]
-name = "tidyrs_napi"
-description = "Node bindings for tidyrs"
+name = "tidy_napi"
+description = "Node bindings for tidy"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -12,7 +12,7 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-tidyrs = { workspace = true, features = ["config"] }
+tidy = { workspace = true, features = ["config"] }
 serde_json = "1"
 napi = { version = "3.16.0", default-features = false, features = ["napi4", "serde-json"] }
 napi-derive = "3.7.0"

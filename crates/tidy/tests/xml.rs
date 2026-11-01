@@ -1,9 +1,9 @@
 //! Edge cases of XML, each with what `@prettier/plugin-xml` prints for it, recorded by `tests/oracle/xml-cases.ts`.
 
 use serde_json::Value;
-use tidyrs::Whitespace;
-use tidyrs::embed::Verbatim;
-use tidyrs::xml::{Quotes, Settings, format, is_xml_path};
+use tidy::Whitespace;
+use tidy::embed::Verbatim;
+use tidy::xml::{Quotes, Settings, format, is_xml_path};
 
 fn settings(options: &Value) -> Settings {
   let flag = |name: &str| options.get(name).and_then(Value::as_bool);

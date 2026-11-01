@@ -1,8 +1,8 @@
-// Compares tidyrs with Prettier, bun fmt, markup_fmt (the engine of dprint-plugin-markup), and a naive formatter on
-// @lukeed/html. Every tool checks the files and leaves embedded code alone, except that tidyrs always formats style
+// Compares tidy with Prettier, bun fmt, markup_fmt (the engine of dprint-plugin-markup), and a naive formatter on
+// @lukeed/html. Every tool checks the files and leaves embedded code alone, except that tidy always formats style
 // sheets, so it does more work than the others. Each set runs in both orders. The
-// Handlebars corpus is Ghost's templates that Prettier can parse; only tidyrs, bun and Prettier format Handlebars. The XML
-// corpus is the files of Maven, Lucide's icons and DocBook's style sheets that @prettier/plugin-xml can parse; only tidyrs,
+// Handlebars corpus is Ghost's templates that Prettier can parse; only tidy, bun and Prettier format Handlebars. The XML
+// corpus is the files of Maven, Lucide's icons and DocBook's style sheets that @prettier/plugin-xml can parse; only tidy,
 // markup_fmt and Prettier with that plugin format XML.
 //
 //   mise run bench -- [--runs <n>] [--oss <dir>]
@@ -19,11 +19,11 @@ let oss = option("--oss") ?? join(homedir(), "repos", "oss");
 
 let root = new URL("..", import.meta.url).pathname;
 let target = join(root, "target");
-await $`cargo build --release -p tidyrs_cli`.cwd(root).env({ ...process.env, CARGO_TARGET_DIR: target }).quiet();
+await $`cargo build --release -p tidy_cli`.cwd(root).env({ ...process.env, CARGO_TARGET_DIR: target }).quiet();
 await $`cargo build --release`.cwd(join(root, "bench/dprint")).env({ ...process.env, CARGO_TARGET_DIR: join(target, "dprint") }).quiet();
 
 /** The corpora: markup files from local clones, and real pages from @lukeed/html's benchmark. */
-let corpus = join(tmpdir(), "tidyrs-bench");
+let corpus = join(tmpdir(), "tidy-bench");
 rmSync(corpus, { recursive: true, force: true });
 let sources: Record<string, { repo: string; extensions: string[] }[]> = {
 	html: [
@@ -77,8 +77,8 @@ function size(path: string): [number, number] {
 
 let prettier = join(root, "node_modules/.bin/prettier");
 let tools = (dir: string, name: string): Record<string, string> => ({
-	tidyrs: `${target}/release/tidyrs ${dir} --check --no-config`,
-	"tidyrs (1 thread)": `${target}/release/tidyrs ${dir} --check --no-config --threads 1`,
+	tidy: `${target}/release/tidy ${dir} --check --no-config`,
+	"tidy (1 thread)": `${target}/release/tidy ${dir} --check --no-config --threads 1`,
 	bun: `bun fmt --cwd=${dir} --check --no-config --no-editorconfig --no-script --embedded-language-formatting off`,
 	"bun (1 thread)": `bun fmt --cwd=${dir} --check --no-config --no-editorconfig --no-script --embedded-language-formatting off --threads 1`,
 	markup_fmt: `${target}/dprint/release/dprint-bench ${dir}`,
@@ -109,7 +109,7 @@ for (let name of ["html", "vue", "pages", "handlebars", "xml"]) {
 		for (let result of results) (means[result.command] ??= []).push(result.mean);
 	}
 	let average = (values: number[]) => (values.reduce((sum, value) => sum + value, 0) / values.length) * 1000;
-	let ours = average(means.tidyrs);
+	let ours = average(means.tidy);
 	rows.push(`\n${name}: ${files} files, ${(bytes / 1024).toFixed(0)} KB`);
 	for (let [tool, values] of Object.entries(means)) {
 		let mean = average(values);

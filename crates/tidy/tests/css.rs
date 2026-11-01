@@ -1,5 +1,5 @@
-use tidyrs::css::{Dialect, Settings, format};
-use tidyrs::embed::Verbatim;
+use tidy::css::{Dialect, Settings, format};
+use tidy::embed::Verbatim;
 
 fn css(text: &str, dialect: Dialect) -> String {
   format(text, &Settings { dialect, ..Settings::default() }, &mut Verbatim).unwrap()

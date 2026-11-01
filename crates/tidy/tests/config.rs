@@ -1,8 +1,8 @@
 #![cfg(feature = "config")]
 
-use tidyrs::config::{Config, Resolver};
-use tidyrs::embed::Verbatim;
-use tidyrs::{Language, Settings, Whitespace, doc, handlebars, xml};
+use tidy::config::{Config, Resolver};
+use tidy::embed::Verbatim;
+use tidy::{Language, Settings, Whitespace, doc, handlebars, xml};
 
 fn settings(config: &Config) -> Settings {
   let mut settings = Settings::default();
@@ -76,7 +76,7 @@ fn names_what_is_wrong() {
 
 #[test]
 fn resolves_the_nearest_config_and_editorconfig() {
-  let root = std::env::temp_dir().join(format!("tidyrs-config-{}", std::process::id()));
+  let root = std::env::temp_dir().join(format!("tidy-config-{}", std::process::id()));
   let _ = std::fs::remove_dir_all(&root);
   let write = |path: &str, text: &str| {
     let path = root.join(path);
@@ -110,7 +110,7 @@ fn resolves_the_nearest_config_and_editorconfig() {
 #[test]
 fn formats_by_language() {
   let settings = Settings::default();
-  let mut formatter = tidyrs::Formatter::default();
+  let mut formatter = tidy::Formatter::default();
   let cases = [
     ("a.vue", "<template><p   >x</p></template>\n", "<template><p>x</p></template>\n"),
     ("a.xml", "<a  b='c'/>", "<a b='c' />\n"),

@@ -1,5 +1,5 @@
-use tidyrs::embed::Verbatim;
-use tidyrs::html::{Settings, format};
+use tidy::embed::Verbatim;
+use tidy::html::{Settings, format};
 
 fn html(text: &str) -> String {
   let settings = Settings { filepath: Some("index.html".into()), ..Settings::default() };
@@ -73,7 +73,7 @@ fn takes_another_ignore_directive() {
 #[test]
 fn tells_the_host_whether_a_script_is_a_module() {
   let mut modules = Vec::new();
-  let mut hook = |request: tidyrs::embed::Request<'_>| {
+  let mut hook = |request: tidy::embed::Request<'_>| {
     modules.push(request.module);
     Some("x = `</SCRIPT>`".to_owned())
   };

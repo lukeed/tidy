@@ -1,7 +1,7 @@
 //! Formats the files given as arguments and prints any that panic, for debugging.
 
-use tidyrs::embed::Verbatim;
-use tidyrs::html::{Parser, Settings, format};
+use tidy::embed::Verbatim;
+use tidy::html::{Parser, Settings, format};
 
 fn main() {
   let quiet = std::env::args().any(|arg| arg == "--quiet");

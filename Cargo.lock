@@ -366,7 +366,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tidyrs"
+name = "tidy"
 version = "0.0.0"
 dependencies = [
  "bitflags",
@@ -380,22 +380,22 @@ dependencies = [
 ]
 
 [[package]]
-name = "tidyrs_cli"
+name = "tidy_cli"
 version = "0.0.0"
 dependencies = [
  "pico-args",
- "tidyrs",
+ "tidy",
 ]
 
 [[package]]
-name = "tidyrs_napi"
+name = "tidy_napi"
 version = "0.0.0"
 dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
  "serde_json",
- "tidyrs",
+ "tidy",
 ]
 
 [[package]]

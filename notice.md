@@ -1,6 +1,6 @@
 # Notice
 
-tidyrs ports code from these projects, all under the MIT license:
+tidy ports code from these projects, all under the MIT license:
 
 - [Prettier](https://github.com/prettier/prettier) 3.9.9: the document printer, the HTML, Glimmer and PostCSS printers, and the tables of languages and event attributes. Copyright © James Long and contributors.
 - [angular-html-parser](https://github.com/prettier/angular-html-parser) 10.12.0: the HTML lexer, tree builder, tag definitions, and entity names. Copyright (c) Ika and Copyright (c) Google LLC.
@@ -9,4 +9,4 @@ tidyrs ports code from these projects, all under the MIT license:
 - [@prettier/plugin-xml](https://github.com/prettier/plugin-xml) 3.4.2: the XML printer. Copyright (c) 2019-present Kevin Newton.
 - [Bun](https://github.com/oven-sh/bun): the Rust ports of the above that the HTML, Handlebars and CSS modules start from, and the tables of string widths. Copyright (c) Oven-sh.
 
-It also ports the lexer and grammar of [@xml-tools/parser](https://github.com/SAP/xml-tools) 1.0.12, under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). Copyright (c) SAP SE or an SAP affiliate company. The port, in `crates/tidyrs/src/xml`, is a hand-written lexer and parser instead of chevrotain's, rejects the same input instead of recovering from errors, and reads a hexadecimal character reference whole.
+It also ports the lexer and grammar of [@xml-tools/parser](https://github.com/SAP/xml-tools) 1.0.12, under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). Copyright (c) SAP SE or an SAP affiliate company. The port, in `crates/tidy/src/xml`, is a hand-written lexer and parser instead of chevrotain's, rejects the same input instead of recovering from errors, and reads a hexadecimal character reference whole.

@@ -1,5 +1,5 @@
-use tidyrs::embed::Verbatim;
-use tidyrs::handlebars::{Dialect, Settings, format};
+use tidy::embed::Verbatim;
+use tidy::handlebars::{Dialect, Settings, format};
 
 fn hbs(text: &str) -> String {
   format(text, &Settings::default(), &mut Verbatim).unwrap()

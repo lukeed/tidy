@@ -1,10 +1,10 @@
-// Formats XML files with @prettier/plugin-xml and with tidyrs, under several option sets, and compares the outputs.
+// Formats XML files with @prettier/plugin-xml and with tidy, under several option sets, and compares the outputs.
 // Embedded code is formatted by Prettier through the hook. Both rejecting a file counts as the same.
 //
 //   bun tests/oracle/xml.ts [filter] [--show=n] [--builtin-css] [--oss=<dir>]
 //
-// With `--builtin-css`, the hook declines style sheets, so tidyrs formats them itself. The plugin's embedding is limited
-// to `<style>` and `<script>`, as tidyrs' is (`xml-embed-by-name` in deviations.md), unless `--plugin-embed` is set.
+// With `--builtin-css`, the hook declines style sheets, so tidy formats them itself. The plugin's embedding is limited
+// to `<style>` and `<script>`, as tidy's is (`xml-embed-by-name` in deviations.md), unless `--plugin-embed` is set.
 // The other XML deviations show up as differences: `xml-hex-character-reference` and `xml-ignore-trims-xml-whitespace`,
 // in 76 files of the corpus that deviations.md names, with `ignore` and `preserve` only.
 import { $ } from "bun";
@@ -13,7 +13,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import plugin from "@prettier/plugin-xml";
 import * as prettier from "prettier";
-import { format, type EmbedRequest, type FormatOptions } from "../../crates/tidyrs_napi/index.js";
+import { format, type EmbedRequest, type FormatOptions } from "../../crates/tidy_napi/index.js";
 
 let args = Bun.argv.slice(2).filter((arg) => !arg.startsWith("--"));
 let option = (name: string) => Bun.argv.find((arg) => arg.startsWith(`--${name}=`))?.slice(name.length + 3);
@@ -32,46 +32,46 @@ if (!Bun.argv.includes("--plugin-embed")) {
 	};
 }
 
-/** The extensions of tidyrs' walk, which leaves out those that other languages mostly use. */
+/** The extensions of tidy's walk, which leaves out those that other languages mostly use. */
 let skipped = new Set([".rs", ".mm", ".mojo", ".typ", ".res", ".mod", ".sw", ".gml", ".ncl", ".mjml"]);
 let extensions = plugin.languages.flatMap((language) => language.extensions ?? []).filter((it) => !skipped.has(it));
 
-/** Option sets: the plugin's names, and tidyrs' for the same. */
-let sets: { name: string; prettier: Record<string, unknown>; tidyrs: FormatOptions }[] = [
-	{ name: "default", prettier: {}, tidyrs: {} },
-	{ name: "ignore", prettier: { xmlWhitespaceSensitivity: "ignore" }, tidyrs: { whitespace: "ignore" } },
-	{ name: "preserve", prettier: { xmlWhitespaceSensitivity: "preserve" }, tidyrs: { whitespace: "auto" } },
+/** Option sets: the plugin's names, and tidy's for the same. */
+let sets: { name: string; prettier: Record<string, unknown>; tidy: FormatOptions }[] = [
+	{ name: "default", prettier: {}, tidy: {} },
+	{ name: "ignore", prettier: { xmlWhitespaceSensitivity: "ignore" }, tidy: { whitespace: "ignore" } },
+	{ name: "preserve", prettier: { xmlWhitespaceSensitivity: "preserve" }, tidy: { whitespace: "auto" } },
 	{
 		name: "ignore, bracketSameLine",
 		prettier: { xmlWhitespaceSensitivity: "ignore", bracketSameLine: true },
-		tidyrs: { whitespace: "ignore", bracketSameLine: true },
+		tidy: { whitespace: "ignore", bracketSameLine: true },
 	},
 	{
 		name: "ignore, no self-closing space",
 		prettier: { xmlWhitespaceSensitivity: "ignore", xmlSelfClosingSpace: false },
-		tidyrs: { whitespace: "ignore", xml: { selfClosingSpace: false } },
+		tidy: { whitespace: "ignore", xml: { selfClosingSpace: false } },
 	},
 	{
 		name: "ignore, sorted",
 		prettier: { xmlWhitespaceSensitivity: "ignore", xmlSortAttributesByKey: true },
-		tidyrs: { whitespace: "ignore", xml: { sortAttributes: true } },
+		tidy: { whitespace: "ignore", xml: { sortAttributes: true } },
 	},
-	{ name: "single quotes", prettier: { xmlQuoteAttributes: "single" }, tidyrs: { xml: { attributeQuotes: "single" } } },
-	{ name: "double quotes", prettier: { xmlQuoteAttributes: "double" }, tidyrs: { xml: { attributeQuotes: "double" } } },
+	{ name: "single quotes", prettier: { xmlQuoteAttributes: "single" }, tidy: { xml: { attributeQuotes: "single" } } },
+	{ name: "double quotes", prettier: { xmlQuoteAttributes: "double" }, tidy: { xml: { attributeQuotes: "double" } } },
 	{
 		name: "ignore, one attribute per line",
 		prettier: { xmlWhitespaceSensitivity: "ignore", singleAttributePerLine: true },
-		tidyrs: { whitespace: "ignore", singleAttributePerLine: true },
+		tidy: { whitespace: "ignore", singleAttributePerLine: true },
 	},
 	{
 		name: "ignore, width 40, tabs",
 		prettier: { xmlWhitespaceSensitivity: "ignore", printWidth: 40, useTabs: true },
-		tidyrs: { whitespace: "ignore", width: 40, tabs: true },
+		tidy: { whitespace: "ignore", width: 40, tabs: true },
 	},
 	{
 		name: "embedded off",
 		prettier: { embeddedLanguageFormatting: "off" },
-		tidyrs: { embedded: false },
+		tidy: { embedded: false },
 	},
 ];
 
@@ -134,7 +134,7 @@ for (let set of sets) {
 			let answers = new Map<string, string | undefined>();
 			for (let round = 0; round < 4; round++) {
 				let missing = new Map<string, EmbedRequest>();
-				actual = tidy(file.source, set.tidyrs, answers, missing);
+				actual = tidy(file.source, set.tidy, answers, missing);
 				if (missing.size === 0) break;
 				for (let [id, request] of missing) answers.set(id, await embedded(request, set.prettier));
 			}
@@ -152,9 +152,9 @@ for (let set of sets) {
 
 for (let failure of failed.slice(0, show)) {
 	console.log(`\n✗ ${failure.name}`);
-	await Bun.write("/tmp/tidyrs-expected", failure.expected);
-	await Bun.write("/tmp/tidyrs-actual", failure.actual);
-	let diff = await $`diff -u /tmp/tidyrs-expected /tmp/tidyrs-actual`.nothrow().text();
+	await Bun.write("/tmp/tidy-expected", failure.expected);
+	await Bun.write("/tmp/tidy-actual", failure.actual);
+	let diff = await $`diff -u /tmp/tidy-expected /tmp/tidy-actual`.nothrow().text();
 	console.log(diff.split("\n").slice(2, 40).join("\n"));
 }
 for (let [name, count] of perSet) console.log(`  ${name}: ${count} different`);

@@ -71,7 +71,7 @@ pub struct Settings {
   /// The file's path, which decides some details, like the case of `<!doctype html>`.
   pub filepath: Option<String>,
   /// Prettier's `embeddedLanguageFormatting`: `"auto"` if true, `"off"` if false. Off, neither the embed hook nor
-  /// tidyrs' own formatters see the code of other languages, which stays as it is written.
+  /// tidy's own formatters see the code of other languages, which stays as it is written.
   pub format_embedded: bool,
 }
 
@@ -230,7 +230,7 @@ fn run<'a>(
   };
   let built = clock.elapsed();
   let output = crate::doc::print(docs, &print, buffer);
-  if std::env::var_os("TIDYRS_STATS").is_some() {
+  if std::env::var_os("TIDY_STATS").is_some() {
     let printed = clock.elapsed();
     let ms = |d: std::time::Duration| d.as_secs_f64() * 1000.0;
     eprintln!(

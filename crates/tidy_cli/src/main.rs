@@ -3,15 +3,15 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::{Condvar, Mutex, PoisonError};
 
-use tidyrs::config::{Config, Resolver};
-use tidyrs::embed::Verbatim;
-use tidyrs::{Error, Formatter, Language, Settings, Shared, Whitespace, css, doc, handlebars};
+use tidy::config::{Config, Resolver};
+use tidy::embed::Verbatim;
+use tidy::{Error, Formatter, Language, Settings, Shared, Whitespace, css, doc, handlebars};
 
 const HELP: &str = "\
-tidyrs: a fast markup formatter
+tidy: a fast markup formatter
 
 Usage
-  $ tidyrs [paths...] [options]
+  $ tidy [paths...] [options]
 
   Without paths, reads stdin and prints the result.
   With one file, prints the result unless --check or --write is set.
@@ -43,16 +43,16 @@ Options
   -h, --help                      Print this help
 
 Examples
-  $ tidyrs index.html
-  $ tidyrs src --check
-  $ tidyrs . --write --width 100
+  $ tidy index.html
+  $ tidy src --check
+  $ tidy . --write --width 100
 ";
 
 fn main() -> ExitCode {
   match run() {
     Ok(code) => code,
     Err(error) => {
-      eprintln!("tidyrs: {error}");
+      eprintln!("tidy: {error}");
       ExitCode::from(2)
     }
   }
@@ -65,7 +65,7 @@ fn run() -> Result<ExitCode, String> {
     return Ok(ExitCode::SUCCESS);
   }
   if args.contains(["-v", "--version"]) {
-    println!("tidyrs {}", env!("CARGO_PKG_VERSION"));
+    println!("tidy {}", env!("CARGO_PKG_VERSION"));
     return Ok(ExitCode::SUCCESS);
   }
   let error = |error: pico_args::Error| error.to_string();
@@ -157,7 +157,7 @@ fn run() -> Result<ExitCode, String> {
   for (path, outcome) in &outcomes {
     match outcome {
       Outcome::Changed => listed.push_str(&format!("{}\n", path.display())),
-      Outcome::Failed(error) => errors.push_str(&format!("tidyrs: {error}\n")),
+      Outcome::Failed(error) => errors.push_str(&format!("tidy: {error}\n")),
     }
   }
   std::io::stdout().write_all(listed.as_bytes()).map_err(|error| error.to_string())?;
@@ -354,7 +354,7 @@ impl Queue {
   }
 }
 
-/// The files in `dir` that tidyrs formats, and the folders to read next, skipping hidden folders and
+/// The files in `dir` that tidy formats, and the folders to read next, skipping hidden folders and
 /// `node_modules`. Tells `resolver` which config files are there.
 fn read(dir: &Path, resolver: Option<&Resolver>) -> Vec<Task> {
   let mut found = Vec::new();
@@ -371,7 +371,7 @@ fn read(dir: &Path, resolver: Option<&Resolver>) -> Vec<Task> {
       }
     } else if Language::of_path(&path.to_string_lossy()).is_some() {
       found.push(Task::File(path));
-    } else if name == ".editorconfig" || tidyrs::config::NAMES.iter().any(|it| name == *it) {
+    } else if name == ".editorconfig" || tidy::config::NAMES.iter().any(|it| name == *it) {
       configs.push(name);
     }
   }

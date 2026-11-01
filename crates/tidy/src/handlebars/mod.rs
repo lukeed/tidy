@@ -158,7 +158,7 @@ pub struct Settings {
   /// written.
   pub filepath: Option<String>,
   /// Prettier's `embeddedLanguageFormatting`: `"auto"` if true, `"off"` if false. Off, neither the embed hook nor
-  /// tidyrs' own formatters see the code of other languages, which stays as it is written.
+  /// tidy's own formatters see the code of other languages, which stays as it is written.
   pub format_embedded: bool,
   /// The ignore directive, Prettier's `prettier-ignore` by default. `{{! name }}` keeps the next node as it is written.
   pub ignore: String,

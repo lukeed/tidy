@@ -8,7 +8,7 @@
     ],
     "input": "<!DOCTYPE html>\n<p   ></p>\n",
     "prettier": "<p></p>",
-    "tidyrs": "<!DOCTYPE html>\n<p></p>"
+    "tidy": "<!DOCTYPE html>\n<p></p>"
    },
    {
     "parsers": [
@@ -16,7 +16,7 @@
     ],
     "input": "<!doctype html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n<p   ></p>\n",
     "prettier": "<p></p>",
-    "tidyrs": "<!doctype html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n<p></p>"
+    "tidy": "<!doctype html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n<p></p>"
    }
   ]
  },
@@ -29,7 +29,7 @@
     ],
     "input": "a <3 b   ></b>\n",
     "prettier": "a <b></b>",
-    "tidyrs": "a <3 b   ></b>\n"
+    "tidy": "a <3 b   ></b>\n"
    },
    {
     "parsers": [
@@ -37,7 +37,7 @@
     ],
     "input": "<p   ></p><a",
     "prettier": "<p></p>",
-    "tidyrs": "<p   ></p><a"
+    "tidy": "<p   ></p><a"
    },
    {
     "parsers": [
@@ -45,7 +45,7 @@
     ],
     "input": "< a>b</a><p   ></p>\n",
     "prettier": "<a>b</a><p></p>",
-    "tidyrs": "< a>b</a><p   ></p>\n"
+    "tidy": "< a>b</a><p   ></p>\n"
    }
   ]
  },
@@ -58,7 +58,7 @@
     ],
     "input": "<!---a--><p   ></p>\n",
     "prettier": "<!-----><p></p>",
-    "tidyrs": "<!---a--><p></p>"
+    "tidy": "<!---a--><p></p>"
    },
    {
     "parsers": [
@@ -66,7 +66,7 @@
     ],
     "input": "<!--{{a}}--><p   ></p>\n",
     "prettier": "{{a}}<!----><p></p>",
-    "tidyrs": "<!--{{a}}--><p></p>"
+    "tidy": "<!--{{a}}--><p></p>"
    },
    {
     "parsers": [
@@ -74,7 +74,7 @@
     ],
     "input": "<!-- a-{{b}} --><p   ></p>\n",
     "prettier": "{{b}}<!-- a- --><p></p>",
-    "tidyrs": "<!-- a-{{b}} --><p></p>"
+    "tidy": "<!-- a-{{b}} --><p></p>"
    }
   ]
  },
@@ -87,7 +87,7 @@
     ],
     "input": "<!-- \\{{a}} --><p   ></p>\n",
     "prettier": "<!-- {{a}} --><p></p>",
-    "tidyrs": "<!-- \\{{a}} --><p></p>"
+    "tidy": "<!-- \\{{a}} --><p></p>"
    },
    {
     "parsers": [
@@ -95,7 +95,7 @@
     ],
     "input": "<a   \\{{b}}></a>\n",
     "prettier": "<a {{b}}></a>",
-    "tidyrs": "<a   \\{{b}}></a>"
+    "tidy": "<a   \\{{b}}></a>"
    },
    {
     "parsers": [
@@ -103,7 +103,7 @@
     ],
     "input": "<pre   >\\{{a}}</pre>\n",
     "prettier": "<pre>{{a}}</pre>",
-    "tidyrs": "<pre>\\{{a}}</pre>"
+    "tidy": "<pre>\\{{a}}</pre>"
    },
    {
     "parsers": [
@@ -111,7 +111,7 @@
     ],
     "input": "{{! prettier-ignore }}a\\{{b}}<p   ></p>\n",
     "prettier": "{{! prettier-ignore }}a{{b}}<p></p>",
-    "tidyrs": "{{! prettier-ignore }}a\\{{b}}<p></p>"
+    "tidy": "{{! prettier-ignore }}a\\{{b}}<p></p>"
    }
   ]
  },
@@ -124,7 +124,7 @@
     ],
     "input": "<style   >a{b:\"\\{{c}}\"}</style>\n",
     "prettier": "<style>a{b:\"{{c}}\"}</style>",
-    "tidyrs": "<style>a{b:\"\\{{c}}\"}</style>"
+    "tidy": "<style>a{b:\"\\{{c}}\"}</style>"
    },
    {
     "parsers": [
@@ -132,7 +132,7 @@
     ],
     "input": "<style   >a{margin: 0 {{b}} 0}</style>\n",
     "prettier": "<style>a{margin: 0{{b}}0}</style>",
-    "tidyrs": "<style>a{margin: 0 {{b}} 0}</style>"
+    "tidy": "<style>a{margin: 0 {{b}} 0}</style>"
    }
   ]
  },
@@ -145,7 +145,7 @@
     ],
     "input": "{{#a   }} {{/a}}\n",
     "prettier": "{{#a}}{{/a}}",
-    "tidyrs": "{{#a}} {{/a}}"
+    "tidy": "{{#a}} {{/a}}"
    },
    {
     "parsers": [
@@ -153,7 +153,7 @@
     ],
     "input": "<A   > </A>\n",
     "prettier": "<A />",
-    "tidyrs": "<A> </A>"
+    "tidy": "<A> </A>"
    },
    {
     "parsers": [
@@ -161,7 +161,7 @@
     ],
     "input": " \n",
     "prettier": "",
-    "tidyrs": " "
+    "tidy": " "
    }
   ]
  },
@@ -174,7 +174,7 @@
     ],
     "input": "<a   class=\"b c\"></a>\n",
     "prettier": "<a class=\"b c\"></a>",
-    "tidyrs": "<a class=\"b c\"></a>"
+    "tidy": "<a class=\"b c\"></a>"
    }
   ]
  },
@@ -187,7 +187,7 @@
     ],
     "input": "<a   b=\"c\\\\{{d}}\"></a>\n",
     "prettier": "<a b=\"c\\{{d}}\"></a>",
-    "tidyrs": "<a b=\"c\\\\{{d}}\"></a>"
+    "tidy": "<a b=\"c\\\\{{d}}\"></a>"
    },
    {
     "parsers": [
@@ -195,7 +195,7 @@
     ],
     "input": "a\\\\{{!   b }}\n",
     "prettier": "a\\{{!   b }}",
-    "tidyrs": "a\\\\{{!   b }}"
+    "tidy": "a\\\\{{!   b }}"
    },
    {
     "parsers": [
@@ -203,7 +203,7 @@
     ],
     "input": "{{#a   }}b\\\\{{/a}}\n",
     "prettier": "{{#a}}b\\{{/a}}",
-    "tidyrs": "{{#a}}b\\\\{{/a}}"
+    "tidy": "{{#a}}b\\\\{{/a}}"
    }
   ]
  },
@@ -216,7 +216,7 @@
     ],
     "input": "<a   b=c\"d'e></a>\n",
     "prettier": "<a b=\"c\"d'e\"></a>",
-    "tidyrs": "<a b=\"c&quot;d'e\"></a>"
+    "tidy": "<a b=\"c&quot;d'e\"></a>"
    }
   ]
  },
@@ -229,7 +229,7 @@
     ],
     "input": "<script   >\n  // a\n  b()\n</script>\n",
     "prettier": "<script>\n  // a b()\n</script>",
-    "tidyrs": "<script>\n  // a\n  b()\n</script>"
+    "tidy": "<script>\n  // a\n  b()\n</script>"
    },
    {
     "parsers": [
@@ -237,7 +237,7 @@
     ],
     "input": "<textarea   >\n  a\n    b\n</textarea>\n",
     "prettier": "<textarea>\n  a b\n</textarea>",
-    "tidyrs": "<textarea>\n  a\n    b\n</textarea>"
+    "tidy": "<textarea>\n  a\n    b\n</textarea>"
    }
   ]
  },
@@ -250,7 +250,7 @@
     ],
     "input": "<pre   ><b>a\n  b</b></pre>\n",
     "prettier": "<pre><b>a b</b></pre>",
-    "tidyrs": "<pre><b>a\n  b</b></pre>"
+    "tidy": "<pre><b>a\n  b</b></pre>"
    }
   ]
  },
@@ -263,7 +263,7 @@
     ],
     "input": "<textarea   >{{#a}} {{/a}}</textarea>\n",
     "prettier": "<textarea>{{#a}}{{/a}}</textarea>",
-    "tidyrs": "<textarea>{{#a}} {{/a}}</textarea>"
+    "tidy": "<textarea>{{#a}} {{/a}}</textarea>"
    },
    {
     "parsers": [
@@ -271,7 +271,7 @@
     ],
     "input": "<pre   >{{#a}} {{/a}}</pre>\n",
     "prettier": "<pre>{{#a}}{{/a}}</pre>",
-    "tidyrs": "<pre>{{#a}} {{/a}}</pre>"
+    "tidy": "<pre>{{#a}} {{/a}}</pre>"
    }
   ]
  },
@@ -284,7 +284,7 @@
     ],
     "input": "<imG   >a</imG>\n",
     "prettier": "<imG />",
-    "tidyrs": "<imG>a</imG>"
+    "tidy": "<imG>a</imG>"
    }
   ]
  },
@@ -297,7 +297,7 @@
     ],
     "input": "{{this/a   }}\n",
     "prettier": "{{a}}",
-    "tidyrs": "{{this/a}}"
+    "tidy": "{{this/a}}"
    },
    {
     "parsers": [
@@ -305,7 +305,7 @@
     ],
     "input": "{{@this.a   }}\n",
     "prettier": "{{@a}}",
-    "tidyrs": "{{@this.a}}"
+    "tidy": "{{@this.a}}"
    },
    {
     "parsers": [
@@ -313,7 +313,7 @@
     ],
     "input": "{{[this]   }}\n",
     "prettier": "{{this.this}}",
-    "tidyrs": "{{[this]}}"
+    "tidy": "{{[this]}}"
    },
    {
     "parsers": [
@@ -321,7 +321,7 @@
     ],
     "input": "{{[].a   }}\n",
     "prettier": "{{a}}",
-    "tidyrs": "{{[].a}}"
+    "tidy": "{{[].a}}"
    },
    {
     "parsers": [
@@ -329,7 +329,7 @@
     ],
     "input": "{{a.#b   }}\n",
     "prettier": "{{a.[#b]}}",
-    "tidyrs": "{{a.#b}}"
+    "tidy": "{{a.#b}}"
    },
    {
     "parsers": [
@@ -337,7 +337,7 @@
     ],
     "input": "{{[]/a   }}\n",
     "prettier": "{{a}}",
-    "tidyrs": "{{[]/a}}"
+    "tidy": "{{[]/a}}"
    },
    {
     "parsers": [
@@ -345,7 +345,7 @@
     ],
     "input": "{{@[].a   }}\n",
     "prettier": "{{@a}}",
-    "tidyrs": "{{@[].a}}"
+    "tidy": "{{@[].a}}"
    },
    {
     "parsers": [
@@ -353,7 +353,7 @@
     ],
     "input": "{{a.[]   }}\n",
     "prettier": "{{a.}}",
-    "tidyrs": "{{a.[]}}"
+    "tidy": "{{a.[]}}"
    },
    {
     "parsers": [
@@ -361,7 +361,7 @@
     ],
     "input": "{{a   [].b c=[].d}}\n",
     "prettier": "{{a b c=d}}",
-    "tidyrs": "{{a [].b c=[].d}}"
+    "tidy": "{{a [].b c=[].d}}"
    },
    {
     "parsers": [
@@ -369,7 +369,7 @@
     ],
     "input": "{{this.this   }}\n",
     "prettier": "{{this}}",
-    "tidyrs": "{{this.this}}"
+    "tidy": "{{this.this}}"
    },
    {
     "parsers": [
@@ -377,7 +377,7 @@
     ],
     "input": "{{a   ...b}}\n",
     "prettier": "{{a b}}",
-    "tidyrs": "{{a ...b}}"
+    "tidy": "{{a ...b}}"
    },
    {
     "parsers": [
@@ -385,7 +385,7 @@
     ],
     "input": "{{[a/b]   }}\n",
     "prettier": "{{a/b}}",
-    "tidyrs": "{{[a/b]}}"
+    "tidy": "{{[a/b]}}"
    }
   ]
  },
@@ -398,7 +398,7 @@
     ],
     "input": "{{a   [true]}}\n",
     "prettier": "{{a true}}",
-    "tidyrs": "{{a [true]}}"
+    "tidy": "{{a [true]}}"
    },
    {
     "parsers": [
@@ -406,7 +406,7 @@
     ],
     "input": "{{a   [-1]}}\n",
     "prettier": "{{a -1}}",
-    "tidyrs": "{{a [-1]}}"
+    "tidy": "{{a [-1]}}"
    },
    {
     "parsers": [
@@ -414,7 +414,7 @@
     ],
     "input": "{{[else]   }}\n",
     "prettier": "{{else}}",
-    "tidyrs": "{{[else]}}"
+    "tidy": "{{[else]}}"
    },
    {
     "parsers": [
@@ -422,7 +422,7 @@
     ],
     "input": "{{a   [@b]}}\n",
     "prettier": "{{a @b}}",
-    "tidyrs": "{{a [@b]}}"
+    "tidy": "{{a [@b]}}"
    },
    {
     "parsers": [
@@ -430,7 +430,7 @@
     ],
     "input": "{{a   [b\\]]}}\n",
     "prettier": "{{a [b]]}}",
-    "tidyrs": "{{a [b\\]]}}"
+    "tidy": "{{a [b\\]]}}"
    },
    {
     "parsers": [
@@ -438,7 +438,7 @@
     ],
     "input": "{{a   [b\nc]}}\n",
     "prettier": "{{a [[b\nc]]}}",
-    "tidyrs": "{{a [b\nc]}}"
+    "tidy": "{{a [b\nc]}}"
    },
    {
     "parsers": [
@@ -446,7 +446,7 @@
     ],
     "input": "{{#[a b]   }}{{else [a b] c}}{{/[a b]}}\n",
     "prettier": "{{#[a b]}}{{else a b c}}{{/[a b]}}",
-    "tidyrs": "{{#[a b]}}{{else [a b] c}}{{/[a b]}}"
+    "tidy": "{{#[a b]}}{{else [a b] c}}{{/[a b]}}"
    }
   ]
  },
@@ -459,7 +459,7 @@
     ],
     "input": "{{a   [b c]=d}}\n",
     "prettier": "{{a b c=d}}",
-    "tidyrs": "{{a [b c]=d}}"
+    "tidy": "{{a [b c]=d}}"
    }
   ]
  },
@@ -472,7 +472,7 @@
     ],
     "input": "{{\"a\"   b}}\n",
     "prettier": "{{\"a\"}}",
-    "tidyrs": "{{\"a\"   b}}"
+    "tidy": "{{\"a\"   b}}"
    },
    {
     "parsers": [
@@ -480,7 +480,7 @@
     ],
     "input": "{{(a=b)   c}}\n",
     "prettier": "{{ c}}",
-    "tidyrs": "{{(a=b)   c}}"
+    "tidy": "{{(a=b)   c}}"
    },
    {
     "parsers": [
@@ -488,7 +488,7 @@
     ],
     "input": "{{a   ((b=c) d)}}\n",
     "prettier": "{{a ( d)}}",
-    "tidyrs": "{{a   ((b=c) d)}}"
+    "tidy": "{{a   ((b=c) d)}}"
    }
   ]
  },
@@ -501,7 +501,7 @@
     ],
     "input": "{{{{a}}}}   {{b}} {{{{/a}}}}\n",
     "prettier": "{{#a}} \\{{b}} {{/a}}",
-    "tidyrs": "{{{{a}}}}   {{b}} {{{{/a}}}}"
+    "tidy": "{{{{a}}}}   {{b}} {{{{/a}}}}"
    }
   ]
  },
@@ -514,7 +514,7 @@
     ],
     "input": "{{a   1000000000000000000000}}\n",
     "prettier": "{{a 1e+21}}",
-    "tidyrs": "{{a 1000000000000000000000}}"
+    "tidy": "{{a 1000000000000000000000}}"
    },
    {
     "parsers": [
@@ -522,7 +522,7 @@
     ],
     "input": "{{a   0.0000001}}\n",
     "prettier": "{{a 1e-7}}",
-    "tidyrs": "{{a 0.0000001}}"
+    "tidy": "{{a 0.0000001}}"
    }
   ]
  },
@@ -535,7 +535,7 @@
     ],
     "input": "{{{a   }~}}\n",
     "prettier": "{{{a~}}}",
-    "tidyrs": "{{{a}~}}"
+    "tidy": "{{{a}~}}"
    },
    {
     "parsers": [
@@ -543,7 +543,7 @@
     ],
     "input": "<a   {{{b}}}></a>\n",
     "prettier": "<a {{b}}></a>",
-    "tidyrs": "<a {{{b}}}></a>"
+    "tidy": "<a {{{b}}}></a>"
    }
   ]
  },
@@ -556,7 +556,7 @@
     ],
     "input": "{{!--   a ~--}}\n",
     "prettier": "{{!   a ~}}",
-    "tidyrs": "{{!--   a ~--}}"
+    "tidy": "{{!--   a ~--}}"
    },
    {
     "parsers": [
@@ -564,7 +564,7 @@
     ],
     "input": "{{!----   a --}}\n",
     "prettier": "{{!--   a }}",
-    "tidyrs": "{{!----   a --}}"
+    "tidy": "{{!----   a --}}"
    }
   ]
  },
@@ -577,7 +577,7 @@
     ],
     "input": "{{#a   }}{{else if.b c}}{{/a}}\n",
     "prettier": "{{#a}}{{else if c}}{{/a}}",
-    "tidyrs": "{{#a}}{{else if.b c}}{{/a}}"
+    "tidy": "{{#a}}{{else if.b c}}{{/a}}"
    },
    {
     "parsers": [
@@ -585,7 +585,7 @@
     ],
     "input": "{{#a   }}{{else}}{{~#if b}}c{{/if}}{{/a}}\n",
     "prettier": "{{#a}}{{else if b}}c{{/a}}",
-    "tidyrs": "{{#a}}{{else}}{{~#if b}}c{{/if}}{{/a}}"
+    "tidy": "{{#a}}{{else}}{{~#if b}}c{{/if}}{{/a}}"
    },
    {
     "parsers": [
@@ -593,7 +593,7 @@
     ],
     "input": "{{#z   }}y{{else}}{{#if a}}b{{~else if c}}d {{/if}}{{/z}}\n",
     "prettier": "{{#z}}y{{else if a}}b{{~else if c}}d {{/z}}",
-    "tidyrs": "{{#z}}y{{else}}{{#if a}}b{{~else if c}}d {{/if}}{{/z}}"
+    "tidy": "{{#z}}y{{else}}{{#if a}}b{{~else if c}}d {{/if}}{{/z}}"
    }
   ]
  },
@@ -606,7 +606,7 @@
     ],
     "input": "a\n {{~! b ~}} <p {{c}} d=\"e\" {{f}} g></p> <!-- {{h}} -->\n {{! prettier-ignore }} {{  i  }} {{!-- j --~}}\n{{k\n  l}} {{~! m }}\n",
     "prettier": "a  {{! b }}\n<p {{c}} d=\"e\" {{f}} g></p>\n<!--  {{h} -->\n  {{! prettier-ignore }\n {{  i  }\n{{! j }}\n{{k l}}\n{{! m }}",
-    "tidyrs": "a  {{~! b ~}}\n<p {{c}} d=\"e\" {{f}} g></p>\n<!-- {{h}} -->\n {{! prettier-ignore }}\n{{  i  }}\n{{! j ~}}\n{{k l}}\n{{~! m }}"
+    "tidy": "a  {{~! b ~}}\n<p {{c}} d=\"e\" {{f}} g></p>\n<!-- {{h}} -->\n {{! prettier-ignore }}\n{{  i  }}\n{{! j ~}}\n{{k l}}\n{{~! m }}"
    }
   ]
  },
@@ -619,7 +619,7 @@
     ],
     "input": "p \\{{a}} {{q   }}\n",
     "prettier": "p\\{{a}} {{q}}",
-    "tidyrs": "p \\{{a}} {{q}}",
+    "tidy": "p \\{{a}} {{q}}",
     "whitespace": "ignore"
    }
   ]
@@ -635,7 +635,7 @@
     ],
     "input": "x{@extend   .a\\ ;}\n@extend .a\\ ;\nx{@include   .a\\ ;}\n@include .a\\ ;\nx{@media   .a\\ ;}\n@media .a\\ ;\nx{@supports   .a\\ ;}\n@supports .a\\ ;\nx{@container   .a\\ ;}\n@container .a\\ ;\nx{@layer   .a\\ ;}\n@layer .a\\ ;\nx{@import   .a\\ ;}\n@import .a\\ ;\nx{@custom   .a\\ ;}\n@custom .a\\ ;\n@last .a\\ ",
     "prettier": "x {\n  @extend .a\\;\n}\n@extend .a\\;\nx {\n  @include .a\\;\n}\n@include .a\\;\nx {\n  @media .a\\;\n}\n@media .a\\;\nx {\n  @supports .a\\;\n}\n@supports .a\\;\nx {\n  @container .a\\;\n}\n@container .a\\;\nx {\n  @layer .a\\;\n}\n@layer .a\\;\nx {\n  @import .a\\;\n}\n@import .a\\;\nx {\n  @custom .a\\;\n}\n@custom .a\\;\n@last .a\\;\n",
-    "tidyrs": "x {\n  @extend .a\\ ;\n}\n@extend .a\\ ;\nx {\n  @include .a\\ ;\n}\n@include .a\\ ;\nx {\n  @media .a\\ ;\n}\n@media .a\\ ;\nx {\n  @supports .a\\ ;\n}\n@supports .a\\ ;\nx {\n  @container .a\\ ;\n}\n@container .a\\ ;\nx {\n  @layer .a\\ ;\n}\n@layer .a\\ ;\nx {\n  @import .a\\ ;\n}\n@import .a\\ ;\nx {\n  @custom .a\\ ;\n}\n@custom .a\\ ;\n@last .a\\ ;\n"
+    "tidy": "x {\n  @extend .a\\ ;\n}\n@extend .a\\ ;\nx {\n  @include .a\\ ;\n}\n@include .a\\ ;\nx {\n  @media .a\\ ;\n}\n@media .a\\ ;\nx {\n  @supports .a\\ ;\n}\n@supports .a\\ ;\nx {\n  @container .a\\ ;\n}\n@container .a\\ ;\nx {\n  @layer .a\\ ;\n}\n@layer .a\\ ;\nx {\n  @import .a\\ ;\n}\n@import .a\\ ;\nx {\n  @custom .a\\ ;\n}\n@custom .a\\ ;\n@last .a\\ ;\n"
    },
    {
     "parsers": [
@@ -643,7 +643,7 @@
     ],
     "input": "@media (a\\ ){b{c:d}}\n@each   .a\\ ;\n",
     "prettier": "@media (a\\) {\n  b {\n    c: d;\n  }\n}\n@each .a\\ ;\n",
-    "tidyrs": "@media (a\\ ) {\n  b {\n    c: d;\n  }\n}\n@each .a\\ ;\n"
+    "tidy": "@media (a\\ ) {\n  b {\n    c: d;\n  }\n}\n@each .a\\ ;\n"
    },
    {
     "parsers": [
@@ -651,7 +651,7 @@
     ],
     "input": "a{@extend .a\\ ;}\n",
     "prettier": "a {\n  @extend .a\\;\n}\n",
-    "tidyrs": "a {\n  @extend .a\\ ;\n}\n"
+    "tidy": "a {\n  @extend .a\\ ;\n}\n"
    },
    {
     "parsers": [
@@ -659,7 +659,7 @@
     ],
     "input": "@media .a\\ ;\n",
     "prettier": "@media .a\\;\n",
-    "tidyrs": "@media .a\\ ;\n"
+    "tidy": "@media .a\\ ;\n"
    }
   ]
  },
@@ -674,7 +674,7 @@
     ],
     "input": "a{b:Font\\ Awesome\\ 5}\n",
     "prettier": "a {\n  b: Font\\Awesome\\5;\n}\n",
-    "tidyrs": "a {\n  b: Font\\ Awesome\\ 5;\n}\n"
+    "tidy": "a {\n  b: Font\\ Awesome\\ 5;\n}\n"
    },
    {
     "parsers": [
@@ -684,7 +684,7 @@
     ],
     "input": "a{b:a\\g   c}\n",
     "prettier": "a {\n  b: a\\gc;\n}\n",
-    "tidyrs": "a {\n  b: a\\g c;\n}\n"
+    "tidy": "a {\n  b: a\\g c;\n}\n"
    },
    {
     "parsers": [
@@ -694,7 +694,7 @@
     ],
     "input": "a{b:d\\  e}\n",
     "prettier": "a {\n  b: d\\e;\n}\n",
-    "tidyrs": "a {\n  b: d\\  e;\n}\n"
+    "tidy": "a {\n  b: d\\  e;\n}\n"
    },
    {
     "parsers": [
@@ -704,7 +704,7 @@
     ],
     "input": "a{b:d\\ -5}\n",
     "prettier": "a {\n  b: d\\-5;\n}\n",
-    "tidyrs": "a {\n  b: d\\ -5;\n}\n"
+    "tidy": "a {\n  b: d\\ -5;\n}\n"
    },
    {
     "parsers": [
@@ -714,7 +714,7 @@
     ],
     "input": "a{b:d\\ }\n",
     "prettier": "a {\n  b: d\\;\n}\n",
-    "tidyrs": "a {\n  b: d\\ ;\n}\n"
+    "tidy": "a {\n  b: d\\ ;\n}\n"
    },
    {
     "parsers": [
@@ -724,7 +724,7 @@
     ],
     "input": "a{b:(a\\ )}\n",
     "prettier": "a {\n  b: (a\\);\n}\n",
-    "tidyrs": "a {\n  b: (a\\ );\n}\n"
+    "tidy": "a {\n  b: (a\\ );\n}\n"
    },
    {
     "parsers": [
@@ -734,7 +734,7 @@
     ],
     "input": "a{b:f(b a\\ )}\n",
     "prettier": "a {\n  b: f(b a\\);\n}\n",
-    "tidyrs": "a {\n  b: f(b a\\ );\n}\n"
+    "tidy": "a {\n  b: f(b a\\ );\n}\n"
    },
    {
     "parsers": [
@@ -744,7 +744,7 @@
     ],
     "input": "a{b:f(a\\ , b)}\n",
     "prettier": "a {\n  b: f(a\\, b);\n}\n",
-    "tidyrs": "a {\n  b: f(a\\ , b);\n}\n"
+    "tidy": "a {\n  b: f(a\\ , b);\n}\n"
    },
    {
     "parsers": [
@@ -754,7 +754,7 @@
     ],
     "input": "a{b:a\\ , b}\n",
     "prettier": "a {\n  b: a\\, b;\n}\n",
-    "tidyrs": "a {\n  b: a\\ , b;\n}\n"
+    "tidy": "a {\n  b: a\\ , b;\n}\n"
    },
    {
     "parsers": [
@@ -764,7 +764,7 @@
     ],
     "input": "a{b:d\\\\   e}\n",
     "prettier": "a {\n  b: d\\\\e;\n}\n",
-    "tidyrs": "a {\n  b: d\\\\ e;\n}\n"
+    "tidy": "a {\n  b: d\\\\ e;\n}\n"
    },
    {
     "parsers": [
@@ -774,7 +774,7 @@
     ],
     "input": "a{b:x d\\h   f g}\n",
     "prettier": "a {\n  b: x d\\hf g;\n}\n",
-    "tidyrs": "a {\n  b: x d\\h f g;\n}\n"
+    "tidy": "a {\n  b: x d\\h f g;\n}\n"
    },
    {
     "parsers": [
@@ -784,7 +784,7 @@
     ],
     "input": "a{b:a\\b   c}\n",
     "prettier": "a {\n  b: a\\bc;\n}\n",
-    "tidyrs": "a {\n  b: a\\b  c;\n}\n"
+    "tidy": "a {\n  b: a\\b  c;\n}\n"
    },
    {
     "parsers": [
@@ -794,7 +794,7 @@
     ],
     "input": "a{b:x d\\e   f g}\n",
     "prettier": "a {\n  b: x d\\ef g;\n}\n",
-    "tidyrs": "a {\n  b: x d\\e  f g;\n}\n"
+    "tidy": "a {\n  b: x d\\e  f g;\n}\n"
    },
    {
     "parsers": [
@@ -804,7 +804,7 @@
     ],
     "input": "a{b:a\\b c}\n",
     "prettier": "a {\n  b: a\\bc;\n}\n",
-    "tidyrs": "a {\n  b: a\\b c;\n}\n"
+    "tidy": "a {\n  b: a\\b c;\n}\n"
    }
   ]
  },
@@ -819,7 +819,7 @@
     ],
     "input": "x |b{c:d}\n",
     "prettier": "x|b {\n  c: d;\n}\n",
-    "tidyrs": "x |b {\n  c: d;\n}\n"
+    "tidy": "x |b {\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -829,7 +829,7 @@
     ],
     "input": "x,|b,y{c:d}\n",
     "prettier": "x,\n,|b,\ny {\n  c: d;\n}\n",
-    "tidyrs": "x,\n|b,\ny {\n  c: d;\n}\n"
+    "tidy": "x,\n|b,\ny {\n  c: d;\n}\n"
    }
   ]
  },
@@ -842,7 +842,7 @@
     ],
     "input": "@media (KA){a{b:c}}\n",
     "prettier": "@media (ka) {\n  a {\n    b: c;\n  }\n}\n",
-    "tidyrs": "@media (Ka) {\n  a {\n    b: c;\n  }\n}\n"
+    "tidy": "@media (Ka) {\n  a {\n    b: c;\n  }\n}\n"
    }
   ]
  },
@@ -855,7 +855,7 @@
     ],
     "input": "@a:1px solid #ccc;\n",
     "prettier": "@a: 1pxsolid #ccc;\n",
-    "tidyrs": "@a: 1px solid #ccc;\n"
+    "tidy": "@a: 1px solid #ccc;\n"
    },
    {
     "parsers": [
@@ -863,7 +863,7 @@
     ],
     "input": "@a:0 1px 2px rgba(0,0,0,.05);\n",
     "prettier": "@a: 01px 2px rgba(0, 0, 0, 0.05);\n",
-    "tidyrs": "@a: 0 1px 2px rgba(0, 0, 0, 0.05);\n"
+    "tidy": "@a: 0 1px 2px rgba(0, 0, 0, 0.05);\n"
    },
    {
     "parsers": [
@@ -871,7 +871,7 @@
     ],
     "input": "@a:@b - @c;\n",
     "prettier": "@a: @b- @c;\n",
-    "tidyrs": "@a: @b - @c;\n"
+    "tidy": "@a: @b - @c;\n"
    },
    {
     "parsers": [
@@ -879,7 +879,7 @@
     ],
     "input": "@a:0 -@b;\n",
     "prettier": "@a: 0-@b;\n",
-    "tidyrs": "@a: 0 -@b;\n"
+    "tidy": "@a: 0 -@b;\n"
    },
    {
     "parsers": [
@@ -887,7 +887,7 @@
     ],
     "input": "@a:-1px -2px;\n",
     "prettier": "@a: -1px-2px;\n",
-    "tidyrs": "@a: -1px -2px;\n"
+    "tidy": "@a: -1px -2px;\n"
    },
    {
     "parsers": [
@@ -895,7 +895,7 @@
     ],
     "input": "@a:10px ./ 2;\n",
     "prettier": "@a: 10px./ 2;\n",
-    "tidyrs": "@a: 10px ./ 2;\n"
+    "tidy": "@a: 10px ./ 2;\n"
    },
    {
     "parsers": [
@@ -903,7 +903,7 @@
     ],
     "input": "@a:screen and (min-width:1px);\n",
     "prettier": "@a: screenand (min-width: 1px);\n",
-    "tidyrs": "@a: screen and (min-width: 1px);\n"
+    "tidy": "@a: screen and (min-width: 1px);\n"
    },
    {
     "parsers": [
@@ -911,7 +911,7 @@
     ],
     "input": "@a:1px solid!important;\n",
     "prettier": "@a: 1pxsolid!important;\n",
-    "tidyrs": "@a: 1px solid!important;\n"
+    "tidy": "@a: 1px solid!important;\n"
    },
    {
     "parsers": [
@@ -919,7 +919,7 @@
     ],
     "input": "@a:1px\n  solid;\n",
     "prettier": "@a: 1pxsolid;\n",
-    "tidyrs": "@a: 1px solid;\n"
+    "tidy": "@a: 1px solid;\n"
    },
    {
     "parsers": [
@@ -927,7 +927,7 @@
     ],
     "input": ".a{@b:1px solid red;c:@b}\n",
     "prettier": ".a {\n  @b: 1pxsolid red;\n  c: @b;\n}\n",
-    "tidyrs": ".a {\n  @b: 1px solid red;\n  c: @b;\n}\n"
+    "tidy": ".a {\n  @b: 1px solid red;\n  c: @b;\n}\n"
    },
    {
     "parsers": [
@@ -935,7 +935,7 @@
     ],
     "input": ".a(){@b:1px solid;}\n",
     "prettier": ".a() {\n  @b: 1pxsolid;\n}\n",
-    "tidyrs": ".a() {\n  @b: 1px solid;\n}\n"
+    "tidy": ".a() {\n  @b: 1px solid;\n}\n"
    },
    {
     "parsers": [
@@ -943,7 +943,7 @@
     ],
     "input": "@a:{@b:1px solid}\n",
     "prettier": "@a: {\n  @b: 1pxsolid;\n};\n",
-    "tidyrs": "@a: {\n  @b: 1px solid;\n};\n"
+    "tidy": "@a: {\n  @b: 1px solid;\n};\n"
    },
    {
     "parsers": [
@@ -951,7 +951,7 @@
     ],
     "input": "@a:1px // b\n solid;\n",
     "prettier": "@a: 1px  //\n  solid;\n",
-    "tidyrs": "@a: 1px // b\n  solid;\n"
+    "tidy": "@a: 1px // b\n  solid;\n"
    }
   ]
  },
@@ -964,7 +964,7 @@
     ],
     "input": "@a: 1px /* why */ solid;\n",
     "prettier": "@a: 1px solid;\n",
-    "tidyrs": "@a: 1px /* why */ solid;\n"
+    "tidy": "@a: 1px /* why */ solid;\n"
    },
    {
     "parsers": [
@@ -972,7 +972,7 @@
     ],
     "input": "@a: \"Helvetica Neue\" /* mac */, Arial /* win */, sans-serif;\n",
     "prettier": "@a: \"Helvetica Neue\", Arial, sans-serif;\n",
-    "tidyrs": "@a:\n  \"Helvetica Neue\" /* mac */,\n  Arial /* win */,\n  sans-serif;\n"
+    "tidy": "@a:\n  \"Helvetica Neue\" /* mac */,\n  Arial /* win */,\n  sans-serif;\n"
    },
    {
     "parsers": [
@@ -980,7 +980,7 @@
     ],
     "input": "@a: /* why */ 1px;\n",
     "prettier": "@a: 1px;\n",
-    "tidyrs": "@a: /* why */ 1px;\n"
+    "tidy": "@a: /* why */ 1px;\n"
    },
    {
     "parsers": [
@@ -988,7 +988,7 @@
     ],
     "input": "@a: darken(@b, 10% /* why */);\n",
     "prettier": "@a: darken(@b, 10%);\n",
-    "tidyrs": "@a: darken(@b, 10% /* why */);\n"
+    "tidy": "@a: darken(@b, 10% /* why */);\n"
    },
    {
     "parsers": [
@@ -996,7 +996,7 @@
     ],
     "input": "@a: (1 /* why */ + 2);\n",
     "prettier": "@a: (1 + 2);\n",
-    "tidyrs": "@a: (1 /* why */ + 2);\n"
+    "tidy": "@a: (1 /* why */ + 2);\n"
    },
    {
     "parsers": [
@@ -1004,7 +1004,7 @@
     ],
     "input": "@a: red ! /* why */ important;\n",
     "prettier": "@a: red ! important;\n",
-    "tidyrs": "@a: red ! /* why */ important;\n"
+    "tidy": "@a: red ! /* why */ important;\n"
    },
    {
     "parsers": [
@@ -1012,7 +1012,7 @@
     ],
     "input": "@a: b /* c */ d/* e */f;\n",
     "prettier": "@a: b d  c */ d f;\n",
-    "tidyrs": "@a: b /* c */ d /* e */ f;\n"
+    "tidy": "@a: b /* c */ d /* e */ f;\n"
    },
    {
     "parsers": [
@@ -1020,7 +1020,7 @@
     ],
     "input": "@a : 1px /* why */ solid;\n",
     "prettier": "@a: 1px solid;\n",
-    "tidyrs": "@a: 1px /* why */ solid;\n"
+    "tidy": "@a: 1px /* why */ solid;\n"
    },
    {
     "parsers": [
@@ -1028,7 +1028,7 @@
     ],
     "input": "x{@a: 1px /* why */ solid}\n",
     "prettier": "x {\n  @a: 1px solid;\n}\n",
-    "tidyrs": "x {\n  @a: 1px /* why */ solid;\n}\n"
+    "tidy": "x {\n  @a: 1px /* why */ solid;\n}\n"
    },
    {
     "parsers": [
@@ -1036,7 +1036,7 @@
     ],
     "input": "@a:1px /* why */ solid;\n",
     "prettier": "@a: 1pxsolid;\n",
-    "tidyrs": "@a: 1px /* why */ solid;\n"
+    "tidy": "@a: 1px /* why */ solid;\n"
    },
    {
     "parsers": [
@@ -1044,7 +1044,7 @@
     ],
     "input": "@a:1px/* why */solid;\n",
     "prettier": "@a: 1pxsolid;\n",
-    "tidyrs": "@a: 1px /* why */ solid;\n"
+    "tidy": "@a: 1px /* why */ solid;\n"
    },
    {
     "parsers": [
@@ -1052,7 +1052,7 @@
     ],
     "input": "@a:b(c)/* d */e;\n",
     "prettier": "@a: b(c) )/* d * e;\n",
-    "tidyrs": "@a: b(c) /* d */ e;\n"
+    "tidy": "@a: b(c) /* d */ e;\n"
    },
    {
     "parsers": [
@@ -1060,7 +1060,7 @@
     ],
     "input": "@a:darken(@b,10%/* why */);\n",
     "prettier": "@a: darken(@b, 10% %/* why *);\n",
-    "tidyrs": "@a: darken(@b, 10% /* why */);\n"
+    "tidy": "@a: darken(@b, 10% /* why */);\n"
    },
    {
     "parsers": [
@@ -1068,7 +1068,7 @@
     ],
     "input": "@a:b /* c */ d/* e */f;\n",
     "prettier": "@a: bd /* c */ f;\n",
-    "tidyrs": "@a: b /* c */ d /* e */ f;\n"
+    "tidy": "@a: b /* c */ d /* e */ f;\n"
    }
   ]
  },
@@ -1081,7 +1081,7 @@
     ],
     "input": "@if $a {\n  b: c;\n} @else /* why */ {\n  d: e;\n}\n",
     "prettier": "@if $a {\n  b: c;\n} @else  /* why * {\n  d: e;\n}\n",
-    "tidyrs": "@if $a {\n  b: c;\n} @else /* why */ {\n  d: e;\n}\n"
+    "tidy": "@if $a {\n  b: c;\n} @else /* why */ {\n  d: e;\n}\n"
    },
    {
     "parsers": [
@@ -1089,7 +1089,7 @@
     ],
     "input": "@else /* a */ /* b */ {\n}\n@function /* a */ {\n}\n@return /* a */;\n",
     "prettier": "@else  /* a *  /* b * {\n}\n@function  /* a * {\n}\n@return  /* a *;\n",
-    "tidyrs": "@else /* a */ /* b */ {\n}\n@function /* a */ {\n}\n@return /* a */;\n"
+    "tidy": "@else /* a */ /* b */ {\n}\n@function /* a */ {\n}\n@return /* a */;\n"
    }
   ]
  },
@@ -1102,7 +1102,7 @@
     ],
     "input": "@if $a {\n  b: c;\n} @else // why\n{\n  d: e;\n}\n",
     "prettier": "@if $a {\n  b: c;\n} @else  { // wh\n  d: e;\n}\n",
-    "tidyrs": "@if $a {\n  b: c;\n} @else // why\n{\n  d: e;\n}\n"
+    "tidy": "@if $a {\n  b: c;\n} @else // why\n{\n  d: e;\n}\n"
    },
    {
     "parsers": [
@@ -1111,7 +1111,7 @@
     ],
     "input": "@media (min-width: 1px) // Why\n{\n  a {\n    b: c;\n  }\n}\n",
     "prettier": "@media (min-width: 1px) // Why {\n  a {\n    b: c;\n  }\n}\n",
-    "tidyrs": "@media (min-width: 1px) // Why\n{\n  a {\n    b: c;\n  }\n}\n"
+    "tidy": "@media (min-width: 1px) // Why\n{\n  a {\n    b: c;\n  }\n}\n"
    },
    {
     "parsers": [
@@ -1119,7 +1119,7 @@
     ],
     "input": "@media screen // Why\n  and (min-width: 1px) {\n  a {\n    b: c;\n  }\n}\n",
     "prettier": "@media screen // Why and (min-width: 1px) {\n  a {\n    b: c;\n  }\n}\n",
-    "tidyrs": "@media screen // Why\n  and (min-width: 1px) {\n  a {\n    b: c;\n  }\n}\n"
+    "tidy": "@media screen // Why\n  and (min-width: 1px) {\n  a {\n    b: c;\n  }\n}\n"
    },
    {
     "parsers": [
@@ -1127,7 +1127,7 @@
     ],
     "input": "@if $a// why\n{\n  b: c;\n}\n",
     "prettier": "@if $a// why {\n  b: c;\n}\n",
-    "tidyrs": "@if $a // why\n{\n  b: c;\n}\n"
+    "tidy": "@if $a // why\n{\n  b: c;\n}\n"
    },
    {
     "parsers": [
@@ -1135,7 +1135,7 @@
     ],
     "input": "a {\n  @extend .b // why\n  ;\n  c: d\n}\n",
     "prettier": "a {\n  @extend .b // why;\n  c: d;\n}\n",
-    "tidyrs": "a {\n  @extend .b; // why\n  c: d;\n}\n"
+    "tidy": "a {\n  @extend .b; // why\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1143,7 +1143,7 @@
     ],
     "input": "@warn \"a\" // why\n;\n@b c // why\n;\n",
     "prettier": "@warn \"a\" // why;\n@b c // why;\n",
-    "tidyrs": "@warn \"a\"; // why\n@b c; // why\n"
+    "tidy": "@warn \"a\"; // why\n@b c; // why\n"
    },
    {
     "parsers": [
@@ -1151,7 +1151,7 @@
     ],
     "input": "$a: b// why\n;\n$c: 1;\n",
     "prettier": "$a: b// why;\n$c: 1;\n",
-    "tidyrs": "$a: b; // why\n$c: 1;\n"
+    "tidy": "$a: b; // why\n$c: 1;\n"
    },
    {
     "parsers": [
@@ -1159,7 +1159,7 @@
     ],
     "input": "a { b: c// why\n; d: e }\n",
     "prettier": "a {\n  b: c// why;\n  d: e;\n}\n",
-    "tidyrs": "a {\n  b: c; // why\n  d: e;\n}\n"
+    "tidy": "a {\n  b: c; // why\n  d: e;\n}\n"
    },
    {
     "parsers": [
@@ -1167,7 +1167,7 @@
     ],
     "input": ".a() // why\n;\n.b();\n",
     "prettier": ".a() // why;\n.b();\n",
-    "tidyrs": ".a(); // why\n.b();\n"
+    "tidy": ".a(); // why\n.b();\n"
    },
    {
     "parsers": [
@@ -1175,7 +1175,7 @@
     ],
     "input": ".a() // \"why\"\n;\n.b();\n",
     "prettier": ".a() //  why;\n.b();\n",
-    "tidyrs": ".a(); // \"why\"\n.b();\n"
+    "tidy": ".a(); // \"why\"\n.b();\n"
    },
    {
     "parsers": [
@@ -1183,7 +1183,7 @@
     ],
     "input": "a { b: c//\"why\"\n; d: e }\n",
     "prettier": "a {\n  b: c// why;\n  d: e;\n}\n",
-    "tidyrs": "a {\n  b: c; //\"why\"\n  d: e;\n}\n"
+    "tidy": "a {\n  b: c; //\"why\"\n  d: e;\n}\n"
    },
    {
     "parsers": [
@@ -1191,7 +1191,7 @@
     ],
     "input": "@plugin \"a\" // 'why'\n;\n",
     "prettier": "@plugin \"a\" //  why;\n",
-    "tidyrs": "@plugin \"a\"; // 'why'\n"
+    "tidy": "@plugin \"a\"; // 'why'\n"
    }
   ]
  },
@@ -1206,7 +1206,7 @@
     ],
     "input": ":nth-child(+n+3){c:d}\n",
     "prettier": ":nth-child(+ n + 3) {\n  c: d;\n}\n",
-    "tidyrs": ":nth-child(+n + 3) {\n  c: d;\n}\n"
+    "tidy": ":nth-child(+n + 3) {\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1216,7 +1216,7 @@
     ],
     "input": ":nth-child(+3){c:d}\n",
     "prettier": ":nth-child(+ 3) {\n  c: d;\n}\n",
-    "tidyrs": ":nth-child(+3) {\n  c: d;\n}\n"
+    "tidy": ":nth-child(+3) {\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1226,7 +1226,7 @@
     ],
     "input": "li:nth-child(+2n+1){c:d}\n",
     "prettier": "li:nth-child(+ 2n + 1) {\n  c: d;\n}\n",
-    "tidyrs": "li:nth-child(+2n + 1) {\n  c: d;\n}\n"
+    "tidy": "li:nth-child(+2n + 1) {\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1236,7 +1236,7 @@
     ],
     "input": ":nth-last-child(+n + 2){c:d}\n",
     "prettier": ":nth-last-child(+ n + 2) {\n  c: d;\n}\n",
-    "tidyrs": ":nth-last-child(+n + 2) {\n  c: d;\n}\n"
+    "tidy": ":nth-last-child(+n + 2) {\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1246,7 +1246,7 @@
     ],
     "input": ":nth-col(+2){c:d}\n",
     "prettier": ":nth-col(+ 2) {\n  c: d;\n}\n",
-    "tidyrs": ":nth-col(+2) {\n  c: d;\n}\n"
+    "tidy": ":nth-col(+2) {\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1256,7 +1256,7 @@
     ],
     "input": ":NTH-CHILD(+N+3 of .a){c:d}\n",
     "prettier": ":nth-child(+ N + 3 of .a) {\n  c: d;\n}\n",
-    "tidyrs": ":nth-child(+N + 3 of .a) {\n  c: d;\n}\n"
+    "tidy": ":nth-child(+N + 3 of .a) {\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1266,7 +1266,7 @@
     ],
     "input": "@keyframes x{+50%{a:b}}\n",
     "prettier": "@keyframes x {\n  + 50% {\n    a: b;\n  }\n}\n",
-    "tidyrs": "@keyframes x {\n  +50% {\n    a: b;\n  }\n}\n"
+    "tidy": "@keyframes x {\n  +50% {\n    a: b;\n  }\n}\n"
    }
   ]
  },
@@ -1281,7 +1281,7 @@
     ],
     "input": ".\\31  .b{c:d}\n",
     "prettier": ".\\31 .b {\n  c: d;\n}\n",
-    "tidyrs": ".\\31  .b {\n  c: d;\n}\n"
+    "tidy": ".\\31  .b {\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1291,7 +1291,7 @@
     ],
     "input": "#\\31  li{c:d}\n",
     "prettier": "#\\31 li {\n  c: d;\n}\n",
-    "tidyrs": "#\\31  li {\n  c: d;\n}\n"
+    "tidy": "#\\31  li {\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1301,7 +1301,7 @@
     ],
     "input": ".\\e9  a{c:d}\n",
     "prettier": ".\\e9 a {\n  c: d;\n}\n",
-    "tidyrs": ".\\e9  a {\n  c: d;\n}\n"
+    "tidy": ".\\e9  a {\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1311,7 +1311,7 @@
     ],
     "input": ".\\31 \\30  .b{c:d}\n",
     "prettier": ".\\31 \\30 .b {\n  c: d;\n}\n",
-    "tidyrs": ".\\31 \\30  .b {\n  c: d;\n}\n"
+    "tidy": ".\\31 \\30  .b {\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1321,7 +1321,7 @@
     ],
     "input": ".\\000031  b{c:d}\n",
     "prettier": ".\\000031 b {\n  c: d;\n}\n",
-    "tidyrs": ".\\000031  b {\n  c: d;\n}\n"
+    "tidy": ".\\000031  b {\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1331,7 +1331,7 @@
     ],
     "input": "a:not(.\\31  b){c:d}\n",
     "prettier": "a:not(.\\31 b) {\n  c: d;\n}\n",
-    "tidyrs": "a:not(.\\31  b) {\n  c: d;\n}\n"
+    "tidy": "a:not(.\\31  b) {\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1341,7 +1341,7 @@
     ],
     "input": ".\\31 \n.b{c:d}\n",
     "prettier": ".\\31 .b {\n  c: d;\n}\n",
-    "tidyrs": ".\\31  .b {\n  c: d;\n}\n"
+    "tidy": ".\\31  .b {\n  c: d;\n}\n"
    }
   ]
  },
@@ -1356,7 +1356,7 @@
     ],
     "input": "[a=x\\31 i]{c:d}\n",
     "prettier": "[a=\"x\\31\" i] {\n  c: d;\n}\n",
-    "tidyrs": "[a=\"x\\31 i\"] {\n  c: d;\n}\n"
+    "tidy": "[a=\"x\\31 i\"] {\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1366,7 +1366,7 @@
     ],
     "input": "[a=b\\ c]{c:d}\n",
     "prettier": "[a=\"b\\\" c] {\n  c: d;\n}\n",
-    "tidyrs": "[a=\"b\\ c\"] {\n  c: d;\n}\n"
+    "tidy": "[a=\"b\\ c\"] {\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1376,7 +1376,7 @@
     ],
     "input": "[a=b\\ c i]{c:d}\n",
     "prettier": "[a=\"b\\\" c i] {\n  c: d;\n}\n",
-    "tidyrs": "[a=\"b\\ c\" i] {\n  c: d;\n}\n"
+    "tidy": "[a=\"b\\ c\" i] {\n  c: d;\n}\n"
    }
   ]
  },
@@ -1391,7 +1391,7 @@
     ],
     "input": "a{animation-name:\\31  x}\n",
     "prettier": "a {\n  animation-name: \\31 x;\n}\n",
-    "tidyrs": "a {\n  animation-name: \\31  x;\n}\n"
+    "tidy": "a {\n  animation-name: \\31  x;\n}\n"
    },
    {
     "parsers": [
@@ -1401,7 +1401,7 @@
     ],
     "input": "a{b:\\31  x \\e9  \"y\" \\31 z}\n",
     "prettier": "a {\n  b: \\31 x \\e9\"y\" \\31 z;\n}\n",
-    "tidyrs": "a {\n  b: \\31  x \\e9  \"y\" \\31 z;\n}\n"
+    "tidy": "a {\n  b: \\31  x \\e9  \"y\" \\31 z;\n}\n"
    },
    {
     "parsers": [
@@ -1411,7 +1411,7 @@
     ],
     "input": "a {\n  animation-name: word word word word word word word word word word word wo \\31 abcdefghijklmnop;\n}\n",
     "prettier": "a {\n  animation-name: word word word word word word word word word word word wo \\31\n    abcdefghijklmnop;\n}\n",
-    "tidyrs": "a {\n  animation-name: word word word word word word word word word word word wo\n    \\31 abcdefghijklmnop;\n}\n"
+    "tidy": "a {\n  animation-name: word word word word word word word word word word word wo\n    \\31 abcdefghijklmnop;\n}\n"
    },
    {
     "parsers": [
@@ -1421,7 +1421,7 @@
     ],
     "input": "a {\n  --x: word word word word word word word word word word word word word wo \\31 abcdefghijklmnop;\n}\n",
     "prettier": "a {\n  --x: word word word word word word word word word word word word word wo \\31\n    abcdefghijklmnop;\n}\n",
-    "tidyrs": "a {\n  --x: word word word word word word word word word word word word word wo\n    \\31 abcdefghijklmnop;\n}\n"
+    "tidy": "a {\n  --x: word word word word word word word word word word word word word wo\n    \\31 abcdefghijklmnop;\n}\n"
    },
    {
     "parsers": [
@@ -1431,7 +1431,7 @@
     ],
     "input": "a {\n  b: word word word word word word word word word word word word word wor x\\31 abcdefghijklmnop;\n}\n",
     "prettier": "a {\n  b: word word word word word word word word word word word word word wor x\\31\n    abcdefghijklmnop;\n}\n",
-    "tidyrs": "a {\n  b: word word word word word word word word word word word word word wor\n    x\\31 abcdefghijklmnop;\n}\n"
+    "tidy": "a {\n  b: word word word word word word word word word word word word word wor\n    x\\31 abcdefghijklmnop;\n}\n"
    }
   ]
  },
@@ -1446,7 +1446,7 @@
     ],
     "input": "@plugin \"@tailwindcss/typography\" {className:wysiwyg}\n",
     "prettier": "@plugin \"@tailwindcss/typography\" {\n  classname: wysiwyg;\n}\n",
-    "tidyrs": "@plugin \"@tailwindcss/typography\" {\n  className: wysiwyg;\n}\n"
+    "tidy": "@plugin \"@tailwindcss/typography\" {\n  className: wysiwyg;\n}\n"
    },
    {
     "parsers": [
@@ -1456,7 +1456,7 @@
     ],
     "input": "@plugin \"./my-plugin.js\" {darkMode:class;maxWidth:10px}\n",
     "prettier": "@plugin \"./my-plugin.js\" {\n  darkmode: class;\n  maxwidth: 10px;\n}\n",
-    "tidyrs": "@plugin \"./my-plugin.js\" {\n  darkMode: class;\n  maxWidth: 10px;\n}\n"
+    "tidy": "@plugin \"./my-plugin.js\" {\n  darkMode: class;\n  maxWidth: 10px;\n}\n"
    },
    {
     "parsers": [
@@ -1466,7 +1466,7 @@
     ],
     "input": "@font-feature-values Font One {@styleset {niceStyle:12} @swash {Fancy:1}}\n",
     "prettier": "@font-feature-values Font One {\n  @styleset {\n    nicestyle: 12;\n  }\n  @swash {\n    fancy: 1;\n  }\n}\n",
-    "tidyrs": "@font-feature-values Font One {\n  @styleset {\n    niceStyle: 12;\n  }\n  @swash {\n    Fancy: 1;\n  }\n}\n"
+    "tidy": "@font-feature-values Font One {\n  @styleset {\n    niceStyle: 12;\n  }\n  @swash {\n    Fancy: 1;\n  }\n}\n"
    },
    {
     "parsers": [
@@ -1474,7 +1474,7 @@
     ],
     "input": "@plugin \"a\" {maxWidth:1px}\nb{maxWidth:1px}\n@plugin \"a\" {maxWidth:1px}\n",
     "prettier": "@plugin \"a\" {\n  maxwidth: 1px;\n}\nb {\n  maxwidth: 1px;\n}\n@plugin \"a\" {\n  maxwidth: 1px;\n}\n",
-    "tidyrs": "@plugin \"a\" {\n  maxWidth: 1px;\n}\nb {\n  maxwidth: 1px;\n}\n@plugin \"a\" {\n  maxWidth: 1px;\n}\n"
+    "tidy": "@plugin \"a\" {\n  maxWidth: 1px;\n}\nb {\n  maxwidth: 1px;\n}\n@plugin \"a\" {\n  maxWidth: 1px;\n}\n"
    }
   ]
  },
@@ -1489,7 +1489,7 @@
     ],
     "input": "a{--x:#FFF}\n",
     "prettier": "a {\n  --x: #fff;\n}\n",
-    "tidyrs": "a {\n  --x: #FFF;\n}\n"
+    "tidy": "a {\n  --x: #FFF;\n}\n"
    },
    {
     "parsers": [
@@ -1499,7 +1499,7 @@
     ],
     "input": "a{--x:#AbCdEf}\n",
     "prettier": "a {\n  --x: #abcdef;\n}\n",
-    "tidyrs": "a {\n  --x: #AbCdEf;\n}\n"
+    "tidy": "a {\n  --x: #AbCdEf;\n}\n"
    },
    {
     "parsers": [
@@ -1509,7 +1509,7 @@
     ],
     "input": "a{--x:1E3}\n",
     "prettier": "a {\n  --x: 1e3;\n}\n",
-    "tidyrs": "a {\n  --x: 1E3;\n}\n"
+    "tidy": "a {\n  --x: 1E3;\n}\n"
    },
    {
     "parsers": [
@@ -1519,7 +1519,7 @@
     ],
     "input": "a{--x:1PX}\n",
     "prettier": "a {\n  --x: 1px;\n}\n",
-    "tidyrs": "a {\n  --x: 1PX;\n}\n"
+    "tidy": "a {\n  --x: 1PX;\n}\n"
    },
    {
     "parsers": [
@@ -1529,7 +1529,7 @@
     ],
     "input": "a{--x:.50}\n",
     "prettier": "a {\n  --x: 0.5;\n}\n",
-    "tidyrs": "a {\n  --x: .50;\n}\n"
+    "tidy": "a {\n  --x: .50;\n}\n"
    },
    {
     "parsers": [
@@ -1539,7 +1539,7 @@
     ],
     "input": "a{--x:0.50em 1.0em}\n",
     "prettier": "a {\n  --x: 0.5em 1em;\n}\n",
-    "tidyrs": "a {\n  --x: 0.50em 1.0em;\n}\n"
+    "tidy": "a {\n  --x: 0.50em 1.0em;\n}\n"
    },
    {
     "parsers": [
@@ -1549,7 +1549,7 @@
     ],
     "input": "a{--x:+.5}\n",
     "prettier": "a {\n  --x: +0.5;\n}\n",
-    "tidyrs": "a {\n  --x: +.5;\n}\n"
+    "tidy": "a {\n  --x: +.5;\n}\n"
    },
    {
     "parsers": [
@@ -1559,7 +1559,7 @@
     ],
     "input": "a{--x:1.}\n",
     "prettier": "a {\n  --x: 1;\n}\n",
-    "tidyrs": "a {\n  --x: 1.;\n}\n"
+    "tidy": "a {\n  --x: 1.;\n}\n"
    },
    {
     "parsers": [
@@ -1569,7 +1569,7 @@
     ],
     "input": "a{--x:INHERIT}\n",
     "prettier": "a {\n  --x: inherit;\n}\n",
-    "tidyrs": "a {\n  --x: INHERIT;\n}\n"
+    "tidy": "a {\n  --x: INHERIT;\n}\n"
    },
    {
     "parsers": [
@@ -1579,7 +1579,7 @@
     ],
     "input": "a{--x:'a'}\n",
     "prettier": "a {\n  --x: \"a\";\n}\n",
-    "tidyrs": "a {\n  --x: 'a';\n}\n"
+    "tidy": "a {\n  --x: 'a';\n}\n"
    },
    {
     "parsers": [
@@ -1589,7 +1589,7 @@
     ],
     "input": "a{--x:\"a\",'b'}\n",
     "prettier": "a {\n  --x: \"a\", \"b\";\n}\n",
-    "tidyrs": "a {\n  --x: \"a\",'b';\n}\n"
+    "tidy": "a {\n  --x: \"a\",'b';\n}\n"
    },
    {
     "parsers": [
@@ -1599,7 +1599,7 @@
     ],
     "input": "a{--x:1,000}\n",
     "prettier": "a {\n  --x: 1, 000;\n}\n",
-    "tidyrs": "a {\n  --x: 1,000;\n}\n"
+    "tidy": "a {\n  --x: 1,000;\n}\n"
    },
    {
     "parsers": [
@@ -1609,7 +1609,7 @@
     ],
     "input": "a{--x:16:9}\n",
     "prettier": "a {\n  --x: 16: 9;\n}\n",
-    "tidyrs": "a {\n  --x: 16:9;\n}\n"
+    "tidy": "a {\n  --x: 16:9;\n}\n"
    },
    {
     "parsers": [
@@ -1619,7 +1619,7 @@
     ],
     "input": "a{--x:a,b}\n",
     "prettier": "a {\n  --x: a, b;\n}\n",
-    "tidyrs": "a {\n  --x: a,b;\n}\n"
+    "tidy": "a {\n  --x: a,b;\n}\n"
    },
    {
     "parsers": [
@@ -1629,7 +1629,7 @@
     ],
     "input": "a{--x:a ,b}\n",
     "prettier": "a {\n  --x: a, b;\n}\n",
-    "tidyrs": "a {\n  --x: a,b;\n}\n"
+    "tidy": "a {\n  --x: a,b;\n}\n"
    },
    {
     "parsers": [
@@ -1639,7 +1639,7 @@
     ],
     "input": "a{--x:a*b}\n",
     "prettier": "a {\n  --x: a * b;\n}\n",
-    "tidyrs": "a {\n  --x: a*b;\n}\n"
+    "tidy": "a {\n  --x: a*b;\n}\n"
    },
    {
     "parsers": [
@@ -1649,7 +1649,7 @@
     ],
     "input": "a{--x:a+b}\n",
     "prettier": "a {\n  --x: a + b;\n}\n",
-    "tidyrs": "a {\n  --x: a+b;\n}\n"
+    "tidy": "a {\n  --x: a+b;\n}\n"
    },
    {
     "parsers": [
@@ -1659,7 +1659,7 @@
     ],
     "input": "a{--x:a:b}\n",
     "prettier": "a {\n  --x: a: b;\n}\n",
-    "tidyrs": "a {\n  --x: a:b;\n}\n"
+    "tidy": "a {\n  --x: a:b;\n}\n"
    },
    {
     "parsers": [
@@ -1669,7 +1669,7 @@
     ],
     "input": "a{--x:(a:b)}\n",
     "prettier": "a {\n  --x: (a: b);\n}\n",
-    "tidyrs": "a {\n  --x: (a:b);\n}\n"
+    "tidy": "a {\n  --x: (a:b);\n}\n"
    },
    {
     "parsers": [
@@ -1679,7 +1679,7 @@
     ],
     "input": "a{--x:rgba(0,0,0,.5)}\n",
     "prettier": "a {\n  --x: rgba(0, 0, 0, 0.5);\n}\n",
-    "tidyrs": "a {\n  --x: rgba(0,0,0,.5);\n}\n"
+    "tidy": "a {\n  --x: rgba(0,0,0,.5);\n}\n"
    },
    {
     "parsers": [
@@ -1689,7 +1689,7 @@
     ],
     "input": "a{--x:translate(1PX,2PX)}\n",
     "prettier": "a {\n  --x: translate(1px, 2px);\n}\n",
-    "tidyrs": "a {\n  --x: translate(1PX,2PX);\n}\n"
+    "tidy": "a {\n  --x: translate(1PX,2PX);\n}\n"
    },
    {
     "parsers": [
@@ -1699,7 +1699,7 @@
     ],
     "input": "a{--x:calc( 1PX + .50EM )}\n",
     "prettier": "a {\n  --x: calc(1px + 0.5em);\n}\n",
-    "tidyrs": "a {\n  --x: calc(1PX + .50EM);\n}\n"
+    "tidy": "a {\n  --x: calc(1PX + .50EM);\n}\n"
    },
    {
     "parsers": [
@@ -1709,7 +1709,7 @@
     ],
     "input": "a{--x:[{\"a\":1}]}\n",
     "prettier": "a {\n  --x: [{\"a\": 1}];\n}\n",
-    "tidyrs": "a {\n  --x: [{\"a\":1}];\n}\n"
+    "tidy": "a {\n  --x: [{\"a\":1}];\n}\n"
    },
    {
     "parsers": [
@@ -1719,7 +1719,7 @@
     ],
     "input": "a{--x:['red' ]}\n",
     "prettier": "a {\n  --x: [ \"red\"];\n}\n",
-    "tidyrs": "a {\n  --x: ['red'];\n}\n"
+    "tidy": "a {\n  --x: ['red'];\n}\n"
    },
    {
     "parsers": [
@@ -1729,7 +1729,7 @@
     ],
     "input": "a{--x:[ 'red', 'green', 'blue' ]}\n",
     "prettier": "a {\n  --x: [ \"red\", \"green\", \"blue\"];\n}\n",
-    "tidyrs": "a {\n  --x: [ 'red', 'green', 'blue'];\n}\n"
+    "tidy": "a {\n  --x: [ 'red', 'green', 'blue'];\n}\n"
    },
    {
     "parsers": [
@@ -1739,7 +1739,7 @@
     ],
     "input": "a{--x:#FFF   RED}\n",
     "prettier": "a {\n  --x: #fff RED;\n}\n",
-    "tidyrs": "a {\n  --x: #FFF RED;\n}\n"
+    "tidy": "a {\n  --x: #FFF RED;\n}\n"
    },
    {
     "parsers": [
@@ -1749,7 +1749,7 @@
     ],
     "input": "a{--x:#FFF,\n     #EEE}\n",
     "prettier": "a {\n  --x: #fff, #eee;\n}\n",
-    "tidyrs": "a {\n  --x: #FFF, #EEE;\n}\n"
+    "tidy": "a {\n  --x: #FFF, #EEE;\n}\n"
    },
    {
     "parsers": [
@@ -1757,7 +1757,7 @@
     ],
     "input": "a{--X:   #FFF   !important;--y:#FFF!IMPORTANT;--z:a:b   c   !important;COLOR:#FFF}\n",
     "prettier": "a {\n  --X: #fff !important;\n  --y: #fff !important;\n  --z: a: b c !important;\n  color: #fff;\n}\n",
-    "tidyrs": "a {\n  --X: #FFF !important;\n  --y: #FFF !important;\n  --z: a:b c !important;\n  color: #fff;\n}\n"
+    "tidy": "a {\n  --X: #FFF !important;\n  --y: #FFF !important;\n  --z: a:b c !important;\n  color: #fff;\n}\n"
    },
    {
     "parsers": [
@@ -1766,7 +1766,7 @@
     ],
     "input": "a{--x:#FFF // c\n}\n",
     "prettier": "a {\n  --x: #fff; // c\n}\n",
-    "tidyrs": "a {\n  --x: #FFF; // c\n}\n"
+    "tidy": "a {\n  --x: #FFF; // c\n}\n"
    }
   ]
  },
@@ -1781,7 +1781,7 @@
     ],
     "input": "a {\n  --x: 1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000;\n}\n",
     "prettier": "a {\n  --x:\n    1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1,\n    000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000, 1, 000;\n}\n",
-    "tidyrs": "a {\n  --x:\n    1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000;\n}\n"
+    "tidy": "a {\n  --x:\n    1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000;\n}\n"
    },
    {
     "parsers": [
@@ -1791,7 +1791,7 @@
     ],
     "input": "a {\n  --x: -apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",sans-serif,\"Apple Color Emoji\";\n}\n",
     "prettier": "a {\n  --x:\n    -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\",\n    Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\";\n}\n",
-    "tidyrs": "a {\n  --x:\n    -apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",sans-serif,\"Apple Color Emoji\";\n}\n"
+    "tidy": "a {\n  --x:\n    -apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,\"Helvetica Neue\",Arial,\"Noto Sans\",sans-serif,\"Apple Color Emoji\";\n}\n"
    },
    {
     "parsers": [
@@ -1801,7 +1801,7 @@
     ],
     "input": "a {\n  --x: -apple-system, BlinkMacSystemFont,\"Segoe UI\", Roboto,\"Helvetica Neue\", Arial,\"Noto Sans\", sans-serif,\"Apple Color Emoji\";\n}\n",
     "prettier": "a {\n  --x:\n    -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\",\n    Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\";\n}\n",
-    "tidyrs": "a {\n  --x:\n    -apple-system, BlinkMacSystemFont,\"Segoe UI\", Roboto,\"Helvetica Neue\",\n    Arial,\"Noto Sans\", sans-serif,\"Apple Color Emoji\";\n}\n"
+    "tidy": "a {\n  --x:\n    -apple-system, BlinkMacSystemFont,\"Segoe UI\", Roboto,\"Helvetica Neue\",\n    Arial,\"Noto Sans\", sans-serif,\"Apple Color Emoji\";\n}\n"
    },
    {
     "parsers": [
@@ -1811,7 +1811,7 @@
     ],
     "input": "a {\n  --x: rgba(000000000000000000000,000000000000000000000,000000000000000000000,000000000000000000000,.5);\n}\n",
     "prettier": "a {\n  --x: rgba(\n    000000000000000000000,\n    000000000000000000000,\n    000000000000000000000,\n    000000000000000000000,\n    0.5\n  );\n}\n",
-    "tidyrs": "a {\n  --x: rgba(\n    000000000000000000000,000000000000000000000,000000000000000000000,000000000000000000000,.5\n  );\n}\n"
+    "tidy": "a {\n  --x: rgba(\n    000000000000000000000,000000000000000000000,000000000000000000000,000000000000000000000,.5\n  );\n}\n"
    },
    {
     "parsers": [
@@ -1821,7 +1821,7 @@
     ],
     "input": "a {\n  --x: f(aaaaaaaaaaaaaaaaaaaaaaaaa,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb, cccccccccccccccccccccccc,ddddddddddddddddddddddd);\n}\n",
     "prettier": "a {\n  --x: f(\n    aaaaaaaaaaaaaaaaaaaaaaaaa,\n    bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,\n    cccccccccccccccccccccccc,\n    ddddddddddddddddddddddd\n  );\n}\n",
-    "tidyrs": "a {\n  --x: f(\n    aaaaaaaaaaaaaaaaaaaaaaaaa,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,\n    cccccccccccccccccccccccc,ddddddddddddddddddddddd\n  );\n}\n"
+    "tidy": "a {\n  --x: f(\n    aaaaaaaaaaaaaaaaaaaaaaaaa,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,\n    cccccccccccccccccccccccc,ddddddddddddddddddddddd\n  );\n}\n"
    },
    {
     "parsers": [
@@ -1831,7 +1831,7 @@
     ],
     "input": "a {\n  --x: f( aaaaaaaaaaaaaaaaaaaaaaaaa,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,cccccccccccccccccccccccc,ddddddddddddddddddddddd );\n}\n",
     "prettier": "a {\n  --x: f(\n    aaaaaaaaaaaaaaaaaaaaaaaaa,\n    bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,\n    cccccccccccccccccccccccc,\n    ddddddddddddddddddddddd\n  );\n}\n",
-    "tidyrs": "a {\n  --x: f(\n    aaaaaaaaaaaaaaaaaaaaaaaaa,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,cccccccccccccccccccccccc,ddddddddddddddddddddddd\n  );\n}\n"
+    "tidy": "a {\n  --x: f(\n    aaaaaaaaaaaaaaaaaaaaaaaaa,bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,cccccccccccccccccccccccc,ddddddddddddddddddddddd\n  );\n}\n"
    }
   ]
  },
@@ -1846,7 +1846,7 @@
     ],
     "input": "a{--x:{\"a\":1,\"b\":[1,2]}}\n",
     "prettier": "a {\n  --x: {\n    \"a\":1,\"b\": [1, 2];\n  };\n}\n",
-    "tidyrs": "a {\n  --x: {\"a\":1,\"b\":[1,2]};\n}\n"
+    "tidy": "a {\n  --x: {\"a\":1,\"b\":[1,2]};\n}\n"
    },
    {
     "parsers": [
@@ -1856,7 +1856,7 @@
     ],
     "input": "a{--x:{ \"a\": 1 }}\n",
     "prettier": "a {\n  --x: {\n    \"a\":1;\n  };\n}\n",
-    "tidyrs": "a {\n  --x: { \"a\": 1 };\n}\n"
+    "tidy": "a {\n  --x: { \"a\": 1 };\n}\n"
    }
   ]
  },
@@ -1870,7 +1870,7 @@
     ],
     "input": "a{--x:https://Example.com/A;c:d}\n",
     "prettier": "a {\n  --x: https: ; //Example.com/A\n  c: d;\n}\n",
-    "tidyrs": "a {\n  --x: https://Example.com/A;\n  c: d;\n}\n"
+    "tidy": "a {\n  --x: https://Example.com/A;\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1878,7 +1878,7 @@
     ],
     "input": "a{--x:https://*.example.com/*;c:d}\n",
     "prettier": "a {\n  --x: https: ; //*.example.com/*\n  c: d;\n}\n",
-    "tidyrs": "a {\n  --x: https://*.example.com/*;\n  c: d;\n}\n"
+    "tidy": "a {\n  --x: https://*.example.com/*;\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1887,7 +1887,7 @@
     ],
     "input": "a{--x:https://example.com/a?b=\"c\"&d='e';c:d}\n",
     "prettier": "a {\n  --x: https: ; //example.com/a?b=\"c\"&d='e'\n  c: d;\n}\n",
-    "tidyrs": "a {\n  --x: https://example.com/a?b=\"c\"&d='e';\n  c: d;\n}\n"
+    "tidy": "a {\n  --x: https://example.com/a?b=\"c\"&d='e';\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1896,7 +1896,7 @@
     ],
     "input": "a{--x:http://x.y/z /* note */ \"s\";c:d}\n",
     "prettier": "a {\n  --x: http: ; //x.y/z /* note */ \"s\"\n  c: d;\n}\n",
-    "tidyrs": "a {\n  --x: http://x.y/z /* note */ \"s\";\n  c: d;\n}\n"
+    "tidy": "a {\n  --x: http://x.y/z /* note */ \"s\";\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1904,7 +1904,7 @@
     ],
     "input": "a{--x:http://b/\"c\" !important;c:d}\n",
     "prettier": "a {\n  --x: http:  !important; //b/\"c\"\n  c: d;\n}\n",
-    "tidyrs": "a {\n  --x: http://b/\"c\" !important;\n  c: d;\n}\n"
+    "tidy": "a {\n  --x: http://b/\"c\" !important;\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1912,7 +1912,7 @@
     ],
     "input": "a{--x:http://b/\"c\" !important;c:d}\n",
     "prettier": "a {\n  --x: http:  !important; //b/\"c\n  c: d;\n}\n",
-    "tidyrs": "a {\n  --x: http://b/\"c\" !important;\n  c: d;\n}\n"
+    "tidy": "a {\n  --x: http://b/\"c\" !important;\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1921,7 +1921,7 @@
     ],
     "input": "a{--x:{\"u\":http://\"c\"};c:d}\n",
     "prettier": "a {\n  --x: {\n    \"u\":http: ;//\"c\"\n  };\n  c: d;\n}\n",
-    "tidyrs": "a {\n  --x: {\"u\":http://\"c\"};\n  c: d;\n}\n"
+    "tidy": "a {\n  --x: {\"u\":http://\"c\"};\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1929,7 +1929,7 @@
     ],
     "input": "a{--x://Example.com/A;c:d}\n",
     "prettier": "a {\n  --x: ;//Example.com/A\n  c: d;\n}\n",
-    "tidyrs": "a {\n  --x: //Example.com/A;\n  c: d;\n}\n"
+    "tidy": "a {\n  --x: //Example.com/A;\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1937,7 +1937,7 @@
     ],
     "input": "a{--x:#FFF // b;c:d}\n",
     "prettier": "a {\n  --x: #fff; // b\n  c: d;\n}\n",
-    "tidyrs": "a {\n  --x: #FFF // b;\n  c: d;\n}\n"
+    "tidy": "a {\n  --x: #FFF // b;\n  c: d;\n}\n"
    },
    {
     "parsers": [
@@ -1945,7 +1945,7 @@
     ],
     "input": "a {\n  --hosts: https://*.example.com/*;\n  --query: https://example.com/a?b=\"c\"&d='e';\n  --note: http://x.y/z /* note */ \"s\";\n}\n",
     "prettier": "a {\n  --hosts: https: //*.example.com/*; --query: https: //example.com/a?b=\"c\"&d='e';\n    --note: http: ; //x.y/z /* note */ \"s\"\n}\n",
-    "tidyrs": "a {\n  --hosts: https://*.example.com/*;\n  --query: https://example.com/a?b=\"c\"&d='e';\n  --note: http://x.y/z /* note */ \"s\";\n}\n"
+    "tidy": "a {\n  --hosts: https://*.example.com/*;\n  --query: https://example.com/a?b=\"c\"&d='e';\n  --note: http://x.y/z /* note */ \"s\";\n}\n"
    },
    {
     "parsers": [
@@ -1953,7 +1953,7 @@
     ],
     "input": "a {\n  --hosts: https://*.example.com/*;\n  --query: https://example.com/a?b=\"c\"&d='e';\n  --note: http://x.y/z /* note */ \"s\";\n}\n",
     "prettier": "a {\n  --hosts: https: ; //*.example.com/*\n  --query: https: ; //example.com/a?b=\"c\"&d='e'\n  --note: http: ; //x.y/z /* note */ \"s\"\n}\n",
-    "tidyrs": "a {\n  --hosts: https://*.example.com/*;\n  --query: https://example.com/a?b=\"c\"&d='e';\n  --note: http://x.y/z /* note */ \"s\";\n}\n"
+    "tidy": "a {\n  --hosts: https://*.example.com/*;\n  --query: https://example.com/a?b=\"c\"&d='e';\n  --note: http://x.y/z /* note */ \"s\";\n}\n"
    },
    {
     "parsers": [
@@ -1961,7 +1961,7 @@
     ],
     "input": "a { --a: https://a.example.com; --b: \"see\" https://b.example.com; }\n",
     "prettier": "a {\n  --a: https: ; //a.example.com\n  --b: see https: ; //b.example.com\n}\n",
-    "tidyrs": "a {\n  --a: https://a.example.com;\n  --b: \"see\" https://b.example.com;\n}\n"
+    "tidy": "a {\n  --a: https://a.example.com;\n  --b: \"see\" https://b.example.com;\n}\n"
    },
    {
     "parsers": [
@@ -1969,7 +1969,7 @@
     ],
     "input": "a { --a: https://a.example.com; --b: 'see' https://b.example.com; }\n",
     "prettier": "a {\n  --a: https: ; //a.example.com\n  --b: see https: ; //b.example.com\n}\n",
-    "tidyrs": "a {\n  --a: https://a.example.com;\n  --b: 'see' https://b.example.com;\n}\n"
+    "tidy": "a {\n  --a: https://a.example.com;\n  --b: 'see' https://b.example.com;\n}\n"
    },
    {
     "parsers": [
@@ -1977,7 +1977,7 @@
     ],
     "input": "a { --a: https://a.example.com; --b: *see* https://b.example.com; }\n",
     "prettier": "a {\n  --a: https: ; //a.example.com\n  --b: see https: ; //b.example.com\n}\n",
-    "tidyrs": "a {\n  --a: https://a.example.com;\n  --b: *see* https://b.example.com;\n}\n"
+    "tidy": "a {\n  --a: https://a.example.com;\n  --b: *see* https://b.example.com;\n}\n"
    }
   ]
  },
@@ -1990,7 +1990,7 @@
     ],
     "input": "<pre   ><b>a</b>\n",
     "prettier": "<pre>>\n",
-    "tidyrs": "<pre><b>a</b>\n"
+    "tidy": "<pre><b>a</b>\n"
    },
    {
     "parsers": [
@@ -1998,7 +1998,7 @@
     ],
     "input": "<pre   >a<b>c\n",
     "prettier": "<pre>>\n",
-    "tidyrs": "<pre>a<b>c\n"
+    "tidy": "<pre>a<b>c\n"
    },
    {
     "parsers": [
@@ -2006,7 +2006,7 @@
     ],
     "input": "<p>x</p><pre   class=\"y\"><i>a</i>\n  b\n",
     "prettier": "<p>x</p>\n<pre class=\"y\">>\n",
-    "tidyrs": "<p>x</p>\n<pre class=\"y\"><i>a</i>\n  b\n"
+    "tidy": "<p>x</p>\n<pre class=\"y\"><i>a</i>\n  b\n"
    },
    {
     "parsers": [
@@ -2014,7 +2014,7 @@
     ],
     "input": "<listing   ><b>a\n",
     "prettier": "<listing>>\n",
-    "tidyrs": "<listing><b>a\n"
+    "tidy": "<listing><b>a\n"
    },
    {
     "parsers": [
@@ -2022,7 +2022,7 @@
     ],
     "input": "<b>a</b><pre   ><i>x</i>\n",
     "prettier": "<b>a</b>><pre>>\n",
-    "tidyrs": "<b>a</b><pre><i>x</i>\n",
+    "tidy": "<b>a</b><pre><i>x</i>\n",
     "whitespace": "strict"
    }
   ]
@@ -2036,7 +2036,7 @@
     ],
     "input": "<meta name=viewport content=width=device-width,initial-scale=1>\n",
     "prettier": "<meta name=\"viewport\" content=\"width\" =\"device-width,initial-scale\" =\"1\" />\n",
-    "tidyrs": "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />\n"
+    "tidy": "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />\n"
    },
    {
     "parsers": [
@@ -2044,7 +2044,7 @@
     ],
     "input": "<img src=a.png?v=1>\n",
     "prettier": "<img src=\"a.png?v\" =\"1\" />\n",
-    "tidyrs": "<img src=\"a.png?v=1\" />\n"
+    "tidy": "<img src=\"a.png?v=1\" />\n"
    },
    {
     "parsers": [
@@ -2052,7 +2052,7 @@
     ],
     "input": "<script src=a.js?v=2></script>\n",
     "prettier": "<script src=\"a.js?v\" =\"2\"></script>\n",
-    "tidyrs": "<script src=\"a.js?v=2\"></script>\n"
+    "tidy": "<script src=\"a.js?v=2\"></script>\n"
    },
    {
     "parsers": [
@@ -2060,7 +2060,7 @@
     ],
     "input": "<a href=?page=2&sort=name>next</a>\n",
     "prettier": "<a href=\"?page\" =\"2&sort\" =\"name\">next</a>\n",
-    "tidyrs": "<a href=\"?page=2&sort=name\">next</a>\n"
+    "tidy": "<a href=\"?page=2&sort=name\">next</a>\n"
    },
    {
     "parsers": [
@@ -2068,7 +2068,7 @@
     ],
     "input": "<p class=a=b id=c>x</p>\n",
     "prettier": "<p class=\"a\" =\"b\" id=\"c\">x</p>\n",
-    "tidyrs": "<p class=\"a=b\" id=\"c\">x</p>\n"
+    "tidy": "<p class=\"a=b\" id=\"c\">x</p>\n"
    },
    {
     "parsers": [
@@ -2076,7 +2076,7 @@
     ],
     "input": "<input value=a/>\n",
     "prettier": "<input value=\"a\" />\n",
-    "tidyrs": "<input value=\"a/\" />\n"
+    "tidy": "<input value=\"a/\" />\n"
    },
    {
     "parsers": [
@@ -2084,7 +2084,7 @@
     ],
     "input": "<p title=a b>x</p>\n",
     "prettier": "<p title=\"a\" b>x</p>\n",
-    "tidyrs": "<p title=\"a b\">x</p>\n"
+    "tidy": "<p title=\"a b\">x</p>\n"
    },
    {
     "parsers": [
@@ -2092,7 +2092,7 @@
     ],
     "input": "<a href=/x?a=1>x</a>\n",
     "prettier": "ERROR: SyntaxError: Opening tag \"a\" not terminated. (1:1)",
-    "tidyrs": "<a href=\"/x?a=1\">x</a>\n"
+    "tidy": "<a href=\"/x?a=1\">x</a>\n"
    },
    {
     "parsers": [
@@ -2100,7 +2100,7 @@
     ],
     "input": "<link href=https://fonts.googleapis.com/css?family=Roboto rel=stylesheet>\n",
     "prettier": "ERROR: SyntaxError: Opening tag \"link\" not terminated. (1:1)",
-    "tidyrs": "<link href=\"https://fonts.googleapis.com/css?family=Roboto\" rel=\"stylesheet\" />\n"
+    "tidy": "<link href=\"https://fonts.googleapis.com/css?family=Roboto\" rel=\"stylesheet\" />\n"
    },
    {
     "parsers": [
@@ -2108,7 +2108,7 @@
     ],
     "input": "<a href=a/>x</a>\n",
     "prettier": "ERROR: SyntaxError: Unexpected closing tag \"a\". It may happen when the tag has already been closed by another tag. For more info see https://www.w3.org/TR/html5/syntax.html#closing-elements-that-have-implied-end-tags (1:13)",
-    "tidyrs": "<a href=\"a/\">x</a>\n"
+    "tidy": "<a href=\"a/\">x</a>\n"
    },
    {
     "parsers": [
@@ -2116,7 +2116,7 @@
     ],
     "input": "<p title=a\"b>x</p>\n",
     "prettier": "ERROR: SyntaxError: Opening tag \"p\" not terminated. (1:1)",
-    "tidyrs": "<p title='a\"b'>x</p>\n"
+    "tidy": "<p title='a\"b'>x</p>\n"
    },
    {
     "parsers": [
@@ -2124,7 +2124,7 @@
     ],
     "input": "<p title=a'b>x</p>\n",
     "prettier": "ERROR: SyntaxError: Opening tag \"p\" not terminated. (1:1)",
-    "tidyrs": "<p title=\"a'b\">x</p>\n"
+    "tidy": "<p title=\"a'b\">x</p>\n"
    },
    {
     "parsers": [
@@ -2132,7 +2132,7 @@
     ],
     "input": "<p title=a<b>x</p>\n",
     "prettier": "ERROR: SyntaxError: Opening tag \"p\" not terminated. (1:1)",
-    "tidyrs": "<p title=\"a<b\">x</p>\n"
+    "tidy": "<p title=\"a<b\">x</p>\n"
    },
    {
     "parsers": [
@@ -2140,7 +2140,7 @@
     ],
     "input": "<template><img src=a.png?v=1></template>\n",
     "prettier": "<template><img src=\"a.png?v\" =\"1\" /></template>\n",
-    "tidyrs": "<template><img src=\"a.png?v=1\" /></template>\n"
+    "tidy": "<template><img src=\"a.png?v=1\" /></template>\n"
    }
   ]
  },
@@ -2153,7 +2153,7 @@
     ],
     "input": "<textarea>\n\n</textarea>\n",
     "prettier": "<textarea> </textarea>\n",
-    "tidyrs": "<textarea>\n\n</textarea>\n"
+    "tidy": "<textarea>\n\n</textarea>\n"
    },
    {
     "parsers": [
@@ -2161,7 +2161,7 @@
     ],
     "input": "<textarea>   </textarea>\n",
     "prettier": "<textarea> </textarea>\n",
-    "tidyrs": "<textarea>   </textarea>\n"
+    "tidy": "<textarea>   </textarea>\n"
    },
    {
     "parsers": [
@@ -2169,7 +2169,7 @@
     ],
     "input": "<pre> </pre>\n",
     "prettier": "<pre></pre>\n",
-    "tidyrs": "<pre> </pre>\n"
+    "tidy": "<pre> </pre>\n"
    },
    {
     "parsers": [
@@ -2177,7 +2177,7 @@
     ],
     "input": "<pre>\n\n</pre>\n",
     "prettier": "<pre></pre>\n",
-    "tidyrs": "<pre>\n\n</pre>\n"
+    "tidy": "<pre>\n\n</pre>\n"
    },
    {
     "parsers": [
@@ -2185,7 +2185,7 @@
     ],
     "input": "<div><pre>  </pre></div>\n",
     "prettier": "<div><pre></pre></div>\n",
-    "tidyrs": "<div><pre>  </pre></div>\n"
+    "tidy": "<div><pre>  </pre></div>\n"
    },
    {
     "parsers": [
@@ -2193,7 +2193,7 @@
     ],
     "input": "<b>a</b><pre> </pre>\n",
     "prettier": "<b>a</b>\n<pre></pre>\n",
-    "tidyrs": "<b>a</b>\n<pre> </pre>\n"
+    "tidy": "<b>a</b>\n<pre> </pre>\n"
    }
   ]
  },
@@ -2206,7 +2206,7 @@
     ],
     "input": "<!-- prettier-ignore --><img   src=b><i>c</i>\n",
     "prettier": "<!-- prettier-ignore --><img   src=/><i>c</i>\n",
-    "tidyrs": "<!-- prettier-ignore --><img   src=b><i>c</i>\n"
+    "tidy": "<!-- prettier-ignore --><img   src=b><i>c</i>\n"
    },
    {
     "parsers": [
@@ -2214,7 +2214,7 @@
     ],
     "input": "<!-- prettier-ignore -->\n<br><br>\n",
     "prettier": "<!-- prettier-ignore -->\n<b/><br />\n",
-    "tidyrs": "<!-- prettier-ignore -->\n<br><br />\n"
+    "tidy": "<!-- prettier-ignore -->\n<br><br />\n"
    },
    {
     "parsers": [
@@ -2222,7 +2222,7 @@
     ],
     "input": "<p>\n  <!-- prettier-ignore -->\n  <input   type=text>x\n</p>\n",
     "prettier": "<p>\n  <!-- prettier-ignore -->\n  <input   type=tex/>x\n</p>\n",
-    "tidyrs": "<p>\n  <!-- prettier-ignore -->\n  <input   type=text>x\n</p>\n"
+    "tidy": "<p>\n  <!-- prettier-ignore -->\n  <input   type=text>x\n</p>\n"
    }
   ]
  },
@@ -2235,7 +2235,7 @@
     ],
     "input": "<p   a>b</p>\n<p>c\u0000d</p>\n<p>e</p>\n",
     "prettier": "<p a>b</p>\n<p>c</p>\n",
-    "tidyrs": "!error Unexpected NUL character"
+    "tidy": "!error Unexpected NUL character"
    },
    {
     "parsers": [
@@ -2243,7 +2243,7 @@
     ],
     "input": "<template>\n<p>b\u0000c</p>\n</template>\n<script>\nlet a  = 1\n</script>\n",
     "prettier": "<template>\n  <p>b</p>\n</template>\n",
-    "tidyrs": "!error Unexpected NUL character"
+    "tidy": "!error Unexpected NUL character"
    }
   ]
  },
@@ -2256,7 +2256,7 @@
     ],
     "input": "<a><b><!-- prettier-ignore -->\n<i></i></b></a>\n",
     "prettier": "<a\n  ><b\n    ><!-- prettier-ignore -->\n    <i></i>></b\n></a>\n",
-    "tidyrs": "<a\n  ><b\n    ><!-- prettier-ignore -->\n    <i></i></b\n></a>\n",
+    "tidy": "<a\n  ><b\n    ><!-- prettier-ignore -->\n    <i></i></b\n></a>\n",
     "whitespace": "strict"
    },
    {
@@ -2265,7 +2265,7 @@
     ],
     "input": "<span><!--[if a]><p>b<![endif]--></span>\n",
     "prettier": "<span\n  >><!--[if a]><p>b<![endif]--></span</span\n>\n",
-    "tidyrs": "<span\n  ><!--[if a]><p>b<![endif]--></span\n>\n"
+    "tidy": "<span\n  ><!--[if a]><p>b<![endif]--></span\n>\n"
    },
    {
     "parsers": [
@@ -2273,7 +2273,7 @@
     ],
     "input": "<b>a</b><pre   ><i>x</i>\n",
     "prettier": "<b>a</b>><pre>>\n",
-    "tidyrs": "<b>a</b><pre><i>x</i>\n",
+    "tidy": "<b>a</b><pre><i>x</i>\n",
     "whitespace": "strict"
    }
   ]
@@ -2287,7 +2287,7 @@
     ],
     "input": "<article>\n  <remark>Use *this*   or  _that_.</remark>\n</article>\n",
     "prettier": "<article>\n  <remark>\nUse _this_ or _that_.\n  </remark>\n</article>\n",
-    "tidyrs": "<article>\n  <remark>Use *this*   or  _that_.</remark>\n</article>\n"
+    "tidy": "<article>\n  <remark>Use *this*   or  _that_.</remark>\n</article>\n"
    },
    {
     "parsers": [
@@ -2295,7 +2295,7 @@
     ],
     "input": "<config><yaml>a:   1\nb:    [1,2]</yaml></config>\n",
     "prettier": "<config><yaml>\na: 1\nb: [1, 2]\n  </yaml></config>\n",
-    "tidyrs": "<config><yaml>a:   1\nb:    [1,2]</yaml></config>\n"
+    "tidy": "<config><yaml>a:   1\nb:    [1,2]</yaml></config>\n"
    },
    {
     "parsers": [
@@ -2303,7 +2303,7 @@
     ],
     "input": "<a><json>{\"a\":1}</json></a>\n",
     "prettier": "<a><json>\n{ \"a\": 1 }\n  </json></a>\n",
-    "tidyrs": "<a><json>{\"a\":1}</json></a>\n"
+    "tidy": "<a><json>{\"a\":1}</json></a>\n"
    }
   ]
  },
@@ -2316,7 +2316,7 @@
     ],
     "input": "<a>one &amp; two &#65; three &#x41; four</a>\n",
     "prettier": "<a>\n  one &amp; two &#65; three &#x4 1; four\n</a>\n",
-    "tidyrs": "<a>\n  one &amp; two &#65; three &#x41; four\n</a>\n",
+    "tidy": "<a>\n  one &amp; two &#65; three &#x41; four\n</a>\n",
     "whitespace": "ignore"
    },
    {
@@ -2325,7 +2325,7 @@
     ],
     "input": "<a><b>&#x41;</b><c>&#65;</c></a>\n",
     "prettier": "<a>\n  <b>&#x41;</b>\n  <c>\n    &#65;\n  </c>\n</a>\n",
-    "tidyrs": "<a>\n  <b>\n    &#x41;\n  </b>\n  <c>\n    &#65;\n  </c>\n</a>\n",
+    "tidy": "<a>\n  <b>\n    &#x41;\n  </b>\n  <c>\n    &#65;\n  </c>\n</a>\n",
     "whitespace": "preserve"
    }
   ]
@@ -2339,7 +2339,7 @@
     ],
     "input": "<a><b> </b><c> x </c></a>\n",
     "prettier": "<a>\n  <b></b>\n  <c>x</c>\n</a>\n",
-    "tidyrs": "<a>\n  <b> </b>\n  <c> x </c>\n</a>\n",
+    "tidy": "<a>\n  <b> </b>\n  <c> x </c>\n</a>\n",
     "whitespace": "ignore"
    }
   ]

@@ -1,5 +1,5 @@
 {
-  "name": "tidyrs-dev",
+  "name": "tidy-dev",
   "private": true,
   "type": "module",
   "devDependencies": {

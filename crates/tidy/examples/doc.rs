@@ -4,7 +4,7 @@ use std::io::Read;
 
 use bumpalo::Bump;
 use serde_json::Value;
-use tidyrs::doc::{Align, Branch, Docs, GroupId, Options, print};
+use tidy::doc::{Align, Branch, Docs, GroupId, Options, print};
 
 struct Builder<'a, 'b> {
   docs: &'b mut Docs<'a>,

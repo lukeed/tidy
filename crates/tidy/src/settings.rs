@@ -1,10 +1,10 @@
 //! The settings of every language, and a formatter that takes any of them. Each language can also be formatted on its
-//! own, with its own settings: `tidyrs::css::format(text, &settings.css, embed)`.
+//! own, with its own settings: `tidy::css::format(text, &settings.css, embed)`.
 
 use crate::embed::Embed;
 use crate::{Error, Whitespace, css, doc, handlebars, html, xml};
 
-/// A language that tidyrs formats.
+/// A language that tidy formats.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Language {
   Html,
@@ -15,7 +15,7 @@ pub enum Language {
 }
 
 impl Language {
-  /// The language of the file at `path`, by its name, or `None` if tidyrs doesn't format it.
+  /// The language of the file at `path`, by its name, or `None` if tidy doesn't format it.
   pub fn of_path(path: &str) -> Option<Language> {
     if let Some(dialect) = css::Dialect::of_path(path) {
       return Some(Language::Css(dialect));

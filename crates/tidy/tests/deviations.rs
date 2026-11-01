@@ -1,15 +1,15 @@
 //! Every known deviation from Prettier 3.9.9, listed in `deviations.md`. Each row holds an input, what Prettier prints
-//! and what tidyrs prints. A row fails if tidyrs prints something else, or if Prettier's output is now the same.
+//! and what tidy prints. A row fails if tidy prints something else, or if Prettier's output is now the same.
 
 use serde_json::Value;
-use tidyrs::embed::Verbatim;
-use tidyrs::{css, handlebars, html, xml};
+use tidy::embed::Verbatim;
+use tidy::{css, handlebars, html, xml};
 
 fn format(parser: &str, input: &str, option: Option<&str>) -> String {
   let whitespace = match option {
-    Some("ignore") => tidyrs::Whitespace::Ignore,
-    Some("strict") => tidyrs::Whitespace::Strict,
-    _ => tidyrs::Whitespace::Auto,
+    Some("ignore") => tidy::Whitespace::Ignore,
+    Some("strict") => tidy::Whitespace::Strict,
+    _ => tidy::Whitespace::Auto,
   };
   let result = match parser {
     "html" | "vue" => {
@@ -35,9 +35,9 @@ fn format(parser: &str, input: &str, option: Option<&str>) -> String {
     }
     "xml" => {
       let whitespace = match option {
-        Some("ignore") => tidyrs::Whitespace::Ignore,
-        Some("preserve") => tidyrs::Whitespace::Auto,
-        _ => tidyrs::Whitespace::Strict,
+        Some("ignore") => tidy::Whitespace::Ignore,
+        Some("preserve") => tidy::Whitespace::Auto,
+        _ => tidy::Whitespace::Strict,
       };
       let settings = xml::Settings { whitespace, ..xml::Settings::default() };
       xml::format(input, &settings, &mut Verbatim).map_err(|error| error.to_string())
@@ -59,10 +59,10 @@ fn every_deviation_holds() {
       for parser in row["parsers"].as_array().unwrap() {
         let parser = parser.as_str().unwrap();
         let printed = format(parser, input, whitespace);
-        if printed != row["tidyrs"].as_str().unwrap() {
+        if printed != row["tidy"].as_str().unwrap() {
           failures.push(format!(
             "{id} [{parser}] {input:?}\n  expected {:?}\n  printed  {printed:?}",
-            row["tidyrs"]
+            row["tidy"]
           ));
         } else if printed == row["prettier"].as_str().unwrap() {
           failures.push(format!("{id} [{parser}] {input:?}: the same as Prettier now"));

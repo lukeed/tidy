@@ -1,4 +1,4 @@
-// Compares tidyrs's CSS formatter with oxc's (oxc_formatter_css), Malva (the engine of dprint-plugin-malva), bun fmt
+// Compares tidy's CSS formatter with oxc's (oxc_formatter_css), Malva (the engine of dprint-plugin-malva), bun fmt
 // and Prettier, with lightningcss as a floor: it parses and prints CSS back, but doesn't format. Each corpus only
 // has the files that Prettier can parse. For each tool it shows the time, with all cores and with one, and how many
 // files it prints exactly as Prettier does.
@@ -18,12 +18,12 @@ let oss = option("--oss") ?? join(homedir(), "repos", "oss");
 let root = new URL("..", import.meta.url).pathname;
 let target = join(root, "target", "css");
 await $`cargo build --release`.cwd(join(root, "bench/css")).env({ ...process.env, CARGO_TARGET_DIR: target }).quiet();
-await $`cargo build --release -p tidyrs_cli`.cwd(root).env({ ...process.env, CARGO_TARGET_DIR: join(root, "target") }).quiet();
-let tidyrs = join(root, "target/release/tidyrs");
+await $`cargo build --release -p tidy_cli`.cwd(root).env({ ...process.env, CARGO_TARGET_DIR: join(root, "target") }).quiet();
+let tidy = join(root, "target/release/tidy");
 let harness = join(target, "release/css-bench");
 
 let parsers: Record<string, string> = { ".css": "css", ".scss": "scss", ".less": "less" };
-let corpus = join(tmpdir(), "tidyrs-css-bench");
+let corpus = join(tmpdir(), "tidy-css-bench");
 rmSync(corpus, { recursive: true, force: true });
 
 /** Where each corpus comes from: repositories and the extensions to take from them. */
@@ -63,8 +63,8 @@ function size(path: string): [number, number] {
 
 let prettierBin = join(root, "node_modules/.bin/prettier");
 let tools = (dir: string, name: string): Record<string, string> => ({
-	tidyrs: `${tidyrs} ${dir} --check --no-config`,
-	"tidyrs (1 thread)": `${tidyrs} ${dir} --check --no-config --threads 1`,
+	tidy: `${tidy} ${dir} --check --no-config`,
+	"tidy (1 thread)": `${tidy} ${dir} --check --no-config --threads 1`,
 	oxc: `${harness} oxc ${dir}`,
 	"oxc (1 thread)": `${harness} oxc ${dir} --threads 1`,
 	malva: `${harness} malva ${dir}`,
@@ -83,14 +83,14 @@ let tools = (dir: string, name: string): Record<string, string> => ({
 /** How many files of the corpus a tool prints exactly as Prettier does. */
 async function matches(tool: string, dir: string): Promise<number | undefined> {
 	if (tool === "prettier") return undefined;
-	let out = join(corpus, "..", `tidyrs-css-out-${tool}`);
+	let out = join(corpus, "..", `tidy-css-out-${tool}`);
 	rmSync(out, { recursive: true, force: true });
 	if (tool === "bun") {
 		cpSync(dir, out, { recursive: true });
 		await $`bun fmt --cwd=${out} --write --no-config --no-editorconfig`.nothrow().quiet();
-	} else if (tool === "tidyrs") {
+	} else if (tool === "tidy") {
 		cpSync(dir, out, { recursive: true });
-		await $`${tidyrs} ${out} --write --no-config`.nothrow().quiet();
+		await $`${tidy} ${out} --write --no-config`.nothrow().quiet();
 	} else {
 		await $`${harness} ${tool} ${dir} --write ${out}`.nothrow().quiet();
 	}
