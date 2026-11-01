@@ -21,15 +21,15 @@ let { target_directory } = await $`cargo metadata --format-version 1 --no-deps`.
 let bench = join(target_directory, "ab");
 await mkdir(bench, { recursive: true });
 
-await $`cargo build --release -p mdtidy_cli`.cwd(root).quiet();
-await copyFile(join(target_directory, "release", "mdtidy"), join(bench, "new"));
+await $`cargo build --release -p tidy_cli`.cwd(root).quiet();
+await copyFile(join(target_directory, "release", "tidy"), join(bench, "new"));
 
 let tree = join(bench, "tree");
 await $`git worktree add --force --detach ${tree} ${rev}`.cwd(root).quiet();
 try {
 	let env = { ...process.env, CARGO_TARGET_DIR: join(bench, "target") };
-	await $`cargo build --release -p mdtidy_cli`.cwd(tree).env(env).quiet();
-	await copyFile(join(bench, "target", "release", "mdtidy"), join(bench, "old"));
+	await $`cargo build --release -p tidy_cli`.cwd(tree).env(env).quiet();
+	await copyFile(join(bench, "target", "release", "tidy"), join(bench, "old"));
 } finally {
 	await $`git worktree remove --force ${tree}`.cwd(root).quiet();
 }

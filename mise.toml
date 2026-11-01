@@ -38,3 +38,35 @@ depends = ["fmt", "clippy", "test"]
 [tasks.bench]
 description = "Compare against other formatters: mise run bench -- <dir>"
 run = "bun bench/run.ts"
+
+[tasks."bench:ab"]
+description = "Time the working tree against a git revision: mise run bench:ab -- [--rev <rev>] <dir>..."
+run = "bun bench/ab.ts"
+
+[tasks."oracle:markdown:corpus"]
+description = "Copy the Markdown files of git repos into a corpus: mise run oracle:markdown:corpus -- <out> <repo>..."
+run = "bun tests/oracle/markdown/corpus.ts"
+
+[tasks."oracle:markdown:corpora"]
+description = "Build the Markdown corpora A to D in target/corpus/markdown from local checkouts, after removing them"
+run = [
+  "rm -rf target/corpus/markdown",
+  "bun tests/oracle/markdown/corpus.ts target/corpus/markdown/a ~/repos/oss/vite ~/repos/oss/storybook ~/repos/oss/shadcn-svelte",
+  "bun tests/oracle/markdown/corpus.ts target/corpus/markdown/b ~/repos/oss/bun ~/repos/personal/starship.io/starship",
+  "bun tests/oracle/markdown/corpus.ts target/corpus/markdown/c ~/repos/oss/angular-html-parser ~/repos/oss/rolldown ~/repos/oss/jest ~/repos/oss/v ~/repos/oss/deno ~/repos/oss/deno_lint ~/repos/oss/oxc ~/repos/oss/prettier ~/repos/testing/bootstrap ~/repos/testing/everything-claude-code",
+  "bun tests/oracle/markdown/corpus.ts target/corpus/markdown/d ~/repos/oss/prettier:tests/format",
+]
+
+[tasks."oracle:markdown:prettier"]
+description = "Count Markdown files that match Prettier and sort the rest: mise run oracle:markdown:prettier -- <corpus>..."
+run = "bun tests/oracle/markdown/prettier.ts"
+depends = ["build:napi"]
+
+[tasks."oracle:markdown:semantics"]
+description = "Check that formatting Markdown keeps its meaning, on the corpora in TIDY_MARKDOWN_CORPUS"
+env = { TIDY_MARKDOWN_CORPUS = "{{config_root}}/target/corpus/markdown/a:{{config_root}}/target/corpus/markdown/b:{{config_root}}/target/corpus/markdown/c:{{config_root}}/target/corpus/markdown/d" }
+run = "cargo test -p tidy --release --test markdown_semantics"
+
+[tasks."oracle:markdown:shrink"]
+description = "Shrink a Markdown file that formatting breaks: mise run oracle:markdown:shrink -- <file> [--<option> <value>...]"
+run = "bun tests/oracle/markdown/shrink.ts"

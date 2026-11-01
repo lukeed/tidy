@@ -1,22 +1,24 @@
 import { $ } from "bun";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { config } from "./config";
 
-// Usage: mise run oracle:shrink -- <file> [mdtidy options...]
-// Shrinks a Markdown file that mdtidy breaks, removing lines while formatting it still changes
+// Usage: mise run oracle:markdown:shrink -- <file> [--<option> <value>...]
+// Shrinks a Markdown file that tidy breaks, removing lines while formatting it still changes
 // the events the semantics oracle compares, or changes it again on a second pass. Prints what is
 // left, usually a few lines to turn into a test.
 
 let [path, ...options] = Bun.argv.slice(2);
-if (!path) throw new Error("usage: mise run oracle:shrink -- <file> [mdtidy options...]");
+if (!path) throw new Error("usage: mise run oracle:markdown:shrink -- <file> [--<option> <value>...]");
 
-let root = new URL("..", import.meta.url).pathname;
-await $`cargo build --release -p mdtidy_cli`.cwd(root).quiet();
-await $`cargo build --release -p mdtidy --example events`.cwd(root).quiet();
+let root = new URL("../../..", import.meta.url).pathname;
+await $`cargo build --release -p tidy_cli`.cwd(root).quiet();
+await $`cargo build --release -p tidy --example markdown_events`.cwd(root).quiet();
 let { target_directory } = await $`cargo metadata --format-version 1 --no-deps`.cwd(root).json();
-let mdtidy = join(target_directory, "release", "mdtidy");
+let tidy = join(target_directory, "release", "tidy");
 let scratch = join(target_directory, "oracle", "shrink");
 await mkdir(scratch, { recursive: true });
+let settings = await config(options, scratch);
 
 let lines = (await Bun.file(path).text()).split("\n");
 if (!(await broken(lines))) throw new Error(`${path}: formatting keeps its meaning and settles`);
@@ -40,11 +42,11 @@ async function broken(lines: string[]): Promise<boolean> {
 }
 
 async function format(source: string): Promise<string> {
-	return $`${mdtidy} ${options} < ${new Response(source)}`.text();
+	return $`${tidy} --parser markdown --config ${settings} < ${new Response(source)}`.text();
 }
 
 async function events(source: string): Promise<string> {
 	let file = join(scratch, "events.md");
 	await Bun.write(file, source);
-	return $`${join(target_directory, "release", "examples", "events")} ${file}`.text();
+	return $`${join(target_directory, "release", "examples", "markdown_events")} ${file}`.text();
 }
