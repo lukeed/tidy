@@ -2,11 +2,104 @@ use std::borrow::Cow;
 
 use super::Writer;
 
-/// A link whose text is being written: what follows the text is copied as written.
+/// A link whose text is being written. What follows the text is copied as written, unless
+/// Prettier's form of it, `tail`, reads back the same.
 pub(super) struct Link {
   /// Where the text ends so far.
   pub(super) text: usize,
   pub(super) end: usize,
+  pub(super) tail: Option<String>,
+}
+
+/// An image whose alt text is skipped to be copied as written, before Prettier's form of the rest.
+pub(super) struct Image {
+  pub(super) start: usize,
+  /// Where the alt text ends so far.
+  pub(super) text: usize,
+  pub(super) tail: String,
+}
+
+/// The `](destination "title")` after an inline link's text, as Prettier writes it.
+pub(super) fn tail(url: &str, title: &str) -> Option<String> {
+  let url = destination(url, true)?;
+  match title {
+    "" => Some(format!("]({url})")),
+    title => Some(format!("]({url} {})", quote(title)?)),
+  }
+}
+
+/// A link reference definition as Prettier writes it, from the source it spans.
+pub(super) fn definition(source: &str, url: &str, title: Option<&str>) -> Option<String> {
+  let label = label(source)?;
+  let url = destination(url, false)?;
+  let label = label.split_whitespace().collect::<Vec<_>>().join(" ");
+  match title {
+    None | Some("") => Some(format!("[{label}]: {url}")),
+    Some(title) => Some(format!("[{label}]: {url} {}", quote(title)?)),
+  }
+}
+
+/// The label of a definition or full reference that `source` starts with, as written.
+pub(super) fn label(source: &str) -> Option<&str> {
+  let rest = source.strip_prefix('[')?;
+  let mut escaped = false;
+  for (index, char) in rest.char_indices() {
+    match char {
+      ']' if !escaped => return Some(&rest[..index]),
+      '[' if !escaped => return None,
+      _ => escaped = char == '\\' && !escaped,
+    }
+  }
+  None
+}
+
+/// A destination written bare, or in `<>` when it holds a space, or a `)` that would end an inline
+/// link. `None` where writing the parsed URL back would read differently.
+fn destination(url: &str, inline: bool) -> Option<Cow<'_, str>> {
+  if url.is_empty() {
+    return Some(Cow::Borrowed("<>"));
+  }
+  if url.contains(['\\', '<', '>', '\n', '\r']) || entity(url) {
+    return None;
+  }
+  if url.contains(' ') || (inline && url.contains(')')) {
+    return Some(Cow::Owned(format!("<{url}>")));
+  }
+  let mut depth = 0usize;
+  for char in url.chars() {
+    match char {
+      '(' => depth += 1,
+      ')' => depth = depth.checked_sub(1)?,
+      _ => {}
+    }
+  }
+  (depth == 0).then_some(Cow::Borrowed(url))
+}
+
+/// A title in double quotes, single quotes when it holds more double quotes, or parentheses when
+/// it holds both but no parentheses or backslashes.
+fn quote(title: &str) -> Option<String> {
+  if entity(title) {
+    return None;
+  }
+  let doubles = title.matches('"').count();
+  let singles = title.matches('\'').count();
+  if doubles > 0 && singles > 0 && !title.contains(['(', ')', '\\']) {
+    return Some(format!("({title})"));
+  }
+  let mark = if doubles > singles { '\'' } else { '"' };
+  let escaped = title.replace('\\', "\\\\").replace(mark, &format!("\\{mark}"));
+  Some(format!("{mark}{escaped}{mark}"))
+}
+
+/// Whether `text` holds something that reads as an entity, which the parser would decode.
+fn entity(text: &str) -> bool {
+  text.match_indices('&').any(|(at, _)| {
+    let name =
+      text[at + 1..].bytes().take_while(|byte| byte.is_ascii_alphanumeric() || *byte == b'#');
+    let length = name.count();
+    length > 0 && text.as_bytes().get(at + 1 + length) == Some(&b';')
+  })
 }
 
 /// `text` with each run of spaces and tabs as one space.

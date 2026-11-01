@@ -212,6 +212,35 @@ fn keeps_html_indents() {
 }
 
 #[test]
+fn writes_destinations_and_titles_like_prettier() {
+  let cases = [
+    ("[a](u 'single')", "[a](u \"single\")"),
+    ("[b](u (paren))", "[b](u \"paren\")"),
+    ("[c](u 'say \"hi\"')", "[c](u 'say \"hi\"')"),
+    ("[d](u \"a \\\"b\\\" 'c'\")", "[d](u (a \"b\" 'c'))"),
+    (
+      "[e](<a b>) [f](<a)b>) [g](a\\_b) [h](a&amp;b) [i]()",
+      "[e](<a b>) [f](<a)b>) [g](a_b) [h](a&b) [i](<>)",
+    ),
+    ("[j](<z>) [k](a\n'x')", "[j](z) [k](a \"x\")"),
+    ("![alt  *x*](i 't') ![](<>)", "![alt  *x*](i \"t\") ![](<>)"),
+    ("[g  *h*][G  H]\n\n[G  H]: /g", "[g _h_][G H]\n\n[G H]: /g"),
+  ];
+  for (source, expected) in cases {
+    assert_eq!(prettier(&format!("{source}\n")), format!("{expected}\n"), "{source}");
+  }
+  let source = "[a]: /x 'title'\n[b  c]:\n  /y\n  \"z\"\n[d]: <a b> (t)\n";
+  assert_eq!(prettier(source), "[a]: /x \"title\"\n[b c]: /y \"z\"\n[d]: <a b> \"t\"\n");
+}
+
+#[test]
+fn keeps_destinations_that_would_read_differently() {
+  for source in ["[a](a\\(b)", "[a](a\\\\b)", "[a](\\&amp;)", "[a](<a<b>)", "[a](u \"\\&amp;\")"] {
+    assert_eq!(prettier(&format!("{source}\n")), format!("{source}\n"), "{source}");
+  }
+}
+
+#[test]
 fn quotes_and_nesting() {
   assert_eq!(prettier(">a\n>\n>b\n"), "> a\n>\n> b\n");
   assert_eq!(prettier("> - a\n>   > b\n"), "> - a\n>   > b\n");

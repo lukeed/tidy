@@ -17,7 +17,7 @@ use crate::table::Table;
 use crate::wrap::Paragraph;
 use crate::{Code, Emphasis, Heading, Numbering, Options, Rule, Strong, Wrap};
 use code::{Block, fence};
-use inline::{Link, collapse, span};
+use inline::{Image, Link, collapse, span};
 use list::{Adjacent, List, TAB, aligned};
 
 /// The syntax mdtidy reads: CommonMark with GFM tables, task lists, strikethrough, footnotes, and
@@ -40,9 +40,17 @@ pub(crate) fn format(
   let front = front::split(source);
   let body = front.as_ref().map_or(source, |front| &source[front.end..]);
   let parser = Parser::new_ext(body, flags());
-  let mut definitions: Vec<Range<usize>> =
-    parser.reference_definitions().iter().map(|(_, definition)| definition.span.clone()).collect();
-  definitions.sort_unstable_by_key(|span| span.start);
+  let mut definitions: Vec<Definition> = parser
+    .reference_definitions()
+    .iter()
+    .map(|(_, definition)| {
+      let span = definition.span.clone();
+      let title = definition.title.as_deref();
+      let line = inline::definition(&body[span.clone()], &definition.dest, title);
+      Definition { span, line }
+    })
+    .collect();
+  definitions.sort_unstable_by_key(|definition| definition.span.start);
   let mut writer = Writer {
     source: body,
     options,
@@ -67,6 +75,7 @@ pub(crate) fn format(
     adjacent: None,
     last: 0,
     link: None,
+    image: None,
     defined: None,
     joins: None,
     html: None,
@@ -136,6 +145,12 @@ enum Container {
 /// The width of a task box, `[ ] `.
 const BOX: usize = 4;
 
+/// A link reference definition, and Prettier's form of it unless that would read differently.
+struct Definition {
+  span: Range<usize>,
+  line: Option<String>,
+}
+
 struct Writer<'s, 'o> {
   source: &'s str,
   options: &'o Options,
@@ -161,12 +176,13 @@ struct Writer<'s, 'o> {
   pending: bool,
   /// The next block is kept as written.
   ignore: bool,
-  definitions: Vec<Range<usize>>,
+  definitions: Vec<Definition>,
   next: usize,
   adjacent: Option<Adjacent>,
   /// Where the last block ended in the source.
   last: usize,
   link: Option<Link>,
+  image: Option<Image>,
   /// The output length and depth right after the last definition, to keep the next one beside it.
   defined: Option<(usize, usize)>,
   /// The depth of the paragraph or HTML block that just ended, which an HTML block on the next
@@ -184,6 +200,14 @@ impl<'s> Writer<'s, '_> {
         Event::Start(_) => self.skip += 1,
         Event::End(_) => self.skip -= 1,
         _ => {}
+      }
+      if self.skip > 0 {
+        if let Some(image) = &mut self.image {
+          image.text = image.text.max(range.end);
+        }
+      } else if let Some(image) = self.image.take() {
+        let alt = &self.source[image.start..image.text];
+        self.atom(&format!("{alt}{}", image.tail));
       }
       return;
     }
@@ -454,20 +478,30 @@ impl<'s> Writer<'s, '_> {
         self.atom(&mark);
         self.marks.push(mark);
       }
-      Tag::Link { link_type, .. } | Tag::Image { link_type, .. } => {
+      Tag::Link { link_type, ref dest_url, ref title, .. }
+      | Tag::Image { link_type, ref dest_url, ref title, .. } => {
         let collapsed = matches!(link_type, LinkType::Collapsed | LinkType::CollapsedUnknown)
           && self.source[range.end..].starts_with("[]");
         let end = if collapsed { range.end + 2 } else { range.end };
+        let tail = match link_type {
+          LinkType::Inline => inline::tail(dest_url, title),
+          _ => None,
+        };
         let image = matches!(tag, Tag::Image { .. });
         if image || matches!(link_type, LinkType::Autolink | LinkType::Email) {
           if let Some(link) = &mut self.link {
             link.text = link.text.max(end);
           }
-          self.atom(&self.source[range.start..end]);
+          match tail.filter(|_| image) {
+            Some(tail) => {
+              self.image = Some(Image { start: range.start, text: range.start + 2, tail })
+            }
+            None => self.atom(&self.source[range.start..end]),
+          }
           self.skip = 1;
         } else {
           self.atom("[");
-          self.link = Some(Link { text: range.start + 1, end });
+          self.link = Some(Link { text: range.start + 1, end, tail });
         }
       }
       _ => {
@@ -568,9 +602,18 @@ impl<'s> Writer<'s, '_> {
       }
       TagEnd::Link => {
         if let Some(link) = self.link.take() {
-          let tail = &self.source[link.text..link.end];
-          let tail = if self.start { tail.trim_start_matches([' ', '\t', '>']) } else { tail };
-          self.atom(tail);
+          let raw = &self.source[link.text..link.end];
+          let raw = if self.start { raw.trim_start_matches([' ', '\t', '>']) } else { raw };
+          let reference = raw.strip_prefix(']').and_then(inline::label);
+          let tail = match (link.tail, reference) {
+            (Some(tail), _) => Cow::Owned(tail),
+            (None, Some(label)) if !label.contains('\\') => {
+              let label = label.split_whitespace().collect::<Vec<_>>().join(" ");
+              Cow::Owned(format!("][{label}]"))
+            }
+            (None, _) => Cow::Borrowed(raw),
+          };
+          self.atom(&tail);
         }
       }
       TagEnd::Emphasis | TagEnd::Strong | TagEnd::Strikethrough => {
@@ -660,8 +703,11 @@ impl<'s> Writer<'s, '_> {
   }
 
   fn flush(&mut self, at: usize) {
-    while let Some(span) = self.definitions.get(self.next).filter(|span| span.start < at) {
-      let span = span.clone();
+    while let Some(definition) =
+      self.definitions.get(self.next).filter(|definition| definition.span.start < at)
+    {
+      let span = definition.span.clone();
+      let line = definition.line.clone();
       self.next += 1;
       if self.ignored.contains(&span.start) {
         continue;
@@ -672,7 +718,7 @@ impl<'s> Writer<'s, '_> {
         self.gap = Gap::Line;
       }
       self.separate();
-      self.write(self.source[span].trim_end());
+      self.write(line.as_deref().unwrap_or(self.source[span].trim_end()));
       self.newline();
       self.gap = Gap::Blank;
       self.defined = Some((self.out.len(), self.containers.len()));
