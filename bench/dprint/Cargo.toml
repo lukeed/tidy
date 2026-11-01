@@ -5,6 +5,8 @@ edition = "2024"
 publish = false
 
 [dependencies]
+dprint-plugin-markdown = "=0.28.2"
+malva = "=0.16.0"
 markup_fmt = "=0.25.0"
 
 [profile.release]

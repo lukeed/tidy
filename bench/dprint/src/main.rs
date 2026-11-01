@@ -1,10 +1,10 @@
-//! Formats the files under a folder with markup_fmt, the engine of dprint-plugin-markup, leaving embedded code as it
-//! is written. Exits 1 if any file changes, like `--check`.
+//! Formats the files under a folder the way dprint does with its plugins, leaving embedded code as it is written:
+//! markup_fmt (dprint-plugin-markup) for markup and XML, malva (dprint-plugin-malva) for style sheets, and
+//! dprint-plugin-markdown for Markdown. Exits 1 if any file changes, like `--check`.
 
 use std::path::{Path, PathBuf};
 
 use markup_fmt::config::FormatOptions;
-use markup_fmt::{Language, format_text};
 
 fn main() {
   let mut files = Vec::new();
@@ -12,18 +12,29 @@ fn main() {
     walk(Path::new(&arg), &mut files);
   }
   let options = FormatOptions::default();
+  let markdown = dprint_plugin_markdown::configuration::ConfigurationBuilder::new().build();
   let mut changed = 0;
   for path in files {
     let Ok(text) = std::fs::read_to_string(&path) else { continue };
-    let language = match path.extension().and_then(|it| it.to_str()) {
-      Some("vue") => Language::Vue,
-      Some("svelte") => Language::Svelte,
-      Some("astro") => Language::Astro,
-      Some("xml" | "svg" | "xsd" | "xsl" | "xslt" | "wsdl") => Language::Xml,
-      _ => Language::Html,
+    let output = match path.extension().and_then(|it| it.to_str()) {
+      Some("md" | "markdown") => {
+        dprint_plugin_markdown::format_text(&text, &markdown, |_, _, _| Ok(None))
+          .ok()
+          .map(|output| output.unwrap_or_else(|| text.clone()))
+      }
+      Some(extension @ ("css" | "scss" | "less")) => {
+        let syntax = match extension {
+          "scss" => malva::Syntax::Scss,
+          "less" => malva::Syntax::Less,
+          _ => malva::Syntax::Css,
+        };
+        malva::format_text(&text, syntax, &malva::config::FormatOptions::default()).ok()
+      }
+      _ => markup_fmt::detect_language(&path).and_then(|language| {
+        markup_fmt::format_text(&text, language, &options, |code, _| Ok::<_, ()>(code.into())).ok()
+      }),
     };
-    let output = format_text(&text, language, &options, |code, _| Ok::<_, ()>(code.into()));
-    if output.is_ok_and(|output| output != text) {
+    if output.is_some_and(|output| output != text) {
       changed += 1;
     }
   }
