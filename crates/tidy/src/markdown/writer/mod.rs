@@ -398,8 +398,16 @@ impl<'s> Writer<'s, '_> {
         }
       }
       Tag::Heading { level, .. } => {
-        self.block(range.start);
         let atx = self.source[range.start..].trim_start().starts_with('#');
+        let setext = !atx && self.options.heading == Heading::Keep;
+        self.flush(range.start);
+        let defined = self.defined == Some((self.out.len(), self.containers.len()));
+        let above = self.source[..range.start].strip_suffix('\n').unwrap_or_default();
+        let above = above.rsplit('\n').next().unwrap_or("");
+        if setext && defined && !above.trim_matches([' ', '\t', '>']).is_empty() {
+          self.gap = Gap::Line;
+        }
+        self.block(range.start);
         if atx || self.options.heading == Heading::Atx {
           self.write(&"######"[..level as usize]);
           if !matches!(events.peek(0), Some((Event::End(_), _))) {

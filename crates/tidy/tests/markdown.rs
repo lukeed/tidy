@@ -18,6 +18,9 @@ fn keeps_setext_headings() {
   let source = "Title\n===\n\nA\nB\n---------\n\n> Quote\n> -----\n";
   assert_eq!(prettier(source), source);
   assert_eq!(preserve(source), source);
+  for source in ["[a]: /1\n[b]: /2\nbar\n===\n", "[a]: /1\n\nbar\n===\n"] {
+    assert_eq!(prettier(source), source);
+  }
   let atx = Options { heading: Heading::Atx, ..Options::default() };
   assert_eq!(mdtidy::format("Title\n=====\n\nSub\n---\n", &atx), "# Title\n\n## Sub\n");
   assert_eq!(mdtidy::format("A\nB\n===\n", &atx), "# A B\n");
