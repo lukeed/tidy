@@ -59,21 +59,31 @@ fn destination(url: &str, inline: bool) -> Option<Cow<'_, str>> {
   if url.is_empty() {
     return Some(Cow::Borrowed("<>"));
   }
-  if url.contains(['\\', '<', '>', '\n', '\r']) || entity(url) {
-    return None;
-  }
-  if url.contains(' ') || (inline && url.contains(')')) {
-    return Some(Cow::Owned(format!("<{url}>")));
-  }
-  let mut depth = 0usize;
-  for char in url.chars() {
-    match char {
-      '(' => depth += 1,
-      ')' => depth = depth.checked_sub(1)?,
+  let (mut depth, mut balanced, mut space, mut close, mut amp) =
+    (0usize, true, false, false, false);
+  for byte in url.bytes() {
+    match byte {
+      b'\\' | b'<' | b'>' | b'\n' | b'\r' => return None,
+      b' ' => space = true,
+      b'&' => amp = true,
+      b'(' => depth += 1,
+      b')' => {
+        close = true;
+        match depth.checked_sub(1) {
+          Some(less) => depth = less,
+          None => balanced = false,
+        }
+      }
       _ => {}
     }
   }
-  (depth == 0).then_some(Cow::Borrowed(url))
+  if amp && entity(url) {
+    return None;
+  }
+  if space || (inline && close) {
+    return Some(Cow::Owned(format!("<{url}>")));
+  }
+  (balanced && depth == 0).then_some(Cow::Borrowed(url))
 }
 
 /// A title in double quotes, single quotes when it holds more double quotes, or parentheses when

@@ -1,9 +1,8 @@
 use std::ops::Range;
 
-use pulldown_cmark::Alignment;
-use unicode_width::UnicodeWidthStr;
-
 use crate::Wrap;
+use crate::width::width;
+use pulldown_cmark::Alignment;
 
 /// A table collected cell by cell. The first row is the header. Like Prettier, each row keeps the
 /// cells it was written with, even where they don't match the header.
@@ -53,28 +52,30 @@ impl Table {
 
   /// The lines of the table with its columns aligned. As Prettier does, only `Wrap::Never` falls
   /// back to unpadded cells, and only when the aligned table is wider than `width`.
-  pub(crate) fn lines(&self, width: usize, wrap: Wrap) -> Vec<String> {
+  pub(crate) fn lines(&self, max: usize, wrap: Wrap) -> Vec<String> {
     let columns = self.rows.iter().map(Vec::len).max().unwrap_or(0).max(self.alignments.len());
+    let sizes: Vec<Vec<usize>> =
+      self.rows.iter().map(|row| row.iter().map(|cell| width(cell.trim())).collect()).collect();
     let mut widths = vec![3; columns];
-    for row in &self.rows {
-      for (column, cell) in row.iter().enumerate() {
-        widths[column] = widths[column].max(cell.trim().width());
+    for row in &sizes {
+      for (column, &size) in row.iter().enumerate() {
+        widths[column] = widths[column].max(size);
       }
     }
-    let aligned = self.render(&widths, false);
-    if wrap == Wrap::Never && aligned.iter().any(|line| line.width() > width) {
-      return self.render(&widths, true);
+    let aligned = self.render(&widths, &sizes, false);
+    if wrap == Wrap::Never && aligned.iter().any(|line| width(line) > max) {
+      return self.render(&widths, &sizes, true);
     }
     aligned
   }
 
-  fn render(&self, widths: &[usize], compact: bool) -> Vec<String> {
+  fn render(&self, widths: &[usize], sizes: &[Vec<usize>], compact: bool) -> Vec<String> {
     let mut lines = Vec::with_capacity(self.rows.len() + 1);
-    for (index, row) in self.rows.iter().enumerate() {
+    for (index, (row, sizes)) in self.rows.iter().zip(sizes).enumerate() {
       let mut line = String::from("|");
-      for (column, (cell, &width)) in row.iter().zip(widths).enumerate() {
+      for (column, ((cell, &size), &width)) in row.iter().zip(sizes).zip(widths).enumerate() {
         let cell = cell.trim();
-        let pad = if compact { 0 } else { width - cell.width() };
+        let pad = if compact { 0 } else { width - size };
         let alignment = self.alignments.get(column).copied().unwrap_or(Alignment::None);
         let before = match alignment {
           Alignment::Right => pad,

@@ -14,6 +14,7 @@ mod front;
 mod opener;
 mod options;
 mod table;
+mod width;
 mod wrap;
 mod writer;
 

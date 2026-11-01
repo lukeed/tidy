@@ -1,5 +1,3 @@
-use unicode_width::UnicodeWidthStr;
-
 /// A paragraph collected as words, to be filled into lines.
 #[derive(Debug, Default)]
 pub(crate) struct Paragraph {
@@ -92,7 +90,7 @@ impl Paragraph {
           space = false;
         }
         Token::Word(word) => {
-          let first = word.split('\n').next().unwrap_or_default().width();
+          let first = crate::width::width(word.split('\n').next().unwrap_or_default());
           let over = width.is_some_and(|width| used + 1 + first > width);
           if space && over && !opens_block(word) {
             lines.push(std::mem::take(&mut line));
@@ -103,7 +101,7 @@ impl Paragraph {
           }
           line.push_str(word);
           used = match word.rsplit_once('\n') {
-            Some((_, last)) => last.width(),
+            Some((_, last)) => crate::width::width(last),
             None => used + first,
           };
           space = false;

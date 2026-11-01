@@ -1,8 +1,8 @@
 use pulldown_cmark::{Event, Tag};
-use unicode_width::UnicodeWidthStr;
 
 use super::{Events, Writer};
 use crate::Wrap;
+use crate::width::width;
 
 impl<'s> Writer<'s, '_> {
   /// Whether the footnote definition that just started puts its text on the next line, as
@@ -52,7 +52,7 @@ impl<'s> Writer<'s, '_> {
     if single && (self.options.wrap == Wrap::Never || (preserve && !lines)) {
       return false;
     }
-    let flat: usize = self.source[first].split_whitespace().map(|word| word.width() + 1).sum();
+    let flat: usize = self.source[first].split_whitespace().map(|word| width(word) + 1).sum();
     let room = self.options.width.saturating_sub(self.indent() + marker.len());
     lines || leaves > 1 || flat.saturating_sub(1) > room
   }
