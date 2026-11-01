@@ -752,7 +752,12 @@ impl<'s> Writer<'s, '_> {
       return false;
     }
     self.block(at);
-    let text = self.source[range.clone()].trim_end();
+    let mut text = self.source[range.clone()].trim_end();
+    while let Some((rest, last)) = text.rsplit_once('\n')
+      && last.trim_matches([' ', '\t', '\r', '>']).is_empty()
+    {
+      text = rest.trim_end();
+    }
     let mut lines = text.split('\n');
     if let Some(first) = lines.next() {
       self.write(first.trim_start());

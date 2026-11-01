@@ -457,6 +457,12 @@ fn ignores_the_next_block() {
 }
 
 #[test]
+fn ignores_blocks_in_quotes() {
+  let source = "> <!-- prettier-ignore -->\n> - a\n>   b\n> \n\n> c\n";
+  assert_eq!(prettier(source), "> <!-- prettier-ignore -->\n> - a\n>   b\n\n> c\n");
+}
+
+#[test]
 fn ignores_ranges() {
   let source =
     "<!-- prettier-ignore-start -->\n* a\n\n\n* b\n<!-- prettier-ignore-end -->\n\n* c\n";
