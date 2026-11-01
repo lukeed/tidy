@@ -316,8 +316,16 @@ impl Formatter {
     self.bump.reset();
     let mut docs = Docs::reuse(&self.bump, &mut self.docs);
     docs.reserve(text.len());
-    let mut printer =
-      print::Printer { tree: &self.tree, text: &text, settings, docs: &mut docs, embed, stack };
+    let has_ignored_ranges = text.contains("<!-- prettier-ignore-start -->");
+    let mut printer = print::Printer {
+      tree: &self.tree,
+      text: &text,
+      settings,
+      docs: &mut docs,
+      embed,
+      stack,
+      has_ignored_ranges,
+    };
     printer.document();
     if printer.stack.ran_out() {
       return Err(Failure::TooDeep);

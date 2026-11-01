@@ -219,7 +219,15 @@ fn line_end(text: &[u8], from: usize) -> usize {
 /// The length of the name that `text` starts with.
 pub(crate) fn name(text: &[u8]) -> Option<usize> {
   let mut len = start_char(text)?;
-  while let Some(more) = start_char(&text[len..]).or_else(|| name_char(&text[len..])) {
+  while let Some(&byte) = text.get(len) {
+    let more = match byte {
+      b':' | b'_' | b'-' | b'.' | b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' => 1,
+      0..0x80 => break,
+      _ => match start_char(&text[len..]).or_else(|| name_char(&text[len..])) {
+        Some(more) => more,
+        None => break,
+      },
+    };
     len += more;
   }
   Some(len)

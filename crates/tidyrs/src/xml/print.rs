@@ -17,6 +17,8 @@ pub(crate) struct Printer<'p, 'a> {
   pub(crate) docs: &'p mut Docs<'a>,
   pub(crate) embed: &'p mut dyn Embed,
   pub(crate) stack: Stack,
+  /// The text has a `<!-- prettier-ignore-start -->`.
+  pub(crate) has_ignored_ranges: bool,
 }
 
 /// What comes before the `/>` of an element with no content.
@@ -233,7 +235,7 @@ impl<'a> Printer<'_, 'a> {
   /// `printContent`: the content as it is written, with its ignored ranges as they are written.
   fn content(&mut self, items: &[Item]) {
     let group = self.docs.group();
-    let ranges = ignore_ranges(self.text, items);
+    let ranges = self.ignore_ranges(items);
     let mut pending = ranges.iter().peekable();
     for &item in items {
       let start = item.start(self.tree);
@@ -259,7 +261,14 @@ impl<'a> Printer<'_, 'a> {
           && unquoted(attribute.value.of(self.text)) == "preserve"
       })
       && !items.iter().any(|item| matches!(item, Item::CData(_)))
-      && ignore_ranges(self.text, items).is_empty()
+      && self.ignore_ranges(items).is_empty()
+  }
+
+  fn ignore_ranges(&self, items: &[Item]) -> Vec<Span> {
+    match self.has_ignored_ranges {
+      true => ignore_ranges(self.text, items),
+      false => Vec::new(),
+    }
   }
 
   // ───────────────────────────── tags ─────────────────────────────
@@ -308,12 +317,13 @@ impl<'a> Printer<'_, 'a> {
   fn tag_start(&mut self, element: &Element, is_printed: bool) {
     self.docs.text("<");
     self.span(element.name);
-    let mut attributes = self.tree.attributes(element.attributes).to_vec();
+    let mut attributes = std::borrow::Cow::Borrowed(self.tree.attributes(element.attributes));
     if attributes.is_empty() {
       return;
     }
     if is_printed && self.settings.sort_attributes {
       attributes
+        .to_mut()
         .sort_by(|left, right| sort::attributes(left.name.of(self.text), right.name.of(self.text)));
     }
     let hard = is_printed && self.settings.single_attribute_per_line;
