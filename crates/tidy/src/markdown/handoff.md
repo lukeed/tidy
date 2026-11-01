@@ -41,7 +41,7 @@ Both oracles live in the repo, with mise tasks to run them. Corpora don't: build
 
 - **Semantics**: `MDTIDY_CORPUS=<dir>[:<dir>...] mise run oracle:semantics`. Every output re-parses to the same events (adjacent text merged, soft breaks as spaces, whitespace collapsed) and settles after one pass. It runs the Prettier preset, the Preserve preset, `wrap: always` at width 40, and `wrap: never`. It caught every real bug so far: trust it over reading diffs. When a file fails, `mise run oracle:shrink -- <file> [mdtidy options...]` removes lines while it still fails and prints the few that are left. The events it compares come from `tests/support/events.rs`, shared by the test and the `events` example.
 - **Speed**: `mise run bench:ab -- [--rev <rev>] <dir>...` builds the working tree and `<rev>` (HEAD by default, in a temporary worktree), times both checking the folders in both orders, and compares medians: means swing with machine load. Each fix on 2026-10-30 and 2026-11-01 was within noise; together they cost about 2–3% (about 38 to 39 ms on A + B).
-- **Prettier**: the target is Prettier 3.9.10. `mise run oracle:prettier -- <corpus>... [--show <kind>]` formats one copy with Prettier (cached in `target/oracle`), one with mdtidy, counts identical files, and sorts the differences by kind. It hands mdtidy every file by name, because the CLI skips hidden folders on purpose. Last result: A 871/872, B 2,141/2,142, C 3,455/3,466, D 290/310. The semantics oracle passes on all four. `bun fmt` is close (8 misses, all inside code blocks) but it is not the reference.
+- **Prettier**: the target is Prettier 3.9.10. `mise run oracle:prettier -- <corpus>... [--show <kind>]` formats one copy with Prettier (cached in `target/oracle`), one with mdtidy, counts identical files, and sorts the differences by kind. It hands mdtidy every file by name, because the CLI skips hidden folders on purpose. Last result: A 871/872, B 2,141/2,142, C 3,456/3,466, D 290/310. The semantics oracle passes on all four. `bun fmt` is close (8 misses, all inside code blocks) but it is not the reference.
 
 ## Known gaps against Prettier
 
@@ -51,7 +51,7 @@ What C still misses:
 
 1. Deep Hugo templates (bootstrap's `examples/_index.md`): Prettier reads nested Liquid and HTML as HTML blocks and keeps their lines as written.
 2. A `|` inside a code span in a table cell splits the cell in GFM, and Prettier trims the pieces differently.
-3. A code span over two lines in a list item or quote: Prettier writes the second line with no indent and no `>`. That still parses the same but reads worse, so it isn't planned.
+3. Prettier escapes a `_` or `*` in text that could open emphasis (`\_#include`); mdtidy copies text as written, which reads the same.
 4. pulldown-cmark doesn't close a fence followed by tabs (```` ```→→ ````), which CommonMark allows, so the rest of the file reads as code. That's a parser bug to report upstream.
 
 Kept on purpose:
@@ -62,6 +62,7 @@ Kept on purpose:
 - With `wrap: never`, the line after a hard break in a one-line footnote keeps its indent. Prettier drops it, which reads the same but worse.
 - Link targets and definitions stay as written where Prettier's form would read differently: unbalanced parentheses, `<`, `>`, a backslash, text that decodes as an entity, or a title with `(` in parentheses.
 - An emphasis mark right after a `*` is `_`. Prettier writes `*`, which merges into `***` and nests the other way.
+- A code span over two lines keeps its second line as written. Prettier writes it from the parsed value without the container's indent or `>`, so in a list item the indent then eats spaces that belong to the code.
 
 ## Wrapping
 
