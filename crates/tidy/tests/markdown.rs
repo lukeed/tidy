@@ -501,6 +501,16 @@ fn joins_chinese_and_japanese_lines_like_prettier() {
 }
 
 #[test]
+fn breaks_beside_markup_in_chinese_and_japanese_like_prettier() {
+  let source =
+    std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/cjk-markup.md"))
+      .expect("read fixture");
+  let expected = "请检查差异，如果没有差异请检查\n`git log --oneline` 文件。\n\n**完了です！**\nこれで十三のエージェントにアクセスできます。\n\n- **缺少 `While`** — 当\n  `While` 更合适时使用了\n  `stateIn(scope)`\n\n有关最佳实践，请查阅\n[官方文档](https://e.com/a) 和\n[论坛](https://e.com/b)。\n\n这是 _强调_\n的文字和一些很长的内容需要换行处理。\n";
+  let options = Options { wrap: Wrap::Always, width: 30, ..Options::default() };
+  assert_eq!(mdtidy::format(&source, &options), expected);
+}
+
+#[test]
 fn never_wraps_into_a_block() {
   let options = Options { wrap: Wrap::Always, width: 5, ..Options::default() };
   assert_eq!(mdtidy::format("aaaa - b\n", &options), "aaaa -\nb\n");

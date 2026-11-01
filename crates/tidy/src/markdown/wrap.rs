@@ -10,7 +10,13 @@ pub(crate) struct Paragraph {
 
 #[derive(Debug)]
 enum Token {
-  Word(String),
+  /// A word, and whether its first and last characters are text rather than markup. Prettier only
+  /// keeps a space beside Chinese or Japanese text when text is on both sides of it.
+  Word {
+    text: String,
+    head: bool,
+    tail: bool,
+  },
   Space,
   /// A line break in the source, which joins the lines as Prettier does: a space, or nothing
   /// between Chinese or Japanese text.
@@ -26,7 +32,7 @@ impl Paragraph {
     let mut words = text.split([' ', '\t', '\n', '\r']).peekable();
     while let Some(word) = words.next() {
       if !word.is_empty() {
-        self.glue(word);
+        self.glue(word, true);
       }
       self.open = match self.open {
         Some(close) => match word.find(close) {
@@ -37,7 +43,7 @@ impl Paragraph {
       };
       if words.peek().is_some() {
         if self.open.is_some() {
-          self.glue(" ");
+          self.glue(" ", true);
         } else {
           self.space();
         }
@@ -48,18 +54,18 @@ impl Paragraph {
   /// Add something that must not break, like inline HTML or a link. Line breaks inside it stay as
   /// written, as Prettier keeps them, because they can be part of what it means.
   pub(crate) fn atom(&mut self, text: &str) {
-    self.glue(text);
+    self.glue(text, false);
   }
 
   pub(crate) fn space(&mut self) {
-    if matches!(self.tokens.last(), Some(Token::Word(_))) {
+    if matches!(self.tokens.last(), Some(Token::Word { .. })) {
       self.tokens.push(Token::Space);
     }
   }
 
   /// A line break in the source, where the lines join.
   pub(crate) fn line(&mut self) {
-    if matches!(self.tokens.last(), Some(Token::Word(_))) {
+    if matches!(self.tokens.last(), Some(Token::Word { .. })) {
       self.tokens.push(Token::Line);
     }
   }
@@ -68,22 +74,25 @@ impl Paragraph {
     if matches!(self.tokens.last(), Some(Token::Space | Token::Line)) {
       self.tokens.pop();
     }
-    self.glue(mark);
+    self.glue(mark, false);
     self.tokens.push(Token::Hard);
   }
 
   /// The last character added, to tell whether emphasis sits inside a word.
   pub(crate) fn last(&self) -> Option<char> {
     match self.tokens.last()? {
-      Token::Word(word) => word.chars().next_back(),
+      Token::Word { text, .. } => text.chars().next_back(),
       Token::Space | Token::Line | Token::Hard => Some(' '),
     }
   }
 
-  fn glue(&mut self, text: &str) {
+  fn glue(&mut self, text: &str, prose: bool) {
     match self.tokens.last_mut() {
-      Some(Token::Word(word)) => word.push_str(text),
-      _ => self.tokens.push(Token::Word(text.to_string())),
+      Some(Token::Word { text: word, tail, .. }) => {
+        word.push_str(text);
+        *tail = prose;
+      }
+      _ => self.tokens.push(Token::Word { text: text.to_string(), head: prose, tail: prose }),
     }
   }
 
@@ -130,48 +139,39 @@ impl Paragraph {
   }
 
   /// The tokens to fill, with words joined across a space beside Chinese or Japanese text, which
-  /// Prettier never breaks, so they fit or move as one.
+  /// Prettier never breaks, so they fit or move as one. Beside markup, the space breaks.
   fn units(&self) -> Vec<Unit<'_>> {
     let mut units: Vec<Unit<'_>> = Vec::with_capacity(self.tokens.len());
+    let mut tail = false;
     let mut tokens = self.tokens.iter().peekable();
     while let Some(token) = tokens.next() {
       match token {
-        Token::Word(word) => units.push(Unit::Word(Cow::Borrowed(word))),
+        Token::Word { text, tail: prose, .. } => {
+          units.push(Unit::Word(Cow::Borrowed(text)));
+          tail = *prose;
+        }
         Token::Hard => units.push(Unit::Hard),
-        Token::Line => {
+        Token::Space | Token::Line => {
           let next = match tokens.peek() {
-            Some(Token::Word(next)) => Some(next),
+            Some(Token::Word { text, head: true, tail }) => Some((text, *tail)),
             _ => None,
           };
           let glue = match (units.last(), next) {
-            (Some(Unit::Word(word)), Some(next)) => {
-              join(word.chars().next_back(), next.chars().next())
+            (Some(Unit::Word(word)), Some((next, _))) if tail => {
+              let (before, after) = (word.chars().next_back(), next.chars().next());
+              match token {
+                Token::Line => join(before, after),
+                _ => (before.is_some_and(cj) || after.is_some_and(cj)).then_some(" "),
+              }
             }
             _ => None,
           };
           match (units.last_mut(), next, glue) {
-            (Some(Unit::Word(word)), Some(next), Some(glue)) => {
+            (Some(Unit::Word(word)), Some((next, prose)), Some(glue)) => {
               let word = word.to_mut();
               word.push_str(glue);
               word.push_str(next);
-              tokens.next();
-            }
-            _ => units.push(Unit::Space),
-          }
-        }
-        Token::Space => {
-          let next = match tokens.peek() {
-            Some(Token::Word(next)) => Some(next),
-            _ => None,
-          };
-          match (units.last_mut(), next) {
-            (Some(Unit::Word(word)), Some(next))
-              if word.chars().next_back().is_some_and(cj)
-                || next.chars().next().is_some_and(cj) =>
-            {
-              let word = word.to_mut();
-              word.push(' ');
-              word.push_str(next);
+              tail = prose;
               tokens.next();
             }
             _ => units.push(Unit::Space),
