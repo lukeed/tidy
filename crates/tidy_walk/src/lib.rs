@@ -9,8 +9,8 @@
 //! ```
 //!
 //! Opens, reads and writes only happen on the I/O threads, so their number limits how many files are open at once.
-//! On macOS, opening files stops scaling at about 4 threads, system-wide, so there a few I/O threads feed workers
-//! on every core. Elsewhere, opening scales, and the I/O threads run the work themselves (`workers: 0`).
+//! On macOS, opening files stops scaling at a few threads, system-wide, so there 6 I/O threads feed workers on
+//! every core. Elsewhere, opening scales, and the I/O threads run the work themselves (`workers: 0`).
 //!
 //! Every argument, and every file in a walked folder, is worked on at most once:
 //! - Arguments that are the same file or folder, by `(dev, ino)`, count once.
@@ -44,11 +44,12 @@ pub struct Options<'a> {
 
 impl Default for Options<'_> {
   /// Every file, without hidden folders and `node_modules`, with the thread counts that measured best: on macOS,
-  /// 4 I/O threads and workers on every core; elsewhere, I/O threads on every core that also run the work.
+  /// 6 I/O threads and workers on every core, never more than 9% behind the best shape on corpora of tidy and
+  /// mdtidy; elsewhere, I/O threads on every core that also run the work.
   fn default() -> Self {
     let cores = std::thread::available_parallelism().map_or(1, |count| count.get());
     let (io, workers) = match cfg!(target_os = "macos") {
-      true => (cores.min(4), cores),
+      true => (cores.min(6), cores),
       false => (cores, 0),
     };
     Options { wanted: &everything, skip: &hidden_and_node_modules, io, workers, bytes: 256 << 20 }
