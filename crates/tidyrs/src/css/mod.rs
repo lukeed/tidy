@@ -271,7 +271,7 @@ fn parse_and_print<'o>(
     }
   }
 
-  let tree = postcss::parse(&blanked, dialect, postcss::Placeholder::AtRule)?;
+  let tree = postcss::parse(&blanked, dialect)?;
   if let Some(front_matter) = front_matter {
     let has_nodes = tree.nodes[0].first_child != 0;
     print_front_matter(front_matter, &mut sink, settings, embed);
@@ -287,19 +287,15 @@ fn parse_and_print<'o>(
       is_original_text: matches!(blanked, Cow::Borrowed(_)),
       extra: &tree.extra,
       syntax: dialect,
-      is_oxfmt: false,
       rejection: Default::default(),
       stack: Stack::new(),
       convertible_sets: Default::default(),
     },
     single_quote: settings.single_quote,
     trailing_comma: settings.trailing_comma,
-    is_oxfmt: false,
     is_html_style_attribute: style.is_style_attribute,
     value_stack: Vec::new(),
-    comment_after_comma: 0,
     index_in_comma_group: 0,
-    comments_above_item: (0, 0),
     scratch: Vec::new(),
     failure: None,
     sink,

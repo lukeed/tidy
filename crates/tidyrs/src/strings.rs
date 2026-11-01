@@ -164,11 +164,6 @@ pub(crate) fn contains_any(text: &[u8], chars: &[u8]) -> bool {
   index_of_any(text, chars).is_some()
 }
 
-/// Splits `text` at each byte that is one of `chars`.
-pub(crate) fn split_any<'a>(text: &'a [u8], chars: &'a [u8]) -> impl Iterator<Item = &'a [u8]> {
-  text.split(move |byte| chars.contains(byte))
-}
-
 /// `\w` of a regular expression without flags.
 pub(crate) fn is_regexp_word_byte(byte: u8) -> bool {
   byte.is_ascii_alphanumeric() || byte == b'_'

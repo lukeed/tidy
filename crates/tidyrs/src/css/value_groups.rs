@@ -7,7 +7,7 @@ use super::printer::{Printer, Statement};
 use super::sink::Separator;
 use super::value_parser::{Before, ValueId, ValueKind, ValueRef};
 use crate::syntax::{Message, SyntaxError};
-use crate::text::{self, has_newline_backwards, is_next_line_empty};
+use crate::text::{self, is_next_line_empty};
 
 /// `isAtWordPlaceholderNode`
 fn is_at_word_placeholder(node: ValueRef<'_>) -> bool {
@@ -37,11 +37,6 @@ fn is_subtraction(node: ValueRef<'_>) -> bool {
 fn is_math_operator(node: ValueRef<'_>) -> bool {
   node.kind() == ValueKind::Operator
     && matches!(node.node().first_byte, b'*' | b'/' | b'+' | b'-' | b'%')
-}
-
-/// Excludes `/`, which is also a separator, as in `rgb(from a r g b / 50%)` and `font: 1px / 2 a`.
-fn is_expression_operator(node: ValueRef<'_>) -> bool {
-  is_math_operator(node) && !is_division(node)
 }
 
 fn word(node: ValueRef<'_>) -> Option<&[u8]> {
@@ -101,23 +96,6 @@ fn paren_group_open(node: ValueRef<'_>) -> Option<ValueRef<'_>> {
   let group = node.node();
   (group.kind == ValueKind::ParenGroup && group.open != 0 && group.close != 0)
     .then(|| node.at(group.open))
-}
-
-/// Returns the `)` of a function or a parenthesized group.
-fn closing_parenthesis(node: ValueRef<'_>) -> Option<ValueRef<'_>> {
-  let group = match node.kind() {
-    ValueKind::Func => node.at(node.node().group),
-    _ => node,
-  };
-  paren_group_open(group).map(|_| group.at(group.node().close))
-}
-
-fn line_of_closing_parenthesis(node: ValueRef<'_>) -> Option<u32> {
-  closing_parenthesis(node).and_then(|it| it.node().loc.start_line())
-}
-
-fn end_of_closing_parenthesis(node: ValueRef<'_>) -> Option<u32> {
-  closing_parenthesis(node).and_then(|it| it.node().loc.end_offset())
 }
 
 /// True if `node` ends with a backslash that escapes the whitespace after it.
@@ -207,7 +185,7 @@ impl<'a> Printer<'a, '_> {
 
   /// `node` is a `value-comma_group`.
   fn shape_of_comma_group(&self, statement: Statement<'_, 'a>, node: ValueRef<'_>) -> Shape {
-    let at_rule = self.enclosing_at_rule(statement);
+    let at_rule = statement.at_rule;
     if at_rule.is_some_and(|it| self.is_scss_control_directive(it)) {
       Shape::Indent
     } else if node.groups().len() == 2
@@ -237,7 +215,7 @@ impl<'a> Printer<'a, '_> {
       && declaration_prop
         .as_ref()
         .is_some_and(|prop| **prop == *b"grid" || prop.starts_with(b"grid-template"));
-    let at_rule = self.enclosing_at_rule(statement);
+    let at_rule = statement.at_rule;
     let is_control_directive = at_rule.is_some_and(|it| self.is_scss_control_directive(it));
     let has_inline_comment = node.groups().any(is_inline_comment);
     let is_custom_property = statement.is_custom_property();
@@ -252,32 +230,6 @@ impl<'a> Printer<'a, '_> {
       && is_in_paren_group
       && grandparent.is_some_and(|it| is_func(it) && it.value() == Some(b"if"));
 
-    // oxfmt lays out a declaration's value the same way with or without line comments before it. Prettier puts the
-    // comments and the value into one indented `fill` as separate items.
-    let count = node.groups().len();
-    if self.is_oxfmt
-      && is_in_paren_group
-      && at_rule.is_none()
-      && count > 1
-      && node.groups().take(count - 1).all(is_inline_comment)
-      && !node.groups().next_back().is_some_and(is_inline_comment)
-    {
-      let mut previous = None;
-      for it in node.groups() {
-        if it.id == self.comment_after_comma {
-          self.comment_after_comma = 0;
-          continue;
-        }
-        self.value_stack.push(id);
-        self.print_value(statement, it.id, previous.replace(it.id));
-        self.value_stack.pop();
-        if is_inline_comment(it) {
-          self.sink.hard_line();
-        }
-      }
-      return;
-    }
-
     let shape = self.shape_of_comma_group(statement, node);
     self.sink.start_group(false);
     if shape != Shape::Fill {
@@ -286,53 +238,10 @@ impl<'a> Printer<'a, '_> {
     self.sink.start_fill();
     let mut inside_scss_interpolation_in_string = false;
     let mut did_break = false;
-    // oxfmt treats `$a * 2` in SCSS as one expression. Next to other values it's a single item of the `fill`, and
-    // it's a nested `fill` itself.
-    let has_expressions = self.is_oxfmt && self.syntax() == Syntax::Scss && !inside_calc;
-    let mut is_in_expression = false;
 
-    let comments_printed_above = match self.comments_above_item {
-      (item, count) if item == id => count,
-      _ => 0,
-    };
-    for (i, i_node) in node.groups().enumerate().skip(comments_printed_above) {
-      let prev_node =
-        i.checked_sub(1).filter(|at| *at >= comments_printed_above).and_then(|at| node.group(at));
+    for (i, i_node) in node.groups().enumerate() {
+      let prev_node = i.checked_sub(1).and_then(|at| node.group(at));
       let next_node = node.group(i + 1);
-
-      if i_node.id == self.comment_after_comma {
-        self.comment_after_comma = 0;
-        continue;
-      }
-
-      // `a -1px` is two values.
-      let is_operator_at = |at: usize| {
-        node.group(at).is_some_and(|it| {
-          is_expression_operator(it)
-            && (has_empty_raw_before(it) || !node.group(at + 1).is_some_and(has_empty_raw_before))
-        })
-      };
-      let is_before_operator = has_expressions
-        && !is_math_operator(i_node)
-        && !is_comment(i_node)
-        && is_operator_at(i + 1);
-      if !is_in_expression
-        && is_before_operator
-        && prev_node.is_none_or(|it| !is_expression_operator(it))
-      {
-        let mut last = i;
-        while is_operator_at(last + 1)
-          && node.group(last + 2).is_some_and(|it| !is_math_operator(it))
-        {
-          last += 2;
-        }
-        if i > 0 || node.group(last + 1).is_some() {
-          is_in_expression = true;
-          self.sink.start_group(false);
-          self.sink.start_indent();
-          self.sink.start_fill();
-        }
-      }
 
       let is_at_end_of_line = is_inline_comment(i_node) && next_node.is_none();
       if is_at_end_of_line {
@@ -352,15 +261,6 @@ impl<'a> Printer<'a, '_> {
           self.print_value(statement, i_node.id, prev_node.map(|it| it.id));
           self.value_stack.pop();
         }
-      }
-      if is_in_expression
-        && !is_before_operator
-        && (!is_math_operator(i_node) || next_node.is_none())
-      {
-        is_in_expression = false;
-        self.sink.end_fill();
-        self.sink.end_indent();
-        self.sink.end_group();
       }
       if is_at_end_of_line {
         self.sink.end_line_suffix();
@@ -442,10 +342,6 @@ impl<'a> Printer<'a, '_> {
         continue;
       }
       if word(next_node).is_some_and(|it| it.starts_with(b"]")) {
-        continue;
-      }
-      // oxfmt prints `[ a ]` as `[a]`, Prettier as `[ a]`.
-      if self.is_oxfmt && word(i_node).is_some_and(|it| it.ends_with(b"[")) {
         continue;
       }
       // `~"escaped"` in Less.
@@ -562,16 +458,6 @@ impl<'a> Printer<'a, '_> {
       if prev_node.is_none() && is_division(i_node) {
         continue;
       }
-      // oxfmt keeps the whitespace around every operator in `calc()` as written, and can break the line after an
-      // operator that's followed by whitespace.
-      if self.is_oxfmt && inside_calc && (is_math || is_next_math) {
-        match (has_empty_raw_before(next_node), is_next_math) {
-          (true, _) => {}
-          (false, true) => self.sink.token(" "),
-          (false, false) => self.sink.fill_separator(Separator::Line),
-        }
-        continue;
-      }
       // In `calc()`, the spaces around `+` and `-` stay as they are.
       if inside_calc
         && (is_addition(i_node)
@@ -589,31 +475,11 @@ impl<'a> Printer<'a, '_> {
         && is_func(next_node)
         && !ends_where_starts(i_node, next_node)
       {
-        // oxfmt treats it like any other operator, so the line can break after it.
-        match self.is_oxfmt {
-          true => self.sink.fill_separator(Separator::Line),
-          false => self.sink.token(" "),
-        }
+        self.sink.token(" ");
         continue;
       }
 
       let next_next_node = node.group(i + 2);
-
-      // oxfmt leaves `50%/var(--a)` alone.
-      let is_glued_division =
-        |operator: ValueRef<'_>, before: Option<ValueRef<'_>>, after: Option<ValueRef<'_>>| {
-          is_division(operator)
-            && has_empty_raw_before(operator)
-            && after.is_none_or(has_empty_raw_before)
-            && ![before, after].into_iter().flatten().any(|it| it.kind() == ValueKind::AtWord)
-        };
-      if self.is_oxfmt
-        && self.syntax() != Syntax::Scss
-        && (is_glued_division(next_node, Some(i_node), next_next_node)
-          || is_glued_division(i_node, prev_node, Some(next_node)))
-      {
-        continue;
-      }
 
       // `color(red l(+ 20%))`
       let is_color_adjuster = (is_addition(i_node) || is_subtraction(i_node))
@@ -679,14 +545,9 @@ impl<'a> Printer<'a, '_> {
       }
 
       if is_grid_value {
-        // oxfmt checks for a line break between the two nodes, not between their starts.
-        let line = match self.is_oxfmt {
-          true => line_of_closing_parenthesis(i_node),
-          false => None,
-        };
         if i_node.node().has_source()
           && next_node.node().has_source()
-          && line.or_else(|| i_node.node().loc.start_line()) != next_node.node().loc.start_line()
+          && i_node.node().loc.start_line() != next_node.node().loc.start_line()
         {
           self.sink.fill_separator(Separator::HardLine);
           did_break = true;
@@ -710,21 +571,6 @@ impl<'a> Printer<'a, '_> {
         }
       }
 
-      // oxfmt puts no space before a `;` here either.
-      if self.is_oxfmt && next_node.value() == Some(b";") {
-        continue;
-      }
-      // oxfmt treats `-600px` after whitespace as one word, and the line can break before it.
-      if self.is_oxfmt
-        && self.syntax() == Syntax::Css
-        && !inside_calc
-        && (is_addition(next_node) || is_subtraction(next_node))
-        && !has_empty_raw_before(next_node)
-        && next_next_node.is_some_and(has_empty_raw_before)
-      {
-        self.sink.fill_separator(Separator::Line);
-        continue;
-      }
       if is_next_math {
         self.sink.token(" ");
         continue;
@@ -810,78 +656,6 @@ impl<'a> Printer<'a, '_> {
     .ends_with(b",")
   }
 
-  /// Prints the comments before the key of `item`, a key-value pair in `list`, the way oxfmt does: as siblings of the
-  /// pair rather than part of it, each on its own line if the pair takes more than one line. Returns true if it
-  /// opened a group for that, which the caller must close after the pair.
-  fn print_comments_above_pair(
-    &mut self,
-    statement: Statement<'_, 'a>,
-    list: ValueId,
-    item: ValueRef<'_>,
-  ) -> bool {
-    if !self.is_oxfmt
-      || item.kind() != ValueKind::CommaGroup
-      || !item.group(0).is_some_and(is_comment)
-      || self.enclosing_at_rule(statement).is_some()
-    {
-      return false;
-    }
-    let count = item.groups().take_while(|it| is_comment(*it)).count();
-    if count == 0 || !item.group(count + 1).is_some_and(is_colon) {
-      return false;
-    }
-    self.sink.start_group(false);
-    for comment in item.groups().take(count) {
-      if comment.id == self.comment_after_comma {
-        self.comment_after_comma = 0;
-        continue;
-      }
-      self.value_stack.push(list);
-      self.print_child_value(statement, item.id, comment.id);
-      self.value_stack.pop();
-      match is_inline_comment(comment) {
-        true => self.sink.hard_line(),
-        false => self.sink.line(),
-      }
-    }
-    self.comments_above_item = (item.id, count);
-    true
-  }
-
-  /// oxfmt keeps a `//` comment on the same line as the comma before it. Prettier makes it the first node of `next`,
-  /// the item after the comma, on its own line. Returns true if the comment was printed.
-  fn print_comment_after_comma(
-    &mut self,
-    statement: Statement<'_, 'a>,
-    next: Option<ValueRef<'_>>,
-  ) -> bool {
-    if !self.is_oxfmt {
-      return false;
-    }
-    let Some(comment) = next
-      .filter(|it| it.kind() == ValueKind::CommaGroup && it.groups().len() > 1)
-      .and_then(|it| it.group(0))
-      .filter(|it| is_inline_comment(*it))
-    else {
-      return false;
-    };
-    let is_on_line_of_comma = comment
-      .node()
-      .loc
-      .start_offset()
-      .is_some_and(|start| !has_newline_backwards(self.original_text(), start as usize));
-    if !is_on_line_of_comma {
-      return false;
-    }
-    self.sink.start_line_suffix();
-    self.sink.token(" ");
-    self.print_value(statement, comment.id, None);
-    self.sink.end_line_suffix();
-    self.sink.break_parent();
-    self.comment_after_comma = comment.id;
-    true
-  }
-
   /// `isSCSSMapItemNode` for `node`, whose ancestors are in `self.value_stack`.
   fn is_scss_map_item(&self, statement: Statement<'_, 'a>, node: ValueRef<'_>) -> bool {
     if self.syntax() != Syntax::Scss {
@@ -902,19 +676,8 @@ impl<'a> Printer<'a, '_> {
       return false;
     }
     let grandparent = self.value_ancestor(statement, 1);
-    // oxfmt still recognizes a map when a comment comes before its first key.
-    let starts_with_pair = |it: ValueRef<'_>| match self.is_oxfmt {
-      true => {
-        it.kind() == ValueKind::ParenGroup
-          && it.group(0).is_some_and(|first| {
-            let key = first.groups().take_while(|it| is_comment(*it)).count();
-            first.kind() == ValueKind::CommaGroup && first.group(key + 1).is_some_and(is_colon)
-          })
-      }
-      false => is_key_value_pair_in_paren_group(it),
-    };
-    let is_in_pair = grandparent.is_some_and(starts_with_pair);
-    if !starts_with_pair(node) && !is_in_pair {
+    let is_in_pair = grandparent.is_some_and(is_key_value_pair_in_paren_group);
+    if !is_key_value_pair_in_paren_group(node) && !is_in_pair {
       return false;
     }
     // `$map: (key: value, other-key: other-value)`
@@ -931,7 +694,7 @@ impl<'a> Printer<'a, '_> {
 
   /// `shouldBreakList` for `node`, whose ancestors are in `self.value_stack`.
   fn should_break_list(&self, statement: Statement<'_, 'a>, node: ValueRef<'_>) -> bool {
-    super::printer::is_list_with_comma_group(node.values, node.id, self.is_oxfmt)
+    super::printer::is_list_with_comma_group(node.values, node.id)
       && self.is_top_level_of_value(statement)
       && match statement.node().kind {
         Kind::Decl => !statement.node().prop.starts_with(b"--"),
@@ -998,14 +761,12 @@ impl<'a> Printer<'a, '_> {
           self.sink.start_fill();
         }
       }
-      let mut is_after_comment = false;
       for (index, child) in node.groups().enumerate() {
         if index > 0 {
-          match (force_hard_line, is_after_comment) {
-            (true, _) => self.sink.hard_line(),
-            (false, true) => self.sink.fill_separator(Separator::HardLine),
-            (false, false) if is_custom_property && has_no_whitespace_before(child) => {}
-            (false, false) => self.sink.fill_separator(Separator::Line),
+          match force_hard_line {
+            true => self.sink.hard_line(),
+            false if is_custom_property && has_no_whitespace_before(child) => {}
+            false => self.sink.fill_separator(Separator::Line),
           }
         }
         self.print_child_value(statement, id, child.id);
@@ -1015,7 +776,6 @@ impl<'a> Printer<'a, '_> {
             self.sink.token(" ");
           }
           self.sink.token(",");
-          is_after_comment = self.print_comment_after_comma(statement, node.group(index + 1));
         }
       }
       if !force_hard_line {
@@ -1054,14 +814,6 @@ impl<'a> Printer<'a, '_> {
             .and_then(|at| parent.group(at))
             .is_some_and(|it| is_the_word(it, b"with"))
       });
-    // oxfmt only puts each item on its own line, and adds a trailing comma, for a map or a list with several items.
-    // `($a + $b,)` isn't the same as `($a + $b)`. It's a one-item list, so it keeps its comma.
-    let is_one_value = self.is_oxfmt && count == 1 && !node.group(0).is_some_and(is_key_value_pair);
-    let is_scss_map_item = is_scss_map_item && !is_one_value;
-    let is_list_of_one = is_one_value
-      && self.syntax() == Syntax::Scss
-      && !parent.is_some_and(is_func)
-      && self.has_comma_before_closing_parenthesis(node);
     let should_break = is_configuration || (is_scss_map_item && !is_key);
     let should_dedent = is_configuration || is_key;
 
@@ -1078,17 +830,11 @@ impl<'a> Printer<'a, '_> {
       if index > 0 && !(is_custom_property && has_no_whitespace_before(child)) {
         self.sink.line();
       }
-      // In oxfmt the comments before a key don't affect how the pair is laid out.
-      let is_in_group_with_comments = self.print_comments_above_pair(statement, id, child);
-      let key = match self.comments_above_item {
-        (item, count) if item == child.id => count,
-        _ => 0,
-      };
       // A key-value pair whose value is in parentheses is already indented.
       let is_dedented = child.kind() == ValueKind::CommaGroup
-        && child.group(key + 1).is_some_and(is_colon)
-        && child.group(key).is_some_and(|it| it.kind() != ValueKind::ParenGroup)
-        && child.group(key + 2).is_some_and(|it| it.kind() == ValueKind::ParenGroup)
+        && child.group(1).is_some_and(is_colon)
+        && child.group(0).is_some_and(|it| it.kind() != ValueKind::ParenGroup)
+        && child.group(2).is_some_and(|it| it.kind() == ValueKind::ParenGroup)
         && self.shape_of_comma_group(statement, child) == Shape::IndentFill;
       if is_dedented {
         self.sink.start_group(false);
@@ -1100,22 +846,17 @@ impl<'a> Printer<'a, '_> {
       if ends_with_escaped_whitespace(child) {
         self.sink.token(" ");
       }
-      self.comments_above_item = (0, 0);
       if is_dedented {
         self.sink.end_indent();
-        self.sink.end_group();
-      }
-      if is_in_group_with_comments {
         self.sink.end_group();
       }
 
       if !is_last {
         self.sink.token(",");
-        self.print_comment_after_comma(statement, node.group(index + 1));
       } else {
         let is_only_comments = is_comment(child)
           || (child.kind() == ValueKind::CommaGroup && child.groups().all(is_comment));
-        if is_list_of_one || (is_var && self.has_comma_before_closing_parenthesis(node)) {
+        if is_var && self.has_comma_before_closing_parenthesis(node) {
           self.sink.token(",");
         } else if !is_only_comments && self.trailing_comma && is_scss_map_item {
           self.sink.if_break(",");
@@ -1125,12 +866,7 @@ impl<'a> Printer<'a, '_> {
       if !is_last
         && child.kind() == ValueKind::CommaGroup
         && let Some(last) = child.groups().next_back()
-        && let Some(end) = match self.is_oxfmt {
-          // oxfmt does this no matter what kind of node the item ends with.
-          true => end_of_closing_parenthesis(last),
-          false => None,
-        }
-        .or_else(|| last.node().loc.end_offset().filter(|_| last.node().has_source()))
+        && let Some(end) = last.node().loc.end_offset().filter(|_| last.node().has_source())
       {
         // This can read text past the end of the declaration.
         self.is_memoizable = false;
