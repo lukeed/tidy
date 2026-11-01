@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 use std::ops::Range;
 
 mod code;
+mod define;
 mod footnote;
 mod inline;
 mod liquid;
@@ -78,6 +79,7 @@ pub(crate) fn format(
     link: None,
     image: None,
     defined: None,
+    cursor: Some(0),
     joins: None,
     html: None,
     liquid: None,
@@ -192,6 +194,9 @@ struct Writer<'s, 'o> {
   image: Option<Image>,
   /// The output length and depth right after the last definition, to keep the next one beside it.
   defined: Option<(usize, usize)>,
+  /// Where the last sibling block ended, to search the gap after it for definitions. A container
+  /// that just started has none, since its gap holds markers.
+  cursor: Option<usize>,
   /// The depth of the paragraph or HTML block that just ended, which an HTML block on the next
   /// line stays beside, as in Prettier.
   joins: Option<usize>,
@@ -245,11 +250,25 @@ impl<'s> Writer<'s, '_> {
       link.text = link.text.max(range.end);
     }
     match event {
-      Event::Start(tag) => self.open(tag, range, events),
+      Event::Start(tag) => {
+        let container =
+          matches!(tag, Tag::BlockQuote(_) | Tag::List(_) | Tag::Item | Tag::FootnoteDefinition(_));
+        self.open(tag, range, events);
+        if container {
+          self.cursor = None;
+        }
+      }
       Event::End(tag) => {
         let joins = matches!(tag, TagEnd::Paragraph | TagEnd::HtmlBlock);
         let liquid = tag == TagEnd::Paragraph && self.ends_liquid(range.end);
+        let block = liquid::ends_block(&tag);
+        if matches!(tag, TagEnd::BlockQuote(_) | TagEnd::Item | TagEnd::FootnoteDefinition) {
+          self.flush(range.end);
+        }
         self.close(tag);
+        if block {
+          self.cursor = Some(range.end);
+        }
         self.joins = joins.then_some(self.containers.len());
         self.liquid = liquid.then_some(self.containers.len());
         self.last = range.end;
@@ -762,29 +781,6 @@ impl<'s> Writer<'s, '_> {
     }
     if !self.start {
       self.newline();
-    }
-  }
-
-  fn flush(&mut self, at: usize) {
-    while let Some(definition) =
-      self.definitions.get(self.next).filter(|definition| definition.span.start < at)
-    {
-      let span = definition.span.clone();
-      let line = definition.line.clone();
-      self.next += 1;
-      if self.ignored.contains(&span.start) {
-        continue;
-      }
-      self.adjacent = None;
-      self.joins = None;
-      if self.defined == Some((self.out.len(), self.containers.len())) {
-        self.gap = Gap::Line;
-      }
-      self.separate();
-      self.write(line.as_deref().unwrap_or(self.source[span].trim_end()));
-      self.newline();
-      self.gap = Gap::Blank;
-      self.defined = Some((self.out.len(), self.containers.len()));
     }
   }
 

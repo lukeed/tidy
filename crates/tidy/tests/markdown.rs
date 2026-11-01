@@ -354,6 +354,15 @@ fn lays_out_liquid_like_prettier() {
 }
 
 #[test]
+fn keeps_repeated_definitions() {
+  let source = "x [a] [b]\n\n[a]: /one\n[a]: /two 't'\n[b]: /b\n[b]:\n  /dup\n\ny\n\n> [c]: /c\n> [c]: /d\n\n[a]: /three\n";
+  let expected = "x [a] [b]\n\n[a]: /one\n[a]: /two \"t\"\n[b]: /b\n[b]: /dup\n\ny\n\n> [c]: /c\n> [c]: /d\n\n[a]: /three\n";
+  assert_eq!(prettier(source), expected);
+  let item = "- a ([b])\n\n  [b]: /b\n";
+  assert_eq!(prettier(item), item);
+}
+
+#[test]
 fn quotes_and_nesting() {
   assert_eq!(prettier(">a\n>\n>b\n"), "> a\n>\n> b\n");
   assert_eq!(prettier("> - a\n>   > b\n"), "> - a\n>   > b\n");
