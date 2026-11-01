@@ -41,7 +41,7 @@ Both oracles live in the repo, with mise tasks to run them. Corpora don't: build
 
 - **Semantics**: `MDTIDY_CORPUS=<dir>[:<dir>...] mise run oracle:semantics`. Every output re-parses to the same events (adjacent text merged, soft breaks as spaces, whitespace collapsed) and settles after one pass. It runs the Prettier preset, the Preserve preset, `wrap: always` at width 40, and `wrap: never`. It caught every real bug so far: trust it over reading diffs. When a file fails, `mise run oracle:shrink -- <file> [mdtidy options...]` removes lines while it still fails and prints the few that are left. The events it compares come from `tests/support/events.rs`, shared by the test and the `events` example.
 - **Speed**: `mise run bench:ab -- [--rev <rev>] <dir>...` builds the working tree and `<rev>` (HEAD by default, in a temporary worktree), times both checking the folders in both orders, and compares medians: means swing with machine load. Each fix on 2026-10-30 and 2026-11-01 was within noise; together they cost about 2–3% (about 38 to 39 ms on A + B).
-- **Prettier**: the target is Prettier 3.9.10. `mise run oracle:prettier -- <corpus>... [--show <kind>]` formats one copy with Prettier (cached in `target/oracle`), one with mdtidy, counts identical files, and sorts the differences by kind. It hands mdtidy every file by name, because the CLI skips hidden folders on purpose. Last result: A 871/872, B 2,141/2,142, C 3,456/3,466, D 301/310. The semantics oracle passes on all four. `bun fmt` is close (8 misses, all inside code blocks) but it is not the reference.
+- **Prettier**: the target is Prettier 3.9.10. `mise run oracle:prettier -- <corpus>... [--show <kind>]` formats one copy with Prettier (cached in `target/oracle`), one with mdtidy, counts identical files, and sorts the differences by kind. It hands mdtidy every file by name, because the CLI skips hidden folders on purpose. Last result: A 871/872, B 2,141/2,142, C 3,456/3,466, D 301/310. The semantics oracle passes on all four. With `--wrap always` (which starship uses for `lineBreaks: auto`): A 867/872, B 2,011/2,142, C 3,189/3,466. Most of what's left there is Prettier changing the document (an inline `<div>` or `<!--` moved to a line start, which opens an HTML block; the first line of a paragraph left as a lone tag), Prettier's `[[wiki link]]` syntax in bun's react-compiler fixtures, and the edge where an atom's last line is already too wide. `bun fmt` is close (8 misses, all inside code blocks) but it is not the reference.
 
 ## Known gaps against Prettier
 
@@ -69,7 +69,7 @@ Kept on purpose:
 
 ## Wrapping
 
-With wrapping on, an atom keeps its line breaks as written and a code span over two lines is written from its parsed value. One edge differs from Prettier: after an atom whose last line is already past the width, mdtidy breaks before the next word and Prettier doesn't.
+With wrapping on, an atom keeps its line breaks as written and a code span over two lines is written from its parsed value. An inline link's text never breaks; a reference link's text does, as in Prettier. A line may start with inline HTML or an autolink, but never with a tag that would interrupt a paragraph (`opener::interrupts`), and a paragraph's first line is never a lone tag. A space beside Chinese or Japanese text never breaks. A definition too wide for its line puts its destination and title on lines of their own. One edge differs from Prettier: after an atom whose last line is already past the width, mdtidy breaks before the next word and Prettier doesn't.
 
 ## napi-rs
 
