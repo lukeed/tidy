@@ -1,6 +1,10 @@
 use std::borrow::Cow;
+use std::ops::Range;
+
+use pulldown_cmark::{LinkType, Tag};
 
 use super::Writer;
+use crate::{Emphasis, Strong};
 
 /// A link whose text is being written. What follows the text is copied as written, unless
 /// Prettier's form of it, `tail`, reads back the same.
@@ -54,8 +58,7 @@ pub(super) fn squash(label: &str) -> String {
 
 /// An image reference with its label as Prettier writes it, or `None` to keep `raw` as written:
 /// `![alt][label]`, `![label][]`, or `![label]`.
-pub(super) fn image(raw: &str, link_type: pulldown_cmark::LinkType) -> Option<String> {
-  use pulldown_cmark::LinkType;
+pub(super) fn labeled(raw: &str, link_type: LinkType) -> Option<String> {
   let open = match link_type {
     LinkType::Reference => raw.rfind('[')?,
     LinkType::Collapsed | LinkType::Shortcut => 1,
@@ -196,6 +199,87 @@ pub(super) fn has_run(text: &str, length: usize) -> bool {
 }
 
 impl<'s> Writer<'s, '_> {
+  /// Open emphasis, strong, strikethrough, a link, or an image.
+  pub(super) fn open_inline(&mut self, tag: Tag<'s>, range: Range<usize>) {
+    match tag {
+      Tag::Emphasis => {
+        let word = self.inside(range.end);
+        let mark: Cow<'s, str> = match self.options.emphasis {
+          Emphasis::Keep => self.source[range.start..range.start + 1].into(),
+          _ if !word && self.before() == Some('*') => "_".into(),
+          Emphasis::Asterisk => "*".into(),
+          Emphasis::Underscore if self.emphasis > 0 || word => "*".into(),
+          Emphasis::Underscore => "_".into(),
+        };
+        self.emphasis += 1;
+        self.atom(&mark);
+        self.marks.push(mark);
+      }
+      Tag::Strong => {
+        let mark: Cow<'s, str> = match self.options.strong {
+          Strong::Keep => self.source[range.start..range.start + 2].into(),
+          Strong::Underscore if !self.inside(range.end) => "__".into(),
+          Strong::Underscore | Strong::Asterisk => "**".into(),
+        };
+        self.atom(&mark);
+        self.marks.push(mark);
+      }
+      Tag::Strikethrough => {
+        let count = self.source[range.start..].bytes().take_while(|&byte| byte == b'~').count();
+        let mark: Cow<'s, str> = self.source[range.start..range.start + count].into();
+        self.atom(&mark);
+        self.marks.push(mark);
+      }
+      Tag::Link { link_type, ref dest_url, ref title, .. }
+      | Tag::Image { link_type, ref dest_url, ref title, .. } => {
+        let collapsed = matches!(link_type, LinkType::Collapsed | LinkType::CollapsedUnknown)
+          && self.source[range.end..].starts_with("[]");
+        let end = if collapsed { range.end + 2 } else { range.end };
+        let tail = match link_type {
+          LinkType::Inline => tail(dest_url, title),
+          _ => None,
+        };
+        let image = matches!(tag, Tag::Image { .. });
+        if image || matches!(link_type, LinkType::Autolink | LinkType::Email) {
+          if let Some(link) = &mut self.link {
+            link.text = link.text.max(end);
+          }
+          let raw = &self.source[range.start..end];
+          let lines = raw.contains('\n') && !self.containers.is_empty();
+          match tail.filter(|_| image) {
+            Some(tail) => {
+              self.image = Some(Image { start: range.start, text: range.start + 2, tail })
+            }
+            None => match labeled(raw, link_type).filter(|_| image && !lines) {
+              Some(image) => self.atom(&image),
+              None => self.atom(raw),
+            },
+          }
+          self.skip = 1;
+        } else {
+          self.atom("[");
+          self.link = Some(Link { text: range.start + 1, end, tail });
+        }
+      }
+      _ => {}
+    }
+  }
+
+  /// Close a link: write what follows its text.
+  pub(super) fn close_link(&mut self) {
+    if let Some(link) = self.link.take() {
+      let raw = &self.source[link.text..link.end];
+      let raw = if self.start { raw.trim_start_matches([' ', '\t', '>']) } else { raw };
+      let reference = raw.strip_prefix(']').and_then(label);
+      let tail = match (link.tail, reference) {
+        (Some(tail), _) => Cow::Owned(tail),
+        (None, Some(label)) if !label.contains('\\') => Cow::Owned(format!("][{}]", squash(label))),
+        (None, _) => Cow::Borrowed(raw),
+      };
+      self.atom(&tail);
+    }
+  }
+
   /// Whether emphasis ending at `end` touches a word on either side, where `_` doesn't work.
   pub(super) fn inside(&self, end: usize) -> bool {
     let after = self.source[end..].chars().next();
