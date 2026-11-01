@@ -2,6 +2,10 @@ use std::borrow::Cow;
 use std::collections::VecDeque;
 use std::ops::Range;
 
+mod code;
+mod inline;
+mod list;
+
 use pulldown_cmark::{
   CodeBlockKind, Event, LinkType, MetadataBlockKind, OffsetIter, Options as Flags, Parser, Tag,
   TagEnd,
@@ -11,7 +15,10 @@ use crate::directive::{self, Directive};
 use crate::opener::{Fix, interrupts};
 use crate::table::Table;
 use crate::wrap::Paragraph;
-use crate::{Bullet, Code, Emphasis, Fence, Heading, Numbering, Options, Rule, Strong, Wrap};
+use crate::{Code, Emphasis, Heading, Numbering, Options, Rule, Strong, Wrap};
+use code::{Block, fence};
+use inline::{Link, collapse, span};
+use list::{Adjacent, List, TAB, aligned};
 
 /// The syntax mdtidy reads: CommonMark with GFM tables, task lists, strikethrough, footnotes, and
 /// front matter.
@@ -125,34 +132,6 @@ enum Container {
 /// The width of a task box, `[ ] `.
 const BOX: usize = 4;
 
-struct List {
-  /// The current item has a blank line between its blocks, so a blank line follows it.
-  spread: bool,
-  items: usize,
-  ordered: bool,
-  /// How many lists of the same kind directly precede this one, which alternates its marker.
-  nth: usize,
-  start: u64,
-  /// Every item after the first repeats one number, as in `1.`, `1.`, `1.`.
-  repeats: bool,
-  /// Prettier pads the markers of an ordered list whose content sits on tab stops.
-  aligned: bool,
-}
-
-/// The list that ended last, while nothing else followed it at the same depth.
-struct Adjacent {
-  depth: usize,
-  ordered: bool,
-  nth: usize,
-}
-
-/// A block collected whole before it's written: code for the caller to format, or front matter.
-enum Block {
-  Fenced { info: String, fence: String, text: String },
-  Indented,
-  Front { fence: &'static str, text: String },
-}
-
 struct Writer<'s, 'o> {
   source: &'s str,
   options: &'o Options,
@@ -189,13 +168,6 @@ struct Writer<'s, 'o> {
   /// The depth of the paragraph or HTML block that just ended, which an HTML block on the next
   /// line stays beside, as in Prettier.
   joins: Option<usize>,
-}
-
-/// A link whose text is being written: what follows the text is copied as written.
-struct Link {
-  /// Where the text ends so far.
-  text: usize,
-  end: usize,
 }
 
 impl<'s> Writer<'s, '_> {
@@ -614,128 +586,6 @@ impl<'s> Writer<'s, '_> {
     true
   }
 
-  /// Read ahead through the ordered list that just started, for the first items' numbers.
-  fn scan(&self, events: &mut Events<'s>, ordered: bool) -> Vec<Item> {
-    let mut items = Vec::new();
-    let mut depth = 0usize;
-    let mut index = 0;
-    while ordered && items.len() < 3 {
-      let Some((event, range)) = events.peek(index) else { break };
-      index += 1;
-      match event {
-        Event::Start(_) => {
-          if depth == 0 {
-            items.push(self.item(range.start));
-          }
-          depth += 1;
-        }
-        Event::End(_) if depth == 0 => break,
-        Event::End(_) => depth -= 1,
-        _ => {}
-      }
-    }
-    items
-  }
-
-  /// The number of the ordered item whose marker is at `at`, and where its content starts.
-  fn item(&self, at: usize) -> Item {
-    let line = self.source[..at].rfind('\n').map_or(0, |index| index + 1);
-    let rest = &self.source[at..];
-    let indent = rest.len() - rest.trim_start_matches([' ', '\t']).len();
-    let rest = &rest[indent..];
-    let digits = rest.bytes().take_while(u8::is_ascii_digit).count();
-    let after = rest.get(digits + 1..).unwrap_or("");
-    let spaces = after.bytes().take_while(|&byte| byte == b' ').count();
-    let empty = after[spaces..].starts_with(['\n', '\r']) || after[spaces..].is_empty();
-    Item {
-      number: rest[..digits].parse().unwrap_or(0),
-      spaces,
-      column: (!empty).then_some(at - line + indent + digits + 1 + spaces),
-    }
-  }
-
-  fn marker(&self, at: usize, index: usize) -> String {
-    let list = self.lists.last().expect("an item is inside a list");
-    let written = self.source[at..].trim_start();
-    if list.ordered {
-      let digits = written.bytes().take_while(u8::is_ascii_digit).count();
-      if self.options.numbering == Numbering::Keep {
-        return written[..digits + 1].to_string();
-      }
-      let number = match index {
-        0 => list.start,
-        _ if list.repeats => 1,
-        _ => list.start + index as u64,
-      };
-      let delimiter = if list.nth.is_multiple_of(2) { '.' } else { ')' };
-      return format!("{number}{delimiter}");
-    }
-    let (even, odd) = match self.options.bullet {
-      Bullet::Keep => return written[..1].to_string(),
-      Bullet::Dash => ("-", "*"),
-      Bullet::Asterisk => ("*", "-"),
-      Bullet::Plus => ("+", "-"),
-    };
-    (if list.nth.is_multiple_of(2) { even } else { odd }).to_string()
-  }
-
-  fn fenced(&mut self, info: &str, original: String, mut text: String) {
-    let (lang, meta) = info.trim().split_once(char::is_whitespace).unwrap_or((info.trim(), ""));
-    let meta = meta.trim_start();
-    let width = self.options.width.saturating_sub(self.indent());
-    if !lang.is_empty()
-      && let Some(mut formatted) = (self.code)(Code { lang, text: &text, width })
-    {
-      if !formatted.is_empty() && !formatted.ends_with('\n') {
-        formatted.push('\n');
-      }
-      text = formatted;
-    }
-    let mut char = match self.options.fence {
-      Fence::Keep => original.chars().next().unwrap_or('`'),
-      Fence::Backtick => '`',
-      Fence::Tilde => '~',
-    };
-    if char == '`' && info.contains('`') {
-      char = '~';
-    }
-    let longest = longest(&text, char);
-    let least = if self.options.fence == Fence::Keep { original.len() } else { 3 };
-    let fence: String = std::iter::repeat_n(char, least.max(longest + 1)).collect();
-    self.write(&fence);
-    if self.options.fence == Fence::Keep {
-      self.write(info.trim());
-    } else if !lang.is_empty() {
-      self.write(lang);
-      if !meta.is_empty() {
-        self.write(" ");
-        self.write(meta);
-      }
-    }
-    self.newline();
-    self.lines(&text, true);
-    self.finish();
-    self.write(&fence);
-    self.newline();
-  }
-
-  fn front(&mut self, fence: &'static str, mut text: String) {
-    let lang = if fence == "---" { "yaml" } else { "toml" };
-    let width = self.options.width;
-    if let Some(formatted) = (self.code)(Code { lang, text: &text, width }) {
-      text = formatted;
-    }
-    self.out.push_str(fence);
-    self.out.push('\n');
-    self.out.push_str(&text);
-    if !text.is_empty() && !text.ends_with('\n') {
-      self.out.push('\n');
-    }
-    self.out.push_str(fence);
-    self.out.push('\n');
-    self.start = true;
-  }
-
   /// Start a block: emit pending reference definitions before it, then separate it.
   fn block(&mut self, at: usize) {
     self.finish();
@@ -817,20 +667,6 @@ impl<'s> Writer<'s, '_> {
       && self.heading.is_none()
       && (self.paragraph.is_some()
         || matches!(self.containers.last(), Some(Container::Item { .. })))
-  }
-
-  /// Whether emphasis ending at `end` touches a word on either side, where `_` doesn't work.
-  fn inside(&self, end: usize) -> bool {
-    let before = match (&self.paragraph, &self.table) {
-      (_, Some(table)) => {
-        table.rows.last().and_then(|row| row.last()).and_then(|cell| cell.chars().next_back())
-      }
-      (Some(paragraph), None) => paragraph.last(),
-      (None, None) if self.start => None,
-      (None, None) => self.out.chars().next_back(),
-    };
-    let after = self.source[end..].chars().next();
-    before.is_some_and(char::is_alphanumeric) || after.is_some_and(char::is_alphanumeric)
   }
 
   fn text(&mut self, text: &str) {
@@ -915,26 +751,6 @@ impl<'s> Writer<'s, '_> {
     self.out.push('\n');
     self.start = true;
   }
-
-  /// Verbatim lines of code or HTML, each behind the container prefix. Code loses the spaces and
-  /// tabs at the end of its lines, as in Prettier.
-  fn lines(&mut self, text: &str, trim: bool) {
-    for line in text.split_inclusive('\n') {
-      let body = line.trim_end_matches(['\n', '\r']);
-      let ending = &line[body.len()..];
-      let body = if trim { body.trim_end_matches([' ', '\t']) } else { body };
-      if body.is_empty() && !ending.is_empty() {
-        self.blank();
-        continue;
-      }
-      if self.start {
-        self.prefix();
-      }
-      self.out.push_str(body);
-      self.out.push_str(ending);
-      self.start = !ending.is_empty();
-    }
-  }
 }
 
 /// Whether `tag` opens a block, as opposed to inline content.
@@ -951,103 +767,6 @@ fn is_block(tag: &Tag<'_>) -> bool {
       | Tag::FootnoteDefinition(_)
       | Tag::MetadataBlock(_)
   )
-}
-
-/// The opening fence of a fenced code block written at the start of `text`.
-fn fence(text: &str) -> String {
-  let text = text.trim_start_matches([' ', '\t']);
-  let char = text.chars().next().filter(|&char| char == '~').unwrap_or('`');
-  let count = text.chars().take_while(|&next| next == char).count().max(3);
-  std::iter::repeat_n(char, count).collect()
-}
-
-/// The longest run of `char` in `text`.
-fn longest(text: &str, char: char) -> usize {
-  let mut longest = 0;
-  let mut run = 0;
-  for next in text.chars() {
-    run = if next == char { run + 1 } else { 0 };
-    longest = longest.max(run);
-  }
-  longest
-}
-
-/// `text` with each run of spaces and tabs as one space.
-fn collapse(text: &str) -> Cow<'_, str> {
-  let bytes = text.as_bytes();
-  if memchr::memchr(b'\t', bytes).is_none() && memchr::memmem::find(bytes, b"  ").is_none() {
-    return Cow::Borrowed(text);
-  }
-  let mut out = String::with_capacity(text.len());
-  for char in text.chars() {
-    let space = matches!(char, ' ' | '\t');
-    if !(space && out.ends_with(' ')) {
-      out.push(if space { ' ' } else { char });
-    }
-  }
-  Cow::Owned(out)
-}
-
-/// A code span rewritten as Prettier writes it, or `None` when `raw` already is: the fewest
-/// backticks that no run inside matches, padded with a space only where the content needs one.
-fn span(raw: &str, value: &str) -> Option<String> {
-  let ticks = raw.bytes().take_while(|&byte| byte == b'`').count();
-  let inner = &raw[ticks..raw.len() - ticks];
-  let unpadded = inner
-    .strip_prefix([' ', '\n'])
-    .and_then(|rest| rest.strip_suffix([' ', '\n']))
-    .filter(|_| inner.bytes().any(|byte| !matches!(byte, b' ' | b'\n' | b'\r')))
-    .unwrap_or(inner);
-  let mut fewest = 1;
-  while has_run(value, fewest) {
-    fewest += 1;
-  }
-  let edge = |byte: Option<u8>| matches!(byte, Some(b' ' | b'\n'));
-  let bytes = value.as_bytes();
-  let pad = value.starts_with('`')
-    || value.ends_with('`')
-    || (edge(bytes.first().copied())
-      && edge(bytes.last().copied())
-      && bytes.iter().any(|byte| !matches!(byte, b' ' | b'\n')));
-  let spaced = inner.starts_with(' ') && inner.ends_with(' ');
-  if ticks == fewest && (unpadded.len() < inner.len()) == pad && (!pad || spaced) {
-    return None;
-  }
-  let fence = "`".repeat(fewest);
-  let pad = if pad { " " } else { "" };
-  Some(format!("{fence}{pad}{unpadded}{pad}{fence}"))
-}
-
-/// Whether `text` has a run of exactly `length` backticks.
-fn has_run(text: &str, length: usize) -> bool {
-  text.split(|char| char != '`').any(|run| run.len() == length)
-}
-
-/// The tab width that Prettier aligns ordered list content to.
-const TAB: usize = 2;
-
-/// An ordered list item as written.
-struct Item {
-  number: u64,
-  /// Spaces between the marker and the content.
-  spaces: usize,
-  /// The column the content starts at, unless the item starts empty.
-  column: Option<usize>,
-}
-
-/// Prettier's `isAligned`: whether an ordered list keeps its content on tab stops.
-fn aligned(items: &[Item]) -> bool {
-  let Some(first) = items.first() else { return false };
-  if first.spaces > 1 {
-    return true;
-  }
-  let Some(column) = first.column else { return false };
-  match items.get(1) {
-    None => column.is_multiple_of(TAB),
-    Some(second) if second.column != Some(column) => false,
-    Some(_) if column.is_multiple_of(TAB) => true,
-    Some(second) => second.spaces > 1,
-  }
 }
 
 /// Whether a blank line, holding nothing but whitespace and block quote markers, separates the
