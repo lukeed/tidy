@@ -2,12 +2,12 @@
 
 use tidy::config::{Config, Resolver};
 use tidy::embed::Verbatim;
-use tidy::{Language, Settings, Whitespace, doc, handlebars, xml};
+use tidy::{Language, Options, Whitespace, doc, handlebars, xml};
 
-fn settings(config: &Config) -> Settings {
-  let mut settings = Settings::default();
-  config.apply(&mut settings);
-  settings
+fn options(config: &Config) -> Options {
+  let mut options = Options::default();
+  config.apply(&mut options);
+  options
 }
 
 #[test]
@@ -26,12 +26,12 @@ fn reads_json_with_comments_and_toml_alike() {
   )
   .unwrap();
   assert_eq!(json, toml);
-  let settings = settings(&json);
-  assert_eq!(settings.html.width, 100);
-  assert_eq!(settings.xml.width, 100);
-  assert_eq!(settings.html.whitespace, Whitespace::Ignore);
-  assert_eq!(settings.xml.whitespace, Whitespace::Auto);
-  assert!(settings.xml.sort_attributes);
+  let options = options(&json);
+  assert_eq!(options.html.width, 100);
+  assert_eq!(options.xml.width, 100);
+  assert_eq!(options.html.whitespace, Whitespace::Ignore);
+  assert_eq!(options.xml.whitespace, Whitespace::Auto);
+  assert!(options.xml.sort_attributes);
 }
 
 #[test]
@@ -48,16 +48,16 @@ fn sets_each_language_on_its_own() {
     }"#,
   )
   .unwrap();
-  let settings = settings(&config);
-  assert_eq!((settings.html.tab_width, settings.vue.tab_width), (4, 2));
-  assert!(settings.vue.vue_indent_script_and_style && !settings.html.vue_indent_script_and_style);
-  assert_eq!(settings.handlebars.dialect, handlebars::Dialect::Tempura);
-  assert!(settings.handlebars.single_quote && settings.css.single_quote);
-  assert!(!settings.css.trailing_comma);
-  assert!(!settings.xml.self_closing_space);
-  assert_eq!(settings.xml.quotes, xml::Quotes::Double);
-  assert_eq!((settings.xml.eol, settings.html.eol), (doc::Eol::Crlf, doc::Eol::Lf));
-  assert_eq!(settings.css.ignore, "tidy-ignore");
+  let options = options(&config);
+  assert_eq!((options.html.tab_width, options.vue.tab_width), (4, 2));
+  assert!(options.vue.vue_indent_script_and_style && !options.html.vue_indent_script_and_style);
+  assert_eq!(options.handlebars.dialect, handlebars::Dialect::Tempura);
+  assert!(options.handlebars.single_quote && options.css.single_quote);
+  assert!(!options.css.trailing_comma);
+  assert!(!options.xml.self_closing_space);
+  assert_eq!(options.xml.quotes, xml::Quotes::Double);
+  assert_eq!((options.xml.eol, options.html.eol), (doc::Eol::Crlf, doc::Eol::Lf));
+  assert_eq!(options.css.ignore, "tidy-ignore");
 }
 
 #[test]
@@ -93,23 +93,23 @@ fn resolves_the_nearest_config_and_editorconfig() {
   write("b/tidy.toml", "");
 
   let resolver = Resolver::default();
-  let top = resolver.settings(&root.join("x.html")).unwrap();
+  let top = resolver.options(&root.join("x.html")).unwrap();
   assert_eq!((top.html.width, top.html.tabs), (100, true));
-  let xml = resolver.settings(&root.join("deep/er/x.xml")).unwrap();
+  let xml = resolver.options(&root.join("deep/er/x.xml")).unwrap();
   assert_eq!((xml.xml.width, xml.xml.tabs, xml.xml.tab_width), (100, false, 3));
-  let nested = resolver.settings(&root.join("a/x.css")).unwrap();
+  let nested = resolver.options(&root.join("a/x.css")).unwrap();
   assert_eq!((nested.css.width, nested.css.single_quote), (60, true));
-  let error = resolver.settings(&root.join("b/x.css")).unwrap_err();
+  let error = resolver.options(&root.join("b/x.css")).unwrap_err();
   assert!(error.contains("more than one config in this folder"), "{error}");
 
   let fixed = Resolver::fixed(Config::json(r#"{ "width": 20 }"#).unwrap());
-  assert_eq!(fixed.settings(&root.join("a/x.css")).unwrap().css.width, 20);
+  assert_eq!(fixed.options(&root.join("a/x.css")).unwrap().css.width, 20);
   std::fs::remove_dir_all(&root).unwrap();
 }
 
 #[test]
 fn formats_by_language() {
-  let settings = Settings::default();
+  let options = Options::default();
   let mut formatter = tidy::Formatter::default();
   let cases = [
     ("a.vue", "<template><p   >x</p></template>\n", "<template><p>x</p></template>\n"),
@@ -119,7 +119,7 @@ fn formats_by_language() {
   ];
   for (path, text, expected) in cases {
     let language = Language::of_path(path).unwrap();
-    let printed = formatter.format(text, language, &settings, Some(path), &mut Verbatim).unwrap();
+    let printed = formatter.format(text, language, &options, Some(path), &mut Verbatim).unwrap();
     assert_eq!(printed, expected, "{path}");
   }
   assert_eq!(Language::of_path("a.rs"), None);

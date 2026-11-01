@@ -1,8 +1,8 @@
 use tidy::embed::Verbatim;
-use tidy::handlebars::{Dialect, Settings, format};
+use tidy::handlebars::{Dialect, Options, format};
 
 fn hbs(text: &str) -> String {
-  format(text, &Settings::default(), &mut Verbatim).unwrap()
+  format(text, &Options::default(), &mut Verbatim).unwrap()
 }
 
 #[test]
@@ -15,8 +15,8 @@ fn formats_a_template() {
   );
 }
 
-fn with(text: &str, settings: Settings) -> String {
-  format(text, &settings, &mut Verbatim).unwrap()
+fn with(text: &str, options: Options) -> String {
+  format(text, &options, &mut Verbatim).unwrap()
 }
 
 #[test]
@@ -31,11 +31,11 @@ fn formats_tempura() {
 
 #[test]
 fn keeps_the_text_of_other_languages() {
-  let settings = Settings { filepath: Some("robots.txt.hbs".into()), ..Settings::default() };
+  let options = Options { filepath: Some("robots.txt.hbs".into()), ..Options::default() };
   assert_eq!(
     with(
       "User-agent: *\n      {{#if   live}}\nAllow: /\n   {{#else}}\nDisallow: /\n{{/if}}\nSitemap: {{$site.url}}sitemap.xml\n",
-      settings
+      options
     ),
     "User-agent: *\n{{#if live}}\nAllow: /\n{{#else}}\nDisallow: /\n{{/if}}\nSitemap: {{ $site.url }}sitemap.xml\n"
   );
@@ -43,8 +43,8 @@ fn keeps_the_text_of_other_languages() {
 
 #[test]
 fn spaces_values_in_tempura_only() {
-  let handlebars = Settings { dialect: Dialect::Handlebars, ..Settings::default() };
-  let tempura = Settings { dialect: Dialect::Tempura, ..Settings::default() };
+  let handlebars = Options { dialect: Dialect::Handlebars, ..Options::default() };
+  let tempura = Options { dialect: Dialect::Tempura, ..Options::default() };
   assert_eq!(with("<p>{{ name }}</p>", handlebars), "<p>{{name}}</p>");
   assert_eq!(with("<p>{{name}}</p>", tempura), "<p>{{ name }}</p>");
   assert_eq!(hbs("<p>{{name}}</p>"), "<p>{{name}}</p>");
@@ -52,7 +52,7 @@ fn spaces_values_in_tempura_only() {
 
 #[test]
 fn keeps_tempura_comments_as_written() {
-  let tempura = Settings { dialect: Dialect::Tempura, ..Settings::default() };
+  let tempura = Options { dialect: Dialect::Tempura, ..Options::default() };
   assert_eq!(
     with("{{!-- todo --}}\n{{!\n  many\n  lines\n!}}\n<p>{{x}}</p>", tempura),
     "{{!-- todo --}}\n{{!\n  many\n  lines\n!}}\n<p>{{ x }}</p>"
@@ -61,10 +61,10 @@ fn keeps_tempura_comments_as_written() {
 
 #[test]
 fn takes_another_ignore_directive() {
-  let settings = Settings { ignore: "tidy-ignore".into(), ..Settings::default() };
+  let options = Options { ignore: "tidy-ignore".into(), ..Options::default() };
   let text = "{{! tidy-ignore }}\n<p   a=\"b\">x</p>\n{{! prettier-ignore }}\n<p   a=\"b\">x</p>\n";
   assert_eq!(
-    format(text, &settings, &mut Verbatim).unwrap(),
+    format(text, &options, &mut Verbatim).unwrap(),
     "{{! tidy-ignore }}\n<p   a=\"b\">x</p>\n{{! prettier-ignore }}\n<p a=\"b\">x</p>"
   );
 }

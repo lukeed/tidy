@@ -49,7 +49,7 @@ impl Dialect {
 
 /// Options of the CSS printer, Prettier's by default.
 #[derive(Clone, Debug)]
-pub struct Settings {
+pub struct Options {
   pub dialect: Dialect,
   pub width: usize,
   pub tab_width: usize,
@@ -66,7 +66,7 @@ pub struct Settings {
   pub ignore: String,
 }
 
-impl Default for Settings {
+impl Default for Options {
   fn default() -> Self {
     Self {
       dialect: Dialect::Css,
@@ -83,8 +83,8 @@ impl Default for Settings {
 }
 
 /// Formats `text`, handing the code of other languages, such as YAML front matter, to `embed`.
-pub fn format(text: &str, settings: &Settings, embed: &mut dyn Embed) -> Result<String, Error> {
-  Formatter::default().format(text, settings, embed).map(str::to_owned)
+pub fn format(text: &str, options: &Options, embed: &mut dyn Embed) -> Result<String, Error> {
+  Formatter::default().format(text, options, embed).map(str::to_owned)
 }
 
 /// Formats one style sheet after another, reusing its buffers.
@@ -100,19 +100,19 @@ impl Formatter {
   pub fn format(
     &mut self,
     text: &str,
-    settings: &Settings,
+    options: &Options,
     embed: &mut dyn Embed,
   ) -> Result<&str, Error> {
     let (bom, text) = crate::without_bom(text);
-    let embed = if settings.format_embedded { embed } else { &mut crate::embed::Verbatim };
-    self.format_text(text, settings, embed)?;
+    let embed = if options.format_embedded { embed } else { &mut crate::embed::Verbatim };
+    self.format_text(text, options, embed)?;
     Ok(crate::with_bom(bom, &mut self.text))
   }
 
   fn format_text(
     &mut self,
     text: &str,
-    settings: &Settings,
+    options: &Options,
     embed: &mut dyn Embed,
   ) -> Result<(), Error> {
     let text = crate::strings::lf(text.as_bytes());
@@ -121,15 +121,15 @@ impl Formatter {
       self.text.clear();
       return Ok(());
     }
-    let options = doc::Options {
-      width: settings.width,
-      tab_width: settings.tab_width,
-      tabs: settings.tabs,
-      eol: settings.eol,
+    let print = doc::Options {
+      width: options.width,
+      tab_width: options.tab_width,
+      tabs: options.tabs,
+      eol: options.eol,
     };
-    let output = Output { out: &mut self.output, options };
+    let output = Output { out: &mut self.output, options: print };
     let sink = Sink::to_output(output, false);
-    let style = Style { settings, is_style_attribute: false };
+    let style = Style { options, is_style_attribute: false };
     parse_and_print(&text, style, sink, &mut self.memo, embed)?;
     let printed = std::mem::take(&mut self.output);
     self.text = String::from_utf8(printed)
@@ -141,7 +141,7 @@ impl Formatter {
 /// How a style sheet is printed.
 #[derive(Copy, Clone)]
 struct Style<'s> {
-  settings: &'s Settings,
+  options: &'s Options,
   /// Prettier's `__isHTMLStyleAttribute`: the declarations of a `style` attribute go on one line if they fit.
   is_style_attribute: bool,
 }
@@ -150,14 +150,14 @@ struct Style<'s> {
 /// printer runs if `is_cleaned` is set. `is_style_attribute` is set for the value of a `style` attribute.
 pub(crate) fn document(
   text: &str,
-  settings: &Settings,
+  options: &Options,
   is_style_attribute: bool,
   is_cleaned: bool,
   embed: &mut dyn Embed,
 ) -> Result<Document, Error> {
   let text = crate::strings::lf(text.as_bytes());
   let mut memo = Memo::default();
-  let style = Style { settings, is_style_attribute };
+  let style = Style { options, is_style_attribute };
   let sink = parse_and_print(&text, style, Sink::to_document(is_cleaned), &mut memo, embed)?;
   Ok(sink.into_document())
 }
@@ -245,8 +245,8 @@ fn parse_and_print<'o>(
   memo: &'o mut Memo,
   embed: &mut dyn Embed,
 ) -> Result<Sink<'o>, Error> {
-  let settings = style.settings;
-  let dialect = settings.dialect;
+  let options = style.options;
+  let dialect = options.dialect;
   // The front matter is replaced with spaces before parsing, so all offsets stay valid.
   let front_matter = std::str::from_utf8(text)
     .ok()
@@ -278,7 +278,7 @@ fn parse_and_print<'o>(
   let tree = postcss::parse(&blanked, dialect)?;
   if let Some(front_matter) = front_matter {
     let has_nodes = tree.nodes[0].first_child != 0;
-    print_front_matter(front_matter, &mut sink, settings, embed);
+    print_front_matter(front_matter, &mut sink, options, embed);
     sink.hard_line();
     if has_nodes {
       sink.hard_line();
@@ -295,9 +295,9 @@ fn parse_and_print<'o>(
       stack: Stack::new(),
       convertible_sets: Default::default(),
     },
-    single_quote: settings.single_quote,
-    ignore: settings.ignore.as_bytes(),
-    trailing_comma: settings.trailing_comma,
+    single_quote: options.single_quote,
+    ignore: options.ignore.as_bytes(),
+    trailing_comma: options.trailing_comma,
     is_html_style_attribute: style.is_style_attribute,
     value_stack: Vec::new(),
     index_in_comma_group: 0,
@@ -319,7 +319,7 @@ fn parse_and_print<'o>(
 
 /// Prettier's `printEmbedFrontMatter`, which formats YAML front matter with the host, or the front matter as it is
 /// written.
-fn print_front_matter(raw: &[u8], sink: &mut Sink<'_>, settings: &Settings, embed: &mut dyn Embed) {
+fn print_front_matter(raw: &[u8], sink: &mut Sink<'_>, options: &Options, embed: &mut dyn Embed) {
   let matter = std::str::from_utf8(raw).ok().and_then(crate::front_matter::parse);
   let formatted = matter.as_ref().filter(|matter| matter.language == "yaml").and_then(|matter| {
     let value = matter.value.trim();
@@ -331,7 +331,7 @@ fn print_front_matter(raw: &[u8], sink: &mut Sink<'_>, settings: &Settings, embe
       language: "yaml",
       kind: Purpose::FrontMatter,
       indent: 0,
-      width: settings.width,
+      width: options.width,
       module: true,
     };
     embed.format(request).map(|text| text.trim_end_matches(['\n', '\r']).to_owned())

@@ -9,7 +9,7 @@ use super::utilities::{
   dedent_string, html_split, html_trim_preserve_indentation, is_pre_like, is_script_like_tag,
   is_text_like, should_unquote_attribute_value, unescape_quote_entities,
 };
-use super::{Options, Parser};
+use super::{Context, Parser};
 use crate::doc::{Align, Branch, Docs};
 use crate::embed::Embed;
 use crate::strings;
@@ -22,7 +22,7 @@ pub(crate) struct Printer<'p, 'a> {
   /// Whether texts escape `"` as `&quot;`, as in the value of an attribute.
   pub(crate) quotes: bool,
   pub(crate) tree: &'p Tree<'a>,
-  pub(crate) options: &'p Options<'p>,
+  pub(crate) options: &'p Context<'p>,
   pub(crate) docs: &'p mut Docs<'a>,
   pub(crate) embed: &'p mut dyn Embed,
   /// The number of `indent`s around what is printed now.
@@ -44,7 +44,7 @@ impl<'p, 'a> Printer<'p, 'a> {
   pub(crate) fn new(
     source: &'a str,
     tree: &'p Tree<'a>,
-    options: &'p Options<'p>,
+    options: &'p Context<'p>,
     docs: &'p mut Docs<'a>,
     embed: &'p mut dyn Embed,
   ) -> Self {

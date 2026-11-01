@@ -14,15 +14,14 @@ fn format(parser: &str, input: &str, option: Option<&str>) -> String {
   let result = match parser {
     "html" | "vue" => {
       let parser = if parser == "vue" { html::Parser::Vue } else { html::Parser::Html };
-      let settings =
-        html::Settings { parser, whitespace, format_embedded: false, ..html::Settings::default() };
-      html::format(input, &settings, &mut Verbatim).map_err(|error| error.to_string())
+      let options =
+        html::Options { parser, whitespace, format_embedded: false, ..html::Options::default() };
+      html::format(input, &options, &mut Verbatim).map_err(|error| error.to_string())
     }
     "handlebars" => {
       let dialect = handlebars::Dialect::Handlebars;
-      let settings =
-        handlebars::Settings { dialect, whitespace, ..handlebars::Settings::default() };
-      handlebars::format(input, &settings, &mut Verbatim).map_err(|error| error.to_string())
+      let options = handlebars::Options { dialect, whitespace, ..handlebars::Options::default() };
+      handlebars::format(input, &options, &mut Verbatim).map_err(|error| error.to_string())
     }
     "css" | "scss" | "less" => {
       let dialect = match parser {
@@ -30,8 +29,8 @@ fn format(parser: &str, input: &str, option: Option<&str>) -> String {
         "less" => css::Dialect::Less,
         _ => css::Dialect::Css,
       };
-      let settings = css::Settings { dialect, ..css::Settings::default() };
-      css::format(input, &settings, &mut Verbatim).map_err(|error| error.to_string())
+      let options = css::Options { dialect, ..css::Options::default() };
+      css::format(input, &options, &mut Verbatim).map_err(|error| error.to_string())
     }
     "xml" => {
       let whitespace = match option {
@@ -39,8 +38,8 @@ fn format(parser: &str, input: &str, option: Option<&str>) -> String {
         Some("preserve") => tidy::Whitespace::Auto,
         _ => tidy::Whitespace::Strict,
       };
-      let settings = xml::Settings { whitespace, ..xml::Settings::default() };
-      xml::format(input, &settings, &mut Verbatim).map_err(|error| error.to_string())
+      let options = xml::Options { whitespace, ..xml::Options::default() };
+      xml::format(input, &options, &mut Verbatim).map_err(|error| error.to_string())
     }
     other => panic!("unknown parser {other}"),
   };

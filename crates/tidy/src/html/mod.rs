@@ -33,7 +33,7 @@ pub enum Parser {
 }
 
 /// The `options` that Prettier's functions receive.
-pub(crate) struct Options<'o> {
+pub(crate) struct Context<'o> {
   pub(crate) parser: Parser,
   /// `originalText`, where every line break is `\n`.
   pub(crate) original_text: &'o [u8],
@@ -55,7 +55,7 @@ pub(crate) struct Options<'o> {
 
 /// How to format a markup file.
 #[derive(Clone, Debug)]
-pub struct Settings {
+pub struct Options {
   pub parser: Parser,
   pub width: usize,
   pub tab_width: usize,
@@ -75,7 +75,7 @@ pub struct Settings {
   pub format_embedded: bool,
 }
 
-impl Default for Settings {
+impl Default for Options {
   fn default() -> Self {
     Self {
       parser: Parser::Html,
@@ -97,10 +97,10 @@ impl Default for Settings {
 /// Formats `text`, handing the code of other languages to `embed`.
 pub fn format(
   text: &str,
-  settings: &Settings,
+  options: &Options,
   embed: &mut dyn crate::embed::Embed,
 ) -> Result<String, Error> {
-  Formatter::default().format(text, settings, embed).map(str::to_owned)
+  Formatter::default().format(text, options, embed).map(str::to_owned)
 }
 
 /// Formats one text after another, reusing its buffers.
@@ -119,19 +119,19 @@ impl Formatter {
   pub fn format(
     &mut self,
     text: &str,
-    settings: &Settings,
+    options: &Options,
     embed: &mut dyn crate::embed::Embed,
   ) -> Result<&str, Error> {
     let (bom, text) = crate::without_bom(text);
-    let embed = if settings.format_embedded { embed } else { &mut crate::embed::Verbatim };
-    self.format_text(text, settings, embed)?;
+    let embed = if options.format_embedded { embed } else { &mut crate::embed::Verbatim };
+    self.format_text(text, options, embed)?;
     Ok(crate::with_bom(bom, &mut self.output))
   }
 
   fn format_text(
     &mut self,
     text: &str,
-    settings: &Settings,
+    options: &Options,
     embed: &mut dyn crate::embed::Embed,
   ) -> Result<(), Error> {
     if text.trim().is_empty() {
@@ -170,7 +170,7 @@ impl Formatter {
     let mut docs = crate::doc::Docs::reuse(bump, scratch);
     docs.reserve(source.len());
     let output =
-      run(&text, &content, matter, settings, embed, &mut tree, &mut docs, std::mem::take(buffer));
+      run(&text, &content, matter, options, embed, &mut tree, &mut docs, std::mem::take(buffer));
     *scratch = docs.into_scratch();
     *nodes = crate::doc::recycle(tree.nodes);
     *attrs = crate::doc::recycle(tree.attrs);
@@ -185,7 +185,7 @@ fn run<'a>(
   text: &'a str,
   content: &'a [u8],
   matter: Option<usize>,
-  settings: &Settings,
+  options: &Options,
   embed: &mut dyn crate::embed::Embed,
   tree: &mut ast::Tree<'a>,
   docs: &mut crate::doc::Docs<'a>,
@@ -193,7 +193,7 @@ fn run<'a>(
 ) -> Result<String, Error> {
   let source = text.as_bytes();
   let clock = std::time::Instant::now();
-  parse::parse(content, matter, settings.parser, tree).map_err(|error| match error {
+  parse::parse(content, matter, options.parser, tree).map_err(|error| match error {
     parse::ParseError::Syntax(error) => Error::Syntax {
       message: String::from_utf8_lossy(&error.message()).into_owned(),
       at: error.at as usize,
@@ -201,32 +201,32 @@ fn run<'a>(
     parse::ParseError::NestedTooDeeply => Error::TooDeep,
   })?;
   let parsed = clock.elapsed();
-  let typescript = settings.parser == Parser::Vue && has_typescript_script(tree);
-  let options = Options {
-    parser: settings.parser,
+  let typescript = options.parser == Parser::Vue && has_typescript_script(tree);
+  let context = Context {
+    parser: options.parser,
     original_text: source,
-    whitespace: settings.whitespace,
-    filepath: settings.filepath.as_deref().map(str::as_bytes),
-    width: settings.width,
-    tab_width: settings.tab_width,
-    single_attribute_per_line: settings.single_attribute_per_line,
-    bracket_same_line: settings.bracket_same_line,
-    vue_indent_script_and_style: settings.vue_indent_script_and_style,
-    ignore: settings.ignore.as_bytes(),
+    whitespace: options.whitespace,
+    filepath: options.filepath.as_deref().map(str::as_bytes),
+    width: options.width,
+    tab_width: options.tab_width,
+    single_attribute_per_line: options.single_attribute_per_line,
+    bracket_same_line: options.bracket_same_line,
+    vue_indent_script_and_style: options.vue_indent_script_and_style,
+    ignore: options.ignore.as_bytes(),
     embedded: false,
     typescript,
-    formats_embedded: settings.format_embedded,
+    formats_embedded: options.format_embedded,
   };
-  if !preprocess::preprocess(tree, &options) {
+  if !preprocess::preprocess(tree, &context) {
     return Err(Error::TooDeep);
   }
   let preprocessed = clock.elapsed();
-  print::Printer::new(text, tree, &options, docs, embed).print_root();
+  print::Printer::new(text, tree, &context, docs, embed).print_root();
   let print = crate::doc::Options {
-    width: settings.width,
-    tab_width: settings.tab_width,
-    tabs: settings.tabs,
-    eol: settings.eol,
+    width: options.width,
+    tab_width: options.tab_width,
+    tabs: options.tabs,
+    eol: options.eol,
   };
   let built = clock.elapsed();
   let output = crate::doc::print(docs, &print, buffer);

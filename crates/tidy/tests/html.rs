@@ -1,9 +1,9 @@
 use tidy::embed::Verbatim;
-use tidy::html::{Settings, format};
+use tidy::html::{Options, format};
 
 fn html(text: &str) -> String {
-  let settings = Settings { filepath: Some("index.html".into()), ..Settings::default() };
-  format(text, &settings, &mut Verbatim).unwrap()
+  let options = Options { filepath: Some("index.html".into()), ..Options::default() };
+  format(text, &options, &mut Verbatim).unwrap()
 }
 
 #[test]
@@ -48,11 +48,11 @@ fn prints_borrowed_markers_once() {
 
 #[test]
 fn leaves_attributes_without_embedded_formatting() {
-  let settings = Settings { format_embedded: false, ..Settings::default() };
+  let options = Options { format_embedded: false, ..Options::default() };
   assert_eq!(
     format(
       "<img class=\"a   b\" srcset=\"a.png 1x,b.png   2x\"><p style=\"color:red\"></p>",
-      &settings,
+      &options,
       &mut Verbatim
     )
     .unwrap(),
@@ -62,10 +62,10 @@ fn leaves_attributes_without_embedded_formatting() {
 
 #[test]
 fn takes_another_ignore_directive() {
-  let settings = Settings { ignore: "tidy-ignore".into(), ..Settings::default() };
+  let options = Options { ignore: "tidy-ignore".into(), ..Options::default() };
   let text = "<!-- tidy-ignore -->\n<p   a=b>x</p>\n<!-- tidy-ignore-attribute -->\n<p   a=b>x</p>\n<!-- prettier-ignore -->\n<p   a=b>x</p>\n";
   assert_eq!(
-    format(text, &settings, &mut Verbatim).unwrap(),
+    format(text, &options, &mut Verbatim).unwrap(),
     "<!-- tidy-ignore -->\n<p   a=b>x</p>\n<!-- tidy-ignore-attribute -->\n<p a=b>x</p>\n<!-- prettier-ignore -->\n<p a=\"b\">x</p>\n"
   );
 }
@@ -78,7 +78,7 @@ fn tells_the_host_whether_a_script_is_a_module() {
     Some("x = `</SCRIPT>`".to_owned())
   };
   let text = "<script>a</script>\n<script type=\"module\">a</script>\n<script type=\"text/babel\" data-type=\"module\">a</script>\n";
-  let printed = format(text, &Settings::default(), &mut hook).unwrap();
+  let printed = format(text, &Options::default(), &mut hook).unwrap();
   assert_eq!(modules, [false, true, true]);
   assert_eq!(printed.matches(r"x = `<\/SCRIPT>`").count(), 3, "{printed}");
 }

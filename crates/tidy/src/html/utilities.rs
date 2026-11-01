@@ -2,7 +2,7 @@
 
 use super::ast::{Attribute, Flags, Id, Kind, Node, Span, Tree};
 use super::data::{self, Display};
-use super::{Options, Parser};
+use super::{Context, Parser};
 use crate::Whitespace as HtmlWhitespaceSensitivity;
 use crate::strings;
 use std::borrow::Cow;
@@ -91,7 +91,7 @@ pub(crate) fn is_pre_like(node: &Node<'_>) -> bool {
 }
 
 /// `isScriptLikeTag`
-pub(crate) fn is_script_like_tag(node: &Node<'_>, options: &Options<'_>) -> bool {
+pub(crate) fn is_script_like_tag(node: &Node<'_>, options: &Context<'_>) -> bool {
   if node.kind != Kind::Element {
     return false;
   }
@@ -148,7 +148,7 @@ pub(crate) fn is_placeholder_in_js(value: &[u8]) -> bool {
 }
 
 /// `shouldUnquoteAttributeValue`
-pub(crate) fn should_unquote_attribute_value(attr: &Attribute<'_>, options: &Options<'_>) -> bool {
+pub(crate) fn should_unquote_attribute_value(attr: &Attribute<'_>, options: &Context<'_>) -> bool {
   let (Some(span), Some(value)) = (attr.value_span, attr.value) else {
     return false;
   };
@@ -174,7 +174,7 @@ fn is_text_or_interpolation(node: &Node<'_>) -> bool {
 }
 
 /// Returns how many lines the start of `second` is below the end of `first`, capped at two.
-fn lines_between(options: &Options<'_>, first: Span, second: Span) -> usize {
+fn lines_between(options: &Context<'_>, first: Span, second: Span) -> usize {
   let Some(between) = options.original_text.get(first.end as usize..second.start as usize) else {
     return 0;
   };
@@ -207,7 +207,7 @@ impl<'a> Tree<'a> {
   }
 
   /// `isVueSfcBlock`
-  pub(crate) fn is_vue_sfc_block(&self, id: Id, options: &Options<'_>) -> bool {
+  pub(crate) fn is_vue_sfc_block(&self, id: Id, options: &Context<'_>) -> bool {
     options.parser == Parser::Vue
       && self[id].kind == Kind::Element
       && self.parent_of(id).is_some_and(|parent| parent.kind == Kind::Root)
@@ -215,26 +215,26 @@ impl<'a> Tree<'a> {
   }
 
   /// `isVueCustomBlock`
-  pub(crate) fn is_vue_custom_block(&self, id: Id, options: &Options<'_>) -> bool {
+  pub(crate) fn is_vue_custom_block(&self, id: Id, options: &Context<'_>) -> bool {
     self.is_vue_sfc_block(id, options)
       && !(self[id].namespace.is_empty()
         && matches!(&self[id].name[..], b"template" | b"style" | b"script"))
   }
 
   /// `isVueNonHtmlBlock`
-  pub(crate) fn is_vue_non_html_block(&self, id: Id, options: &Options<'_>) -> bool {
+  pub(crate) fn is_vue_non_html_block(&self, id: Id, options: &Context<'_>) -> bool {
     self.is_vue_sfc_block(id, options)
       && (self.is_vue_custom_block(id, options)
         || self.attribute_value(id, b"lang").is_some_and(|lang| lang != b"html"))
   }
 
   /// `isVueScriptTag`
-  pub(crate) fn is_vue_script_tag(&self, id: Id, options: &Options<'_>) -> bool {
+  pub(crate) fn is_vue_script_tag(&self, id: Id, options: &Context<'_>) -> bool {
     self.is_vue_sfc_block(id, options) && &self[id].name[..] == b"script"
   }
 
   /// `shouldPreserveContent`. Call it once nothing in `id` changes anymore. It looks at all children.
-  pub(crate) fn should_preserve_content(&self, id: Id, options: &Options<'_>) -> bool {
+  pub(crate) fn should_preserve_content(&self, id: Id, options: &Context<'_>) -> bool {
     let node = &self[id];
     if node.kind == Kind::IeConditionalComment {
       // An element that isn't closed inside the comment, or contents that couldn't be parsed.
@@ -260,14 +260,14 @@ impl<'a> Tree<'a> {
   }
 
   /// `isWhitespaceSensitiveNode`
-  pub(crate) fn is_whitespace_sensitive(&self, id: Id, options: &Options<'_>) -> bool {
+  pub(crate) fn is_whitespace_sensitive(&self, id: Id, options: &Context<'_>) -> bool {
     let node = &self[id];
     is_script_like_tag(node, options) || node.kind == Kind::Interpolation || is_pre_like(node)
   }
 
   /// The shared part of `isLeadingSpaceSensitiveNode` and `isTrailingSpaceSensitiveNode`. `neighbor` is the sibling
   /// on the side in question.
-  fn is_space_sensitive(&self, id: Id, neighbor: Option<&Node<'a>>, options: &Options<'_>) -> bool {
+  fn is_space_sensitive(&self, id: Id, neighbor: Option<&Node<'a>>, options: &Context<'_>) -> bool {
     let node = &self[id];
     if matches!(node.kind, Kind::FrontMatter | Kind::AngularControlFlowBlock) {
       return false;
@@ -299,7 +299,7 @@ impl<'a> Tree<'a> {
   }
 
   /// `isLeadingSpaceSensitiveNode`
-  pub(crate) fn is_leading_space_sensitive(&self, id: Id, options: &Options<'_>) -> bool {
+  pub(crate) fn is_leading_space_sensitive(&self, id: Id, options: &Context<'_>) -> bool {
     let prev = self.prev_of(id);
     let is_sensitive = self.is_space_sensitive(id, prev, options);
     if is_sensitive
@@ -314,12 +314,12 @@ impl<'a> Tree<'a> {
   }
 
   /// `isTrailingSpaceSensitiveNode`
-  pub(crate) fn is_trailing_space_sensitive(&self, id: Id, options: &Options<'_>) -> bool {
+  pub(crate) fn is_trailing_space_sensitive(&self, id: Id, options: &Context<'_>) -> bool {
     self.is_space_sensitive(id, self.next_of(id), options)
   }
 
   /// `isDanglingSpaceSensitiveNode`
-  pub(crate) fn is_dangling_space_sensitive(&self, id: Id, options: &Options<'_>) -> bool {
+  pub(crate) fn is_dangling_space_sensitive(&self, id: Id, options: &Context<'_>) -> bool {
     let node = &self[id];
     !node.css_display.is_block_like()
       && node.css_display != Display::InlineBlock
@@ -327,7 +327,7 @@ impl<'a> Tree<'a> {
   }
 
   /// `forceNextEmptyLine`
-  pub(crate) fn force_next_empty_line(&self, id: Id, options: &Options<'_>) -> bool {
+  pub(crate) fn force_next_empty_line(&self, id: Id, options: &Context<'_>) -> bool {
     self[id].kind == Kind::FrontMatter
       || self.next_of(id).is_some_and(|next| lines_between(options, self[id].span, next.span) > 1)
   }
@@ -339,7 +339,7 @@ impl<'a> Tree<'a> {
   }
 
   /// `forceBreakContent`
-  pub(crate) fn force_break_content(&self, id: Id, options: &Options<'_>) -> bool {
+  pub(crate) fn force_break_content(&self, id: Id, options: &Context<'_>) -> bool {
     let node = &self[id];
     if self.force_break_children(id) {
       return true;
@@ -369,23 +369,23 @@ impl<'a> Tree<'a> {
   }
 
   /// `preferHardlineAsLeadingSpaces`
-  pub(crate) fn prefer_hardline_as_leading_spaces(&self, id: Id, options: &Options<'_>) -> bool {
+  pub(crate) fn prefer_hardline_as_leading_spaces(&self, id: Id, options: &Context<'_>) -> bool {
     prefer_hardline_as_surrounding_spaces(&self[id])
       || self.prev(id).is_some_and(|prev| self.prefer_hardline_as_trailing_spaces(prev, options))
       || self.has_surrounding_line_break(id, options)
   }
 
-  fn prefer_hardline_as_trailing_spaces(&self, id: Id, options: &Options<'_>) -> bool {
+  fn prefer_hardline_as_trailing_spaces(&self, id: Id, options: &Context<'_>) -> bool {
     prefer_hardline_as_surrounding_spaces(&self[id])
       || (self[id].kind == Kind::Element && self[id].is_full_name(b"br"))
       || self.has_surrounding_line_break(id, options)
   }
 
-  fn has_surrounding_line_break(&self, id: Id, options: &Options<'_>) -> bool {
+  fn has_surrounding_line_break(&self, id: Id, options: &Context<'_>) -> bool {
     self.has_leading_line_break(id, options) && self.has_trailing_line_break(id, options)
   }
 
-  fn has_leading_line_break(&self, id: Id, options: &Options<'_>) -> bool {
+  fn has_leading_line_break(&self, id: Id, options: &Context<'_>) -> bool {
     let node = &self[id];
     node.has(Flags::HAS_LEADING_SPACES)
       && match (self.prev_of(id), self.parent_of(id)) {
@@ -398,7 +398,7 @@ impl<'a> Tree<'a> {
       }
   }
 
-  fn has_trailing_line_break(&self, id: Id, options: &Options<'_>) -> bool {
+  fn has_trailing_line_break(&self, id: Id, options: &Context<'_>) -> bool {
     let node = &self[id];
     node.has(Flags::HAS_TRAILING_SPACES)
       && match (self.next_of(id), self.parent_of(id)) {
@@ -424,7 +424,7 @@ impl<'a> Tree<'a> {
     &self,
     id: Id,
     is_in_svg_foreign_object: bool,
-    options: &Options<'_>,
+    options: &Context<'_>,
   ) -> Display {
     if self.is_vue_sfc_block(id, options) {
       return Display::Block;

@@ -9,14 +9,14 @@ mod front_matter;
 pub mod handlebars;
 pub mod html;
 mod languages;
-mod settings;
+mod options;
 mod stack;
 mod strings;
 mod syntax;
 mod text;
 pub mod xml;
 
-pub use settings::{Formatter, Language, Settings, Shared, format};
+pub use options::{Formatter, Language, Options, Shared, format};
 
 /// Where whitespace is significant, with the same names in each language. Each language has its own default: `Auto`
 /// for HTML, Vue and Handlebars, `Strict` for XML.

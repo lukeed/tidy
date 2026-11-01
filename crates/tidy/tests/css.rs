@@ -1,8 +1,8 @@
-use tidy::css::{Dialect, Settings, format};
+use tidy::css::{Dialect, Options, format};
 use tidy::embed::Verbatim;
 
 fn css(text: &str, dialect: Dialect) -> String {
-  format(text, &Settings { dialect, ..Settings::default() }, &mut Verbatim).unwrap()
+  format(text, &Options { dialect, ..Options::default() }, &mut Verbatim).unwrap()
 }
 
 #[test]
@@ -31,10 +31,10 @@ fn keeps_a_byte_order_mark() {
 
 #[test]
 fn takes_another_ignore_directive() {
-  let settings =
-    Settings { dialect: Dialect::Scss, ignore: "tidy-ignore".into(), ..Settings::default() };
+  let options =
+    Options { dialect: Dialect::Scss, ignore: "tidy-ignore".into(), ..Options::default() };
   assert_eq!(
-    format("// tidy-ignore\na{b:c}\n/* prettier-ignore */\nd{e:f}", &settings, &mut Verbatim)
+    format("// tidy-ignore\na{b:c}\n/* prettier-ignore */\nd{e:f}", &options, &mut Verbatim)
       .unwrap(),
     "// tidy-ignore\na{b:c}\n/* prettier-ignore */\nd {\n  e: f;\n}\n"
   );

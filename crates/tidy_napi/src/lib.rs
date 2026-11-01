@@ -3,7 +3,7 @@ use napi_derive::napi;
 use serde_json::{Map, Value};
 use tidy::config::Config;
 use tidy::embed::{Kind, Request};
-use tidy::{Formatter, Language, Settings, css};
+use tidy::{Formatter, Language, Options, css};
 
 /// A piece of embedded code for the host to format.
 #[napi(object)]
@@ -78,17 +78,17 @@ pub fn format(
   options: Option<FormatOptions>,
   embed: Option<Callback<'_>>,
 ) -> napi::Result<String> {
-  let options = options.unwrap_or_default();
+  let input = options.unwrap_or_default();
   let error = |error: &dyn std::fmt::Display| napi::Error::from_reason(error.to_string());
-  let (language, dialect) = language(&options)?;
-  let mut config = Config::from_value(&config(&options)).map_err(|it| error(&it))?;
+  let (language, dialect) = language(&input)?;
+  let mut config = Config::from_value(&config(&input)).map_err(|it| error(&it))?;
   if dialect.is_some() {
     config.handlebars.dialect = dialect;
   }
-  let mut settings = Settings::default();
-  config.apply(&mut settings);
-  if options.embedded == Some(false) {
-    settings.share(&tidy::Shared { format_embedded: Some(false), ..Default::default() });
+  let mut options = Options::default();
+  config.apply(&mut options);
+  if input.embedded == Some(false) {
+    options.share(&tidy::Shared { format_embedded: Some(false), ..Default::default() });
   }
   let mut failure = None;
   let mut hook = |request: Request<'_>| -> Option<String> {
@@ -119,7 +119,7 @@ pub fn format(
     }
   };
   let output = Formatter::default()
-    .format(&source, language, &settings, options.filepath.as_deref(), &mut hook)
+    .format(&source, language, &options, input.filepath.as_deref(), &mut hook)
     .map(str::to_owned)
     .map_err(|it| error(&it))?;
   match failure {
@@ -129,11 +129,9 @@ pub fn format(
 }
 
 /// The language of `parser`, or of `filepath`, and the Handlebars dialect that `parser` asks for.
-fn language(
-  options: &FormatOptions,
-) -> napi::Result<(Language, Option<tidy::handlebars::Dialect>)> {
+fn language(input: &FormatOptions) -> napi::Result<(Language, Option<tidy::handlebars::Dialect>)> {
   use tidy::handlebars::Dialect;
-  Ok(match options.parser.as_deref() {
+  Ok(match input.parser.as_deref() {
     Some("html") => (Language::Html, None),
     Some("vue") => (Language::Vue, None),
     Some("handlebars") => (Language::Handlebars, None),
@@ -144,33 +142,33 @@ fn language(
     Some("xml") => (Language::Xml, None),
     Some(other) => return Err(napi::Error::from_reason(format!("unknown parser: {other}"))),
     None => {
-      let language = options.filepath.as_deref().and_then(Language::of_path);
+      let language = input.filepath.as_deref().and_then(Language::of_path);
       (language.unwrap_or(Language::Html), None)
     }
   })
 }
 
 /// The options as a config, which reads and checks them as it reads a `tidy.json` file.
-fn config(options: &FormatOptions) -> Value {
+fn config(input: &FormatOptions) -> Value {
   let mut map = Map::new();
   let mut put = |key: &str, value: Option<Value>| {
     if let Some(value) = value {
       map.insert(key.to_owned(), value);
     }
   };
-  put("width", options.width.map(Value::from));
-  put("indent", options.indent.map(Value::from));
-  put("tabs", options.tabs.map(Value::from));
-  put("eol", options.eol.clone().map(Value::from));
-  put("whitespace", options.whitespace.clone().map(Value::from));
-  put("quote", options.quote.clone().map(Value::from));
-  put("bracketSameLine", options.bracket_same_line.map(Value::from));
-  put("singleAttributePerLine", options.single_attribute_per_line.map(Value::from));
-  put("ignore", options.ignore.clone().map(Value::from));
-  put("html", options.html.clone());
-  put("vue", options.vue.clone());
-  put("handlebars", options.handlebars.clone());
-  put("css", options.css.clone());
-  put("xml", options.xml.clone());
+  put("width", input.width.map(Value::from));
+  put("indent", input.indent.map(Value::from));
+  put("tabs", input.tabs.map(Value::from));
+  put("eol", input.eol.clone().map(Value::from));
+  put("whitespace", input.whitespace.clone().map(Value::from));
+  put("quote", input.quote.clone().map(Value::from));
+  put("bracketSameLine", input.bracket_same_line.map(Value::from));
+  put("singleAttributePerLine", input.single_attribute_per_line.map(Value::from));
+  put("ignore", input.ignore.clone().map(Value::from));
+  put("html", input.html.clone());
+  put("vue", input.vue.clone());
+  put("handlebars", input.handlebars.clone());
+  put("css", input.css.clone());
+  put("xml", input.xml.clone());
   Value::Object(map)
 }

@@ -3,7 +3,7 @@
 //! Where Prettier's output would parse differently from the template, this deviates, and a comment says what Prettier
 //! does.
 
-use super::Options;
+use super::Context;
 use super::ast::{self, Call, Head, Kind, NOTHING, Node, NodeId, Range, Tree};
 use super::lexer::id_len;
 use super::tokenizer::is_void_tag;
@@ -66,7 +66,7 @@ pub(crate) struct Printer<'a, 'p> {
   /// `options.originalText`, with the front matter replaced with spaces.
   pub(crate) source: &'a str,
   pub(crate) front_matter: &'a str,
-  pub(crate) options: &'p Options,
+  pub(crate) options: &'p Context,
   /// `options.htmlWhitespaceSensitivity !== "ignore"`
   pub(crate) is_white_space_sensitive: bool,
   pub(crate) single_quote: bool,
@@ -462,12 +462,12 @@ impl<'a> Printer<'a, '_> {
       if !self.options.formats_embedded {
         return None;
       }
-      let settings = crate::css::Settings {
+      let options = crate::css::Options {
         width: self.options.width,
         tab_width: self.options.tab_width,
-        ..crate::css::Settings::default()
+        ..crate::css::Options::default()
       };
-      let document = crate::css::document(code, &settings, false, true, self.embed).ok()?;
+      let document = crate::css::document(code, &options, false, true, self.embed).ok()?;
       return (!code.trim().is_empty()).then_some(StyleSheet::Document(document));
     };
     let formatted = formatted.trim_end_matches(['\n', '\r']);

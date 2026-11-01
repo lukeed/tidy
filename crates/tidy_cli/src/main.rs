@@ -5,7 +5,7 @@ use std::sync::{Condvar, Mutex, PoisonError};
 
 use tidy::config::{Config, Resolver};
 use tidy::embed::Verbatim;
-use tidy::{Error, Formatter, Language, Settings, Shared, Whitespace, css, doc, handlebars};
+use tidy::{Error, Formatter, Language, Options, Shared, Whitespace, css, doc, handlebars};
 
 const HELP: &str = "\
 tidy: a fast markup formatter
@@ -19,7 +19,7 @@ Usage
   files: .xml, .svg, .plist, .csproj, pom.xml, and the other files that @prettier/plugin-xml formats.
   Style sheets in <style> and style=\"\" are formatted. Scripts are left as they are written.
 
-  Each file takes its settings from the nearest tidy.json, tidy.jsonc or tidy.toml, and from .editorconfig.
+  Each file takes its options from the nearest tidy.json, tidy.jsonc or tidy.toml, and from .editorconfig.
   Options given here override them.
 
 Options
@@ -117,11 +117,11 @@ fn run() -> Result<ExitCode, String> {
     let language = language
       .or_else(|| stdin.as_deref().and_then(|path| Language::of_path(&path.to_string_lossy())))
       .unwrap_or(Language::Html);
-    let settings = sources.settings(stdin.as_deref())?;
+    let options = sources.options(stdin.as_deref())?;
     let path = stdin.as_deref().map(|path| path.to_string_lossy());
     let mut formatter = Formatter::default();
     let output = formatter
-      .format(&source, language, &settings, path.as_deref(), &mut Verbatim)
+      .format(&source, language, &options, path.as_deref(), &mut Verbatim)
       .map_err(|error| describe(&error, &source, path.as_deref().unwrap_or("stdin")))?;
     if check {
       return Ok(if output == source { ExitCode::SUCCESS } else { ExitCode::FAILURE });
@@ -207,7 +207,7 @@ fn shared(args: &mut pico_args::Arguments) -> Result<Shared, String> {
   })
 }
 
-/// Where the settings of each file come from: Prettier's, then the config files around it, then the flags.
+/// Where the options of each file come from: Prettier's, then the config files around it, then the flags.
 struct Sources {
   /// `None` with `--no-config`.
   resolver: Option<Resolver>,
@@ -215,13 +215,13 @@ struct Sources {
 }
 
 impl Sources {
-  fn settings(&self, path: Option<&Path>) -> Result<Settings, String> {
-    let mut settings = match (&self.resolver, path) {
-      (Some(resolver), Some(path)) => resolver.settings(path)?,
-      _ => Settings::default(),
+  fn options(&self, path: Option<&Path>) -> Result<Options, String> {
+    let mut options = match (&self.resolver, path) {
+      (Some(resolver), Some(path)) => resolver.options(path)?,
+      _ => Options::default(),
     };
-    self.flags.apply(&mut settings);
-    Ok(settings)
+    self.flags.apply(&mut options);
+    Ok(options)
   }
 
   /// Formats the file at `path`, in `language` or the language of its name.
@@ -236,9 +236,9 @@ impl Sources {
     let language = language
       .or_else(|| Language::of_path(&name))
       .ok_or_else(|| format!("{name}: can't tell the language of this file, pass --parser"))?;
-    let settings = self.settings(Some(path)).map_err(|error| format!("{name}: {error}"))?;
+    let options = self.options(Some(path)).map_err(|error| format!("{name}: {error}"))?;
     formatter
-      .format(source, language, &settings, Some(&name), &mut Verbatim)
+      .format(source, language, &options, Some(&name), &mut Verbatim)
       .map_err(|error| describe(&error, source, &name))
   }
 }

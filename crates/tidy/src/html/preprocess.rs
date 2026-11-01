@@ -5,19 +5,19 @@
 
 use super::ast::{Flags, Id, Kind, Node, Span, Tree};
 use super::utilities::{is_pre_like, is_script_like_tag};
-use super::{Options, Parser};
+use super::{Context, Parser};
 use crate::strings;
 use std::borrow::Cow;
 
 struct Preprocessor<'t, 'a, 'o> {
   tree: &'t mut Tree<'a>,
-  options: &'o Options<'o>,
+  options: &'o Context<'o>,
   depth: u32,
   is_nested_too_deeply: bool,
 }
 
 /// Returns false if the tree is nested too deeply.
-pub(crate) fn preprocess<'a>(tree: &mut Tree<'a>, options: &Options<'_>) -> bool {
+pub(crate) fn preprocess<'a>(tree: &mut Tree<'a>, options: &Context<'_>) -> bool {
   let root = tree.root;
   tree[root].css_display = tree.css_display(root, false, options);
   let mut preprocessor = Preprocessor { tree, options, depth: 0, is_nested_too_deeply: false };

@@ -3,13 +3,13 @@
 use serde_json::Value;
 use tidy::Whitespace;
 use tidy::embed::Verbatim;
-use tidy::xml::{Quotes, Settings, format, is_xml_path};
+use tidy::xml::{Options, Quotes, format, is_xml_path};
 
-fn settings(options: &Value) -> Settings {
+fn options_of(options: &Value) -> Options {
   let flag = |name: &str| options.get(name).and_then(Value::as_bool);
   let text = |name: &str| options.get(name).and_then(Value::as_str);
-  let defaults = Settings::default();
-  Settings {
+  let defaults = Options::default();
+  Options {
     width: options
       .get("printWidth")
       .and_then(Value::as_u64)
@@ -42,7 +42,7 @@ fn prints_what_the_plugin_prints() {
     let input = case["input"].as_str().unwrap();
     let options = case.get("options").cloned().unwrap_or_default();
     let printed =
-      format(input, &settings(&options), &mut Verbatim).unwrap_or_else(|_| "!error".into());
+      format(input, &options_of(&options), &mut Verbatim).unwrap_or_else(|_| "!error".into());
     let expected = case["output"].as_str().unwrap();
     if printed != expected {
       failures
@@ -66,10 +66,10 @@ fn knows_xml_paths() {
 
 #[test]
 fn takes_another_ignore_directive() {
-  let settings = Settings { ignore: "tidy-ignore".into(), ..Settings::default() };
+  let options = Options { ignore: "tidy-ignore".into(), ..Options::default() };
   let text = "<a>\n  <!-- tidy-ignore-start -->\n  <b   c=\"d\"   />\n  <!-- tidy-ignore-end -->\n  <!-- prettier-ignore-start -->\n  <e   f=\"g\"/>\n  <!-- prettier-ignore-end -->\n</a>\n";
   assert_eq!(
-    format(text, &settings, &mut Verbatim).unwrap(),
+    format(text, &options, &mut Verbatim).unwrap(),
     "<a>\n  <!-- tidy-ignore-start -->\n  <b   c=\"d\"   />\n  <!-- tidy-ignore-end -->\n  <!-- prettier-ignore-start -->\n  <e f=\"g\" />\n  <!-- prettier-ignore-end -->\n</a>\n"
   );
 }

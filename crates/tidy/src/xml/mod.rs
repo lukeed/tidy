@@ -160,7 +160,7 @@ const NAMES: &[&str] = &[
   ".project",
   "app.config",
   "nuget.config",
-  "settings.stylecop",
+  "options.stylecop",
   "web.debug.config",
   "web.release.config",
   "web.config",
@@ -192,7 +192,7 @@ pub enum Quotes {
 
 /// Options of the XML printer, the plugin's by default.
 #[derive(Clone, Debug)]
-pub struct Settings {
+pub struct Options {
   pub width: usize,
   pub tab_width: usize,
   pub tabs: bool,
@@ -215,7 +215,7 @@ pub struct Settings {
   pub ignore: String,
 }
 
-impl Default for Settings {
+impl Default for Options {
   fn default() -> Self {
     Self {
       width: 80,
@@ -235,8 +235,8 @@ impl Default for Settings {
 }
 
 /// Formats `text`, handing the code of other languages to `embed`.
-pub fn format(text: &str, settings: &Settings, embed: &mut dyn Embed) -> Result<String, Error> {
-  Formatter::default().format(text, settings, embed).map(str::to_owned)
+pub fn format(text: &str, options: &Options, embed: &mut dyn Embed) -> Result<String, Error> {
+  Formatter::default().format(text, options, embed).map(str::to_owned)
 }
 
 /// Formats one document after another, reusing its buffers.
@@ -255,19 +255,19 @@ impl Formatter {
   pub fn format(
     &mut self,
     text: &str,
-    settings: &Settings,
+    options: &Options,
     embed: &mut dyn Embed,
   ) -> Result<&str, Error> {
     let (bom, text) = crate::without_bom(text);
-    let embed = if settings.format_embedded { embed } else { &mut crate::embed::Verbatim };
-    self.format_text(text, settings, embed)?;
+    let embed = if options.format_embedded { embed } else { &mut crate::embed::Verbatim };
+    self.format_text(text, options, embed)?;
     Ok(crate::with_bom(bom, &mut self.output))
   }
 
   fn format_text(
     &mut self,
     text: &str,
-    settings: &Settings,
+    options: &Options,
     embed: &mut dyn Embed,
   ) -> Result<(), Error> {
     let text = match crate::strings::lf(text.as_bytes()) {
@@ -293,12 +293,12 @@ impl Formatter {
     let mut docs = Docs::reuse(&self.bump, &mut self.docs);
     docs.reserve(text.len());
     let ignore =
-      (format!("<!-- {}-start -->", settings.ignore), format!("<!-- {}-end -->", settings.ignore));
+      (format!("<!-- {}-start -->", options.ignore), format!("<!-- {}-end -->", options.ignore));
     let has_ignored_ranges = text.contains(&ignore.0);
     let mut printer = print::Printer {
       tree: &self.tree,
       text: &text,
-      settings,
+      options,
       docs: &mut docs,
       embed,
       stack,
@@ -309,13 +309,13 @@ impl Formatter {
     if printer.stack.ran_out() {
       return Err(Error::TooDeep);
     }
-    let options = doc::Options {
-      width: settings.width,
-      tab_width: settings.tab_width,
-      tabs: settings.tabs,
-      eol: settings.eol,
+    let print = doc::Options {
+      width: options.width,
+      tab_width: options.tab_width,
+      tabs: options.tabs,
+      eol: options.eol,
     };
-    self.output = doc::print(&docs, &options, std::mem::take(&mut self.output));
+    self.output = doc::print(&docs, &print, std::mem::take(&mut self.output));
     self.docs = docs.into_scratch();
     Ok(())
   }

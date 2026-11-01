@@ -3,7 +3,7 @@
 //! Where whitespace is significant, a line can only be broken inside a tag. So a node may have to print the end of the
 //! tag before it or the start of the tag after it. Prettier calls that borrowing.
 
-use super::Options;
+use super::Context;
 use super::ast::{Flags, Id, Kind, Tree};
 use super::utilities::{is_pre_like, is_text_like};
 
@@ -13,7 +13,7 @@ const HTML5_DOCTYPE_START_MARKER: &[u8] = b"<!doctype";
 #[derive(Copy, Clone)]
 pub(crate) struct Tags<'t, 'a, 'o> {
   pub(crate) tree: &'t Tree<'a>,
-  pub(crate) options: &'o Options<'o>,
+  pub(crate) options: &'o Context<'o>,
 }
 
 fn push_raw_name((namespace, name): (&[u8], &[u8]), out: &mut Vec<u8>) {

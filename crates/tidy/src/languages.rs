@@ -70,7 +70,7 @@ const LANGUAGES: &[Language] = &[
       ".sublime-menu",
       ".sublime-mousemap",
       ".sublime-project",
-      ".sublime-settings",
+      ".sublime-options",
       ".sublime-theme",
       ".sublime-workspace",
       ".sublime_metrics",

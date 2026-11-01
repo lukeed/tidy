@@ -145,7 +145,7 @@ fn build(
 
 /// Options of the Handlebars printer, Prettier's by default.
 #[derive(Clone, Debug)]
-pub struct Settings {
+pub struct Options {
   pub width: usize,
   pub tab_width: usize,
   pub tabs: bool,
@@ -164,7 +164,7 @@ pub struct Settings {
   pub ignore: String,
 }
 
-impl Default for Settings {
+impl Default for Options {
   fn default() -> Self {
     Self {
       width: 80,
@@ -182,7 +182,7 @@ impl Default for Settings {
 }
 
 /// Options of the printer, as it uses them.
-pub(crate) struct Options {
+pub(crate) struct Context {
   pub(crate) width: usize,
   pub(crate) tab_width: usize,
   /// `embeddedLanguageFormatting` is `"auto"`.
@@ -192,8 +192,8 @@ pub(crate) struct Options {
 }
 
 /// Formats `text`, handing the code of other languages to `embed`.
-pub fn format(text: &str, settings: &Settings, embed: &mut dyn Embed) -> Result<String, Error> {
-  Formatter::default().format(text, settings, embed).map(str::to_owned)
+pub fn format(text: &str, options: &Options, embed: &mut dyn Embed) -> Result<String, Error> {
+  Formatter::default().format(text, options, embed).map(str::to_owned)
 }
 
 /// Formats one template after another, reusing its buffers.
@@ -210,19 +210,19 @@ impl Formatter {
   pub fn format(
     &mut self,
     text: &str,
-    settings: &Settings,
+    options: &Options,
     embed: &mut dyn Embed,
   ) -> Result<&str, Error> {
     let (bom, text) = crate::without_bom(text);
-    let embed = if settings.format_embedded { embed } else { &mut crate::embed::Verbatim };
-    self.format_text(text, settings, embed)?;
+    let embed = if options.format_embedded { embed } else { &mut crate::embed::Verbatim };
+    self.format_text(text, options, embed)?;
     Ok(crate::with_bom(bom, &mut self.output))
   }
 
   fn format_text(
     &mut self,
     text: &str,
-    settings: &Settings,
+    options: &Options,
     embed: &mut dyn Embed,
   ) -> Result<(), Error> {
     // Prettier also counts a no-break space as whitespace here.
@@ -234,9 +234,9 @@ impl Formatter {
       true => text.replace("\r\n", "\n").replace('\r', "\n").into(),
       false => text.into(),
     };
-    if settings.filepath.as_deref().is_some_and(is_text) {
-      let is_tempura = settings.dialect.is_tempura(text.as_bytes());
-      let indent = if settings.tabs { "\t".to_owned() } else { " ".repeat(settings.tab_width) };
+    if options.filepath.as_deref().is_some_and(is_text) {
+      let is_tempura = options.dialect.is_tempura(text.as_bytes());
+      let indent = if options.tabs { "\t".to_owned() } else { " ".repeat(options.tab_width) };
       let Some(formatted) = text::format(&text, is_tempura, &indent) else {
         return Err(Error::Syntax {
           message: Message::ExpectedEndOfMustache.text().to_owned(),
@@ -255,14 +255,14 @@ impl Formatter {
     }
     let rejection = Rejection::default();
     let (template, is_tempura) =
-      parse(content.as_bytes(), front_matter_end, settings.dialect, &mut self.scratch, &rejection)
+      parse(content.as_bytes(), front_matter_end, options.dialect, &mut self.scratch, &rejection)
         .map_err(|error| match error {
-          Abort::Syntax(_) => {
-            let reason = rejection.reason();
-            Error::Syntax { message: reason.0.text().to_owned(), at: reason.1 as usize }
-          }
-          Abort::NestedTooDeeply => Error::TooDeep,
-        })?;
+        Abort::Syntax(_) => {
+          let reason = rejection.reason();
+          Error::Syntax { message: reason.0.text().to_owned(), at: reason.1 as usize }
+        }
+        Abort::NestedTooDeeply => Error::TooDeep,
+      })?;
     if self.scratch.tree.has_lost_text {
       self.output.clear();
       self.output.push_str(&text);
@@ -271,20 +271,20 @@ impl Formatter {
     self.bump.reset();
     let mut docs = Docs::reuse(&self.bump, &mut self.docs);
     docs.reserve(content.len());
-    let options = Options {
-      width: settings.width,
-      tab_width: settings.tab_width,
-      formats_embedded: settings.format_embedded,
+    let context = Context {
+      width: options.width,
+      tab_width: options.tab_width,
+      formats_embedded: options.format_embedded,
       is_tempura,
     };
     let mut printer = printer::Printer {
       tree: &self.scratch.tree,
       source: &content,
       front_matter: &text[..front_matter_end],
-      options: &options,
-      is_white_space_sensitive: settings.whitespace != crate::Whitespace::Ignore,
-      single_quote: settings.single_quote,
-      ignore: settings.ignore.as_bytes(),
+      options: &context,
+      is_white_space_sensitive: options.whitespace != crate::Whitespace::Ignore,
+      single_quote: options.single_quote,
+      ignore: options.ignore.as_bytes(),
       docs: &mut docs,
       embed,
       open: Vec::new(),
@@ -297,10 +297,10 @@ impl Formatter {
       return Err(Error::TooDeep);
     }
     let print = doc::Options {
-      width: settings.width,
-      tab_width: settings.tab_width,
-      tabs: settings.tabs,
-      eol: settings.eol,
+      width: options.width,
+      tab_width: options.tab_width,
+      tabs: options.tabs,
+      eol: options.eol,
     };
     self.output = doc::print(&docs, &print, std::mem::take(&mut self.output));
     self.docs = docs.into_scratch();

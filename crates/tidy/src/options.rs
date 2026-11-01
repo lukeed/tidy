@@ -1,5 +1,5 @@
-//! The settings of every language, and a formatter that takes any of them. Each language can also be formatted on its
-//! own, with its own settings: `tidy::css::format(text, &settings.css, embed)`.
+//! The options of every language, and a formatter that takes any of them. Each language can also be formatted on its
+//! own, with its own options: `tidy::css::format(text, &options.css, embed)`.
 
 use crate::embed::Embed;
 use crate::{Error, Whitespace, css, doc, handlebars, html, xml};
@@ -35,30 +35,30 @@ impl Language {
   }
 }
 
-/// The settings of each language, Prettier's by default.
+/// The options of each language, Prettier's by default.
 #[derive(Clone, Debug)]
-pub struct Settings {
-  pub html: html::Settings,
-  pub vue: html::Settings,
-  pub handlebars: handlebars::Settings,
+pub struct Options {
+  pub html: html::Options,
+  pub vue: html::Options,
+  pub handlebars: handlebars::Options,
   /// For CSS, SCSS and Less.
-  pub css: css::Settings,
-  pub xml: xml::Settings,
+  pub css: css::Options,
+  pub xml: xml::Options,
 }
 
-impl Default for Settings {
+impl Default for Options {
   fn default() -> Self {
     Self {
-      html: html::Settings::default(),
-      vue: html::Settings { parser: html::Parser::Vue, ..html::Settings::default() },
-      handlebars: handlebars::Settings::default(),
-      css: css::Settings::default(),
-      xml: xml::Settings::default(),
+      html: html::Options::default(),
+      vue: html::Options { parser: html::Parser::Vue, ..html::Options::default() },
+      handlebars: handlebars::Options::default(),
+      css: css::Options::default(),
+      xml: xml::Options::default(),
     }
   }
 }
 
-impl Settings {
+impl Options {
   /// Applies the choices that are set in `shared` to every language that has them.
   pub fn share(&mut self, shared: &Shared) {
     shared.html(&mut self.html);
@@ -109,49 +109,49 @@ impl Shared {
     }
   }
 
-  pub fn html(&self, settings: &mut html::Settings) {
-    set(&mut settings.width, self.width);
-    set(&mut settings.tab_width, self.indent);
-    set(&mut settings.tabs, self.tabs);
-    set(&mut settings.eol, self.eol);
-    set(&mut settings.whitespace, self.whitespace);
-    set(&mut settings.bracket_same_line, self.bracket_same_line);
-    set(&mut settings.single_attribute_per_line, self.single_attribute_per_line);
-    set(&mut settings.ignore, self.ignore.clone());
-    set(&mut settings.format_embedded, self.format_embedded);
+  pub fn html(&self, options: &mut html::Options) {
+    set(&mut options.width, self.width);
+    set(&mut options.tab_width, self.indent);
+    set(&mut options.tabs, self.tabs);
+    set(&mut options.eol, self.eol);
+    set(&mut options.whitespace, self.whitespace);
+    set(&mut options.bracket_same_line, self.bracket_same_line);
+    set(&mut options.single_attribute_per_line, self.single_attribute_per_line);
+    set(&mut options.ignore, self.ignore.clone());
+    set(&mut options.format_embedded, self.format_embedded);
   }
 
-  pub fn handlebars(&self, settings: &mut handlebars::Settings) {
-    set(&mut settings.width, self.width);
-    set(&mut settings.tab_width, self.indent);
-    set(&mut settings.tabs, self.tabs);
-    set(&mut settings.eol, self.eol);
-    set(&mut settings.whitespace, self.whitespace);
-    set(&mut settings.single_quote, self.single_quote);
-    set(&mut settings.ignore, self.ignore.clone());
-    set(&mut settings.format_embedded, self.format_embedded);
+  pub fn handlebars(&self, options: &mut handlebars::Options) {
+    set(&mut options.width, self.width);
+    set(&mut options.tab_width, self.indent);
+    set(&mut options.tabs, self.tabs);
+    set(&mut options.eol, self.eol);
+    set(&mut options.whitespace, self.whitespace);
+    set(&mut options.single_quote, self.single_quote);
+    set(&mut options.ignore, self.ignore.clone());
+    set(&mut options.format_embedded, self.format_embedded);
   }
 
-  pub fn css(&self, settings: &mut css::Settings) {
-    set(&mut settings.width, self.width);
-    set(&mut settings.tab_width, self.indent);
-    set(&mut settings.tabs, self.tabs);
-    set(&mut settings.eol, self.eol);
-    set(&mut settings.single_quote, self.single_quote);
-    set(&mut settings.ignore, self.ignore.clone());
-    set(&mut settings.format_embedded, self.format_embedded);
+  pub fn css(&self, options: &mut css::Options) {
+    set(&mut options.width, self.width);
+    set(&mut options.tab_width, self.indent);
+    set(&mut options.tabs, self.tabs);
+    set(&mut options.eol, self.eol);
+    set(&mut options.single_quote, self.single_quote);
+    set(&mut options.ignore, self.ignore.clone());
+    set(&mut options.format_embedded, self.format_embedded);
   }
 
-  pub fn xml(&self, settings: &mut xml::Settings) {
-    set(&mut settings.width, self.width);
-    set(&mut settings.tab_width, self.indent);
-    set(&mut settings.tabs, self.tabs);
-    set(&mut settings.eol, self.eol);
-    set(&mut settings.whitespace, self.whitespace);
-    set(&mut settings.bracket_same_line, self.bracket_same_line);
-    set(&mut settings.single_attribute_per_line, self.single_attribute_per_line);
-    set(&mut settings.ignore, self.ignore.clone());
-    set(&mut settings.format_embedded, self.format_embedded);
+  pub fn xml(&self, options: &mut xml::Options) {
+    set(&mut options.width, self.width);
+    set(&mut options.tab_width, self.indent);
+    set(&mut options.tabs, self.tabs);
+    set(&mut options.eol, self.eol);
+    set(&mut options.whitespace, self.whitespace);
+    set(&mut options.bracket_same_line, self.bracket_same_line);
+    set(&mut options.single_attribute_per_line, self.single_attribute_per_line);
+    set(&mut options.ignore, self.ignore.clone());
+    set(&mut options.format_embedded, self.format_embedded);
   }
 }
 
@@ -166,11 +166,11 @@ fn set<T>(field: &mut T, value: Option<T>) {
 pub fn format(
   text: &str,
   language: Language,
-  settings: &Settings,
+  options: &Options,
   path: Option<&str>,
   embed: &mut dyn Embed,
 ) -> Result<String, Error> {
-  Formatter::default().format(text, language, settings, path, embed).map(str::to_owned)
+  Formatter::default().format(text, language, options, path, embed).map(str::to_owned)
 }
 
 /// Formats one file after another, in any language, reusing the buffers of each.
@@ -188,26 +188,26 @@ impl Formatter {
     &mut self,
     text: &str,
     language: Language,
-    settings: &Settings,
+    options: &Options,
     path: Option<&str>,
     embed: &mut dyn Embed,
   ) -> Result<&str, Error> {
     let filepath = path.map(str::to_owned);
     match language {
       Language::Html | Language::Vue => {
-        let settings = if language == Language::Vue { &settings.vue } else { &settings.html };
-        let settings = html::Settings { filepath, ..settings.clone() };
-        self.html.format(text, &settings, embed)
+        let base = if language == Language::Vue { &options.vue } else { &options.html };
+        let options = html::Options { filepath, ..base.clone() };
+        self.html.format(text, &options, embed)
       }
       Language::Handlebars => {
-        let settings = handlebars::Settings { filepath, ..settings.handlebars.clone() };
-        self.handlebars.format(text, &settings, embed)
+        let options = handlebars::Options { filepath, ..options.handlebars.clone() };
+        self.handlebars.format(text, &options, embed)
       }
       Language::Css(dialect) => {
-        let settings = css::Settings { dialect, ..settings.css.clone() };
-        self.css.format(text, &settings, embed)
+        let options = css::Options { dialect, ..options.css.clone() };
+        self.css.format(text, &options, embed)
       }
-      Language::Xml => self.xml.format(text, &settings.xml, embed),
+      Language::Xml => self.xml.format(text, &options.xml, embed),
     }
   }
 }

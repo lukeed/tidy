@@ -1,7 +1,7 @@
 //! The printer of `@prettier/plugin-xml` (`src/printer.js` and `src/embed.js`).
 
 use super::ast::{Attribute, Doctype, Element, External, Item, Prolog, Span, Top, Tree};
-use super::{Quotes, Settings, sort};
+use super::{Options, Quotes, sort};
 use crate::Whitespace;
 use crate::doc::{Align, Docs};
 use crate::embed::{Embed, Kind as Purpose, Request};
@@ -11,7 +11,7 @@ use crate::strings;
 pub(crate) struct Printer<'p, 'a> {
   pub(crate) tree: &'p Tree,
   pub(crate) text: &'a str,
-  pub(crate) settings: &'p Settings,
+  pub(crate) options: &'p Options,
   pub(crate) docs: &'p mut Docs<'a>,
   pub(crate) embed: &'p mut dyn Embed,
   pub(crate) stack: Stack,
@@ -57,7 +57,7 @@ impl<'a> Printer<'_, 'a> {
       self.attribute(attribute);
     }
     self.docs.close(indent);
-    match self.settings.self_closing_space {
+    match self.options.self_closing_space {
       true => self.docs.line(),
       false => self.docs.softline(),
     }
@@ -116,7 +116,7 @@ impl<'a> Printer<'_, 'a> {
       return;
     }
     let element = self.tree.elements[id as usize];
-    if self.settings.format_embedded && self.embedded(&element) {
+    if self.options.format_embedded && self.embedded(&element) {
       return;
     }
     let Some(content) = element.content else { return self.self_closed(&element) };
@@ -133,7 +133,7 @@ impl<'a> Printer<'_, 'a> {
       self.close_tag(&element);
       return self.docs.close(group);
     }
-    if self.settings.whitespace == Whitespace::Auto
+    if self.options.whitespace == Whitespace::Auto
       && items.iter().any(|item| matches!(item, Item::Text(_)))
     {
       let group = self.docs.group();
@@ -254,7 +254,7 @@ impl<'a> Printer<'_, 'a> {
 
   /// `isWhitespaceIgnorable`
   fn is_whitespace_ignorable(&self, element: &Element, items: &[Item]) -> bool {
-    self.settings.whitespace != Whitespace::Strict
+    self.options.whitespace != Whitespace::Strict
       && element.name.of(self.text) != "xsl:text"
       && !self.tree.attributes(element.attributes).iter().any(|attribute| {
         attribute.name.of(self.text) == "xml:space"
@@ -286,7 +286,7 @@ impl<'a> Printer<'_, 'a> {
   }
 
   fn space(&self) -> Space {
-    match (self.settings.bracket_same_line, self.settings.self_closing_space) {
+    match (self.options.bracket_same_line, self.options.self_closing_space) {
       (true, true) => Space::Text(" "),
       (true, false) => Space::Text(""),
       (false, true) => Space::Line,
@@ -297,7 +297,7 @@ impl<'a> Printer<'_, 'a> {
   fn open_tag(&mut self, element: &Element) {
     let group = self.docs.group();
     self.tag_start(element, true);
-    if !self.settings.bracket_same_line {
+    if !self.options.bracket_same_line {
       self.docs.softline();
     }
     self.docs.text(">");
@@ -321,12 +321,12 @@ impl<'a> Printer<'_, 'a> {
     if attributes.is_empty() {
       return;
     }
-    if is_printed && self.settings.sort_attributes {
+    if is_printed && self.options.sort_attributes {
       attributes
         .to_mut()
         .sort_by(|left, right| sort::attributes(left.name.of(self.text), right.name.of(self.text)));
     }
-    let hard = is_printed && self.settings.single_attribute_per_line;
+    let hard = is_printed && self.options.single_attribute_per_line;
     let indent = self.docs.indent();
     self.docs.line();
     for (index, attribute) in attributes.iter().enumerate() {
@@ -345,7 +345,7 @@ impl<'a> Printer<'_, 'a> {
     self.span(attribute.name);
     self.docs.text("=");
     let value = attribute.value.of(self.text);
-    match self.settings.quotes {
+    match self.options.quotes {
       Quotes::Preserve => self.docs.text(value),
       Quotes::Double => self.docs.owned(&format!("\"{}\"", unquoted(value).replace('"', "&quot;"))),
       Quotes::Single => self.docs.owned(&format!("'{}'", unquoted(value).replace('\'', "&apos;"))),
@@ -369,7 +369,7 @@ impl<'a> Printer<'_, 'a> {
       language,
       kind: Purpose::Block,
       indent: 0,
-      width: self.settings.width,
+      width: self.options.width,
       module: true,
     };
     let formatted = self.embed.format(request);
@@ -383,7 +383,7 @@ impl<'a> Printer<'_, 'a> {
     let group = self.docs.group();
     let open = self.docs.group();
     self.tag_start(element, false);
-    if !self.settings.bracket_same_line {
+    if !self.options.bracket_same_line {
       self.docs.softline();
     }
     self.docs.text(">");
@@ -433,14 +433,14 @@ impl<'a> Printer<'_, 'a> {
       "less" => crate::css::Dialect::Less,
       _ => return None,
     };
-    let settings = crate::css::Settings {
+    let options = crate::css::Options {
       dialect,
-      width: self.settings.width,
-      tab_width: self.settings.tab_width,
-      tabs: self.settings.tabs,
-      ..crate::css::Settings::default()
+      width: self.options.width,
+      tab_width: self.options.tab_width,
+      tabs: self.options.tabs,
+      ..crate::css::Options::default()
     };
-    crate::css::document(code, &settings, false, false, self.embed).ok()
+    crate::css::document(code, &options, false, false, self.embed).ok()
   }
 
   // ───────────────────────────── texts ─────────────────────────────

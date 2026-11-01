@@ -25,7 +25,7 @@ pub(crate) struct Embedded<'c> {
 }
 
 impl<'c> Embedded<'c> {
-  pub(crate) fn request(&self, indents: usize, options: &super::Options<'_>) -> Request<'c> {
+  pub(crate) fn request(&self, indents: usize, options: &super::Context<'_>) -> Request<'c> {
     Request {
       code: self.code,
       language: self.language,
@@ -225,13 +225,13 @@ fn style_sheet(
     "less" => crate::css::Dialect::Less,
     _ => return None,
   };
-  let settings = crate::css::Settings {
+  let options = crate::css::Options {
     dialect,
     width: printer.options.width,
     tab_width: printer.options.tab_width,
-    ..crate::css::Settings::default()
+    ..crate::css::Options::default()
   };
-  crate::css::document(code, &settings, is_style_attribute, true, printer.embed).ok()
+  crate::css::document(code, &options, is_style_attribute, true, printer.embed).ok()
 }
 
 /// The expression in `{{ }}`.

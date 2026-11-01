@@ -1,4 +1,4 @@
-//! Settings from files: the nearest `tidy.json`, `tidy.jsonc` or `tidy.toml`, and `.editorconfig`.
+//! Options from files: the nearest `tidy.json`, `tidy.jsonc` or `tidy.toml`, and `.editorconfig`.
 //!
 //! A config sets shared choices at the top, and each language's own in its section, where the shared ones can be set
 //! again for that language only:
@@ -15,7 +15,7 @@
 //! `.editorconfig` sets `indent_style`, `indent_size`, `tab_width`, `max_line_length` and `end_of_line`, as Prettier
 //! reads them. A tidy config overrides it.
 
-use crate::settings::{Settings, Shared};
+use crate::options::{Options, Shared};
 use crate::{Whitespace, doc, handlebars, xml};
 use rustc_hash::FxHashMap;
 use serde_json::{Map, Value};
@@ -27,7 +27,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 /// The names of a config file, in the order they are looked for.
 pub const NAMES: [&str; 3] = ["tidy.json", "tidy.jsonc", "tidy.toml"];
 
-/// The settings of a config file.
+/// The options of a config file.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Config {
   pub shared: Shared,
@@ -116,31 +116,31 @@ impl Config {
     Ok(config)
   }
 
-  /// Applies the config to `settings`: the shared choices to every language, and then each language's own.
-  pub fn apply(&self, settings: &mut Settings) {
-    settings.share(&self.shared);
-    self.html.html(&mut settings.html);
-    self.vue.shared.html(&mut settings.vue);
+  /// Applies the config to `options`: the shared choices to every language, and then each language's own.
+  pub fn apply(&self, options: &mut Options) {
+    options.share(&self.shared);
+    self.html.html(&mut options.html);
+    self.vue.shared.html(&mut options.vue);
     if let Some(indent) = self.vue.indent_blocks {
-      settings.vue.vue_indent_script_and_style = indent;
+      options.vue.vue_indent_script_and_style = indent;
     }
-    self.handlebars.shared.handlebars(&mut settings.handlebars);
+    self.handlebars.shared.handlebars(&mut options.handlebars);
     if let Some(dialect) = self.handlebars.dialect {
-      settings.handlebars.dialect = dialect;
+      options.handlebars.dialect = dialect;
     }
-    self.css.shared.css(&mut settings.css);
+    self.css.shared.css(&mut options.css);
     if let Some(comma) = self.css.trailing_comma {
-      settings.css.trailing_comma = comma;
+      options.css.trailing_comma = comma;
     }
-    self.xml.shared.xml(&mut settings.xml);
+    self.xml.shared.xml(&mut options.xml);
     if let Some(space) = self.xml.self_closing_space {
-      settings.xml.self_closing_space = space;
+      options.xml.self_closing_space = space;
     }
     if let Some(sort) = self.xml.sort_attributes {
-      settings.xml.sort_attributes = sort;
+      options.xml.sort_attributes = sort;
     }
     if let Some(quotes) = self.xml.quotes {
-      settings.xml.quotes = quotes;
+      options.xml.quotes = quotes;
     }
   }
 }
@@ -288,7 +288,7 @@ fn text<'v>(value: &'v Value, name: &str) -> Result<&'v str, String> {
 
 // ───────────────────────────── files ─────────────────────────────
 
-/// Finds the settings of each file from the config files around it. It looks at each folder once, so one resolver
+/// Finds the options of each file from the config files around it. It looks at each folder once, so one resolver
 /// can serve a whole walk, from several threads.
 pub struct Resolver {
   /// The config of every file, instead of the nearest one.
@@ -335,7 +335,7 @@ impl Default for Resolver {
 }
 
 impl Resolver {
-  /// A resolver that gives every file the settings of `config`, and of its `.editorconfig` files.
+  /// A resolver that gives every file the options of `config`, and of its `.editorconfig` files.
   pub fn fixed(config: Config) -> Resolver {
     Resolver { fixed: Some(Arc::new(config)), ..Resolver::default() }
   }
@@ -355,19 +355,19 @@ impl Resolver {
     self.listings.lock().unwrap_or_else(PoisonError::into_inner).insert(key, listing);
   }
 
-  /// The settings of the file at `path`: Prettier's, then `.editorconfig`, then the nearest tidy config.
-  pub fn settings(&self, path: &Path) -> Result<Settings, String> {
+  /// The options of the file at `path`: Prettier's, then `.editorconfig`, then the nearest tidy config.
+  pub fn options(&self, path: &Path) -> Result<Options, String> {
     let path = self.absolute(path);
     let folder = match path.parent() {
       Some(dir) => self.folder(dir)?,
       None => Arc::default(),
     };
-    let mut settings = Settings::default();
-    settings.share(&editor_settings(&properties(&folder.editors, &path)));
+    let mut options = Options::default();
+    options.share(&editor_settings(&properties(&folder.editors, &path)));
     if let Some(config) = self.fixed.as_ref().or(folder.config.as_ref()) {
-      config.apply(&mut settings);
+      config.apply(&mut options);
     }
-    Ok(settings)
+    Ok(options)
   }
 
   /// `path` from the root, without `.` in it.
