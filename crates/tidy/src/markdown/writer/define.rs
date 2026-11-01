@@ -1,6 +1,8 @@
 use pulldown_cmark::Parser;
 
 use super::{Gap, Writer, flags, inline};
+use crate::Wrap;
+use crate::width::width;
 
 impl<'s> Writer<'s, '_> {
   /// Write the link reference definitions that come before `at`. pulldown-cmark reports each label
@@ -42,8 +44,9 @@ impl<'s> Writer<'s, '_> {
     self.cursor = Some(to);
   }
 
-  /// Write one definition, beside the one before it, as Prettier does.
-  fn define(&mut self, span: std::ops::Range<usize>, line: Option<String>) {
+  /// Write one definition, beside the one before it, as Prettier does. When wrapping, one too wide
+  /// for its line puts its destination and title on lines of their own, indented 2.
+  fn define(&mut self, span: std::ops::Range<usize>, defined: Option<inline::Defined>) {
     self.adjacent = None;
     self.joins = None;
     if self.gap == Gap::Source {
@@ -53,8 +56,21 @@ impl<'s> Writer<'s, '_> {
       self.gap = Gap::Line;
     }
     self.separate();
-    match line {
-      Some(line) => self.write(&line),
+    match defined {
+      Some(defined) => {
+        let line = defined.line();
+        let room = self.options.width.saturating_sub(self.indent());
+        if self.options.wrap == Wrap::Always && width(&line) > room {
+          self.write(&defined.head);
+          for part in [Some(&defined.url), defined.title.as_ref()].into_iter().flatten() {
+            self.newline();
+            self.write("  ");
+            self.write(part);
+          }
+        } else {
+          self.write(&line);
+        }
+      }
       None => {
         let raw = self.source[span].trim_end();
         let mut lines = raw.lines();

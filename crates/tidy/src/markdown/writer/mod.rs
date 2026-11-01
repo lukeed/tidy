@@ -164,7 +164,7 @@ const BOX: usize = 4;
 /// A link reference definition, and Prettier's form of it unless that would read differently.
 struct Definition {
   span: Range<usize>,
-  line: Option<String>,
+  line: Option<inline::Defined>,
 }
 
 struct Writer<'s, 'o> {

@@ -476,6 +476,14 @@ fn wraps_like_prettier() {
 }
 
 #[test]
+fn breaks_long_definitions_when_wrapping() {
+  let source = "[a]: /short\n[long-label]: https://example.com/a/long/url \"And a title\"\n[b]: https://example.com/a/long/url/without/title\n\n- x [a]\n\n  [c]: https://example.com/inside/an/item \"Title\"\n";
+  let expected = "[a]: /short\n[long-label]:\n  https://example.com/a/long/url\n  \"And a title\"\n[b]:\n  https://example.com/a/long/url/without/title\n\n- x [a]\n\n  [c]:\n    https://example.com/inside/an/item\n    \"Title\"\n";
+  let always = Options { wrap: Wrap::Always, width: 30, ..Options::default() };
+  assert_eq!(mdtidy::format(source, &always), expected);
+}
+
+#[test]
 fn never_wraps_into_a_block() {
   let options = Options { wrap: Wrap::Always, width: 5, ..Options::default() };
   assert_eq!(mdtidy::format("aaaa - b\n", &options), "aaaa -\nb\n");

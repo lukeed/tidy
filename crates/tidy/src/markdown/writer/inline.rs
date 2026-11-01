@@ -35,15 +35,33 @@ pub(super) fn tail(url: &str, title: &str) -> Option<String> {
   }
 }
 
-/// A link reference definition as Prettier writes it, from the source it spans.
-pub(super) fn definition(source: &str, url: &str, title: Option<&str>) -> Option<String> {
-  let label = label(source)?;
-  let url = destination(url, false)?;
-  let label = squash(label);
-  match title {
-    None | Some("") => Some(format!("[{label}]: {url}")),
-    Some(title) => Some(format!("[{label}]: {url} {}", quote(title)?)),
+/// A link reference definition as Prettier writes it: its `[label]:`, destination, and title.
+#[derive(Clone)]
+pub(super) struct Defined {
+  pub(super) head: String,
+  pub(super) url: String,
+  pub(super) title: Option<String>,
+}
+
+impl Defined {
+  /// The definition on one line.
+  pub(super) fn line(&self) -> String {
+    match &self.title {
+      Some(title) => format!("{} {} {title}", self.head, self.url),
+      None => format!("{} {}", self.head, self.url),
+    }
   }
+}
+
+/// A link reference definition as Prettier writes it, from the source it spans.
+pub(super) fn definition(source: &str, url: &str, title: Option<&str>) -> Option<Defined> {
+  let head = format!("[{}]:", squash(label(source)?));
+  let url = destination(url, false)?.into_owned();
+  let title = match title {
+    None | Some("") => None,
+    Some(title) => Some(quote(title)?),
+  };
+  Some(Defined { head, url, title })
 }
 
 /// `label` with each run of whitespace as one space, as Prettier writes labels. Unlike `collapse`,
