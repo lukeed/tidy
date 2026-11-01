@@ -95,9 +95,10 @@ fn run() -> Result<ExitCode, String> {
   }
 
   let mut files = Vec::new();
+  let mut errors = Vec::new();
   for path in &paths {
     if path.is_dir() {
-      walk(path, &mut files);
+      walk(path, &mut files, &mut errors);
     } else {
       files.push(path.clone());
     }
@@ -115,7 +116,11 @@ fn run() -> Result<ExitCode, String> {
   outcomes.sort_by_key(|(index, _)| *index);
 
   let mut changed = 0;
-  let mut failed = false;
+  errors.sort();
+  let mut failed = !errors.is_empty();
+  for (path, error) in &errors {
+    eprintln!("mdtidy: {}: {error}", path.display());
+  }
   for (index, outcome) in outcomes {
     let path = files[index].display();
     match outcome {
@@ -197,31 +202,55 @@ fn work(
     let Some(path) = files.get(index) else { return outcomes };
     let outcome = match std::fs::read_to_string(path) {
       Err(error) => Outcome::Failed(error.to_string()),
-      Ok(source) => {
-        let output = mdtidy::format(&source, options);
-        if output == source {
-          Outcome::Same
-        } else if write && let Err(error) = std::fs::write(path, output) {
-          Outcome::Failed(error.to_string())
-        } else {
-          Outcome::Changed
-        }
-      }
+      Ok(source) => match std::panic::catch_unwind(|| mdtidy::format(&source, options)) {
+        Err(panic) => Outcome::Failed(format!("formatting panicked: {}", message(&*panic))),
+        Ok(output) if output == source => Outcome::Same,
+        Ok(output) => match write.then(|| std::fs::write(path, output)) {
+          Some(Err(error)) => Outcome::Failed(error.to_string()),
+          _ => Outcome::Changed,
+        },
+      },
     };
     outcomes.push((index, outcome));
   }
 }
 
-/// Collect Markdown files under `dir`, skipping hidden folders and `node_modules`.
-fn walk(dir: &Path, files: &mut Vec<PathBuf>) {
-  let Ok(entries) = std::fs::read_dir(dir) else { return };
-  for entry in entries.flatten() {
+/// The text of a panic's payload.
+fn message(panic: &(dyn std::any::Any + Send)) -> &str {
+  match (panic.downcast_ref::<&str>(), panic.downcast_ref::<String>()) {
+    (Some(text), _) => text,
+    (_, Some(text)) => text,
+    _ => "no message",
+  }
+}
+
+/// Collect Markdown files under `dir`, skipping hidden folders and `node_modules`. Folders and
+/// entries that can't be read are collected as errors, and the walk goes on.
+fn walk(dir: &Path, files: &mut Vec<PathBuf>, errors: &mut Vec<(PathBuf, String)>) {
+  let entries = match std::fs::read_dir(dir) {
+    Ok(entries) => entries,
+    Err(error) => return errors.push((dir.to_path_buf(), error.to_string())),
+  };
+  for entry in entries {
+    let entry = match entry {
+      Ok(entry) => entry,
+      Err(error) => {
+        errors.push((dir.to_path_buf(), error.to_string()));
+        continue;
+      }
+    };
     let name = entry.file_name();
-    let Ok(kind) = entry.file_type() else { continue };
+    let kind = match entry.file_type() {
+      Ok(kind) => kind,
+      Err(error) => {
+        errors.push((entry.path(), error.to_string()));
+        continue;
+      }
+    };
     if kind.is_dir() {
       let name = name.to_string_lossy();
       if !name.starts_with('.') && name != "node_modules" {
-        walk(&entry.path(), files);
+        walk(&entry.path(), files, errors);
       }
     } else if kind.is_file()
       && Path::new(&name).extension().is_some_and(|ext| ext == "md" || ext == "markdown")
