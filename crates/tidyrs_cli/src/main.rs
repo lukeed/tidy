@@ -1,7 +1,7 @@
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Condvar, Mutex, PoisonError};
 
 use tidyrs::css;
 use tidyrs::embed::Verbatim;
@@ -117,47 +117,30 @@ fn run() -> Result<ExitCode, String> {
     return Err("pass --check or --write to format more than one file".into());
   }
 
-  let mut files = Vec::new();
-  for path in &paths {
-    if path.is_dir() {
-      walk(path, &mut files);
-    } else {
-      files.push(path.clone());
-    }
-  }
-  files.sort();
-
-  let next = AtomicUsize::new(0);
+  let queue = Queue::new(&paths);
   let cores = std::thread::available_parallelism().map_or(1, |count| count.get());
-  let threads = threads.unwrap_or(cores).clamp(1, files.len().max(1));
-  let mut outcomes: Vec<(usize, Outcome)> = std::thread::scope(|scope| {
-    let workers: Vec<_> = (0..threads)
-      .map(|_| scope.spawn(|| work(&files, &next, &settings, language, write)))
-      .collect();
+  let threads = threads.unwrap_or(cores).max(1);
+  let mut outcomes: Vec<(PathBuf, Outcome)> = std::thread::scope(|scope| {
+    let workers: Vec<_> =
+      (0..threads).map(|_| scope.spawn(|| work(&queue, &settings, language, write))).collect();
     workers.into_iter().flat_map(|worker| worker.join().unwrap_or_default()).collect()
   });
-  outcomes.sort_by_key(|(index, _)| *index);
+  outcomes.sort_by(|(left, _), (right, _)| left.cmp(right));
 
-  let mut changed = 0;
-  let mut failed = false;
-  for (index, outcome) in outcomes {
-    let path = files[index].display();
+  let (mut listed, mut errors) = (String::new(), String::new());
+  for (path, outcome) in &outcomes {
+    let path = path.display();
     match outcome {
-      Outcome::Same => {}
-      Outcome::Changed => {
-        changed += 1;
-        println!("{path}");
-      }
-      Outcome::Failed(error) => {
-        failed = true;
-        eprintln!("tidyrs: {path}: {error}");
-      }
+      Outcome::Changed => listed.push_str(&format!("{path}\n")),
+      Outcome::Failed(error) => errors.push_str(&format!("tidyrs: {path}: {error}\n")),
     }
   }
-  if failed {
+  std::io::stdout().write_all(listed.as_bytes()).map_err(|error| error.to_string())?;
+  std::io::stderr().write_all(errors.as_bytes()).map_err(|error| error.to_string())?;
+  if !errors.is_empty() {
     return Ok(ExitCode::from(2));
   }
-  Ok(if check && changed > 0 { ExitCode::FAILURE } else { ExitCode::SUCCESS })
+  Ok(if check && !outcomes.is_empty() { ExitCode::FAILURE } else { ExitCode::SUCCESS })
 }
 
 /// What a file is written in.
@@ -289,50 +272,114 @@ impl Formatters {
   }
 }
 
+/// What happened to a file that isn't formatted already.
 enum Outcome {
-  Same,
   Changed,
   Failed(String),
 }
 
 fn work(
-  files: &[PathBuf],
-  next: &AtomicUsize,
+  queue: &Queue,
   settings: &Settings,
   language: Option<Language>,
   write: bool,
-) -> Vec<(usize, Outcome)> {
+) -> Vec<(PathBuf, Outcome)> {
   let mut outcomes = Vec::new();
   let mut formatters = Formatters::default();
   let mut source = String::new();
-  loop {
-    let index = next.fetch_add(1, Ordering::Relaxed);
-    let Some(path) = files.get(index) else { return outcomes };
+  while let Some(task) = queue.next() {
+    let path = match task {
+      Task::Folder(dir) => {
+        queue.done(read(&dir));
+        continue;
+      }
+      Task::File(path) => path,
+    };
     source.clear();
-    let read = std::fs::File::open(path).and_then(|mut file| file.read_to_string(&mut source));
+    let read = std::fs::File::open(&path).and_then(|mut file| file.read_to_string(&mut source));
     let outcome = match read {
       Err(error) => Outcome::Failed(error.to_string()),
       Ok(_) => match formatters.format(
         &source,
         settings,
-        language.unwrap_or_else(|| language_of(path)),
-        Some(path),
+        language.unwrap_or_else(|| language_of(&path)),
+        Some(&path),
       ) {
         Err(error) => Outcome::Failed(error),
-        Ok(output) if output == source => Outcome::Same,
-        Ok(output) => match write.then(|| std::fs::write(path, output)) {
+        Ok(output) if output == source => {
+          queue.done(Vec::new());
+          continue;
+        }
+        Ok(output) => match write.then(|| std::fs::write(&path, output)) {
           Some(Err(error)) => Outcome::Failed(error.to_string()),
           _ => Outcome::Changed,
         },
       },
     };
-    outcomes.push((index, outcome));
+    outcomes.push((path, outcome));
+    queue.done(Vec::new());
+  }
+  outcomes
+}
+
+enum Task {
+  Folder(PathBuf),
+  File(PathBuf),
+}
+
+/// The folders to read and the files to format, which the workers share. Reading a folder adds what it holds, so
+/// formatting starts before the walk ends.
+struct Queue {
+  /// The tasks, and how many workers are busy with one.
+  state: Mutex<(Vec<Task>, usize)>,
+  ready: Condvar,
+}
+
+impl Queue {
+  fn new(paths: &[PathBuf]) -> Queue {
+    let tasks = paths
+      .iter()
+      .map(|path| match path.is_dir() {
+        true => Task::Folder(path.clone()),
+        false => Task::File(path.clone()),
+      })
+      .collect();
+    Queue { state: Mutex::new((tasks, 0)), ready: Condvar::new() }
+  }
+
+  /// The next task, or `None` once there's none left and no busy worker can add more.
+  fn next(&self) -> Option<Task> {
+    let mut state = self.state.lock().unwrap_or_else(PoisonError::into_inner);
+    loop {
+      if let Some(task) = state.0.pop() {
+        state.1 += 1;
+        return Some(task);
+      }
+      if state.1 == 0 {
+        return None;
+      }
+      state = self.ready.wait(state).unwrap_or_else(PoisonError::into_inner);
+    }
+  }
+
+  /// Ends a task, adding the tasks that it found.
+  fn done(&self, found: Vec<Task>) {
+    let mut state = self.state.lock().unwrap_or_else(PoisonError::into_inner);
+    let wakes = !found.is_empty() || state.1 == 1;
+    state.0.extend(found);
+    state.1 -= 1;
+    drop(state);
+    if wakes {
+      self.ready.notify_all();
+    }
   }
 }
 
-/// Collect markup, style sheet and XML files under `dir`, skipping hidden folders and `node_modules`.
-fn walk(dir: &Path, files: &mut Vec<PathBuf>) {
-  let Ok(entries) = std::fs::read_dir(dir) else { return };
+/// The markup, style sheet and XML files in `dir`, and the folders to read next, skipping hidden folders and
+/// `node_modules`.
+fn read(dir: &Path) -> Vec<Task> {
+  let mut found = Vec::new();
+  let Ok(entries) = std::fs::read_dir(dir) else { return found };
   for entry in entries.flatten() {
     let name = entry.file_name();
     let Ok(kind) = entry.file_type() else { continue };
@@ -340,14 +387,15 @@ fn walk(dir: &Path, files: &mut Vec<PathBuf>) {
     if kind.is_dir() {
       let name = name.to_string_lossy();
       if !name.starts_with('.') && name != "node_modules" {
-        walk(&path, files);
+        found.push(Task::Folder(path));
       }
     } else if matches!(
       path.extension().and_then(|it| it.to_str()),
       Some("html" | "htm" | "vue" | "hbs" | "handlebars" | "css" | "scss" | "less")
     ) || xml::is_xml_path(&path.to_string_lossy())
     {
-      files.push(path);
+      found.push(Task::File(path));
     }
   }
+  found
 }
