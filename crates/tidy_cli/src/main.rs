@@ -256,6 +256,26 @@ fn describe(error: &Error, source: &str, name: &str) -> String {
   }
 }
 
+/// Runs `format` on the file at `path`, and turns a panic into an error for it, with a new formatter in place of the
+/// one that panicked.
+fn guarded(
+  path: &Path,
+  formatter: &mut Formatter,
+  format: impl FnOnce(&mut Formatter) -> Option<Outcome>,
+) -> Option<Outcome> {
+  std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| format(formatter))).unwrap_or_else(
+    |panic| {
+      *formatter = Formatter::default();
+      let message = panic
+        .downcast_ref::<&str>()
+        .map(|it| it.to_string())
+        .or_else(|| panic.downcast_ref::<String>().cloned())
+        .unwrap_or_default();
+      Some(Outcome::Failed(format!("{}: panicked: {message}", path.display())))
+    },
+  )
+}
+
 /// What happened to a file that isn't formatted already.
 enum Outcome {
   Changed,
@@ -282,18 +302,21 @@ fn work(
     source.clear();
     let read = std::fs::File::open(&path).and_then(|mut file| file.read_to_string(&mut source));
     let outcome = match read {
-      Err(error) => Outcome::Failed(format!("{}: {error}", path.display())),
-      Ok(_) => match sources.format(&mut formatter, &source, language, &path) {
-        Err(error) => Outcome::Failed(error),
-        Ok(output) if output == source => {
-          queue.done(Vec::new());
-          continue;
+      Err(error) => Some(Outcome::Failed(format!("{}: {error}", path.display()))),
+      Ok(_) => guarded(&path, &mut formatter, |formatter| {
+        match sources.format(formatter, &source, language, &path) {
+          Err(error) => Some(Outcome::Failed(error)),
+          Ok(output) if output == source => None,
+          Ok(output) => Some(match write.then(|| std::fs::write(&path, output)) {
+            Some(Err(error)) => Outcome::Failed(format!("{}: {error}", path.display())),
+            _ => Outcome::Changed,
+          }),
         }
-        Ok(output) => match write.then(|| std::fs::write(&path, output)) {
-          Some(Err(error)) => Outcome::Failed(format!("{}: {error}", path.display())),
-          _ => Outcome::Changed,
-        },
-      },
+      }),
+    };
+    let Some(outcome) = outcome else {
+      queue.done(Vec::new());
+      continue;
     };
     outcomes.push((path, outcome));
     queue.done(Vec::new());
