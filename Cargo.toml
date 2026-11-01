@@ -1,7 +1,7 @@
 [workspace]
 resolver = "3"
 members = ["crates/*"]
-exclude = ["bench/css", "bench/dprint"]
+exclude = ["bench/css", "bench/dprint", "bench/walk"]
 
 [workspace.package]
 version = "0.0.0"
@@ -12,6 +12,7 @@ repository = "https://github.com/lukeed/tidyrs"
 
 [workspace.dependencies]
 tidy = { path = "crates/tidy" }
+tidy_walk = { path = "crates/tidy_walk" }
 bumpalo = "3.19"
 
 [workspace.lints.rust]

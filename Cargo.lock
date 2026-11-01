@@ -385,6 +385,7 @@ version = "0.0.0"
 dependencies = [
  "pico-args",
  "tidy",
+ "tidy_walk",
 ]
 
 [[package]]
@@ -397,6 +398,10 @@ dependencies = [
  "serde_json",
  "tidy",
 ]
+
+[[package]]
+name = "tidy_walk"
+version = "0.0.0"
 
 [[package]]
 name = "toml"
