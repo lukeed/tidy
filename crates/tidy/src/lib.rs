@@ -18,6 +18,7 @@ mod syntax;
 mod text;
 pub mod toml;
 pub mod xml;
+pub mod yaml;
 
 pub use options::{Formatter, Language, Options, Shared, format};
 

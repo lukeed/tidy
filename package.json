@@ -11,6 +11,8 @@
     "prettier-plugin-astro": "1.1.2",
     "prettier-plugin-svelte": "4.1.1",
     "tempura": "1.0.1",
-    "tombi": "1.9.8"
+    "tombi": "1.9.8",
+    "yaml": "2.9.0",
+    "yaml-test-suite": "0.1.0"
   }
 }
