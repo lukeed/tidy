@@ -14,53 +14,54 @@ Most entries come from bun's ports, which correct the places where Prettier's ou
 
 | Entry | Area | Status |
 | --- | --- | --- |
-| [hbs-doctype](#hbs-doctype) | handlebars | proposed |
-| [hbs-dropped-markup-kept-as-written](#hbs-dropped-markup-kept-as-written) | handlebars | proposed |
-| [hbs-html-comment-start-and-end](#hbs-html-comment-start-and-end) | handlebars | proposed |
-| [hbs-escaped-mustache](#hbs-escaped-mustache) | handlebars | proposed |
-| [hbs-style-with-mustache](#hbs-style-with-mustache) | handlebars | proposed |
-| [hbs-no-break-space](#hbs-no-break-space) | handlebars | proposed |
-| [hbs-no-break-space-in-class](#hbs-no-break-space-in-class) | handlebars | proposed |
-| [hbs-backslash-before-mustache](#hbs-backslash-before-mustache) | handlebars | proposed |
-| [hbs-both-quotes-in-value](#hbs-both-quotes-in-value) | handlebars | proposed |
-| [hbs-script-textarea-lines](#hbs-script-textarea-lines) | handlebars | proposed |
-| [hbs-pre-descendant-whitespace](#hbs-pre-descendant-whitespace) | handlebars | proposed |
-| [hbs-whitespace-block-in-pre-textarea](#hbs-whitespace-block-in-pre-textarea) | handlebars | proposed |
-| [hbs-void-with-children](#hbs-void-with-children) | handlebars | proposed |
-| [hbs-path-round-trip](#hbs-path-round-trip) | handlebars | proposed |
-| [hbs-bracketed-segment](#hbs-bracketed-segment) | handlebars | proposed |
-| [hbs-hash-key-in-brackets](#hbs-hash-key-in-brackets) | handlebars | proposed |
-| [hbs-dropped-arguments](#hbs-dropped-arguments) | handlebars | proposed |
-| [hbs-raw-block](#hbs-raw-block) | handlebars | proposed |
-| [hbs-number-exponent](#hbs-number-exponent) | handlebars | proposed |
-| [hbs-triple-stash-strip](#hbs-triple-stash-strip) | handlebars | proposed |
-| [hbs-comment-dashes](#hbs-comment-dashes) | handlebars | proposed |
-| [hbs-else-chain](#hbs-else-chain) | handlebars | proposed |
-| [hbs-line-separator-columns](#hbs-line-separator-columns) | handlebars | proposed |
-| [hbs-ws-ignore-escaped-mustache](#hbs-ws-ignore-escaped-mustache) | handlebars | proposed |
-| [css-escaped-space-before-semicolon](#css-escaped-space-before-semicolon) | css/scss/less | proposed |
-| [css-escaped-space-in-value](#css-escaped-space-in-value) | css/scss/less | proposed |
-| [css-selector-without-namespace](#css-selector-without-namespace) | css/scss/less | proposed |
-| [css-non-ascii-lowercase](#css-non-ascii-lowercase) | css/scss/less | proposed |
-| [less-variable-colon-without-space](#less-variable-colon-without-space) | less | proposed |
-| [less-variable-comment](#less-variable-comment) | less | proposed |
-| [css-comment-only-at-rule-params](#css-comment-only-at-rule-params) | scss | proposed |
-| [css-line-comment-before-brace-or-semicolon](#css-line-comment-before-brace-or-semicolon) | scss/less | proposed |
-| [css-nth-and-keyframe-sign](#css-nth-and-keyframe-sign) | css/scss/less | proposed |
-| [css-hex-escape-space-in-selector](#css-hex-escape-space-in-selector) | css/scss/less | proposed |
-| [css-attribute-value-escape](#css-attribute-value-escape) | css/scss/less | proposed |
-| [css-hex-escape-space-in-value](#css-hex-escape-space-in-value) | css/scss/less | proposed |
-| [css-author-defined-names](#css-author-defined-names) | css/scss/less | proposed |
-| [css-custom-property-values](#css-custom-property-values) | css/scss/less | proposed |
-| [css-custom-property-line-breaks](#css-custom-property-line-breaks) | css/scss/less | proposed |
-| [css-custom-property-json](#css-custom-property-json) | css/scss/less | proposed |
-| [css-custom-property-url](#css-custom-property-url) | css/less | proposed |
-| [html-pre-without-end-tag](#html-pre-without-end-tag) | html | proposed |
-| [html-unquoted-attribute-value](#html-unquoted-attribute-value) | html/vue | proposed |
-| [html-whitespace-only-pre-textarea](#html-whitespace-only-pre-textarea) | html | proposed |
-| [html-ignored-void-without-slash](#html-ignored-void-without-slash) | html | proposed |
-| [html-text-after-nul](#html-text-after-nul) | html/vue | proposed |
-| [vue-v-pre-interpolation](#vue-v-pre-interpolation) | vue | proposed |
+| [hbs-doctype](#hbs-doctype) | handlebars | approved 2026-11-01 |
+| [hbs-dropped-markup-kept-as-written](#hbs-dropped-markup-kept-as-written) | handlebars | approved 2026-11-01 |
+| [hbs-html-comment-start-and-end](#hbs-html-comment-start-and-end) | handlebars | approved 2026-11-01 |
+| [hbs-escaped-mustache](#hbs-escaped-mustache) | handlebars | approved 2026-11-01 |
+| [hbs-style-with-mustache](#hbs-style-with-mustache) | handlebars | approved 2026-11-01 |
+| [hbs-no-break-space](#hbs-no-break-space) | handlebars | approved 2026-11-01 |
+| [hbs-no-break-space-in-class](#hbs-no-break-space-in-class) | handlebars | approved 2026-11-01 |
+| [hbs-backslash-before-mustache](#hbs-backslash-before-mustache) | handlebars | approved 2026-11-01 |
+| [hbs-both-quotes-in-value](#hbs-both-quotes-in-value) | handlebars | approved 2026-11-01 |
+| [hbs-script-textarea-lines](#hbs-script-textarea-lines) | handlebars | approved 2026-11-01 |
+| [hbs-pre-descendant-whitespace](#hbs-pre-descendant-whitespace) | handlebars | approved 2026-11-01 |
+| [hbs-whitespace-block-in-pre-textarea](#hbs-whitespace-block-in-pre-textarea) | handlebars | approved 2026-11-01 |
+| [hbs-void-with-children](#hbs-void-with-children) | handlebars | approved 2026-11-01 |
+| [hbs-path-round-trip](#hbs-path-round-trip) | handlebars | approved 2026-11-01 |
+| [hbs-bracketed-segment](#hbs-bracketed-segment) | handlebars | approved 2026-11-01 |
+| [hbs-hash-key-in-brackets](#hbs-hash-key-in-brackets) | handlebars | approved 2026-11-01 |
+| [hbs-dropped-arguments](#hbs-dropped-arguments) | handlebars | approved 2026-11-01 |
+| [hbs-raw-block](#hbs-raw-block) | handlebars | approved 2026-11-01 |
+| [hbs-number-exponent](#hbs-number-exponent) | handlebars | approved 2026-11-01 |
+| [hbs-triple-stash-strip](#hbs-triple-stash-strip) | handlebars | approved 2026-11-01 |
+| [hbs-comment-dashes](#hbs-comment-dashes) | handlebars | approved 2026-11-01 |
+| [hbs-else-chain](#hbs-else-chain) | handlebars | approved 2026-11-01 |
+| [hbs-line-separator-columns](#hbs-line-separator-columns) | handlebars | approved 2026-11-01 |
+| [hbs-ws-ignore-escaped-mustache](#hbs-ws-ignore-escaped-mustache) | handlebars | approved 2026-11-01 |
+| [css-escaped-space-before-semicolon](#css-escaped-space-before-semicolon) | css/scss/less | approved 2026-11-01 |
+| [css-escaped-space-in-value](#css-escaped-space-in-value) | css/scss/less | approved 2026-11-01 |
+| [css-selector-without-namespace](#css-selector-without-namespace) | css/scss/less | approved 2026-11-01 |
+| [css-non-ascii-lowercase](#css-non-ascii-lowercase) | css/scss/less | approved 2026-11-01 |
+| [less-variable-colon-without-space](#less-variable-colon-without-space) | less | approved 2026-11-01 |
+| [less-variable-comment](#less-variable-comment) | less | approved 2026-11-01 |
+| [css-comment-only-at-rule-params](#css-comment-only-at-rule-params) | scss | approved 2026-11-01 |
+| [css-line-comment-before-brace-or-semicolon](#css-line-comment-before-brace-or-semicolon) | scss/less | approved 2026-11-01 |
+| [css-nth-and-keyframe-sign](#css-nth-and-keyframe-sign) | css/scss/less | approved 2026-11-01 |
+| [css-hex-escape-space-in-selector](#css-hex-escape-space-in-selector) | css/scss/less | approved 2026-11-01 |
+| [css-attribute-value-escape](#css-attribute-value-escape) | css/scss/less | approved 2026-11-01 |
+| [css-hex-escape-space-in-value](#css-hex-escape-space-in-value) | css/scss/less | approved 2026-11-01 |
+| [css-author-defined-names](#css-author-defined-names) | css/scss/less | approved 2026-11-01 |
+| [css-custom-property-values](#css-custom-property-values) | css/scss/less | approved 2026-11-01 |
+| [css-custom-property-line-breaks](#css-custom-property-line-breaks) | css/scss/less | approved 2026-11-01 |
+| [css-custom-property-json](#css-custom-property-json) | css/scss/less | approved 2026-11-01 |
+| [css-custom-property-url](#css-custom-property-url) | css/less | approved 2026-11-01 |
+| [html-pre-without-end-tag](#html-pre-without-end-tag) | html | approved 2026-11-01 |
+| [html-unquoted-attribute-value](#html-unquoted-attribute-value) | html/vue | approved 2026-11-01 |
+| [html-whitespace-only-pre-textarea](#html-whitespace-only-pre-textarea) | html | approved 2026-11-01 |
+| [html-ignored-void-without-slash](#html-ignored-void-without-slash) | html | approved 2026-11-01 |
+| [html-text-after-nul](#html-text-after-nul) | html/vue | approved 2026-11-01 |
+| [vue-v-pre-interpolation](#vue-v-pre-interpolation) | vue | approved 2026-11-01 |
+| [html-borrowed-markers-once](#html-borrowed-markers-once) | html | approved 2026-11-01 |
 | [the rule in step 2](#process) | all | proposed |
 | [tempura and text mode](#beyond-prettier) | handlebars | approved 2026-10-31 |
 
@@ -68,7 +69,7 @@ Most entries come from bun's ports, which correct the places where Prettier's ou
 
 ### hbs-doctype
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier deletes the doctype, because Glimmer has no node for it. Without it the browser renders the page in quirks mode.
 - Where: crates/tidyrs/src/handlebars/tokenizer.rs:987 (adds a `Doctype` node), printer.rs:364 (prints it as written)
 - Parser: handlebars
@@ -81,7 +82,7 @@ tidyrs:   "<!DOCTYPE html>\n<p></p>"
 
 ### hbs-dropped-markup-kept-as-written
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: The HTML tokenizer drops a `<` that does not start a tag, or an unfinished tag at the end, so Prettier loses that text. tidyrs then prints the whole template as written.
 - Where: crates/tidyrs/src/handlebars/tokenizer.rs:608, tokenizer.rs:1192 (set `has_lost_text`), mod.rs:282 (prints the template as written)
 - Parser: handlebars
@@ -94,7 +95,7 @@ tidyrs:   "a <3 b   ></b>\n"
 
 ### hbs-html-comment-start-and-end
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier loses a character after `<!--`, or moves a mustache out of the comment, so the comment text changes or the mustache renders.
 - Where: crates/tidyrs/src/handlebars/tokenizer.rs:720 (dropped character), tokenizer.rs:1052 (mustache at the start or end of a comment); the comment is then printed as written
 - Parser: handlebars
@@ -107,7 +108,7 @@ tidyrs:   "<!---a--><p></p>"
 
 ### hbs-escaped-mustache
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier drops the backslash of `\{{`, so the text becomes a mustache that Handlebars evaluates.
 - Where: crates/tidyrs/src/handlebars/tokenizer.rs:950-969 (comment or tag kept as written), printer.rs:717-720 (`<pre>`), printer.rs:313-335 (ignored text keeps its escapes)
 - Parser: handlebars
@@ -120,7 +121,7 @@ tidyrs:   "<!-- \\{{a}} --><p></p>"
 
 ### hbs-style-with-mustache
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: In `<style>`, Prettier drops the backslash of `\{{` and the spaces next to a mustache, which changes the CSS that renders (`0{{b}}0` is one token).
 - Where: crates/tidyrs/src/handlebars/printer.rs:557-570 (such a `<style>` stays raw text), printer.rs:514
 - Parser: handlebars
@@ -133,7 +134,7 @@ tidyrs:   "<style>a{b:\"\\{{c}}\"}</style>"
 
 ### hbs-no-break-space
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier counts U+00A0 as whitespace and deletes it, but it renders as a space. In the component case Prettier also makes `<A>` self-closing, which drops its block content.
 - Where: crates/tidyrs/src/handlebars/printer.rs:265-268 (`is_white_space_node` uses ASCII whitespace), mod.rs:244-245 (empty template)
 - Parser: handlebars
@@ -146,7 +147,7 @@ tidyrs:   "{{#a}} {{/a}}"
 
 ### hbs-no-break-space-in-class
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: HTML splits classes only at ASCII whitespace, so `b\u00a0c` is one class. Prettier splits it into two.
 - Where: crates/tidyrs/src/handlebars/printer.rs:686-701
 - Parser: handlebars
@@ -159,7 +160,7 @@ tidyrs:   "<a class=\"b c\"></a>"
 
 ### hbs-backslash-before-mustache
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: `\\{{` is a literal backslash followed by a live mustache. Prettier prints one backslash, which then escapes the mustache.
 - Where: crates/tidyrs/src/handlebars/printer.rs:318-330 (text before a comment or block), printer.rs:677-679 (attribute value)
 - Parser: handlebars
@@ -172,7 +173,7 @@ tidyrs:   "<a b=\"c\\\\{{d}}\"></a>"
 
 ### hbs-both-quotes-in-value
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier writes the quote unescaped inside the quoted value, so the value ends early and the rest becomes another attribute.
 - Where: crates/tidyrs/src/handlebars/printer.rs:203-210 (writes `&quot;` or `&apos;`)
 - Parser: handlebars
@@ -185,7 +186,7 @@ tidyrs:   "<a b=\"c&quot;d'e\"></a>"
 
 ### hbs-script-textarea-lines
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier fills the text of `<script>` and `<textarea>` like prose. In the script that puts code after a `//` comment; in the textarea it changes the value.
 - Where: crates/tidyrs/src/handlebars/printer.rs:514-520
 - Parser: handlebars
@@ -198,7 +199,7 @@ tidyrs:   "<script>\n  // a\n  b()\n</script>"
 
 ### hbs-pre-descendant-whitespace
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier keeps whitespace only in the direct text of `<pre>`. Text in a nested element is reflowed, which changes what renders.
 - Where: crates/tidyrs/src/handlebars/printer.rs:717-720 (`pre_depth`)
 - Parser: handlebars
@@ -211,7 +212,7 @@ tidyrs:   "<pre><b>a\n  b</b></pre>"
 
 ### hbs-whitespace-block-in-pre-textarea
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier drops a whitespace-only block body even in `<pre>` or `<textarea>`, where the space renders or is the value.
 - Where: crates/tidyrs/src/handlebars/printer.rs:966-967
 - Parser: handlebars
@@ -224,7 +225,7 @@ tidyrs:   "<textarea>{{#a}} {{/a}}</textarea>"
 
 ### hbs-void-with-children
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier treats `<imG>` as the void `<img>` and drops its children. Glimmer treats a name with an upper-case letter as a component.
 - Where: crates/tidyrs/src/handlebars/printer.rs:275-281
 - Parser: handlebars
@@ -237,7 +238,7 @@ tidyrs:   "<imG>a</imG>"
 
 ### hbs-path-round-trip
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier prints the path from the parsed parts, which drops `this/`, `@this`, empty brackets and dots, and adds or moves brackets. The result names a different value, or does not parse.
 - Where: crates/tidyrs/src/handlebars/parser.rs:544-549 and parser.rs:610-611 (path kept as written), printer.rs:1375-1393 (`path_round_trips`)
 - Parser: handlebars
@@ -250,7 +251,7 @@ tidyrs:   "{{this/a}}"
 
 ### hbs-bracketed-segment
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier drops the brackets around a segment that needs them (`[true]`, `[-1]`, `[else]`, `[@b]`, `[b c]`), so it reads as a literal, a keyword, an argument or two names.
 - Where: crates/tidyrs/src/handlebars/printer.rs:1375-1393, printer.rs:1497-1512
 - Parser: handlebars
@@ -263,7 +264,7 @@ tidyrs:   "{{a [true]}}"
 
 ### hbs-hash-key-in-brackets
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier prints `[b c]=d` as `b c=d`, which is a parameter and a different key.
 - Where: crates/tidyrs/src/handlebars/parser.rs:378-384
 - Parser: handlebars
@@ -276,7 +277,7 @@ tidyrs:   "{{a [b c]=d}}"
 
 ### hbs-dropped-arguments
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: The parsers silently drop arguments after a literal, and a hash used as a callee, so Prettier deletes code.
 - Where: crates/tidyrs/src/handlebars/parser.rs:842-845, parser.rs:416-419 (`has_dropped`, so the mustache is printed as written)
 - Parser: handlebars
@@ -289,7 +290,7 @@ tidyrs:   "{{\"a\"   b}}"
 
 ### hbs-raw-block
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Glimmer turns `{{{{a}}}}` into an ordinary block, so Prettier prints `{{#a}}` and escapes the body, which changes what renders.
 - Where: crates/tidyrs/src/handlebars/parser.rs:796-799
 - Parser: handlebars
@@ -302,7 +303,7 @@ tidyrs:   "{{{{a}}}}   {{b}} {{{{/a}}}}"
 
 ### hbs-number-exponent
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier prints `String(Number(x))`, which can be `1e+21` or `1e-7`. The Handlebars lexer does not accept exponents.
 - Where: crates/tidyrs/src/handlebars/printer.rs:1356-1371
 - Parser: handlebars
@@ -315,7 +316,7 @@ tidyrs:   "{{a 1000000000000000000000}}"
 
 ### hbs-triple-stash-strip
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier prints `{{{a~}}}`, which does not parse, and drops the third brace of a modifier.
 - Where: crates/tidyrs/src/handlebars/printer.rs:1249-1261, tokenizer.rs:1006-1009
 - Parser: handlebars
@@ -328,7 +329,7 @@ tidyrs:   "{{{a}~}}"
 
 ### hbs-comment-dashes
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Without the `--` form, `{{! a ~}}` reads as a strip mark and `{{!-- a }}` ends at a later `--}}`. Prettier drops the dashes in both cases.
 - Where: crates/tidyrs/src/handlebars/printer.rs:380-383
 - Parser: handlebars
@@ -341,7 +342,7 @@ tidyrs:   "{{!--   a ~--}}"
 
 ### hbs-else-chain
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier prints only the head of the name after `else` (`if.b` becomes `if`), and folds `{{else}}{{~#if}}` into `{{else if}}`, which loses the `~` and the inner `{{/if}}`.
 - Where: crates/tidyrs/src/handlebars/printer.rs:860-871 (`is_else_if`), printer.rs:921-922 (whole path)
 - Parser: handlebars
@@ -354,7 +355,7 @@ tidyrs:   "{{#a}}{{else if.b c}}{{/a}}"
 
 ### hbs-line-separator-columns
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier slices source text by line and column, and counts U+2028 and U+2029 as line breaks there, so it cuts comments and ignored nodes at the wrong place.
 - Where: No single rule: tidyrs slices by byte offset, for example crates/tidyrs/src/handlebars/printer.rs:290-294 (`ignored`)
 - Parser: handlebars
@@ -367,7 +368,7 @@ tidyrs:   "a  {{~! b ~}}\n<p {{c}} d=\"e\" {{f}} g></p>\n<!-- {{h}} -->\n {{
 
 ### hbs-ws-ignore-escaped-mustache
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: With `--html-whitespace-sensitivity ignore`, Prettier joins a word and the next escaped mustache (`p\{{a}}`), which changes the text.
 - Where: crates/tidyrs/src/handlebars/printer.rs:760 (a text next to a text, from an escaped mustache)
 - Parser: handlebars
@@ -382,7 +383,7 @@ tidyrs:   "p \\{{a}} {{q}}"
 
 ### css-escaped-space-before-semicolon
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: `\ ` at the end of at-rule params is an escaped space. Prettier trims the space, so the backslash escapes the `;` or `)`.
 - Where: crates/tidyrs/src/css/printer.rs:1091-1094 (at-rule), printer.rs:1180-1183 (media feature), printer.rs:766-768 (declaration)
 - Parser: scss
@@ -395,7 +396,7 @@ tidyrs:   "a {\n  @extend .a\\ ;\n}\n"
 
 ### css-escaped-space-in-value
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier prints nothing after a word with a backslash, so `Font\ Awesome\ 5` becomes one word, and `\b c` loses the space that ends the hex escape.
 - Where: crates/tidyrs/src/css/value_groups.rs:491-505, value_groups.rs:1013-1015, value_groups.rs:1098, value_groups.rs:398
 - Parser: css
@@ -408,7 +409,7 @@ tidyrs:   "a {\n  b: Font\\ Awesome\\ 5;\n}\n"
 
 ### css-selector-without-namespace
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: `x |b` is a descendant `|b` (no namespace). Prettier prints `x|b` (namespace x), and turns `x,|b` into `x, ,|b`, which does not parse.
 - Where: crates/tidyrs/src/css/selector_parser.rs:375-379, selector_parser.rs:397
 - Parser: css
@@ -421,7 +422,7 @@ tidyrs:   "x |b {\n  c: d;\n}\n"
 
 ### css-non-ascii-lowercase
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier lowercases a media query with `toLowerCase`, which turns U+212A KELVIN SIGN into `k`. CSS is case-insensitive only for ASCII.
 - Where: crates/tidyrs/src/css/misc.rs:240-247
 - Parser: css
@@ -434,7 +435,7 @@ tidyrs:   "@media (Ka) {\n  a {\n    b: c;\n  }\n}\n"
 
 ### less-variable-colon-without-space
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: postcss reads `@a:1px` as an at-rule name, and Prettier joins the value without the space after it: `1px solid` becomes `1pxsolid`.
 - Where: crates/tidyrs/src/css/parse.rs:448-452
 - Parser: less
@@ -447,7 +448,7 @@ tidyrs:   "@a: 1px solid #ccc;\n"
 
 ### less-variable-comment
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier parses the value after postcss has removed comments, then reads comment text at offsets that assume nothing was removed. It deletes comments or prints garbled text such as `b d  c */ d f`.
 - Where: crates/tidyrs/src/css/parse.rs:397-400
 - Parser: less
@@ -460,7 +461,7 @@ tidyrs:   "@a: 1px /* why */ solid;\n"
 
 ### css-comment-only-at-rule-params
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: If the only thing after an at-rule name is a `/* */` comment, Prettier cuts it one character short (`/* why *`), so the comment does not close.
 - Where: crates/tidyrs/src/css/parse.rs:753-758
 - Parser: scss
@@ -473,7 +474,7 @@ tidyrs:   "@if $a {\n  b: c;\n} @else /* why */ {\n  d: e;\n}\n"
 
 ### css-line-comment-before-brace-or-semicolon
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: When `{` or `;` is on the line after a `//` comment, Prettier moves it onto the comment line, where it becomes part of the comment. Less also blanks quotes and `*` in such comments.
 - Where: crates/tidyrs/src/css/parse.rs:787-795 (at-rules), parse.rs:853-858 (`@media` query), parse.rs:424-430 (Less mixin call), parse.rs:666-672 (declaration)
 - Parser: scss
@@ -486,7 +487,7 @@ tidyrs:   "@media (min-width: 1px) // Why\n{\n  a {\n    b: c;\n  }\n}\n"
 
 ### css-nth-and-keyframe-sign
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier puts a space after a leading `+` in `:nth-*()` and in a keyframe selector (`+ 50%`). Both are then invalid and the browser drops the rule.
 - Where: crates/tidyrs/src/css/printer.rs:1371-1387
 - Parser: css
@@ -499,7 +500,7 @@ tidyrs:   ":nth-child(+n + 3) {\n  c: d;\n}\n"
 
 ### css-hex-escape-space-in-selector
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: The first space after a hex escape (`\31 `) ends the escape. Prettier collapses `\31  .b` to `\31 .b`, which turns a descendant selector into a compound one.
 - Where: crates/tidyrs/src/css/printer.rs:1392-1402
 - Parser: css
@@ -512,7 +513,7 @@ tidyrs:   ".\\31  .b {\n  c: d;\n}\n"
 
 ### css-attribute-value-escape
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier reads `\ ` or the space after a hex escape as the end of the value and the start of a flag: `[a=b\ c]` becomes `[a="b\" c]`, an unterminated string, and `[a=x\31 i]` gets a flag `i`.
 - Where: crates/tidyrs/src/css/misc.rs:212-216
 - Parser: css
@@ -525,7 +526,7 @@ tidyrs:   "[a=\"x\\31 i\"] {\n  c: d;\n}\n"
 
 ### css-hex-escape-space-in-value
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: `\31 x` is one word and `\31  x` is two. Prettier drops the second space, or breaks the line after `\31`, which splits one word into two.
 - Where: crates/tidyrs/src/css/value_groups.rs:472-484
 - Parser: css
@@ -538,7 +539,7 @@ tidyrs:   "a {\n  animation-name: \\31  x;\n}\n"
 
 ### css-author-defined-names
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Names inside `@plugin` (Tailwind options) and `@font-feature-values` blocks are case-sensitive. Prettier lowercases them (`className` becomes `classname`).
 - Where: crates/tidyrs/src/css/printer.rs:808-815
 - Parser: css
@@ -551,7 +552,7 @@ tidyrs:   "@plugin \"@tailwindcss/typography\" {\n  className: wysiwyg;\n}\n"
 
 ### css-custom-property-values
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Scripts read a custom property's value as written (`getPropertyValue`), and `style()` queries compare it as written. Prettier lowercases colors and units, rewrites numbers, requotes strings and adds spaces (`1,000` becomes `1, 000`).
 - Where: crates/tidyrs/src/css/printer.rs:66-72 (`is_custom_property`), applied at printer.rs:1543, 1569, 1581, 1596 and value_groups.rs:243, 963
 - Parser: css
@@ -564,7 +565,7 @@ tidyrs:   "a {\n  --x: #FFF;\n}\n"
 
 ### css-custom-property-line-breaks
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: In a long custom property value, Prettier breaks lines and adds spaces after commas that had none (`1,000` becomes `1, 000`), which changes the value as written.
 - Where: crates/tidyrs/src/css/value_groups.rs:1077-1080 (no line after a comma without space), printer.rs:1581
 - Parser: css
@@ -577,7 +578,7 @@ tidyrs:   "a {\n  --x:\n    1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,000,1,00
 
 ### css-custom-property-json
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: `--x: {"a":1}` is JSON for a script. Prettier parses it as a declaration block and adds a `;`, so the JSON no longer parses.
 - Where: crates/tidyrs/src/css/parse.rs:624-628
 - Parser: css
@@ -590,7 +591,7 @@ tidyrs:   "a {\n  --x: { \"a\": 1 };\n}\n"
 
 ### css-custom-property-url
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Prettier treats every `//` as a comment start: `--x: https://a` becomes `--x: https: ; //a`. CSS has no `//` comments, and Less only after a space.
 - Where: crates/tidyrs/src/css/parse.rs:702-706
 - Parser: css
@@ -605,7 +606,7 @@ tidyrs:   "a {\n  --x: https://Example.com/A;\n  c: d;\n}\n"
 
 ### html-pre-without-end-tag
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: With an element inside and no end tag, Prettier prints the contents of `<pre>` or `<listing>` as empty plus a stray `>`. Everything after the start tag is lost.
 - Where: crates/tidyrs/src/html/tag.rs:128-136 (`is_verbatim_without_end_tag`), tag.rs:304
 - Parser: html
@@ -618,7 +619,7 @@ tidyrs:   "<pre><b>a</b>\n"
 
 ### html-unquoted-attribute-value
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: In HTML an unquoted value ends at whitespace or `>`. Prettier (Angular's lexer) ends it at the first `=`, `/` or no-break space, so `src=a.png?v=1` becomes `src="a.png?v" ="1"`. For some valid inputs Prettier fails with a syntax error; tidyrs formats them.
 - Where: crates/tidyrs/src/html/lexer.rs:1098-1104 (`End::UnquotedValue` outside Angular)
 - Parser: html
@@ -631,7 +632,7 @@ tidyrs:   "<img src=\"a.png?v=1\" />\n"
 
 ### html-whitespace-only-pre-textarea
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Whitespace that is all of a `<pre>` renders, and in a `<textarea>` it is the value. Prettier collapses it to one space or deletes it.
 - Where: crates/tidyrs/src/html/utilities.rs:254-258
 - Parser: html
@@ -644,7 +645,7 @@ tidyrs:   "<textarea>\n\n</textarea>\n"
 
 ### html-ignored-void-without-slash
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: A void element under `prettier-ignore` without `/>` lends `>` to its neighbor. Prettier assumes `/>` and cuts that many characters from the source, so `src=b>` becomes `src=/>` and `<br>` becomes `<b/>`.
 - Where: crates/tidyrs/src/html/tag.rs:120-126 (`is_verbatim_void_without_slash`), tag.rs:112
 - Parser: html
@@ -657,7 +658,7 @@ tidyrs:   "<!-- prettier-ignore --><img   src=b><i>c</i>\n"
 
 ### html-text-after-nul
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: The parser's end-of-file is code 0, so Prettier silently drops everything after a NUL between tags. tidyrs refuses the file with "Unexpected NUL character" and leaves it unchanged.
 - Where: crates/tidyrs/src/html/parser.rs:671, error.rs:21-23, error.rs:113
 - Parser: html
@@ -668,9 +669,34 @@ Prettier: "<p a>b</p>\n<p>c</p>\n"
 tidyrs:   "ERROR(2): tidyrs: Unexpected NUL character | stdout=\"\""
 ```
 
+### html-borrowed-markers-once
+
+- Status: approved 2026-11-01
+- Why: Where an element's contents print as written, or it follows `<!-- prettier-ignore -->`, Prettier prints the markers that its tags borrow from the elements next to them twice: once on their own, and once in the tag. The extra `>` or `</span` is text on the page, and after `<b>a</b>` Prettier also loses the contents of a `<pre>` without an end tag.
+- Where: crates/tidyrs/src/html/print.rs:266 (`print_child`), print.rs:442 (`print_element`)
+- Parser: html
+
+```
+input:    "<span><!--[if a]><p>b<![endif]--></span>\n"
+Prettier: "<span\n  >><!--[if a]><p>b<![endif]--></span</span\n>\n"
+tidyrs:   "<span\n  ><!--[if a]><p>b<![endif]--></span\n>\n"
+```
+
+With `--whitespace strict`:
+
+```
+input:    "<a><b><!-- prettier-ignore -->\n<i></i></b></a>\n"
+Prettier: "<a\n  ><b\n    ><!-- prettier-ignore -->\n    <i></i>></b\n></a>\n"
+tidyrs:   "<a\n  ><b\n    ><!-- prettier-ignore -->\n    <i></i></b\n></a>\n"
+
+input:    "<b>a</b><pre   ><i>x</i>\n"
+Prettier: "<b>a</b>><pre>>\n"
+tidyrs:   "<b>a</b><pre><i>x</i>\n"
+```
+
 ### vue-v-pre-interpolation
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: Vue does not compile anything under `v-pre`, so `{{name}}` renders as that text. Prettier formats it as an expression (`{{ name }}`), which changes the rendered text.
 - Where: crates/tidyrs/src/html/preprocess.rs:205-208
 - Parser: vue
@@ -697,16 +723,4 @@ Prettier rejects tempura templates, and formats a template of another language a
 
 ## Raised, not in the code
 
-### html-borrowed-markers-once
-
-- Status: raised 2026-10-31, awaiting sign-off
-- Why: Where an element's contents print as written, Prettier prints the markers that its tags borrow from the elements next to them twice: once on their own, and once in the tag. The extra `>` or `/>` is text on the page.
-- Where it would go: `crates/tidyrs/src/html/print.rs`, `print_element`, which prints them once only for a whitespace-only `<pre>` or `<textarea>` now. bun prints them once always (`src/format/html/printer.rs:524`, and `:335` for `<!-- prettier-ignore -->`).
-- Parser: html, with `--whitespace strict`
-
-```
-input:    "<b>a</b><pre   ><i>x</i>\n"
-Prettier: "<b>a</b>><pre><i>x</i>\n"
-tidyrs:   "<b>a</b>><pre><i>x</i>\n"
-bun:      "<b>a</b><pre><i>x</i>\n"
-```
+None.
