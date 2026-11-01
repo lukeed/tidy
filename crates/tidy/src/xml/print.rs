@@ -372,7 +372,11 @@ impl<'a> Printer<'_, 'a> {
       width: self.options.width,
       module: true,
     };
-    let formatted = self.embed.format(request);
+    let options = self.options;
+    let formatted = self.embed.format(request).or_else(|| {
+      let builtin = options.format_embedded.then_some(request)?;
+      crate::embed::builtin(&builtin, options.tab_width, options.tabs)
+    });
     let document = match &formatted {
       Some(_) => None,
       None => match self.style_sheet(language, code) {

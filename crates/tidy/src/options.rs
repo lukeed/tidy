@@ -261,11 +261,16 @@ impl Formatter {
               width: code.width,
               module: true,
             };
-            embed.format(request).or_else(|| {
-              let dialect = css::Dialect::of_path(&format!("code.{language}"))?;
-              let options = css::Options { dialect, width: code.width, ..options.css.clone() };
-              css::format(code.text, &options, &mut *embed).ok()
-            })
+            embed
+              .format(request)
+              .or_else(|| {
+                let dialect = css::Dialect::of_path(&format!("code.{language}"))?;
+                let options = css::Options { dialect, width: code.width, ..options.css.clone() };
+                css::format(code.text, &options, &mut *embed).ok()
+              })
+              .or_else(|| {
+                crate::embed::builtin(&request, options.json.tab_width, options.json.tabs)
+              })
           }),
           false => markdown::format(text, &options.markdown),
         };

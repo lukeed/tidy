@@ -34,7 +34,7 @@ pub struct FormatOptions {
   pub parser: Option<String>,
   /// The file's path, which decides the language and some details.
   pub filepath: Option<String>,
-  /// Hand embedded code to `embed`, and format style sheets. Default: true.
+  /// Hand embedded code to `embed`, and format the style sheets and JSON it declines. Default: true.
   pub embedded: Option<bool>,
   /// The line width. Default: 80.
   pub width: Option<u32>,

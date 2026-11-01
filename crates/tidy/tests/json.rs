@@ -92,3 +92,30 @@ fn parses_what_any_dialect_reads() {
   assert!(tidy::json::parse("// only a comment").unwrap().root().is_none());
   assert!(tidy::json::parse("{a: b}").is_err());
 }
+
+#[test]
+fn formats_json_in_other_languages() {
+  use tidy::{Language, embed::Verbatim};
+  let cases = [
+    (
+      Language::Markdown,
+      "```json\n{\"a\":1,\n\"b\":[1,2,3]}\n```\n\n- item\n\n  ```jsonc\n  {\"a\":  [1,2], // c\n  }\n  ```\n",
+      "```json\n{ \"a\": 1, \"b\": [1, 2, 3] }\n```\n\n- item\n\n  ```jsonc\n  {\n    \"a\": [1, 2], // c\n  }\n  ```\n",
+    ),
+    (
+      Language::Html,
+      "<div><div><script type=\"application/json\">{\"a\":1,\n\"b\":[1,2,3], \"c\": {\"d\": \"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"}}</script></div></div>\n",
+      "<div>\n  <div>\n    <script type=\"application/json\">\n      {\n        \"a\": 1,\n        \"b\": [1, 2, 3],\n        \"c\": { \"d\": \"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\" }\n      }\n    </script>\n  </div>\n</div>\n",
+    ),
+    (
+      Language::Vue,
+      "<template><div/></template>\n<i18n lang=\"json5\">{en:{'hello':'Hello'}}</i18n>\n",
+      "<template><div /></template>\n<i18n lang=\"json5\">\n{ en: { hello: \"Hello\" } }\n</i18n>\n",
+    ),
+  ];
+  let options = tidy::Options::default();
+  for (language, text, expected) in cases {
+    let printed = tidy::format(text, language, &options, None, &mut Verbatim).unwrap();
+    assert_eq!(printed, expected, "{language:?}");
+  }
+}

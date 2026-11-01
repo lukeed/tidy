@@ -757,7 +757,12 @@ impl<'p, 'a> Printer<'p, 'a> {
 
   /// Formats `code` with the host's formatter for its language.
   pub(crate) fn embed_text(&mut self, embedded: Embedded<'_>) -> Option<String> {
-    let mut formatted = self.embed.format(embedded.request(self.indents, self.options))?;
+    let request = embedded.request(self.indents, self.options);
+    let options = self.options;
+    let mut formatted = self.embed.format(request).or_else(|| {
+      let builtin = options.formats_embedded.then_some(request)?;
+      crate::embed::builtin(&builtin, options.tab_width, options.tabs)
+    })?;
     formatted.truncate(formatted.trim_end_matches(['\n', '\r']).len());
     Some(formatted)
   }

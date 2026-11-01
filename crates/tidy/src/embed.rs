@@ -48,3 +48,19 @@ impl Embed for Verbatim {
     None
   }
 }
+
+/// Formats `request` with tidy's own formatter for its language, as a hook would, for the languages that tidy formats as
+/// text: JSON. `None` if it has none, or the code doesn't parse.
+pub(crate) fn builtin(request: &Request<'_>, tab_width: usize, tabs: bool) -> Option<String> {
+  use crate::json;
+  let dialect = match request.language {
+    "json" => json::Dialect::Json,
+    "jsonc" => json::Dialect::Jsonc,
+    "json5" => json::Dialect::Json5,
+    "json-stringify" => json::Dialect::Stringify,
+    _ => return None,
+  };
+  let options =
+    json::Options { dialect, width: request.width, tab_width, tabs, ..json::Options::default() };
+  json::Formatter::default().embedded(request.code, &options, request.indent).map(str::to_owned)
+}

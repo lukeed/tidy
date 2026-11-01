@@ -252,11 +252,20 @@ impl Formatter {
         std::borrow::Cow::Owned(String::from_utf8_lossy(&bytes).into_owned())
       }
     };
-    self.format_text(&text, options)?;
+    self.format_text(&text, options, 0)?;
     Ok(crate::with_bom(bom, &mut self.output))
   }
 
-  fn format_text(&mut self, text: &str, options: &Options) -> Result<(), Error> {
+  /// Formats `text` as code that starts `depth` indents in: the lines after the first start with the indents, and the
+  /// text ends without a line break, as an [`Embed`](crate::embed::Embed) hook answers.
+  pub(crate) fn embedded(&mut self, text: &str, options: &Options, depth: usize) -> Option<&str> {
+    let text = String::from_utf8_lossy(&crate::strings::lf(text.as_bytes())).into_owned();
+    self.format_text(&text, options, depth).ok()?;
+    self.output.truncate(crate::strings::trim_js_whitespace_end(self.output.as_bytes()).len());
+    Some(&self.output)
+  }
+
+  fn format_text(&mut self, text: &str, options: &Options, depth: usize) -> Result<(), Error> {
     if crate::strings::trim_js_whitespace(text.as_bytes()).is_empty() {
       self.output.clear();
       return Ok(());
@@ -298,7 +307,16 @@ impl Formatter {
       tabs: options.tabs,
       eol: options.eol,
     };
-    self.output = doc::print(&docs, &print, std::mem::take(&mut self.output));
+    self.output = match depth {
+      0 => doc::print(&docs, &print, std::mem::take(&mut self.output)),
+      _ => {
+        let mut bytes = std::mem::take(&mut self.output).into_bytes();
+        bytes.clear();
+        doc::print_at(&docs, &print, &mut bytes, depth, depth * options.tab_width);
+        String::from_utf8(bytes)
+          .unwrap_or_else(|error| String::from_utf8_lossy(error.as_bytes()).into_owned())
+      }
+    };
     self.docs = docs.into_scratch();
     Ok(())
   }

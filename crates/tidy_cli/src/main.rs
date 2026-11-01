@@ -18,7 +18,8 @@ Usage
   Folders are searched for .html, .htm, .vue, .hbs, .handlebars, .css, .scss, .less, .md, and .markdown
   files, for JSON files: .json, .jsonc, .json5, package.json, and the others that Prettier formats, and for
   XML files: .xml, .svg, .plist, .csproj, pom.xml, and the others that @prettier/plugin-xml formats. Style
-  sheets in <style> and style=\"\" are formatted. Scripts and code blocks are left as written.
+  sheets in <style> and style=\"\", and JSON in scripts and code blocks, are formatted. Other scripts and code
+  blocks are left as written.
 
   Each file takes its options from the nearest tidy.json, tidy.jsonc or tidy.toml, and from .editorconfig.
   Options given here override them.
