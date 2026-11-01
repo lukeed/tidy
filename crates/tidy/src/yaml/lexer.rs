@@ -17,7 +17,6 @@ pub(crate) enum Lexeme {
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum State {
   Stream,
-  LineStart,
   BlockStart,
   Doc,
   Flow,
@@ -72,7 +71,6 @@ impl<'l> Lexer<'l> {
     while lexer.pos < text.len() {
       next = match next {
         State::Stream => lexer.parse_stream(),
-        State::LineStart => lexer.parse_line_start(),
         State::BlockStart => lexer.parse_block_start(),
         State::Doc => lexer.parse_document(),
         State::Flow => lexer.parse_flow_collection(),
@@ -417,8 +415,7 @@ impl<'l> Lexer<'l> {
         let base = if self.indent_next == 0 { 1 } else { self.indent_next };
         self.indent_next = self.block_scalar_indent as usize + base;
       }
-      loop {
-        let Some(cs) = self.continue_scalar((nl + 1) as usize) else { break };
+      while let Some(cs) = self.continue_scalar((nl + 1) as usize) {
         match text[cs.min(text.len())..].iter().position(|byte| *byte == b'\n') {
           Some(at) => nl = (cs + at) as isize,
           None => {

@@ -77,8 +77,6 @@ pub(crate) enum Node {
   Source(Source),
   Error {
     offset: u32,
-    end: u32,
-    message: &'static str,
   },
   Directive {
     offset: u32,
@@ -366,11 +364,7 @@ impl<'p> Parser<'p> {
     };
     match kind {
       None => {
-        let error = Node::Error {
-          offset: self.offset,
-          end: self.offset + self.len(),
-          message: "Not a YAML token",
-        };
+        let error = Node::Error { offset: self.offset };
         let id = self.tree.add(error);
         self.pop(Some(id));
         self.offset += self.len();
@@ -452,11 +446,7 @@ impl<'p> Parser<'p> {
       None => self.stack.pop(),
     };
     let Some(token) = token else {
-      return self.emit(Node::Error {
-        offset: self.offset,
-        end: self.offset,
-        message: "Tried to pop an empty stack",
-      });
+      return self.emit(Node::Error { offset: self.offset });
     };
     let Some(top) = self.peek(1) else { return self.tree.tokens.push(token) };
     match self.node(token) {
@@ -614,8 +604,8 @@ impl<'p> Parser<'p> {
         self.stack.push(id);
       }
       _ => {
-        let (offset, end) = (self.offset, self.offset + self.len());
-        self.emit(Node::Error { offset, end, message: "Unexpected token in YAML stream" });
+        let offset = self.offset;
+        self.emit(Node::Error { offset });
       }
     }
   }
@@ -653,8 +643,8 @@ impl<'p> Parser<'p> {
         self.stack.push(id);
       }
       None => {
-        let (offset, end) = (self.offset, self.offset + self.len());
-        self.emit(Node::Error { offset, end, message: "Unexpected token in YAML document" });
+        let offset = self.offset;
+        self.emit(Node::Error { offset });
       }
     }
   }
@@ -824,6 +814,8 @@ impl<'p> Parser<'p> {
         }
         Kind::MapValueInd => {
           if it.explicit_key {
+            let empty = Vec::new();
+            let sep = it.sep.as_ref().unwrap_or(&empty);
             if it.sep.is_none() {
               if includes(&it.start, Kind::Newline) {
                 self.with_last(map, |it| {
@@ -842,7 +834,7 @@ impl<'p> Parser<'p> {
             } else if it.value.is_some() {
               self
                 .push_item(map, Item { key: Key::Null, sep: Some(vec![token]), ..Item::default() });
-            } else if includes(it.sep.as_ref().expect("sep"), Kind::MapValueInd) {
+            } else if includes(sep, Kind::MapValueInd) {
               self.push_block_map(Item {
                 start,
                 key: Key::Null,
@@ -850,7 +842,7 @@ impl<'p> Parser<'p> {
                 ..Item::default()
               });
             } else if matches!(it.key, Key::Token(key) if is_flow_token(self.node(key)))
-              && !includes(it.sep.as_ref().expect("sep"), Kind::Newline)
+              && !includes(sep, Kind::Newline)
             {
               let (start, key, mut sep) = self.with_last(map, |it| {
                 let start = first_key_start_props(&mut it.start);
@@ -914,12 +906,8 @@ impl<'p> Parser<'p> {
               if !it.explicit_key
                 && it.sep.as_ref().is_some_and(|sep| !includes(sep, Kind::Newline))
               {
-                let (offset, end) = (self.offset, self.offset + self.len());
-                let error = self.tree.add(Node::Error {
-                  offset,
-                  end,
-                  message: "Unexpected block-seq-ind on same line with key",
-                });
+                let offset = self.offset;
+                let error = self.tree.add(Node::Error { offset });
                 return self.pop(Some(error));
               }
             } else if at_map_indent {

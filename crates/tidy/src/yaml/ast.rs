@@ -87,40 +87,6 @@ impl Kind {
         | FlowSequence
     )
   }
-
-  /// The node has `endComments`.
-  pub(crate) fn ends(self) -> bool {
-    use Kind::*;
-    matches!(
-      self,
-      DocumentHead
-        | DocumentBody
-        | MappingKey
-        | MappingValue
-        | Sequence
-        | SequenceItem
-        | FlowMapping
-        | FlowSequence
-    )
-  }
-
-  /// The node is content, with a tag, an anchor and middle comments.
-  pub(crate) fn is_content(self) -> bool {
-    use Kind::*;
-    matches!(
-      self,
-      Alias
-        | BlockLiteral
-        | BlockFolded
-        | Plain
-        | QuoteSingle
-        | QuoteDouble
-        | Mapping
-        | Sequence
-        | FlowMapping
-        | FlowSequence
-    )
-  }
 }
 
 /// How a block scalar's header chomps its trailing line breaks.

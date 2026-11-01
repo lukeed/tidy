@@ -161,6 +161,14 @@ fn is_next_line_empty_slow(text: &[u8], mut at: usize) -> bool {
   has_newline(text, skip_newline(text, skip_trailing_comment(text, at)))
 }
 
+/// `isPreviousLineEmpty`: the line before the one of `start` has only spaces and tabs.
+pub(crate) fn is_previous_line_empty(text: &[u8], start: usize) -> bool {
+  let end = skip_spaces_backwards(text, start);
+  let end = skip_newline_backwards(text, end);
+  let end = skip_spaces_backwards(text, end);
+  skip_newline_backwards(text, end) != end
+}
+
 /// `makeString`: writes `content`, the text between a string's quotes of either kind, wrapped in
 /// `quote`.
 pub(crate) fn make_string(content: &[u8], quote: u8, out: &mut Vec<u8>) {

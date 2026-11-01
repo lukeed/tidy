@@ -29,6 +29,9 @@ fn run() {
   let args: Vec<String> = std::env::args().skip(1).collect();
   match args.first().map(String::as_str) {
     Some("cst") => cst(&args[1], args.get(2).and_then(|it| it.parse().ok()).unwrap_or(5)),
+    Some("format") => {
+      format(&args[1], args.get(2).and_then(|it| it.parse().ok()).unwrap_or(5), args.get(3))
+    }
     Some("ast") => ast(&args[1], args.get(2).and_then(|it| it.parse().ok()).unwrap_or(5)),
     Some("accepts") => accepts(&args[1], args.get(2).and_then(|it| it.parse().ok()).unwrap_or(10)),
     _ => eprintln!("usage: cst <yaml-cst.json> [show]"),
@@ -59,6 +62,62 @@ fn cst(path: &str, show: usize) {
     }
   }
   println!("\ncst: {same}/{} same", cases.len());
+}
+
+/// Compares what Prettier prints with what tidy prints, under the option sets of `format.ts`.
+fn format(path: &str, show: usize, filter: Option<&String>) {
+  use tidy::yaml::{Options, ProseWrap};
+  let cases = read(path);
+  let (mut same, mut total, mut shown) = (0, 0, 0);
+  let mut per_set: std::collections::BTreeMap<String, usize> = Default::default();
+  for case in &cases {
+    let name = case["name"].as_str().unwrap();
+    let set = case["set"].as_str().unwrap();
+    if filter.is_some_and(|filter| !format!("{set}: {name}").contains(filter.as_str())) {
+      continue;
+    }
+    total += 1;
+    let text = case["text"].as_str().unwrap();
+    let expected = case["expected"].as_str().unwrap();
+    let default = Options::default();
+    let options = match set {
+      "single quotes, width 40" => Options { single_quote: true, width: 40, ..default },
+      "prose always, width 40" => Options { prose_wrap: ProseWrap::Always, width: 40, ..default },
+      "prose never" => Options { prose_wrap: ProseWrap::Never, ..default },
+      "no bracket spacing, no trailing commas, indent 4" => {
+        Options { bracket_spacing: false, trailing_comma: false, tab_width: 4, ..default }
+      }
+      _ => default,
+    };
+    let actual = tidy::yaml::format(text, &options).unwrap_or_else(|_| "!error".into());
+    if actual == expected {
+      same += 1;
+      continue;
+    }
+    *per_set.entry(set.to_owned()).or_default() += 1;
+    if shown < show {
+      shown += 1;
+      println!("\n✗ {set}: {name}");
+      let (expected, actual): (Vec<&str>, Vec<&str>) =
+        (expected.lines().collect(), actual.lines().collect());
+      let first = expected
+        .iter()
+        .zip(&actual)
+        .position(|(a, b)| a != b)
+        .unwrap_or(expected.len().min(actual.len()));
+      let from = first.saturating_sub(3);
+      for line in expected.iter().skip(from).take(8) {
+        println!("  - {line:?}");
+      }
+      for line in actual.iter().skip(from).take(8) {
+        println!("  + {line:?}");
+      }
+    }
+  }
+  for (set, count) in per_set {
+    println!("  {set}: {count} different");
+  }
+  println!("\nformat: {same}/{total} same");
 }
 
 /// Compares the trees of Prettier's YAML parser with tidy's.

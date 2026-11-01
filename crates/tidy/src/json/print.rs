@@ -539,7 +539,7 @@ impl<'a> Printer<'_, 'a> {
     if (previous.suffix && !previous.block) || text::has_newline_backwards(text, start) {
       let suffix = self.docs.line_suffix();
       self.docs.hardline();
-      if is_previous_line_empty(text, start) {
+      if text::is_previous_line_empty(text, start) {
         self.docs.hardline();
       }
       self.print_comment(comment);
@@ -687,14 +687,6 @@ fn preferred_quote(content: &str, single: bool) -> u8 {
     true => alternate,
     false => preferred,
   }
-}
-
-/// `isPreviousLineEmpty`
-fn is_previous_line_empty(text: &[u8], start: usize) -> bool {
-  let end = text::skip_spaces_backwards(text, start);
-  let end = text::skip_newline_backwards(text, end);
-  let end = text::skip_spaces_backwards(text, end);
-  text::skip_newline_backwards(text, end) != end
 }
 
 fn trim_start(text: &str) -> &str {
