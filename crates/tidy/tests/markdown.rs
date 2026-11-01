@@ -280,6 +280,16 @@ fn keeps_escaped_backslashes() {
 }
 
 #[test]
+fn ignores_ranges_in_quotes() {
+  for source in [
+    "> <!-- prettier-ignore-start -->\n> <!-- prettier-ignore-end -->\n",
+    "> <!-- prettier-ignore-start -->\n> *  a\n> <!-- prettier-ignore-end -->\n",
+  ] {
+    assert_eq!(prettier(source), source, "{source}");
+  }
+}
+
+#[test]
 fn quotes_and_nesting() {
   assert_eq!(prettier(">a\n>\n>b\n"), "> a\n>\n> b\n");
   assert_eq!(prettier("> - a\n>   > b\n"), "> - a\n>   > b\n");
