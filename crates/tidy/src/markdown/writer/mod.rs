@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::collections::VecDeque;
 use std::ops::Range;
 
 mod code;
@@ -9,10 +8,11 @@ mod inline;
 mod layout;
 mod liquid;
 mod list;
+mod source;
 mod survey;
 mod wiki;
 
-use pulldown_cmark::{CodeBlockKind, Event, OffsetIter, Options as Flags, Parser, Tag, TagEnd};
+use pulldown_cmark::{CodeBlockKind, Event, Options as Flags, Parser, Tag, TagEnd};
 
 use crate::markdown::directive::{self, Directive};
 use crate::markdown::front;
@@ -22,6 +22,7 @@ use crate::markdown::{Code, Heading, Numbering, Options, Rule, Wrap};
 use code::{Block, fence};
 use inline::{Image, Link, collapse, span};
 use list::{Adjacent, List, TAB, aligned, widen};
+use source::{Events, blank, escaped, is_block};
 use survey::Survey;
 use wiki::Wiki;
 
@@ -100,7 +101,7 @@ pub(crate) fn format(
   if let Some(front) = front {
     writer.front(&front);
   }
-  let mut events = Events { iter: parser.into_offset_iter(), ahead: VecDeque::new() };
+  let mut events = Events::new(parser.into_offset_iter());
   while let Some((event, range)) = events.next() {
     writer.event(event, range, &mut events);
   }
@@ -111,26 +112,6 @@ pub(crate) fn format(
     out.push('\n');
   }
   out
-}
-
-/// The parser's events with lookahead.
-struct Events<'s> {
-  iter: OffsetIter<'s>,
-  ahead: VecDeque<(Event<'s>, Range<usize>)>,
-}
-
-impl<'s> Events<'s> {
-  fn next(&mut self) -> Option<(Event<'s>, Range<usize>)> {
-    self.ahead.pop_front().or_else(|| self.iter.next())
-  }
-
-  fn peek(&mut self, index: usize) -> Option<&(Event<'s>, Range<usize>)> {
-    while self.ahead.len() <= index {
-      let event = self.iter.next()?;
-      self.ahead.push_back(event);
-    }
-    self.ahead.get(index)
-  }
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -765,35 +746,4 @@ impl<'s> Writer<'s, '_> {
     }
     self.write(text);
   }
-}
-
-/// Whether a backslash escapes the character at `at`: an odd run of them comes right before it.
-fn escaped(source: &str, at: usize) -> bool {
-  let run = source.as_bytes()[..at].iter().rev().take_while(|&&byte| byte == b'\\').count();
-  run % 2 == 1
-}
-
-/// Whether `tag` opens a block, as opposed to inline content.
-fn is_block(tag: &Tag<'_>) -> bool {
-  matches!(
-    tag,
-    Tag::Paragraph
-      | Tag::Heading { .. }
-      | Tag::BlockQuote(_)
-      | Tag::CodeBlock(_)
-      | Tag::HtmlBlock
-      | Tag::List(_)
-      | Tag::Table(_)
-      | Tag::FootnoteDefinition(_)
-  )
-}
-
-/// Whether a blank line, holding nothing but whitespace and block quote markers, separates the
-/// block that ended at `last` from the one starting at `at`.
-fn blank(source: &str, last: usize, at: usize) -> bool {
-  let end = source[..last].trim_end_matches(['\n', '\r', ' ', '\t', '>']).len();
-  let from = source[end..].find('\n').map_or(source.len(), |index| end + index + 1);
-  let to = source[..at].rfind('\n').map_or(0, |index| index + 1);
-  from < to
-    && source[from..to].lines().any(|line| line.trim_matches([' ', '\t', '\r', '>']).is_empty())
 }
