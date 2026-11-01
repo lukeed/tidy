@@ -1,7 +1,8 @@
 // Times tidy against the incumbent formatters of each language, and on all of them at once. Every tool checks the
 // files of a corpus and leaves embedded code alone, except tidy, which always formats style sheets in markup and in
 // Markdown code blocks, so it does more work than the others. Each corpus only has the files that Prettier parses.
-// Each set runs in both orders; Prettier runs fewer times, since it is two orders of magnitude slower.
+// Each set runs in both orders; Prettier runs fewer times, since it is two orders of magnitude slower. The TOML corpus
+// only has the files that taplo parses.
 //
 // The incumbents, where they format a language:
 // - Prettier 3.9.9, with @prettier/plugin-xml for XML;
@@ -10,9 +11,11 @@
 //   dprint-plugin-markdown;
 // - oxc's CSS formatter and lightningcss (CSS only, which reprints rather than formats) for style sheets;
 // - Biome 2.6.4 for JSON, with spaces, as Prettier indents;
+// - for TOML, which Prettier doesn't format: taplo 0.10.0, tidy's reference, tombi 1.9.8, and dprint-plugin-toml;
 // - a naive formatter on @lukeed/html, as a floor for HTML in JavaScript.
 //
-// "all" is every corpus in one tree, and "all-but-xml" leaves out XML, which bun fmt doesn't format.
+// "all" is every corpus in one tree, and "all-but-xml" leaves out XML, which bun fmt doesn't format. Prettier skips
+// the TOML files in both, and there is no Prettier row for TOML.
 //
 //   mise run bench -- [--runs <n>] [--oss <dir>] [--only <corpus,...>]
 import { $ } from "bun";
@@ -20,6 +23,7 @@ import { cpSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, extname, join } from "node:path";
 import * as prettierApi from "prettier";
+import { format as tidyFormat } from "../crates/tidy_napi/index.js";
 
 let args = Bun.argv.slice(2);
 let option = (name: string) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
@@ -52,8 +56,23 @@ let sources: Record<string, { repo: string; extensions: string[]; path?: string 
 		repo,
 		extensions: ["json", "jsonc", "json5"],
 	})),
+	toml: ["bun", "taplo", "aspire", "deno", "oxc", "rolldown"].map((repo) => ({ repo, extensions: ["toml"] })),
 	markdown: ["vite", "storybook", "shadcn-svelte", "bun"].map((repo) => ({ repo, extensions: ["md"] })),
 };
+
+/** Whether the reference formatter of the file's language parses it. */
+async function parses(file: string, source: string) {
+	if (file.endsWith(".toml")) {
+		try {
+			tidyFormat(source, { parser: "toml" });
+			return true;
+		} catch {
+			return false;
+		}
+	}
+	let parser = parsers[extname(file)] ?? { filepath: file };
+	return prettierApi.format(source, parser).then(() => true, () => false);
+}
 
 /** Prettier's options for each extension. JSON's parser depends on the file name, which Prettier infers. */
 let parsers: Record<string, Record<string, unknown>> = {
@@ -79,8 +98,7 @@ for (let [name, list] of Object.entries(sources)) {
 			if (/node_modules|\/dist\/|\/build\/|\.min\.css$|(^|\/)\./.test(file)) continue;
 			let source = await Bun.file(join(oss, repo, file)).text().catch(() => undefined);
 			if (source === undefined) continue;
-			let parser = parsers[extname(file)] ?? { filepath: file };
-			if (!(await prettierApi.format(source, parser).then(() => true, () => false))) continue;
+			if (!(await parses(file, source))) continue;
 			let to = join(corpus, name, repo, file);
 			mkdirSync(dirname(to), { recursive: true });
 			cpSync(join(oss, repo, file), to);
@@ -101,6 +119,7 @@ function size(path: string): [number, number] {
 }
 
 let prettier = join(root, "node_modules/.bin/prettier");
+let taplo = (await $`mise which taplo`.cwd(root).text()).trim();
 let off = "--no-config --embedded-language-formatting off";
 let commands = (dir: string): Record<string, string> => ({
 	tidy: `${target}/release/tidy ${dir} --check --no-config`,
@@ -111,6 +130,8 @@ let commands = (dir: string): Record<string, string> => ({
 	lightningcss: `${target}/css/release/css-bench lightningcss ${dir}`,
 	naive: `bun ${root}/bench/naive.ts ${dir}`,
 	biome: `${root}/node_modules/.bin/biome format --indent-style=space --max-diagnostics=0 ${dir}`,
+	taplo: `${taplo} fmt --check ${dir}/**/*.toml`,
+	tombi: `${root}/node_modules/@tombi-toml/cli-darwin-arm64/tombi format --check ${dir}`,
 	prettier: `${prettier} --check ${dir} ${off} --log-level silent --plugin @prettier/plugin-xml`,
 });
 
@@ -118,9 +139,11 @@ let commands = (dir: string): Record<string, string> => ({
 let markup = ["html", "vue", "pages"];
 let sheets = ["css", "scss", "less"];
 let formats: Record<string, string[]> = {
-	bun: [...markup, "handlebars", ...sheets, "json", "markdown", "all-but-xml"],
-	dprint: [...markup, ...sheets, "json", "xml", "markdown", "all", "all-but-xml"],
+	bun: [...markup, "handlebars", ...sheets, "json", "toml", "markdown", "all-but-xml"],
+	dprint: [...markup, ...sheets, "json", "toml", "xml", "markdown", "all", "all-but-xml"],
 	biome: ["json"],
+	taplo: ["toml"],
+	tombi: ["toml"],
 	oxc: sheets,
 	lightningcss: ["css"],
 	naive: markup,
@@ -141,14 +164,15 @@ async function time(names: string[], all: Record<string, string>, count: number)
 }
 
 let average = (values: number[]) => (values.reduce((sum, value) => sum + value, 0) / values.length) * 1000;
-let names = ["all", "all-but-xml", "html", "vue", "pages", "handlebars", "css", "scss", "less", "json", "xml", "markdown"];
+let names = ["all", "all-but-xml", "html", "vue", "pages", "handlebars", "css", "scss", "less", "json", "toml", "xml", "markdown"];
 let rows: string[] = [];
 for (let name of names.filter((name) => !only || only.includes(name))) {
 	let dir = join(corpus, name);
 	let [files, bytes] = size(dir);
 	let all = commands(dir);
 	let fast = Object.keys(all).filter((tool) => tool !== "prettier" && (!formats[tool] || formats[tool].includes(name)));
-	let means = { ...(await time(fast, all, runs)), ...(await time(["prettier"], all, Math.min(runs, 3))) };
+	let slow = name === "toml" ? {} : await time(["prettier"], all, Math.min(runs, 3));
+	let means = { ...(await time(fast, all, runs)), ...slow };
 	let ours = average(means.tidy);
 	rows.push(`\n${name}: ${files} files, ${(bytes / 1024 / 1024).toFixed(1)} MB`);
 	let sorted = Object.entries(means).sort(([, left], [, right]) => average(left) - average(right));

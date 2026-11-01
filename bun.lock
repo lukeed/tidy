@@ -13,6 +13,7 @@
         "prettier-plugin-astro": "1.1.2",
         "prettier-plugin-svelte": "4.1.1",
         "tempura": "1.0.1",
+        "tombi": "1.9.8",
       },
     },
   },
@@ -89,6 +90,24 @@
 
     "@sveltejs/acorn-typescript": ["@sveltejs/acorn-typescript@1.0.13", "", { "peerDependencies": { "acorn": "^8.9.0" } }, "sha512-wgKggnhZVL9Bfx1OaKKTrYY9BFRk6C8UAkQNUcIv1+llzYrIqy+RZm5HPKzn0NpEBvTVhTqB4kQyllZywsRBRQ=="],
 
+    "@tombi-toml/cli-darwin-arm64": ["@tombi-toml/cli-darwin-arm64@1.9.8", "", { "os": "darwin", "cpu": "arm64" }, "sha512-pypHlOZjtuSU2n+RfaQmPo8nm5IsAGzIDvz35S/Nxrsm11RSKwYnavaFHMXWKTyhc1fZiSEoGS6/vUrYkXgrkw=="],
+
+    "@tombi-toml/cli-darwin-x64": ["@tombi-toml/cli-darwin-x64@1.9.8", "", { "os": "darwin", "cpu": "x64" }, "sha512-hCJ0/5kQMdiTgRY1P30i95Yi12JZDAKLAYtxIKb0ydF5MGT1qmw9wKnxqsnUjQ6JF655mbZEvaHViQZ9ixA9gA=="],
+
+    "@tombi-toml/cli-linux-arm64": ["@tombi-toml/cli-linux-arm64@1.9.8", "", { "os": "linux", "cpu": "arm64", "libc": "glibc" }, "sha512-ysjjC5BT/u/Asdz6doyAX42lNoouN3GNQQ5EY7VRvJ6O9fCkeFavaGKuqB+WBza+DlEUi9+oAMWBC2pAbH5PQg=="],
+
+    "@tombi-toml/cli-linux-arm64-musl": ["@tombi-toml/cli-linux-arm64-musl@1.9.8", "", { "os": "linux", "cpu": "arm64", "libc": "musl" }, "sha512-0yzQMFN3GgcuBM9NPj29+l6j5zGm1NZWIUM6tgn2BTPpC+2qKlW4J4q4WYozLlTMrvsKjSHbSved3UoCaiB+ow=="],
+
+    "@tombi-toml/cli-linux-x64": ["@tombi-toml/cli-linux-x64@1.9.8", "", { "os": "linux", "cpu": "x64", "libc": "glibc" }, "sha512-n8OOftdD+wD2jV71DtIpVzDBi0KUPNadKRtPyXN7YiPyKmmH6ZSmtF7RAJFVFRAHpEKmPu9B8oJVkQGQfmB7RQ=="],
+
+    "@tombi-toml/cli-linux-x64-musl": ["@tombi-toml/cli-linux-x64-musl@1.9.8", "", { "os": "linux", "cpu": "x64", "libc": "musl" }, "sha512-AidlNdA3Sp+YMotCg1BTu1F9Y1A1KVkN/N2TdxkE22WAa/46T9y5v/mx8PBDTaeLRwXsi/DD3CCQEV7EhESURw=="],
+
+    "@tombi-toml/cli-sunos-x64": ["@tombi-toml/cli-sunos-x64@1.9.8", "", { "os": "sunos", "cpu": "x64" }, "sha512-lkC7odk27AFjTO5gUFecobbCYA1HAdqVKRAwcHdySss+Di6hDAQo3V9bjRNV7/QZDyPP0ADdMdCSK/ANhX6nPw=="],
+
+    "@tombi-toml/cli-win32-arm64": ["@tombi-toml/cli-win32-arm64@1.9.8", "", { "os": "win32", "cpu": "arm64" }, "sha512-VdUd3ll4c3JH68CqT70LFTs4d/jWo7YTN8Bl03Lv2SL2sfbsoJCrWwCACKQu4yFdMyhmMdnJizzObfOKL3R4mQ=="],
+
+    "@tombi-toml/cli-win32-x64": ["@tombi-toml/cli-win32-x64@1.9.8", "", { "os": "win32", "cpu": "x64" }, "sha512-XUjM9jcOTPZa1CBPHn5iCOePWkcOueG2/qpsrlTJAdcUQDRVNdExEBYNFCsmxWqbHIlHFf+Zha4ojGzaIEOl9w=="],
+
     "@tybys/wasm-util": ["@tybys/wasm-util@0.10.4", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A=="],
 
     "@types/estree": ["@types/estree@1.0.10", "", {}, "sha512-lTyOMnOcmRBzdCv6/4zUZCrEhV0xrqQiUZBZtVcbmLHBXKLnN8q89v/wKRF/Q0HbwVsqbIG3o5HDoFl9sduM+g=="],
@@ -138,6 +157,8 @@
     "svelte": ["svelte@5.57.3", "", { "dependencies": { "@jridgewell/remapping": "^2.3.5", "@jridgewell/sourcemap-codec": "^1.6.0", "@sveltejs/acorn-typescript": "^1.0.13", "@types/estree": "^1.0.9", "acorn": "^8.18.0", "aria-query": "5.3.1", "axobject-query": "^4.1.0", "clsx": "^2.1.1", "devalue": "^5.9.2", "esm-env": "^1.2.1", "esrap": "^2.3.6", "is-reference": "^3.0.3", "locate-character": "^3.0.0", "magic-string": "^0.30.11", "zimmerframe": "^1.1.2" } }, "sha512-5mAftM3SoDV9X0zdF386F9p2pv8iKOwi/KfBS1XnBAkVCKFzVOLHUoa8iGWAt4buoicLmyWVRpuuD5wplXOQsg=="],
 
     "tempura": ["tempura@1.0.1", "", { "peerDependencies": { "esbuild": "*", "rolldown": "*", "vite": "*" }, "optionalPeers": ["esbuild", "rolldown", "vite"] }, "sha512-e+UZLCLRyG6p5Pb7fK69emcrOaqncob8XoAePNWAH+Y+PeZKQX6fm2f4vaamBzhnQNOAQws2WFSDG7KNs2oRjQ=="],
+
+    "tombi": ["tombi@1.9.8", "", { "optionalDependencies": { "@tombi-toml/cli-darwin-arm64": "1.9.8", "@tombi-toml/cli-darwin-x64": "1.9.8", "@tombi-toml/cli-linux-arm64": "1.9.8", "@tombi-toml/cli-linux-arm64-musl": "1.9.8", "@tombi-toml/cli-linux-x64": "1.9.8", "@tombi-toml/cli-linux-x64-musl": "1.9.8", "@tombi-toml/cli-sunos-x64": "1.9.8", "@tombi-toml/cli-win32-arm64": "1.9.8", "@tombi-toml/cli-win32-x64": "1.9.8" }, "bin": { "tombi": "bin/tombi" } }, "sha512-1fpACIh5g39PMfHeSQhQPCd7Le+TNpm0+maW0t4n3QdEVlC+tnAkC1Qa1bEFgDEnqZL8nenC1kJug8z2XJNnSQ=="],
 
     "tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
 

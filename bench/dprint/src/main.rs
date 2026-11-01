@@ -1,6 +1,7 @@
 //! Formats the files under a folder the way dprint does with its plugins, leaving embedded code as it is written:
 //! markup_fmt (dprint-plugin-markup) for markup and XML, malva (dprint-plugin-malva) for style sheets,
-//! dprint-plugin-json for JSON, and dprint-plugin-markdown for Markdown. Exits 1 if any file changes, like `--check`.
+//! dprint-plugin-json for JSON, dprint-plugin-toml for TOML, and dprint-plugin-markdown for Markdown. Exits 1 if any
+//! file changes, like `--check`.
 
 use std::path::{Path, PathBuf};
 
@@ -14,6 +15,7 @@ fn main() {
   let options = FormatOptions::default();
   let markdown = dprint_plugin_markdown::configuration::ConfigurationBuilder::new().build();
   let json = dprint_plugin_json::configuration::ConfigurationBuilder::new().build();
+  let toml = dprint_plugin_toml::configuration::ConfigurationBuilder::new().build();
   let mut changed = 0;
   for path in files {
     let Ok(text) = std::fs::read_to_string(&path) else { continue };
@@ -24,6 +26,9 @@ fn main() {
           .map(|output| output.unwrap_or_else(|| text.clone()))
       }
       Some("json" | "jsonc" | "json5") => dprint_plugin_json::format_text(&path, &text, &json)
+        .ok()
+        .map(|output| output.unwrap_or_else(|| text.clone())),
+      Some("toml") => dprint_plugin_toml::format_text(&path, &text, &toml)
         .ok()
         .map(|output| output.unwrap_or_else(|| text.clone())),
       Some(extension @ ("css" | "scss" | "less")) => {
