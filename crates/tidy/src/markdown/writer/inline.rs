@@ -1,0 +1,332 @@
+use std::borrow::Cow;
+use std::ops::Range;
+
+use pulldown_cmark::{LinkType, Tag};
+
+use super::Writer;
+use crate::{Emphasis, Strong};
+
+/// A link whose text is being written. What follows the text is copied as written, unless
+/// Prettier's form of it, `tail`, reads back the same.
+pub(super) struct Link {
+  /// Where the text ends so far.
+  pub(super) text: usize,
+  pub(super) end: usize,
+  pub(super) tail: Option<String>,
+  /// An inline link, whose text Prettier never breaks across lines. A reference link's text breaks
+  /// like other text.
+  pub(super) inline: bool,
+  /// The text is the label, as in `[label]` and `[label][]`, so a line break in it stays a space:
+  /// gluing wide characters would change the label.
+  pub(super) label: bool,
+}
+
+/// An image whose alt text is skipped to be copied as written, before Prettier's form of the rest.
+pub(super) struct Image {
+  pub(super) start: usize,
+  /// Where the alt text ends so far.
+  pub(super) text: usize,
+  pub(super) tail: String,
+}
+
+/// The `](destination "title")` after an inline link's text, as Prettier writes it.
+pub(super) fn tail(url: &str, title: &str) -> Option<String> {
+  let url = destination(url, true)?;
+  match title {
+    "" => Some(format!("]({url})")),
+    title => Some(format!("]({url} {})", quote(title)?)),
+  }
+}
+
+/// A link reference definition as Prettier writes it: its `[label]:`, destination, and title.
+#[derive(Clone)]
+pub(super) struct Defined {
+  pub(super) head: String,
+  pub(super) url: String,
+  pub(super) title: Option<String>,
+}
+
+impl Defined {
+  /// The definition on one line.
+  pub(super) fn line(&self) -> String {
+    match &self.title {
+      Some(title) => format!("{} {} {title}", self.head, self.url),
+      None => format!("{} {}", self.head, self.url),
+    }
+  }
+}
+
+/// A link reference definition as Prettier writes it, from the source it spans.
+pub(super) fn definition(source: &str, url: &str, title: Option<&str>) -> Option<Defined> {
+  let head = format!("[{}]:", squash(label(source)?));
+  let url = destination(url, false)?.into_owned();
+  let title = match title {
+    None | Some("") => None,
+    Some(title) => Some(quote(title)?),
+  };
+  Some(Defined { head, url, title })
+}
+
+/// `label` with each run of whitespace as one space, as Prettier writes labels. Unlike `collapse`,
+/// it joins lines too, and like Prettier it keeps one space at either edge.
+pub(super) fn squash(label: &str) -> String {
+  let mut out = String::with_capacity(label.len());
+  for char in label.chars() {
+    let space = char.is_ascii_whitespace();
+    if !(space && out.ends_with(' ')) {
+      out.push(if space { ' ' } else { char });
+    }
+  }
+  out
+}
+
+/// An image reference with its label as Prettier writes it, or `None` to keep `raw` as written:
+/// `![alt][label]`, `![label][]`, or `![label]`.
+pub(super) fn labeled(raw: &str, link_type: LinkType) -> Option<String> {
+  let open = match link_type {
+    LinkType::Reference => raw.rfind('[')?,
+    LinkType::Collapsed | LinkType::Shortcut => 1,
+    _ => return None,
+  };
+  let label = label(&raw[open..])?;
+  if label.contains('\\') {
+    return None;
+  }
+  let after = &raw[open + label.len() + 2..];
+  Some(format!("{}[{}]{after}", &raw[..open], squash(label)))
+}
+
+/// The label of a definition or full reference that `source` starts with, as written.
+pub(super) fn label(source: &str) -> Option<&str> {
+  let rest = source.strip_prefix('[')?;
+  let mut escaped = false;
+  for (index, char) in rest.char_indices() {
+    match char {
+      ']' if !escaped => return Some(&rest[..index]),
+      '[' if !escaped => return None,
+      _ => escaped = char == '\\' && !escaped,
+    }
+  }
+  None
+}
+
+/// A destination written bare, or in `<>` when it holds a space, or a `)` that would end an inline
+/// link. `None` where writing the parsed URL back would read differently.
+fn destination(url: &str, inline: bool) -> Option<Cow<'_, str>> {
+  if url.is_empty() {
+    return Some(Cow::Borrowed("<>"));
+  }
+  let (mut depth, mut balanced, mut space, mut close, mut amp) =
+    (0usize, true, false, false, false);
+  for byte in url.bytes() {
+    match byte {
+      b'\\' | b'<' | b'>' | b'\n' | b'\r' => return None,
+      b' ' => space = true,
+      b'&' => amp = true,
+      b'(' => depth += 1,
+      b')' => {
+        close = true;
+        match depth.checked_sub(1) {
+          Some(less) => depth = less,
+          None => balanced = false,
+        }
+      }
+      _ => {}
+    }
+  }
+  if amp && entity(url) {
+    return None;
+  }
+  if space || (inline && close) {
+    return Some(Cow::Owned(format!("<{url}>")));
+  }
+  (balanced && depth == 0).then_some(Cow::Borrowed(url))
+}
+
+/// A title in double quotes, single quotes when it holds more double quotes, or parentheses when
+/// it holds both but no parentheses or backslashes.
+fn quote(title: &str) -> Option<String> {
+  if entity(title) {
+    return None;
+  }
+  let doubles = title.matches('"').count();
+  let singles = title.matches('\'').count();
+  if doubles > 0 && singles > 0 && !title.contains(['(', ')', '\\']) {
+    return Some(format!("({title})"));
+  }
+  let mark = if doubles > singles { '\'' } else { '"' };
+  let escaped = title.replace('\\', "\\\\").replace(mark, &format!("\\{mark}"));
+  Some(format!("{mark}{escaped}{mark}"))
+}
+
+/// Whether `text` holds something that reads as an entity, which the parser would decode.
+fn entity(text: &str) -> bool {
+  text.match_indices('&').any(|(at, _)| {
+    let name =
+      text[at + 1..].bytes().take_while(|byte| byte.is_ascii_alphanumeric() || *byte == b'#');
+    let length = name.count();
+    length > 0 && text.as_bytes().get(at + 1 + length) == Some(&b';')
+  })
+}
+
+/// `text` with each run of spaces and tabs as one space.
+pub(super) fn collapse(text: &str) -> Cow<'_, str> {
+  let bytes = text.as_bytes();
+  if memchr::memchr(b'\t', bytes).is_none() && memchr::memmem::find(bytes, b"  ").is_none() {
+    return Cow::Borrowed(text);
+  }
+  let mut out = String::with_capacity(text.len());
+  for char in text.chars() {
+    let space = matches!(char, ' ' | '\t');
+    if !(space && out.ends_with(' ')) {
+      out.push(if space { ' ' } else { char });
+    }
+  }
+  Cow::Owned(out)
+}
+
+/// A code span rewritten as Prettier writes it, or `None` when `raw` already is: the fewest
+/// backticks that no run inside matches, padded with a space only where the content needs one.
+/// A `joined` span is written from its parsed value, where each line break is one space.
+pub(super) fn span(raw: &str, value: &str, joined: bool) -> Option<String> {
+  let ticks = raw.bytes().take_while(|&byte| byte == b'`').count();
+  let inner = &raw[ticks..raw.len() - ticks];
+  let unpadded = inner
+    .strip_prefix([' ', '\n'])
+    .and_then(|rest| rest.strip_suffix([' ', '\n']))
+    .filter(|_| inner.bytes().any(|byte| !matches!(byte, b' ' | b'\n' | b'\r')))
+    .unwrap_or(inner);
+  let mut fewest = 1;
+  while has_run(value, fewest) {
+    fewest += 1;
+  }
+  let edge = |byte: Option<u8>| matches!(byte, Some(b' ' | b'\n'));
+  let bytes = value.as_bytes();
+  let pad = value.starts_with('`')
+    || value.ends_with('`')
+    || (edge(bytes.first().copied())
+      && edge(bytes.last().copied())
+      && bytes.iter().any(|byte| !matches!(byte, b' ' | b'\n')));
+  let spaced = inner.starts_with(' ') && inner.ends_with(' ');
+  let unpadded = if joined { value } else { unpadded };
+  if !joined && ticks == fewest && (unpadded.len() < inner.len()) == pad && (!pad || spaced) {
+    return None;
+  }
+  let fence = "`".repeat(fewest);
+  let pad = if pad { " " } else { "" };
+  Some(format!("{fence}{pad}{unpadded}{pad}{fence}"))
+}
+
+/// Whether `text` has a run of exactly `length` backticks.
+pub(super) fn has_run(text: &str, length: usize) -> bool {
+  text.split(|char| char != '`').any(|run| run.len() == length)
+}
+
+impl<'s> Writer<'s, '_> {
+  /// Open emphasis, strong, strikethrough, a link, or an image.
+  pub(super) fn open_inline(&mut self, tag: Tag<'s>, range: Range<usize>) {
+    match tag {
+      Tag::Emphasis => {
+        let word = self.inside(range.end);
+        let mark: Cow<'s, str> = match self.options.emphasis {
+          Emphasis::Keep => self.source[range.start..range.start + 1].into(),
+          _ if !word && self.before() == Some('*') => "_".into(),
+          Emphasis::Asterisk => "*".into(),
+          Emphasis::Underscore if self.emphasis > 0 || word => "*".into(),
+          Emphasis::Underscore => "_".into(),
+        };
+        self.emphasis += 1;
+        self.atom(&mark);
+        self.marks.push(mark);
+      }
+      Tag::Strong => {
+        let mark: Cow<'s, str> = match self.options.strong {
+          Strong::Keep => self.source[range.start..range.start + 2].into(),
+          Strong::Underscore if !self.inside(range.end) => "__".into(),
+          Strong::Underscore | Strong::Asterisk => "**".into(),
+        };
+        self.atom(&mark);
+        self.marks.push(mark);
+      }
+      Tag::Strikethrough => {
+        let count = self.source[range.start..].bytes().take_while(|&byte| byte == b'~').count();
+        let mark: Cow<'s, str> = self.source[range.start..range.start + count].into();
+        self.atom(&mark);
+        self.marks.push(mark);
+      }
+      Tag::Link { link_type, ref dest_url, ref title, .. }
+      | Tag::Image { link_type, ref dest_url, ref title, .. } => {
+        let collapsed = matches!(link_type, LinkType::Collapsed | LinkType::CollapsedUnknown)
+          && self.source[range.end..].starts_with("[]");
+        let end = if collapsed { range.end + 2 } else { range.end };
+        let tail = match link_type {
+          LinkType::Inline => tail(dest_url, title),
+          _ => None,
+        };
+        let image = matches!(tag, Tag::Image { .. });
+        if image || matches!(link_type, LinkType::Autolink | LinkType::Email) {
+          if let Some(link) = &mut self.link {
+            link.text = link.text.max(end);
+          }
+          let raw = &self.source[range.start..end];
+          let lines = raw.contains('\n') && !self.containers.is_empty();
+          match tail.filter(|_| image) {
+            Some(tail) => {
+              self.image = Some(Image { start: range.start, text: range.start + 2, tail })
+            }
+            None => match labeled(raw, link_type).filter(|_| image && !lines) {
+              Some(image) => self.atom(&image),
+              None => self.atom(raw),
+            },
+          }
+          self.skip = 1;
+        } else {
+          self.atom("[");
+          let inline = link_type == LinkType::Inline;
+          let label = matches!(
+            link_type,
+            LinkType::Shortcut
+              | LinkType::ShortcutUnknown
+              | LinkType::Collapsed
+              | LinkType::CollapsedUnknown
+          );
+          self.link = Some(Link { text: range.start + 1, end, tail, inline, label });
+        }
+      }
+      _ => {}
+    }
+  }
+
+  /// Close a link: write what follows its text.
+  pub(super) fn close_link(&mut self) {
+    if let Some(link) = self.link.take() {
+      let raw = &self.source[link.text..link.end];
+      let raw = if self.start { raw.trim_start_matches([' ', '\t', '>']) } else { raw };
+      let reference = raw.strip_prefix(']').and_then(label);
+      let tail = match (link.tail, reference) {
+        (Some(tail), _) => Cow::Owned(tail),
+        (None, Some(label)) if !label.contains('\\') => Cow::Owned(format!("][{}]", squash(label))),
+        (None, _) => Cow::Borrowed(raw),
+      };
+      self.atom(&tail);
+    }
+  }
+
+  /// Whether emphasis ending at `end` touches a word on either side, where `_` doesn't work.
+  pub(super) fn inside(&self, end: usize) -> bool {
+    let after = self.source[end..].chars().next();
+    self.before().is_some_and(char::is_alphanumeric) || after.is_some_and(char::is_alphanumeric)
+  }
+
+  /// The last character written on the current line.
+  pub(super) fn before(&self) -> Option<char> {
+    match (&self.paragraph, &self.table) {
+      (_, Some(table)) => {
+        table.rows.last().and_then(|row| row.last()).and_then(|cell| cell.chars().next_back())
+      }
+      (Some(paragraph), None) => paragraph.last(),
+      (None, None) if self.start => None,
+      (None, None) => self.out.chars().next_back(),
+    }
+  }
+}

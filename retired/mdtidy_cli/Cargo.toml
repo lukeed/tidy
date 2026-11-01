@@ -1,0 +1,20 @@
+[package]
+name = "mdtidy_cli"
+description = "The mdtidy command line"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "mdtidy"
+path = "src/main.rs"
+
+[dependencies]
+mdtidy = { workspace = true }
+pico-args = { version = "0.5.0", features = ["eq-separator"] }
+tidy_walk = { path = "../../../tidyrs/crates/tidy_walk" }
+
+[lints]
+workspace = true
