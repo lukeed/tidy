@@ -263,8 +263,7 @@ impl<'p, 'a> Printer<'p, 'a> {
       start += tags.len_of(|tags, out| tags.opening_tag_start_marker(id, out));
     }
     let mut end = self.end_location(id) as usize;
-    if self.tree.next(id).is_some_and(|next| tags.needs_to_borrow_prev_closing_tag_end_marker(next))
-    {
+    if tags.lends_closing_tag_end_marker(id) {
       end -= tags.len_of(|tags, out| tags.closing_tag_end_marker(id, out));
     }
     let text = self.options.original_text.get(start..end).unwrap_or_default();
@@ -435,22 +434,14 @@ impl<'p, 'a> Printer<'p, 'a> {
     let tags = self.tags();
     let node = &self.tree[id];
     if node.has(Flags::PRESERVES_CONTENT) {
-      // The tags already print the markers that they borrow, and Prettier prints those again around them:
-      // `<b>a</b>><pre>`. A whitespace-only `<pre>` or `<textarea>`, which only tidyrs prints as written, prints them
-      // once.
-      let is_whitespace_only =
-        is_pre_like(node) && node.has(Flags::HAS_DANGLING_SPACES | Flags::HAS_END_SPAN);
-      if !is_whitespace_only {
-        self.marker(|tags, out| tags.opening_tag_prefix(id, out));
-      }
       let group = self.docs.group();
       self.print_opening_tag(id);
       self.docs.close(group);
       let content = tags.node_content(id);
       self.lines(content, Separator::Literal);
-      self.print_closing_tag(id);
-      if !is_whitespace_only {
-        self.marker(|tags, out| tags.closing_tag_suffix(id, out));
+      match tags.is_verbatim_without_end_tag(id) {
+        true => self.marker(|tags, out| tags.closing_tag_suffix(id, out)),
+        false => self.print_closing_tag(id),
       }
       return;
     }

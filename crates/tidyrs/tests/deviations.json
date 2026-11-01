@@ -2022,7 +2022,7 @@
     ],
     "input": "<b>a</b><pre   ><i>x</i>\n",
     "prettier": "<b>a</b>><pre>>\n",
-    "tidyrs": "<b>a</b>><pre><i>x</i>\n",
+    "tidyrs": "<b>a</b><pre><i>x</i>\n",
     "whitespace": "strict"
    }
   ]
@@ -2244,6 +2244,37 @@
     "input": "<template>\n<p>b\u0000c</p>\n</template>\n<script>\nlet a  = 1\n</script>\n",
     "prettier": "<template>\n  <p>b</p>\n</template>\n",
     "tidyrs": "!error Unexpected NUL character"
+   }
+  ]
+ },
+ {
+  "id": "html-borrowed-markers-once",
+  "rows": [
+   {
+    "parsers": [
+     "html"
+    ],
+    "input": "<a><b><!-- prettier-ignore -->\n<i></i></b></a>\n",
+    "prettier": "<a\n  ><b\n    ><!-- prettier-ignore -->\n    <i></i>></b\n></a>\n",
+    "tidyrs": "<a\n  ><b\n    ><!-- prettier-ignore -->\n    <i></i></b\n></a>\n",
+    "whitespace": "strict"
+   },
+   {
+    "parsers": [
+     "html"
+    ],
+    "input": "<span><!--[if a]><p>b<![endif]--></span>\n",
+    "prettier": "<span\n  >><!--[if a]><p>b<![endif]--></span</span\n>\n",
+    "tidyrs": "<span\n  ><!--[if a]><p>b<![endif]--></span\n>\n"
+   },
+   {
+    "parsers": [
+     "html"
+    ],
+    "input": "<b>a</b><pre   ><i>x</i>\n",
+    "prettier": "<b>a</b>><pre>>\n",
+    "tidyrs": "<b>a</b><pre><i>x</i>\n",
+    "whitespace": "strict"
    }
   ]
  }
