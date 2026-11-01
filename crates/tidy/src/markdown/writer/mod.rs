@@ -440,16 +440,16 @@ impl<'s> Writer<'s, '_> {
       }
       Tag::Table(alignments) => {
         self.block(range.start);
-        self.table = Some(Table { alignments, rows: Vec::new() });
+        self.table = Some(Table::new(alignments));
       }
       Tag::TableHead | Tag::TableRow => {
         if let Some(table) = &mut self.table {
-          table.rows.push(Vec::new());
+          table.row(range);
         }
       }
       Tag::TableCell => {
-        if let Some(row) = self.table.as_mut().and_then(|table| table.rows.last_mut()) {
-          row.push(String::new());
+        if let Some(table) = &mut self.table {
+          table.cell(range);
         }
       }
       Tag::Emphasis => {
@@ -594,6 +594,11 @@ impl<'s> Writer<'s, '_> {
           self.end();
         } else {
           self.gap = Gap::None;
+        }
+      }
+      TagEnd::TableHead | TagEnd::TableRow => {
+        if let Some(table) = &mut self.table {
+          table.end(self.source);
         }
       }
       TagEnd::Table => {

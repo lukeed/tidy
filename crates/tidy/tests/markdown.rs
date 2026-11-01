@@ -127,6 +127,17 @@ fn aligns_tables() {
 }
 
 #[test]
+fn keeps_each_rows_cells() {
+  let source = "| a | b | c |\n| - | - | - |\n| x | y |\n| 1 | 2 | 3 | 4 |\n";
+  let expected =
+    "| a   | b   | c   |\n| --- | --- | --- |\n| x   | y   |\n| 1   | 2   | 3   | 4   |\n";
+  assert_eq!(prettier(source), expected);
+  let split = "| a | b |\n| - | - |\n| x `n|m` y | z |\n";
+  assert_eq!(prettier(split), "| a    | b    |\n| ---- | ---- |\n| x `n | m` y | z   |\n");
+  assert_eq!(prettier("| a | b |\n| - | - |\n| c\n"), "| a   | b   |\n| --- | --- |\n| c   |\n");
+}
+
+#[test]
 fn copies_inline_content_as_written() {
   let source = "\\# not a heading, &amp; [link][ref] `code`  \nnext <b>html</b>\n\n[ref]: /url\n";
   assert_eq!(prettier(source), source);
