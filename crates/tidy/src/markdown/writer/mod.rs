@@ -239,11 +239,13 @@ impl<'s> Writer<'s, '_> {
         }
         None if range.is_empty() => {}
         None => {
-          let bytes = self.source.as_bytes();
-          let escaped = range.start > 0
-            && bytes[range.start - 1] == b'\\'
-            && bytes.get(range.start).is_some_and(u8::is_ascii_punctuation);
-          let start = if escaped { range.start - 1 } else { range.start };
+          let punctuation =
+            self.source.as_bytes().get(range.start).is_some_and(u8::is_ascii_punctuation);
+          let start = if punctuation && escaped(self.source, range.start) {
+            range.start - 1
+          } else {
+            range.start
+          };
           self.text(&self.source[start..range.end]);
         }
       },
@@ -271,7 +273,7 @@ impl<'s> Writer<'s, '_> {
         } else {
           let next = events.peek(0).map_or(self.source.len(), |(_, range)| range.start);
           let line = &self.source[next..];
-          let escaped = self.source[..next].ends_with('\\');
+          let escaped = escaped(self.source, next);
           match interrupts(line.split('\n').next().unwrap_or("")).filter(|_| !escaped) {
             Some(Fix::Join) => self.atom(" "),
             Some(Fix::Escape) => {
@@ -835,6 +837,12 @@ impl<'s> Writer<'s, '_> {
     self.out.push('\n');
     self.start = true;
   }
+}
+
+/// Whether a backslash escapes the character at `at`: an odd run of them comes right before it.
+fn escaped(source: &str, at: usize) -> bool {
+  let run = source.as_bytes()[..at].iter().rev().take_while(|&&byte| byte == b'\\').count();
+  run % 2 == 1
 }
 
 /// Whether `tag` opens a block, as opposed to inline content.

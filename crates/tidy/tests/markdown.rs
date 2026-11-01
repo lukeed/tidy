@@ -273,6 +273,13 @@ fn keeps_destinations_that_would_read_differently() {
 }
 
 #[test]
+fn keeps_escaped_backslashes() {
+  for source in ["a \\\\&NewLine; b\n", "a \\\\\\* b\n"] {
+    assert_eq!(prettier(source), source, "{source}");
+  }
+}
+
+#[test]
 fn quotes_and_nesting() {
   assert_eq!(prettier(">a\n>\n>b\n"), "> a\n>\n> b\n");
   assert_eq!(prettier("> - a\n>   > b\n"), "> - a\n>   > b\n");
