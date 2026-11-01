@@ -10,6 +10,7 @@ mod layout;
 mod liquid;
 mod list;
 mod survey;
+mod wiki;
 
 use pulldown_cmark::{CodeBlockKind, Event, OffsetIter, Options as Flags, Parser, Tag, TagEnd};
 
@@ -22,6 +23,7 @@ use code::{Block, fence};
 use inline::{Image, Link, collapse, span};
 use list::{Adjacent, List, TAB, aligned, widen};
 use survey::Survey;
+use wiki::Wiki;
 
 /// The syntax mdtidy reads: CommonMark with GFM tables, task lists, strikethrough, footnotes, and
 /// front matter.
@@ -93,6 +95,7 @@ pub(crate) fn format(
     previous: None,
     surveyed: Survey::default(),
     raw: None,
+    wiki: None,
   };
   if let Some(front) = front {
     writer.front(&front);
@@ -232,6 +235,8 @@ struct Writer<'s, 'o> {
   surveyed: Survey,
   /// Where the rest of a paragraph starts that is copied as written, up to its first block event.
   raw: Option<usize>,
+  /// Prettier's wiki links in the paragraph being written.
+  wiki: Option<Wiki>,
 }
 
 impl<'s> Writer<'s, '_> {
@@ -350,7 +355,8 @@ impl<'s> Writer<'s, '_> {
           let wide = label
             && crate::wrap::wide(before)
             && crate::wrap::wide(self.source[next..].chars().next());
-          let kept = wide || self.liquid_break(range.start, next);
+          let raw = self.wiki.as_ref().is_some_and(|wiki| wiki.raw);
+          let kept = wide || raw || self.liquid_break(range.start, next);
           let paragraph = self.paragraph.get_or_insert_default();
           if kept {
             paragraph.hard("");
@@ -421,6 +427,7 @@ impl<'s> Writer<'s, '_> {
         if self.options.wrap != Wrap::Preserve {
           self.paragraph = Some(Paragraph::default());
         }
+        self.wiki = self.scan_wiki(events, &range);
       }
       Tag::Heading { level, .. } => {
         let atx = self.source[range.start..].trim_start().starts_with('#');
@@ -590,6 +597,7 @@ impl<'s> Writer<'s, '_> {
   fn close(&mut self, tag: TagEnd) {
     match tag {
       TagEnd::Paragraph => {
+        self.wiki = None;
         self.finish();
         self.end();
       }
@@ -729,6 +737,12 @@ impl<'s> Writer<'s, '_> {
   }
 
   fn text(&mut self, text: &'s str, at: usize) {
+    if !self.wiki_text(text, at) {
+      self.prose(text, at);
+    }
+  }
+
+  fn prose(&mut self, text: &'s str, at: usize) {
     let text =
       if self.options.wrap == Wrap::Preserve { self.guard(text, at) } else { collapse(text) };
     if !self.link.as_ref().is_some_and(|link| link.inline) && self.wraps() {

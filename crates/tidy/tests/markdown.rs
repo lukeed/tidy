@@ -504,6 +504,14 @@ fn joins_chinese_and_japanese_lines_like_prettier() {
 }
 
 #[test]
+fn keeps_wiki_links_like_prettier() {
+  let source = "aaa bbb [[ wiki link here ]] ccc ddd eee\n\nkind: ok [[1,2],3]\n[[x]]  and   more words to wrap here\n\nfoo [[a]] bar   baz\nqux\n\n\\[[not a link]] text that is long enough\n\nalt ![x [[y]]](z) and some text ]]\nend\n";
+  let expected = "aaa bbb\n[[ wiki link here ]]\nccc ddd eee\n\nkind: ok [[1,2],3]\n[[x]]  and   more words to wrap here\n\nfoo [[a]]\nbar baz qux\n\n\\[[not a link]] text that is long enough\n\nalt\n![x [[y]]](z)\nand some\ntext ]] end\n";
+  let options = Options { wrap: Wrap::Always, width: 12, ..Options::default() };
+  assert_eq!(mdtidy::format(source, &options), expected);
+}
+
+#[test]
 fn breaks_beside_markup_in_chinese_and_japanese_like_prettier() {
   let source =
     std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/cjk-markup.md"))
