@@ -9,6 +9,7 @@ mod inline;
 mod layout;
 mod liquid;
 mod list;
+mod survey;
 
 use pulldown_cmark::{
   CodeBlockKind, Event, LinkType, OffsetIter, Options as Flags, Parser, Tag, TagEnd,
@@ -22,6 +23,7 @@ use crate::{Code, Emphasis, Heading, Numbering, Options, Rule, Strong, Wrap};
 use code::{Block, fence};
 use inline::{Image, Link, collapse, span};
 use list::{Adjacent, List, TAB, aligned, widen};
+use survey::Survey;
 
 /// The syntax mdtidy reads: CommonMark with GFM tables, task lists, strikethrough, footnotes, and
 /// front matter.
@@ -87,6 +89,7 @@ pub(crate) fn format(
     lazy: false,
     bare: false,
     stray: false,
+    surveyed: Survey::default(),
     raw: None,
   };
   if let Some(front) = front {
@@ -215,6 +218,8 @@ struct Writer<'s, 'o> {
   /// The last line written is a lazy Liquid line, which Prettier reads as a block after the
   /// container, so the block after it stays beside it.
   stray: bool,
+  /// What the lists ahead need to know, surveyed at the start of each top-level list.
+  surveyed: Survey,
   /// Where the rest of a paragraph starts that is copied as written, up to its first block event.
   raw: Option<usize>,
 }
@@ -454,7 +459,13 @@ impl<'s> Writer<'s, '_> {
         self.settle(range.start, false);
         self.block(range.start);
         self.adjacent = None;
-        let least = self.least(events);
+        let least = match self.surveyed.list(range.start) {
+          Some(least) => least,
+          None => {
+            self.surveyed = self.survey(events, range.start);
+            self.surveyed.list(range.start).unwrap_or(0)
+          }
+        };
         let items = self.scan(events, ordered);
         let numbers: Vec<u64> = items.iter().map(|item| item.number).collect();
         let repeats = match numbers[..] {
@@ -472,7 +483,7 @@ impl<'s> Writer<'s, '_> {
         self.lists.push(list);
       }
       Tag::Item => {
-        let loose = self.loose(events);
+        let loose = self.surveyed.item(range.start).unwrap_or(false);
         let list = self.lists.last_mut().expect("an item is inside a list");
         if list.items > 0 {
           let blank = list.spread || blank(self.source, self.last.min(range.start), range.start);

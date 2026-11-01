@@ -1,6 +1,6 @@
-use pulldown_cmark::{CodeBlockKind, Event, Tag};
+use pulldown_cmark::Event;
 
-use super::{Events, Writer, blank, is_block};
+use super::{Events, Writer};
 use crate::{Bullet, Numbering};
 
 pub(super) struct List {
@@ -123,88 +123,6 @@ impl<'s> Writer<'s, '_> {
       Bullet::Plus => ("+", "-"),
     };
     (if list.nth.is_multiple_of(2) { even } else { odd }).to_string()
-  }
-
-  /// Whether the item that just started is loose, as Prettier decides: a blank line between two of
-  /// its direct children, or between it and the next item. Blank lines deeper in don't count.
-  pub(super) fn loose(&self, events: &mut Events<'s>) -> bool {
-    let mut depth = 0usize;
-    let mut index = 0;
-    let mut last: Option<usize> = None;
-    let mut inline = false;
-    let gap = |last: Option<usize>, at: usize| last.is_some_and(|end| blank(self.source, end, at));
-    while let Some((event, range)) = events.peek(index) {
-      let (start, end) = (range.start, range.end);
-      let opens = match event {
-        Event::Start(tag) => Some(is_block(tag)),
-        Event::End(_) => None,
-        _ => Some(false),
-      };
-      let leaf = !matches!(event, Event::Start(_) | Event::End(_));
-      index += 1;
-      match opens {
-        None if depth == 0 => {
-          let next = match events.peek(index) {
-            Some((Event::Start(_), next)) => Some(next.start),
-            _ => None,
-          };
-          return next.is_some_and(|next| gap(last, next));
-        }
-        None => {
-          depth -= 1;
-          if depth == 0 {
-            last = Some(end);
-          }
-        }
-        Some(block) => {
-          if depth == 0 && (block || !inline) {
-            if gap(last, start) {
-              return true;
-            }
-            inline = !block;
-          }
-          if leaf {
-            if depth == 0 {
-              last = Some(end);
-            }
-          } else {
-            depth += 1;
-          }
-        }
-      }
-    }
-    false
-  }
-
-  /// The marker width Prettier gives the list that just started when an indented code block
-  /// follows it: wider than the code's indent, so the code doesn't join the last item.
-  pub(super) fn least(&self, events: &mut Events<'s>) -> usize {
-    let mut depth = 0usize;
-    let mut index = 0;
-    while let Some((event, _)) = events.peek(index) {
-      index += 1;
-      match event {
-        Event::Start(_) => depth += 1,
-        Event::End(_) if depth == 0 => break,
-        Event::End(_) => depth -= 1,
-        _ => {}
-      }
-    }
-    if !matches!(
-      events.peek(index),
-      Some((Event::Start(Tag::CodeBlock(CodeBlockKind::Indented)), _))
-    ) {
-      return 0;
-    }
-    let indent = match events.peek(index + 1) {
-      Some((Event::Text(text), _)) => text
-        .chars()
-        .take_while(|char| matches!(char, ' ' | '\t'))
-        .map(|char| if char == '\t' { 4 } else { 1 })
-        .sum(),
-      _ => 0,
-    };
-    4 + indent + 1
   }
 }
 
