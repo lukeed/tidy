@@ -174,17 +174,17 @@ pub(crate) fn is_regexp_word_byte(byte: u8) -> bool {
   byte.is_ascii_alphanumeric() || byte == b'_'
 }
 
-/// The text with each `\r\n` as `\n`.
-pub(crate) fn crlf_as_lf(text: &[u8]) -> std::borrow::Cow<'_, [u8]> {
+/// Prettier's `normalizeEndOfLine`: the text with each `\r\n` and `\r` as `\n`.
+pub(crate) fn lf(text: &[u8]) -> std::borrow::Cow<'_, [u8]> {
   if !contains_char(text, b'\r') {
     return std::borrow::Cow::Borrowed(text);
   }
   let mut normalized = Vec::with_capacity(text.len());
   let mut rest = text;
-  while let Some(at) = memchr::memmem::find(rest, b"\r\n") {
+  while let Some(at) = memchr::memchr(b'\r', rest) {
     normalized.extend_from_slice(&rest[..at]);
     normalized.push(b'\n');
-    rest = &rest[at + 2..];
+    rest = rest[at + 1..].strip_prefix(b"\n").unwrap_or(&rest[at + 1..]);
   }
   normalized.extend_from_slice(rest);
   std::borrow::Cow::Owned(normalized)

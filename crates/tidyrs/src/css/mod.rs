@@ -137,7 +137,7 @@ impl Formatter {
     settings: &Settings,
     embed: &mut dyn Embed,
   ) -> Result<(), Failure> {
-    let text = crate::strings::crlf_as_lf(text.as_bytes());
+    let text = crate::strings::lf(text.as_bytes());
     self.output.clear();
     if crate::strings::trim_js_whitespace(&text).is_empty() {
       self.text.clear();
@@ -176,7 +176,7 @@ pub(crate) fn document(
   is_style_attribute: bool,
   embed: &mut dyn Embed,
 ) -> Result<Document, Failure> {
-  let text = crate::strings::crlf_as_lf(text.as_bytes());
+  let text = crate::strings::lf(text.as_bytes());
   let mut memo = Memo::default();
   let style = Style { settings, is_style_attribute };
   let sink = parse_and_print(&text, style, Sink::to_document(true), &mut memo, embed)?;
