@@ -1,86 +1,22 @@
 //! Formatting must keep what a document means and settle after one pass: re-parsing the output
 //! gives the same events as the input, and formatting the output again changes nothing.
+//! `MDTIDY_CORPUS` adds folders of Markdown files to check, separated like `PATH`.
 
 use std::path::{Path, PathBuf};
 
 use mdtidy::{Options, Preset, Wrap};
-use pulldown_cmark::{CodeBlockKind, Event, Options as Flags, Parser, Tag};
 
-fn flags() -> Flags {
-  Flags::ENABLE_TABLES
-    | Flags::ENABLE_FOOTNOTES
-    | Flags::ENABLE_STRIKETHROUGH
-    | Flags::ENABLE_TASKLISTS
-}
+#[path = "support/events.rs"]
+mod support;
 
-/// The events of `text`, with where lines break inside text not counting. Link labels match
-/// with their whitespace collapsed, so they compare that way.
-fn events(text: &str) -> Vec<String> {
-  let mut out = Vec::new();
-  let mut pending = String::new();
-  for event in Parser::new_ext(text, flags()) {
-    match &event {
-      Event::Text(text) => {
-        pending.push_str(text);
-        continue;
-      }
-      Event::SoftBreak => {
-        pending.push(' ');
-        continue;
-      }
-      _ => {}
-    }
-    close(&mut out, &mut pending);
-    out.push(match event {
-      Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(info))) => {
-        format!("Fenced({:?})", words(&info))
-      }
-      Event::Html(html) => format!("Html({:?})", html.trim_end()),
-      Event::InlineHtml(html) => format!("InlineHtml({:?})", html.as_ref()),
-      Event::Code(code) => format!("Code({:?})", code.as_ref()),
-      Event::Start(Tag::Link { link_type, dest_url, title, id }) => {
-        format!(
-          "Link({link_type:?}, {:?}, {:?}, {:?})",
-          dest_url.as_ref(),
-          title.as_ref(),
-          words(&id)
-        )
-      }
-      Event::Start(Tag::Image { link_type, dest_url, title, id }) => {
-        format!(
-          "Image({link_type:?}, {:?}, {:?}, {:?})",
-          dest_url.as_ref(),
-          title.as_ref(),
-          words(&id)
-        )
-      }
-      event => format!("{event:?}"),
-    });
-  }
-  close(&mut out, &mut pending);
-  out
-}
-
-/// Close a run of text, whose whitespace only matters as a separator. Whitespace alone renders
-/// as nothing.
-fn close(out: &mut Vec<String>, pending: &mut String) {
-  let text = words(pending);
-  if !text.is_empty() {
-    out.push(format!("Text({text:?})"));
-  }
-  pending.clear();
-}
-
-fn words(text: &str) -> String {
-  text.split_whitespace().collect::<Vec<_>>().join(" ")
-}
+use support::events;
 
 fn files() -> Vec<PathBuf> {
   let mut files = Vec::new();
   let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
   walk(&fixtures, &mut files);
-  if let Ok(corpus) = std::env::var("MDTIDY_CORPUS") {
-    walk(Path::new(&corpus), &mut files);
+  if let Some(corpora) = std::env::var_os("MDTIDY_CORPUS") {
+    std::env::split_paths(&corpora).for_each(|corpus| walk(&corpus, &mut files));
   }
   files.sort();
   files

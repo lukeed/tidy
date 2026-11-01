@@ -1,14 +1,17 @@
+//! Print the events the semantics oracle compares, one per line, for each file given. The
+//! `oracle/shrink.ts` script compares them before and after formatting.
+
+#[path = "../tests/support/events.rs"]
+mod support;
+
 fn main() {
-  let source = std::fs::read_to_string(std::env::args().nth(1).unwrap()).unwrap();
-  for (event, range) in pulldown_cmark::Parser::new_ext(
-    &source,
-    pulldown_cmark::Options::ENABLE_TABLES
-      | pulldown_cmark::Options::ENABLE_FOOTNOTES
-      | pulldown_cmark::Options::ENABLE_STRIKETHROUGH
-      | pulldown_cmark::Options::ENABLE_TASKLISTS,
-  )
-  .into_offset_iter()
-  {
-    println!("{range:?} {event:?}");
+  for path in std::env::args().skip(1) {
+    match std::fs::read_to_string(&path) {
+      Ok(text) => support::events(&text).iter().for_each(|event| println!("{event}")),
+      Err(error) => {
+        eprintln!("events: {path}: {error}");
+        std::process::exit(1);
+      }
+    }
   }
 }

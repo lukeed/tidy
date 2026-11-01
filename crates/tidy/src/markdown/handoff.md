@@ -29,16 +29,16 @@ One pass over pulldown-cmark's offset events, writing straight into a `String`. 
 
 ## Oracles
 
-Both oracles live in the repo. Corpora don't: rebuild them with `git ls-files '*.md'` from any repos at hand. The 2026-11 runs used four corpora:
+Both oracles live in the repo, with mise tasks to run them. Corpora don't: build one with `mise run oracle:corpus -- <out> <repo>...`, which copies the Markdown files each repo tracks. The 2026-11 runs used four corpora:
 
 - A: vite + storybook + shadcn-svelte (872 files).
 - B: starship + bun (2,142 files, without `node_modules`).
 - C: angular (`angular-html-parser`), rolldown, jest, v, bootstrap, deno, deno_lint, oxc, Prettier's docs, and everything-claude-code (3,466 files, many not in English).
 - D: Prettier's own `tests/format` fixtures (310 files). They are edge cases on purpose, so don't rank gaps by them.
 
-- **Semantics**: `MDTIDY_CORPUS=<dir> cargo test -p mdtidy --release --test semantics`. Every output re-parses to the same events (adjacent text merged, soft breaks as spaces, whitespace collapsed) and settles after one pass. It runs the Prettier preset, the Preserve preset, `wrap: always` at width 40, and `wrap: never`. It caught every real bug so far: trust it over reading diffs. When a file fails, shrink it: remove lines while the structure events of input and output still differ, until a few lines are left.
-- **Speed**: build the old and the new CLI, then time both with `hyperfine -N --warmup 20 --runs 60 '<bin> <corpus> --check'` in both orders. Compare medians: means swing with machine load. Each fix on 2026-10-30 and 2026-11-01 was within noise; together they cost about 2–3% (about 38 to 39 ms on A + B).
-- **Prettier**: the target is Prettier 3.9.10. Format one copy with `prettier --no-config --no-editorconfig --ignore-path= --embedded-language-formatting=off --write .` and another with `fd -H -e md -X mdtidy --write`, then count identical files. The CLI skips hidden folders on purpose, so give it every file by name. Last result: A 870/872, B 2,140/2,142, C 3,412/3,466, D 272/310. The semantics oracle passes on A and B; C and D fail only on the bugs listed below. `bun fmt` is close (8 misses, all inside code blocks) but it is not the reference.
+- **Semantics**: `MDTIDY_CORPUS=<dir>[:<dir>...] mise run oracle:semantics`. Every output re-parses to the same events (adjacent text merged, soft breaks as spaces, whitespace collapsed) and settles after one pass. It runs the Prettier preset, the Preserve preset, `wrap: always` at width 40, and `wrap: never`. It caught every real bug so far: trust it over reading diffs. When a file fails, `mise run oracle:shrink -- <file> [mdtidy options...]` removes lines while it still fails and prints the few that are left. The events it compares come from `tests/support/events.rs`, shared by the test and the `events` example.
+- **Speed**: `mise run bench:ab -- [--rev <rev>] <dir>...` builds the working tree and `<rev>` (HEAD by default, in a temporary worktree), times both checking the folders in both orders, and compares medians: means swing with machine load. Each fix on 2026-10-30 and 2026-11-01 was within noise; together they cost about 2–3% (about 38 to 39 ms on A + B).
+- **Prettier**: the target is Prettier 3.9.10. `mise run oracle:prettier -- <corpus>... [--show <kind>]` formats one copy with Prettier (cached in `target/oracle`), one with mdtidy, counts identical files, and sorts the differences by kind. It hands mdtidy every file by name, because the CLI skips hidden folders on purpose. Last result: A 870/872, B 2,140/2,142, C 3,412/3,466, D 272/310. The semantics oracle passes on A and B; C and D fail only on the bugs listed below. `bun fmt` is close (8 misses, all inside code blocks) but it is not the reference.
 
 ## Known gaps against Prettier
 
