@@ -70,6 +70,8 @@ pub(crate) struct Printer<'a, 'p> {
   /// `options.htmlWhitespaceSensitivity !== "ignore"`
   pub(crate) is_white_space_sensitive: bool,
   pub(crate) single_quote: bool,
+  /// The ignore directive.
+  pub(crate) ignore: &'p [u8],
   pub(crate) docs: &'p mut Docs<'a>,
   pub(crate) embed: &'p mut dyn Embed,
   /// The open containers, and what each added to `indents`.
@@ -283,7 +285,7 @@ impl<'a> Printer<'a, '_> {
 
   /// `isPrettierIgnoreNode`
   fn is_prettier_ignore(&self, node: NodeId) -> bool {
-    matches!(self.tree.kind(node), Kind::MustacheComment { value } if strings::trim_js_whitespace(self.text(value)) == b"prettier-ignore")
+    matches!(self.tree.kind(node), Kind::MustacheComment { value } if strings::trim_js_whitespace(self.text(value)) == self.ignore)
   }
 
   /// Prints the node's source text.

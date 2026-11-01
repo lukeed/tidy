@@ -121,7 +121,7 @@ impl<'o> Tags<'_, '_, 'o> {
   /// lends is then `>`. Prettier assumes `/>`, so `<img a=b>c` becomes `<img a=/>c`.
   fn is_verbatim_void_without_slash(self, id: Id) -> bool {
     let end = self.tree[id].span.end as usize;
-    self.tree.has_prettier_ignore(id)
+    self.tree.has_prettier_ignore(id, self.options.ignore)
       && (self.options.original_text.get(..end)).is_some_and(|text| !text.ends_with(b"/>"))
   }
 
@@ -137,7 +137,7 @@ impl<'o> Tags<'_, '_, 'o> {
 
   fn should_not_print_closing_tag(self, id: Id) -> bool {
     !self.tree[id].flags.intersects(Flags::IS_SELF_CLOSING | Flags::HAS_END_SPAN)
-      && (self.tree.has_prettier_ignore(id)
+      && (self.tree.has_prettier_ignore(id, self.options.ignore)
         || self.is_verbatim_without_end_tag(id)
         || self.tree.parent_of(id).is_some_and(|parent| parent.has(Flags::PRESERVES_CONTENT)))
   }

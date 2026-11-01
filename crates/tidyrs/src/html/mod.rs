@@ -44,6 +44,7 @@ pub(crate) struct Options<'o> {
   pub(crate) single_attribute_per_line: bool,
   pub(crate) bracket_same_line: bool,
   pub(crate) vue_indent_script_and_style: bool,
+  pub(crate) ignore: &'o [u8],
   /// `parentParser`: the text is embedded in another language.
   pub(crate) embedded: bool,
   /// A Vue file with a TypeScript `<script>`, whose expressions are TypeScript.
@@ -64,6 +65,9 @@ pub struct Settings {
   pub single_attribute_per_line: bool,
   pub bracket_same_line: bool,
   pub vue_indent_script_and_style: bool,
+  /// The ignore directive, Prettier's `prettier-ignore` by default. `<!-- name -->` keeps the next node as it is written,
+  /// and `<!-- name-attribute -->` the attributes of the next element.
+  pub ignore: String,
   /// The file's path, which decides some details, like the case of `<!doctype html>`.
   pub filepath: Option<String>,
   /// Prettier's `embeddedLanguageFormatting`: `"auto"` if true, `"off"` if false. Off, neither the embed hook nor
@@ -83,6 +87,7 @@ impl Default for Settings {
       single_attribute_per_line: false,
       bracket_same_line: false,
       vue_indent_script_and_style: false,
+      ignore: "prettier-ignore".into(),
       filepath: None,
       format_embedded: true,
     }
@@ -207,6 +212,7 @@ fn run<'a>(
     single_attribute_per_line: settings.single_attribute_per_line,
     bracket_same_line: settings.bracket_same_line,
     vue_indent_script_and_style: settings.vue_indent_script_and_style,
+    ignore: settings.ignore.as_bytes(),
     embedded: false,
     typescript,
     formats_embedded: settings.format_embedded,

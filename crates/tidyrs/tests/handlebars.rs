@@ -58,3 +58,13 @@ fn keeps_tempura_comments_as_written() {
     "{{!-- todo --}}\n{{!\n  many\n  lines\n!}}\n<p>{{ x }}</p>"
   );
 }
+
+#[test]
+fn takes_another_ignore_directive() {
+  let settings = Settings { ignore: "tidy-ignore".into(), ..Settings::default() };
+  let text = "{{! tidy-ignore }}\n<p   a=\"b\">x</p>\n{{! prettier-ignore }}\n<p   a=\"b\">x</p>\n";
+  assert_eq!(
+    format(text, &settings, &mut Verbatim).unwrap(),
+    "{{! tidy-ignore }}\n<p   a=\"b\">x</p>\n{{! prettier-ignore }}\n<p a=\"b\">x</p>"
+  );
+}

@@ -8,9 +8,6 @@ use crate::embed::{Embed, Kind as Purpose, Request};
 use crate::stack::Stack;
 use crate::strings;
 
-const IGNORE_START: &str = "<!-- prettier-ignore-start -->";
-const IGNORE_END: &str = "<!-- prettier-ignore-end -->";
-
 pub(crate) struct Printer<'p, 'a> {
   pub(crate) tree: &'p Tree,
   pub(crate) text: &'a str,
@@ -20,6 +17,8 @@ pub(crate) struct Printer<'p, 'a> {
   pub(crate) stack: Stack,
   /// The text has a `<!-- prettier-ignore-start -->`.
   pub(crate) has_ignored_ranges: bool,
+  /// The comments that start and end an ignored range: `<!-- prettier-ignore-start -->` by default.
+  pub(crate) ignore: (&'p str, &'p str),
 }
 
 /// What comes before the `/>` of an element with no content.
@@ -267,7 +266,7 @@ impl<'a> Printer<'_, 'a> {
 
   fn ignore_ranges(&self, items: &[Item]) -> Vec<Span> {
     match self.has_ignored_ranges {
-      true => ignore_ranges(self.text, items),
+      true => ignore_ranges(self.text, items, self.ignore),
       false => Vec::new(),
     }
   }
@@ -457,17 +456,22 @@ impl<'a> Printer<'_, 'a> {
 
 /// The ranges that `<!-- prettier-ignore-start -->` and `<!-- prettier-ignore-end -->` comments mark among `items`,
 /// from the start of the first to the end of the second.
-fn ignore_ranges(text: &str, items: &[Item]) -> Vec<Span> {
+fn ignore_ranges(
+  text: &str,
+  items: &[Item],
+  (start_comment, end_comment): (&str, &str),
+) -> Vec<Span> {
   let mut ranges = Vec::new();
   let mut start = None;
   for item in items {
     let Item::Comment(span) = *item else { continue };
-    match span.of(text) {
-      IGNORE_START => start = Some(span.start),
-      IGNORE_END if let Some(from) = start.take() => {
-        ranges.push(Span { start: from, end: span.end })
-      }
-      _ => {}
+    let comment = span.of(text);
+    if comment == start_comment {
+      start = Some(span.start);
+    } else if comment == end_comment
+      && let Some(from) = start.take()
+    {
+      ranges.push(Span { start: from, end: span.end });
     }
   }
   ranges

@@ -249,7 +249,7 @@ impl<'p, 'a> Printer<'p, 'a> {
   }
 
   fn print_child(&mut self, id: Id) {
-    if !self.tree.has_prettier_ignore(id) {
+    if !self.tree.has_prettier_ignore(id, self.options.ignore) {
       return self.print_nested(id);
     }
     let tags = self.tags();
@@ -287,7 +287,7 @@ impl<'p, 'a> Printer<'p, 'a> {
       return if hard_leading { Between::Hard } else { Between::Soft };
     }
     if (tags.needs_to_borrow_next_opening_tag_start_marker(prev)
-      && (self.tree.has_prettier_ignore(next)
+      && (self.tree.has_prettier_ignore(next, self.options.ignore)
         || self.tree.first_child(next).is_some()
         || after.has(Flags::IS_SELF_CLOSING)
         || (after.kind == Kind::Element && after.has_attrs())))
@@ -594,7 +594,7 @@ impl<'p, 'a> Printer<'p, 'a> {
       .tree
       .prev_of(id)
       .filter(|prev| prev.kind == Kind::Comment)
-      .and_then(|prev| ignore_attribute_data(&prev.value));
+      .and_then(|prev| ignore_attribute_data(&prev.value, self.options.ignore));
 
     let only_src = node.kind == Kind::Element
       && node.is_full_name(b"script")
@@ -789,9 +789,9 @@ enum Ignored<'a> {
 }
 
 /// `getPrettierIgnoreAttributeCommentData`
-fn ignore_attribute_data(value: &[u8]) -> Option<Ignored<'_>> {
+fn ignore_attribute_data<'v>(value: &'v [u8], ignore: &[u8]) -> Option<Ignored<'v>> {
   let value = strings::trim_js_whitespace(value);
-  let rest = value.strip_prefix(b"prettier-ignore-attribute")?;
+  let rest = value.strip_prefix(ignore)?.strip_prefix(b"-attribute")?;
   if rest.is_empty() {
     return Some(Ignored::All);
   }

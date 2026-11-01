@@ -59,3 +59,13 @@ fn leaves_attributes_without_embedded_formatting() {
     "<img class=\"a   b\" srcset=\"a.png 1x,b.png   2x\" />\n<p style=\"color:red\"></p>\n"
   );
 }
+
+#[test]
+fn takes_another_ignore_directive() {
+  let settings = Settings { ignore: "tidy-ignore".into(), ..Settings::default() };
+  let text = "<!-- tidy-ignore -->\n<p   a=b>x</p>\n<!-- tidy-ignore-attribute -->\n<p   a=b>x</p>\n<!-- prettier-ignore -->\n<p   a=b>x</p>\n";
+  assert_eq!(
+    format(text, &settings, &mut Verbatim).unwrap(),
+    "<!-- tidy-ignore -->\n<p   a=b>x</p>\n<!-- tidy-ignore-attribute -->\n<p a=b>x</p>\n<!-- prettier-ignore -->\n<p a=\"b\">x</p>\n"
+  );
+}

@@ -210,6 +210,9 @@ pub struct Settings {
   /// Prettier's `embeddedLanguageFormatting`: `"auto"` if true, `"off"` if false. Off, scripts and style sheets stay
   /// as they are written.
   pub format_embedded: bool,
+  /// The ignore directive, Prettier's `prettier-ignore` by default. The content of an element between
+  /// `<!-- name-start -->` and `<!-- name-end -->` prints as it is written.
+  pub ignore: String,
 }
 
 impl Default for Settings {
@@ -226,6 +229,7 @@ impl Default for Settings {
       bracket_same_line: false,
       single_attribute_per_line: false,
       format_embedded: true,
+      ignore: "prettier-ignore".into(),
     }
   }
 }
@@ -288,7 +292,9 @@ impl Formatter {
     self.bump.reset();
     let mut docs = Docs::reuse(&self.bump, &mut self.docs);
     docs.reserve(text.len());
-    let has_ignored_ranges = text.contains("<!-- prettier-ignore-start -->");
+    let ignore =
+      (format!("<!-- {}-start -->", settings.ignore), format!("<!-- {}-end -->", settings.ignore));
+    let has_ignored_ranges = text.contains(&ignore.0);
     let mut printer = print::Printer {
       tree: &self.tree,
       text: &text,
@@ -297,6 +303,7 @@ impl Formatter {
       embed,
       stack,
       has_ignored_ranges,
+      ignore: (&ignore.0, &ignore.1),
     };
     printer.document();
     if printer.stack.ran_out() {

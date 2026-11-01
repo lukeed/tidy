@@ -103,8 +103,8 @@ pub(crate) fn is_script_like_tag(node: &Node<'_>, options: &Options<'_>) -> bool
 }
 
 /// `isPrettierIgnore`
-fn is_prettier_ignore(node: &Node<'_>) -> bool {
-  node.kind == Kind::Comment && strings::trim_js_whitespace(&node.value) == b"prettier-ignore"
+fn is_prettier_ignore(node: &Node<'_>, ignore: &[u8]) -> bool {
+  node.kind == Kind::Comment && strings::trim_js_whitespace(&node.value) == ignore
 }
 
 /// `unescapeQuoteEntities`
@@ -202,8 +202,8 @@ impl<'a> Tree<'a> {
   }
 
   /// `hasPrettierIgnore`
-  pub(crate) fn has_prettier_ignore(&self, id: Id) -> bool {
-    self.prev_of(id).is_some_and(is_prettier_ignore)
+  pub(crate) fn has_prettier_ignore(&self, id: Id, ignore: &[u8]) -> bool {
+    self.prev_of(id).is_some_and(|prev| is_prettier_ignore(prev, ignore))
   }
 
   /// `isVueSfcBlock`

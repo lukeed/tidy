@@ -160,6 +160,8 @@ pub struct Settings {
   /// Prettier's `embeddedLanguageFormatting`: `"auto"` if true, `"off"` if false. Off, neither the embed hook nor
   /// tidyrs' own formatters see the code of other languages, which stays as it is written.
   pub format_embedded: bool,
+  /// The ignore directive, Prettier's `prettier-ignore` by default. `{{! name }}` keeps the next node as it is written.
+  pub ignore: String,
 }
 
 impl Default for Settings {
@@ -174,6 +176,7 @@ impl Default for Settings {
       dialect: Dialect::Auto,
       filepath: None,
       format_embedded: true,
+      ignore: "prettier-ignore".into(),
     }
   }
 }
@@ -281,6 +284,7 @@ impl Formatter {
       options: &options,
       is_white_space_sensitive: settings.whitespace != crate::Whitespace::Ignore,
       single_quote: settings.single_quote,
+      ignore: settings.ignore.as_bytes(),
       docs: &mut docs,
       embed,
       open: Vec::new(),

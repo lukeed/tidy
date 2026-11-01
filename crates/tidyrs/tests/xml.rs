@@ -63,3 +63,13 @@ fn knows_xml_paths() {
     assert!(!is_xml_path(path), "{path}");
   }
 }
+
+#[test]
+fn takes_another_ignore_directive() {
+  let settings = Settings { ignore: "tidy-ignore".into(), ..Settings::default() };
+  let text = "<a>\n  <!-- tidy-ignore-start -->\n  <b   c=\"d\"   />\n  <!-- tidy-ignore-end -->\n  <!-- prettier-ignore-start -->\n  <e   f=\"g\"/>\n  <!-- prettier-ignore-end -->\n</a>\n";
+  assert_eq!(
+    format(text, &settings, &mut Verbatim).unwrap(),
+    "<a>\n  <!-- tidy-ignore-start -->\n  <b   c=\"d\"   />\n  <!-- tidy-ignore-end -->\n  <!-- prettier-ignore-start -->\n  <e f=\"g\" />\n  <!-- prettier-ignore-end -->\n</a>\n"
+  );
+}
