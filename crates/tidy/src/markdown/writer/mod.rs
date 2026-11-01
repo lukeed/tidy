@@ -263,10 +263,14 @@ impl<'s> Writer<'s, '_> {
         let joins = matches!(tag, TagEnd::Paragraph | TagEnd::HtmlBlock);
         let liquid = tag == TagEnd::Paragraph && self.ends_liquid(range.end);
         let block = liquid::ends_block(&tag);
+        let list = matches!(tag, TagEnd::List(_));
         if matches!(tag, TagEnd::BlockQuote(_) | TagEnd::Item | TagEnd::FootnoteDefinition) {
           self.flush(range.end);
         }
         self.close(tag);
+        if list {
+          self.flush(range.end);
+        }
         if block {
           self.cursor = Some(range.end);
         }

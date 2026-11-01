@@ -360,6 +360,10 @@ fn keeps_repeated_definitions() {
   assert_eq!(prettier(source), expected);
   let item = "- a ([b])\n\n  [b]: /b\n";
   assert_eq!(prettier(item), item);
+  let after = "[a]: /1\n\n- x [a]\n\n[a]: /2\n";
+  assert_eq!(prettier(after), after);
+  let tight = "- x [b]\n  y\n\n[b]: /b\n";
+  assert_eq!(prettier(tight), tight);
 }
 
 #[test]
