@@ -109,7 +109,8 @@ pub struct Options {
   pub heading: Heading,
   /// The name of the ignore directive, an HTML comment on its own line:
   /// `<!-- name -->` keeps the next block as written, `<!-- name-start -->` and `<!-- name-end -->`
-  /// keep everything between them, and `<!-- name-file -->` at the top keeps the whole file.
+  /// at the top level keep everything between them, and `<!-- name-file -->` at the top keeps the
+  /// whole file.
   pub ignore: String,
 }
 

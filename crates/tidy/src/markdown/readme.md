@@ -109,7 +109,7 @@ Everything in here is left alone.
 <!-- prettier-ignore-end -->
 ```
 
-And `<!-- prettier-ignore-file -->` at the top of a file (after any front matter) skips the whole file.
+A range only counts at the top level, not inside a quote or list, as in Prettier. And `<!-- prettier-ignore-file -->` at the top of a file (after any front matter) skips the whole file.
 
 
 ## Benchmarks

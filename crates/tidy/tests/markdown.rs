@@ -306,16 +306,6 @@ fn keeps_escaped_backslashes() {
 }
 
 #[test]
-fn ignores_ranges_in_quotes() {
-  for source in [
-    "> <!-- prettier-ignore-start -->\n> <!-- prettier-ignore-end -->\n",
-    "> <!-- prettier-ignore-start -->\n> *  a\n> <!-- prettier-ignore-end -->\n",
-  ] {
-    assert_eq!(prettier(source), source, "{source}");
-  }
-}
-
-#[test]
 fn caps_list_numbers() {
   let huge = "999999998. a\n999999998. b\n999999998. c\n";
   assert_eq!(prettier(huge), "999999998. a\n999999999. b\n999999999. c\n");
@@ -476,6 +466,15 @@ fn ignores_ranges() {
   assert_eq!(
     prettier(source),
     "<!-- prettier-ignore-start -->\n* a\n\n\n* b\n<!-- prettier-ignore-end -->\n\n- c\n"
+  );
+}
+
+#[test]
+fn ignores_ranges_only_at_the_top() {
+  let source = "> <!-- prettier-ignore-start -->\n> * a\n> <!-- prettier-ignore-end -->\n";
+  assert_eq!(
+    prettier(source),
+    "> <!-- prettier-ignore-start -->\n>\n> - a\n>\n> <!-- prettier-ignore-end -->\n"
   );
 }
 

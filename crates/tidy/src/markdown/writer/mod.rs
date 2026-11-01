@@ -452,7 +452,7 @@ impl<'s> Writer<'s, '_> {
         self.block(range.start);
         match directive::parse(&self.source[range.clone()], &self.options.ignore) {
           Some(Directive::Next) => self.ignore = true,
-          Some(Directive::Start) => {
+          Some(Directive::Start) if self.containers.is_empty() => {
             if let Some(end) = directive::end(self.source, range.end, &self.options.ignore) {
               let line = self.source[..end.start].rfind('\n').map_or(0, |index| index + 1);
               self.ignored = range.end..line.max(range.end);
