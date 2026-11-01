@@ -4,6 +4,8 @@ use unicode_width::UnicodeWidthStr;
 #[derive(Debug, Default)]
 pub(crate) struct Paragraph {
   tokens: Vec<Token>,
+  /// The closer of a Liquid tag still open, across text events.
+  open: Option<&'static str>,
 }
 
 #[derive(Debug)]
@@ -15,15 +17,27 @@ enum Token {
 }
 
 impl Paragraph {
-  /// Add text from the source: whitespace in it becomes places to break.
+  /// Add text from the source: whitespace in it becomes places to break, except inside a Liquid
+  /// tag (`{{ … }}` or `{% … %}`), which Prettier's parser keeps whole.
   pub(crate) fn text(&mut self, text: &str) {
     let mut words = text.split([' ', '\t', '\n', '\r']).peekable();
     while let Some(word) = words.next() {
       if !word.is_empty() {
         self.glue(word);
       }
+      self.open = match self.open {
+        Some(close) => match word.find(close) {
+          Some(at) => unclosed(&word[at + 2..]),
+          None => Some(close),
+        },
+        None => unclosed(word),
+      };
       if words.peek().is_some() {
-        self.space();
+        if self.open.is_some() {
+          self.glue(" ");
+        } else {
+          self.space();
+        }
       }
     }
   }
@@ -101,6 +115,16 @@ impl Paragraph {
     }
     lines
   }
+}
+
+/// The closer that a Liquid tag opened in `word` still waits for.
+fn unclosed(word: &str) -> Option<&'static str> {
+  let opened = [("{{", "}}"), ("{%", "%}")]
+    .into_iter()
+    .filter_map(|(open, close)| word.rfind(open).map(|at| (at, close)))
+    .max_by_key(|&(at, _)| at);
+  let (at, close) = opened?;
+  (!word[at + 2..].contains(close)).then_some(close)
 }
 
 /// Whether `word` at the start of a line could begin another block and change what the

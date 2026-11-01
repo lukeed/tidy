@@ -62,6 +62,43 @@ fn html(line: &str) -> bool {
   ends && (raw || BLOCK.contains(&tag.as_str()))
 }
 
+/// Whether `line` holds nothing but a Liquid or Hugo tag, `{{ … }}` or `{% … %}`, which Prettier's
+/// parser reads as a block of its own.
+pub(crate) fn liquid(line: &str) -> bool {
+  let line = line.trim();
+  let close = match line.get(..2) {
+    Some("{{") => "}}",
+    Some("{%") => "%}",
+    _ => return false,
+  };
+  line[2..].find(close).is_some_and(|at| at + 4 == line.len())
+}
+
+/// Whether `line` starts an HTML block where nothing needs interrupting: CommonMark's kinds 1 to 7.
+pub(crate) fn starts_html(line: &str) -> bool {
+  let line = line.trim_start();
+  line.starts_with('<') && (html(line) || complete(line))
+}
+
+/// Whether `line` is a complete open or closing tag alone, CommonMark's seventh kind.
+fn complete(line: &str) -> bool {
+  let rest = &line[1..];
+  if !rest.strip_prefix('/').unwrap_or(rest).starts_with(|char: char| char.is_ascii_alphabetic()) {
+    return false;
+  }
+  let mut quote = None;
+  for (index, char) in line.char_indices() {
+    match (quote, char) {
+      (Some(open), char) if char == open => quote = None,
+      (Some(_), _) => {}
+      (None, '"' | '\'') => quote = Some(char),
+      (None, '>') => return line[index + 1..].trim().is_empty(),
+      _ => {}
+    }
+  }
+  false
+}
+
 /// Tags whose HTML block runs to its closing tag.
 const RAW: [&str; 4] = ["pre", "script", "style", "textarea"];
 
@@ -148,6 +185,22 @@ mod tests {
     }
     for line in ["#h", "1234567890. x", "2.x", "-x", "``", "<span>", "<divx>", "a", "*a*"] {
       assert_eq!(interrupts(line), None, "{line}");
+    }
+  }
+
+  #[test]
+  fn finds_liquid_and_html_lines() {
+    for line in ["{{ x }}", "  {{- end -}} ", "{% if a %}", "{{< callout >}}"] {
+      assert!(liquid(line), "{line}");
+    }
+    for line in ["{{ x }} y", "a {{ x }}", "{{ x }} {{ y }}", "{x}", "{% x }}"] {
+      assert!(!liquid(line), "{line}");
+    }
+    for line in ["<div>", "<button type=\"a>b\">", "</span>", "<!-- c"] {
+      assert!(starts_html(line), "{line}");
+    }
+    for line in ["<span>x</span>", "<1>", "text"] {
+      assert!(!starts_html(line), "{line}");
     }
   }
 }

@@ -5,6 +5,7 @@ use std::ops::Range;
 mod code;
 mod footnote;
 mod inline;
+mod liquid;
 mod list;
 
 use pulldown_cmark::{
@@ -13,7 +14,6 @@ use pulldown_cmark::{
 
 use crate::directive::{self, Directive};
 use crate::front;
-use crate::opener::{Fix, interrupts};
 use crate::table::Table;
 use crate::wrap::Paragraph;
 use crate::{Code, Emphasis, Heading, Numbering, Options, Rule, Strong, Wrap};
@@ -80,6 +80,10 @@ pub(crate) fn format(
     defined: None,
     joins: None,
     html: None,
+    liquid: None,
+    lazy: false,
+    bare: false,
+    raw: None,
   };
   if let Some(front) = front {
     writer.front(&front);
@@ -194,6 +198,15 @@ struct Writer<'s, 'o> {
   /// Inside an HTML block, where pulldown-cmark reports the first line's indent as text: the
   /// indent it must stay below, so it doesn't join a list that just ended.
   html: Option<usize>,
+  /// The depth of the paragraph that just ended with a Liquid line, which Prettier keeps beside the
+  /// next block.
+  liquid: Option<usize>,
+  /// The last line was a lazy line kept at the left margin, so the next lazy line stays there too.
+  lazy: bool,
+  /// The next line starts at the left margin, without the container prefix.
+  bare: bool,
+  /// Where the rest of a paragraph starts that is copied as written, up to its first block event.
+  raw: Option<usize>,
 }
 
 impl<'s> Writer<'s, '_> {
@@ -217,6 +230,15 @@ impl<'s> Writer<'s, '_> {
     if self.ignored.contains(&range.start) {
       return;
     }
+    if let Some(start) = self.raw {
+      let end = match &event {
+        Event::End(tag) if liquid::ends_block(tag) => range.end,
+        Event::Start(tag) if is_block(tag) => range.start,
+        _ => return,
+      };
+      self.raw = None;
+      self.write(self.source[start..end].trim_end());
+    }
     if let Some(link) = &mut self.link
       && !matches!(event, Event::End(TagEnd::Link))
     {
@@ -226,8 +248,10 @@ impl<'s> Writer<'s, '_> {
       Event::Start(tag) => self.open(tag, range, events),
       Event::End(tag) => {
         let joins = matches!(tag, TagEnd::Paragraph | TagEnd::HtmlBlock);
+        let liquid = tag == TagEnd::Paragraph && self.ends_liquid(range.end);
         self.close(tag);
         self.joins = joins.then_some(self.containers.len());
+        self.liquid = liquid.then_some(self.containers.len());
         self.last = range.end;
       }
       Event::Text(text) => match &mut self.block {
@@ -270,19 +294,17 @@ impl<'s> Writer<'s, '_> {
         } else if self.link.is_some() && self.wraps() {
           self.paragraph.get_or_insert_default().atom(" ");
         } else if self.heading.is_none() && self.wraps() {
-          self.paragraph.get_or_insert_default().space();
+          let next = events.peek(0).map_or(self.source.len(), |(_, range)| range.start);
+          let kept = self.liquid_break(range.start, next);
+          let paragraph = self.paragraph.get_or_insert_default();
+          if kept {
+            paragraph.hard("");
+          } else {
+            paragraph.space();
+          }
         } else {
           let next = events.peek(0).map_or(self.source.len(), |(_, range)| range.start);
-          let line = &self.source[next..];
-          let escaped = escaped(self.source, next);
-          match interrupts(line.split('\n').next().unwrap_or("")).filter(|_| !escaped) {
-            Some(Fix::Join) => self.atom(" "),
-            Some(Fix::Escape) => {
-              self.newline();
-              self.write("\\");
-            }
-            None => self.newline(),
-          }
+          self.soft(range.start, next);
         }
       }
       Event::HardBreak => {
@@ -334,6 +356,9 @@ impl<'s> Writer<'s, '_> {
     }
     match tag {
       Tag::Paragraph => {
+        if self.starts_liquid(range.start) {
+          self.liquid = Some(self.containers.len());
+        }
         self.block(range.start);
         if self.options.wrap != Wrap::Preserve {
           self.paragraph = Some(Paragraph::default());
@@ -685,6 +710,11 @@ impl<'s> Writer<'s, '_> {
     }
     let loose = matches!(self.containers.last(), Some(Container::Item { loose: true, .. }));
     self.settle(at, loose);
+    let liquid = self.liquid.take() == Some(self.containers.len());
+    if liquid && self.gap == Gap::Blank && !blank(self.source, self.last.min(at), at) {
+      self.gap = Gap::Line;
+    }
+    self.lazy = false;
     self.separate();
   }
 
@@ -799,6 +829,10 @@ impl<'s> Writer<'s, '_> {
   }
 
   fn prefix(&mut self) {
+    if std::mem::take(&mut self.bare) {
+      self.start = false;
+      return;
+    }
     for container in &mut self.containers {
       match container {
         Container::Quote => self.out.push_str("> "),

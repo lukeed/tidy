@@ -329,6 +329,31 @@ fn starts_footnotes_like_prettier() {
 }
 
 #[test]
+fn lays_out_liquid_like_prettier() {
+  for source in [
+    "{{< callout warning >}}\n##### Link\n",
+    "{{< example >}}\n<button type=\"button\">\n  Single toggle\n</button>\n{{< /example >}}\n",
+    "- a\n{{- end -}}\n{{< /x >}}\n",
+    "> q\n{{< /highlight >}}\n",
+    "{{< markdown >}}\n{% for x in y %}\n- a\n- b\n{{- end -}}\n",
+    "# h\n{{ x }}\ntext\n",
+  ] {
+    assert_eq!(prettier(source), source, "{source}");
+    assert_eq!(preserve(source), source, "{source}");
+  }
+  assert_eq!(
+    prettier("a {{ y }} b\n  c\n\n- a\n{{ x }} y\n"),
+    "a {{ y }} b\nc\n\n- a\n  {{ x }} y\n"
+  );
+  let never = Options { wrap: Wrap::Never, ..Options::default() };
+  let source = "{{< a >}}\n{{- b }}\nc\nd\n- e\n";
+  assert_eq!(mdtidy::format(source, &never), "{{< a >}}\n{{- b }}\nc d\n\n- e\n");
+  let always = Options { wrap: Wrap::Always, width: 12, ..Options::default() };
+  let source = "{{- range (index $a) }}\nx {{ if or a b }} y\n";
+  assert_eq!(mdtidy::format(source, &always), "{{- range (index $a) }}\nx\n{{ if or a b }}\ny\n");
+}
+
+#[test]
 fn quotes_and_nesting() {
   assert_eq!(prettier(">a\n>\n>b\n"), "> a\n>\n> b\n");
   assert_eq!(prettier("> - a\n>   > b\n"), "> - a\n>   > b\n");
