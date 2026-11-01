@@ -69,6 +69,7 @@ pub(crate) fn format(
     link: None,
     defined: None,
     joins: None,
+    html: None,
   };
   if let Some(front) = front {
     writer.front(&front);
@@ -171,6 +172,9 @@ struct Writer<'s, 'o> {
   /// The depth of the paragraph or HTML block that just ended, which an HTML block on the next
   /// line stays beside, as in Prettier.
   joins: Option<usize>,
+  /// Inside an HTML block, where pulldown-cmark reports the first line's indent as text: the
+  /// indent it must stay below, so it doesn't join a list that just ended.
+  html: Option<usize>,
 }
 
 impl<'s> Writer<'s, '_> {
@@ -204,6 +208,9 @@ impl<'s> Writer<'s, '_> {
           code.push_str(&text);
         }
         Some(Block::Indented) => self.lines(&text, true),
+        None if range.is_empty() && self.html.is_some_and(|limit| text.len() < limit) => {
+          self.write(&text);
+        }
         None if range.is_empty() => {}
         None => {
           let bytes = self.source.as_bytes();
@@ -330,6 +337,10 @@ impl<'s> Writer<'s, '_> {
         self.block = Some(Block::Indented);
       }
       Tag::HtmlBlock => {
+        let depth = self.containers.len();
+        let limit =
+          self.adjacent.as_ref().filter(|list| list.depth == depth).map(|list| list.width);
+        self.html = Some(limit.unwrap_or(usize::MAX));
         let beside = self.joins == Some(self.containers.len())
           && !blank(self.source, self.last.min(range.start), range.start);
         if beside && self.gap == Gap::Blank {
@@ -369,7 +380,9 @@ impl<'s> Writer<'s, '_> {
           && self.lists.iter().all(|list| list.aligned)
           && aligned(&items);
         let start = first.unwrap_or(1);
-        self.lists.push(List { spread: false, items: 0, ordered, nth, start, repeats, aligned });
+        let list =
+          List { spread: false, items: 0, ordered, nth, start, repeats, aligned, width: 0 };
+        self.lists.push(list);
       }
       Tag::Item => {
         let list = self.lists.last_mut().expect("an item is inside a list");
@@ -471,6 +484,7 @@ impl<'s> Writer<'s, '_> {
         self.end();
       }
       TagEnd::HtmlBlock => {
+        self.html = None;
         self.finish();
         if std::mem::take(&mut self.pending) {
           self.out.push_str(&self.source[self.ignored.clone()]);
@@ -513,8 +527,8 @@ impl<'s> Writer<'s, '_> {
       TagEnd::List(_) => {
         self.finish();
         if let Some(list) = self.lists.pop() {
-          self.adjacent =
-            Some(Adjacent { depth: self.containers.len(), ordered: list.ordered, nth: list.nth });
+          let (ordered, nth, width) = (list.ordered, list.nth, list.width);
+          self.adjacent = Some(Adjacent { depth: self.containers.len(), ordered, nth, width });
         }
         self.end();
       }
@@ -522,7 +536,13 @@ impl<'s> Writer<'s, '_> {
         self.finish();
         self.adjacent = None;
         let marker = match self.containers.pop() {
-          Some(Container::Item { marker, .. } | Container::Footnote { marker }) => marker,
+          Some(Container::Item { marker, width, .. }) => {
+            if let Some(list) = self.lists.last_mut() {
+              list.width = width;
+            }
+            marker
+          }
+          Some(Container::Footnote { marker }) => marker,
           _ => None,
         };
         if let Some(marker) = marker {

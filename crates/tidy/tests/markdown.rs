@@ -203,6 +203,15 @@ fn keeps_indented_lines_from_opening_blocks() {
 }
 
 #[test]
+fn keeps_html_indents() {
+  for source in ["  <div>\n\n  </div>\n", "- a\n\n   <details>\n", ">  <p>\n", "   <!-- c -->\n"] {
+    assert_eq!(prettier(source), source);
+  }
+  assert_eq!(prettier("1.  a\n\n   <img>\n"), "1.  a\n\n   <img>\n");
+  assert_eq!(preserve("1.  a\n\n   <img>\n"), "1. a\n\n<img>\n");
+}
+
+#[test]
 fn quotes_and_nesting() {
   assert_eq!(prettier(">a\n>\n>b\n"), "> a\n>\n> b\n");
   assert_eq!(prettier("> - a\n>   > b\n"), "> - a\n>   > b\n");
@@ -240,7 +249,7 @@ fn wraps_paragraphs() {
   assert_eq!(mdtidy::format("- one\n  two\n", &never), "- one two\n");
   assert_eq!(mdtidy::format("one\\\ntwo\n", &never), "one\\\ntwo\n");
   let html = "- a:\n   <details>\n     <x>\n\n     - b\n";
-  assert_eq!(mdtidy::format(html, &never), "- a:\n  <details>\n     <x>\n\n  - b\n");
+  assert_eq!(mdtidy::format(html, &never), "- a:\n   <details>\n     <x>\n\n  - b\n");
 }
 
 #[test]

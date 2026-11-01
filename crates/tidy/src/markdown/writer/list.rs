@@ -15,6 +15,8 @@ pub(super) struct List {
   pub(super) repeats: bool,
   /// Prettier pads the markers of an ordered list whose content sits on tab stops.
   pub(super) aligned: bool,
+  /// The content indent of the last item. A block after the list indented this far would join it.
+  pub(super) width: usize,
 }
 
 /// The list that ended last, while nothing else followed it at the same depth.
@@ -22,6 +24,7 @@ pub(super) struct Adjacent {
   pub(super) depth: usize,
   pub(super) ordered: bool,
   pub(super) nth: usize,
+  pub(super) width: usize,
 }
 
 /// The tab width that Prettier aligns ordered list content to.
