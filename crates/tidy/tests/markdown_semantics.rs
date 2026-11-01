@@ -15,7 +15,8 @@ fn flags() -> Flags {
     | Flags::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
 }
 
-/// The events of `text`, with where lines break inside text not counting.
+/// The events of `text`, with where lines break inside text not counting. Link labels match
+/// with their whitespace collapsed, so they compare that way.
 fn events(text: &str) -> Vec<String> {
   let mut out = Vec::new();
   let mut pending = String::new();
@@ -39,6 +40,22 @@ fn events(text: &str) -> Vec<String> {
       Event::Html(html) => format!("Html({:?})", html.trim_end()),
       Event::InlineHtml(html) => format!("InlineHtml({:?})", html.as_ref()),
       Event::Code(code) => format!("Code({:?})", code.as_ref()),
+      Event::Start(Tag::Link { link_type, dest_url, title, id }) => {
+        format!(
+          "Link({link_type:?}, {:?}, {:?}, {:?})",
+          dest_url.as_ref(),
+          title.as_ref(),
+          words(&id)
+        )
+      }
+      Event::Start(Tag::Image { link_type, dest_url, title, id }) => {
+        format!(
+          "Image({link_type:?}, {:?}, {:?}, {:?})",
+          dest_url.as_ref(),
+          title.as_ref(),
+          words(&id)
+        )
+      }
       event => format!("{event:?}"),
     });
   }
