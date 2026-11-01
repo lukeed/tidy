@@ -1,10 +1,11 @@
+use std::ffi::OsStr;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::str::FromStr;
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 use mdtidy::{Options, Preset};
+use tidy_walk::Output;
 
 const HELP: &str = "\
 mdtidy: a fast Markdown formatter
@@ -94,44 +95,30 @@ fn run() -> Result<ExitCode, String> {
     return Err("pass --check or --write to format more than one file".into());
   }
 
-  let mut files = Vec::new();
-  let mut errors = Vec::new();
-  for path in &paths {
-    if path.is_dir() {
-      walk(path, &mut files, &mut errors);
-    } else {
-      files.push(path.clone());
-    }
-  }
-  files.sort();
-
-  let next = AtomicUsize::new(0);
-  let threads = std::thread::available_parallelism().map_or(1, |count| count.get());
-  let mut outcomes: Vec<(usize, Outcome)> = std::thread::scope(|scope| {
-    let workers: Vec<_> = (0..threads.min(files.len().max(1)))
-      .map(|_| scope.spawn(|| work(&files, &next, &options, write)))
-      .collect();
-    workers.into_iter().flat_map(|worker| worker.join().unwrap_or_default()).collect()
-  });
-  outcomes.sort_by_key(|(index, _)| *index);
+  let cores = std::thread::available_parallelism().map_or(1, |count| count.get());
+  let walk = tidy_walk::Options {
+    wanted: &markdown,
+    io: cores,
+    workers: 0,
+    ..tidy_walk::Options::default()
+  };
+  let report =
+    tidy_walk::run(&paths, &walk, |_, _| {}, || (), |(), file| work(file, &options, write));
 
   let mut changed = 0;
-  errors.sort();
-  let mut failed = !errors.is_empty();
-  for (path, error) in &errors {
+  let mut failed = !report.errors.is_empty();
+  for (path, error) in &report.errors {
     eprintln!("mdtidy: {}: {error}", path.display());
   }
-  for (index, outcome) in outcomes {
-    let path = files[index].display();
+  for (path, outcome) in &report.results {
     match outcome {
-      Outcome::Same => {}
       Outcome::Changed => {
         changed += 1;
-        println!("{path}");
+        println!("{}", path.display());
       }
       Outcome::Failed(error) => {
         failed = true;
-        eprintln!("mdtidy: {path}: {error}");
+        eprintln!("mdtidy: {}: {error}", path.display());
       }
     }
   }
@@ -185,77 +172,22 @@ fn choice<T: FromStr<Err = String>>(
 }
 
 enum Outcome {
-  Same,
   Changed,
   Failed(String),
 }
 
-fn work(
-  files: &[PathBuf],
-  next: &AtomicUsize,
-  options: &Options,
-  write: bool,
-) -> Vec<(usize, Outcome)> {
-  let mut outcomes = Vec::new();
-  loop {
-    let index = next.fetch_add(1, Ordering::Relaxed);
-    let Some(path) = files.get(index) else { return outcomes };
-    let outcome = match std::fs::read_to_string(path) {
-      Err(error) => Outcome::Failed(error.to_string()),
-      Ok(source) => match std::panic::catch_unwind(|| mdtidy::format(&source, options)) {
-        Err(panic) => Outcome::Failed(format!("formatting panicked: {}", message(&*panic))),
-        Ok(output) if output == source => Outcome::Same,
-        Ok(output) => match write.then(|| std::fs::write(path, output)) {
-          Some(Err(error)) => Outcome::Failed(error.to_string()),
-          _ => Outcome::Changed,
-        },
-      },
-    };
-    outcomes.push((index, outcome));
-  }
+/// Whether a file found in a folder is Markdown.
+fn markdown(_: &Path, name: &OsStr) -> bool {
+  Path::new(name).extension().is_some_and(|ext| ext == "md" || ext == "markdown")
 }
 
-/// The text of a panic's payload.
-fn message(panic: &(dyn std::any::Any + Send)) -> &str {
-  match (panic.downcast_ref::<&str>(), panic.downcast_ref::<String>()) {
-    (Some(text), _) => text,
-    (_, Some(text)) => text,
-    _ => "no message",
-  }
-}
-
-/// Collect Markdown files under `dir`, skipping hidden folders and `node_modules`. Folders and
-/// entries that can't be read are collected as errors, and the walk goes on.
-fn walk(dir: &Path, files: &mut Vec<PathBuf>, errors: &mut Vec<(PathBuf, String)>) {
-  let entries = match std::fs::read_dir(dir) {
-    Ok(entries) => entries,
-    Err(error) => return errors.push((dir.to_path_buf(), error.to_string())),
+/// Format one file: nothing when it is already formatted, or the new text to write under `--write`.
+fn work(file: &tidy_walk::File, options: &Options, write: bool) -> Option<Output<Outcome>> {
+  let Ok(source) = std::str::from_utf8(&file.bytes) else {
+    let value = Outcome::Failed("stream did not contain valid UTF-8".into());
+    return Some(Output { value, write: None });
   };
-  for entry in entries {
-    let entry = match entry {
-      Ok(entry) => entry,
-      Err(error) => {
-        errors.push((dir.to_path_buf(), error.to_string()));
-        continue;
-      }
-    };
-    let name = entry.file_name();
-    let kind = match entry.file_type() {
-      Ok(kind) => kind,
-      Err(error) => {
-        errors.push((entry.path(), error.to_string()));
-        continue;
-      }
-    };
-    if kind.is_dir() {
-      let name = name.to_string_lossy();
-      if !name.starts_with('.') && name != "node_modules" {
-        walk(&entry.path(), files, errors);
-      }
-    } else if kind.is_file()
-      && Path::new(&name).extension().is_some_and(|ext| ext == "md" || ext == "markdown")
-    {
-      files.push(entry.path());
-    }
-  }
+  let output = mdtidy::format(source, options);
+  (output != source)
+    .then(|| Output { value: Outcome::Changed, write: write.then(|| output.into()) })
 }

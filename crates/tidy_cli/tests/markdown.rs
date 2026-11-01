@@ -41,6 +41,23 @@ fn lists_files_to_format() {
   assert_eq!(output.status.code(), Some(1));
 }
 
+#[test]
+fn lists_each_file_once() {
+  let folder = Folder::new("once", &[("docs/a.md", "* a\n"), (".github/b.md", "* b\n")]);
+  let output = mdtidy(&["docs", "./docs", "docs/a.md", ".github/b.md", "--check"], &folder.0);
+  assert_eq!(String::from_utf8_lossy(&output.stdout), ".github/b.md\ndocs/a.md\n");
+  assert_eq!(output.status.code(), Some(1));
+}
+
+#[test]
+fn writes_files_in_place() {
+  let folder = Folder::new("write", &[("docs/a.md", "* a\n"), ("docs/b.md", "- b\n")]);
+  let output = mdtidy(&["docs", "--write"], &folder.0);
+  assert_eq!(String::from_utf8_lossy(&output.stdout), "docs/a.md\n");
+  assert_eq!(std::fs::read_to_string(folder.0.join("docs/a.md")).expect("read"), "- a\n");
+  assert_eq!(output.status.code(), Some(0));
+}
+
 #[cfg(unix)]
 #[test]
 fn reports_folders_it_cannot_read() {
