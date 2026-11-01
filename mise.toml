@@ -67,6 +67,11 @@ description = "Check that formatting Markdown keeps its meaning, on the corpora 
 env = { TIDY_MARKDOWN_CORPUS = "{{config_root}}/target/corpus/markdown/a:{{config_root}}/target/corpus/markdown/b:{{config_root}}/target/corpus/markdown/c:{{config_root}}/target/corpus/markdown/d" }
 run = "cargo test -p tidy --release --test markdown_semantics"
 
+[tasks."oracle:markdown:divergences"]
+description = "Write markdown-divergences.md from the cases in tests/oracle/markdown/divergences"
+run = "bun tests/oracle/markdown/divergences.ts"
+depends = ["build:napi"]
+
 [tasks."oracle:markdown:shrink"]
 description = "Shrink a Markdown file that formatting breaks: mise run oracle:markdown:shrink -- <file> [--<option> <value>...]"
 run = "bun tests/oracle/markdown/shrink.ts"

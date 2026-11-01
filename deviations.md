@@ -1,6 +1,6 @@
 # Deviations from Prettier
 
-tidy prints what Prettier 3.9.9 prints, and XML what `@prettier/plugin-xml` 3.4.2 prints, except where this file says otherwise. Each entry below says what tidy prints instead, why, where the rule is, and whether Luke has signed it off. `crates/tidy/tests/deviations.json` holds every input that was checked against both tools, and `cargo test --test deviations` fails if tidy stops printing what an entry says.
+tidy prints what Prettier 3.9.9 prints, and XML what `@prettier/plugin-xml` 3.4.2 prints, except where this file says otherwise. Markdown follows Prettier 3.9.10, and its deviations are in [`markdown-divergences.md`](markdown-divergences.md), which is generated from its cases. Each entry below says what tidy prints instead, why, where the rule is, and whether Luke has signed it off. `crates/tidy/tests/deviations.json` holds every input that was checked against both tools, and `cargo test --test deviations` fails if tidy stops printing what an entry says.
 
 ## Process
 
