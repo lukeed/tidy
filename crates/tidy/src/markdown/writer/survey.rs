@@ -54,6 +54,9 @@ struct Item {
   prose: bool,
   /// Loose even without the blank lines Prettier drops.
   firm: bool,
+  /// Two direct children in a row, the second not a list: a loose item keeps a blank line between
+  /// them, so it stays loose without the one before a nested list.
+  pair: bool,
 }
 
 impl<'s> Writer<'s, '_> {
@@ -79,6 +82,7 @@ impl<'s> Writer<'s, '_> {
               item.firm |= !matches!(tag, Tag::List(_)) || item.prose;
             }
             if block || !item.inline {
+              item.pair |= item.last.is_some() && !matches!(tag, Tag::List(_));
               item.inline = !block;
               item.prose =
                 !block || matches!(tag, Tag::Paragraph | Tag::CodeBlock(_) | Tag::HtmlBlock);
@@ -91,9 +95,15 @@ impl<'s> Writer<'s, '_> {
             }
             Tag::Item => {
               let slot = items.len();
-              let item =
-                Item { slot, base: depth, last: None, inline: false, prose: false, firm: false };
-              open_items.push(item);
+              open_items.push(Item {
+                slot,
+                base: depth,
+                last: None,
+                inline: false,
+                prose: false,
+                firm: false,
+                pair: false,
+              });
               items.push((start, false));
             }
             _ => {}
@@ -113,8 +123,9 @@ impl<'s> Writer<'s, '_> {
               items[item.slot].1 = true;
             }
             if let Some(&(list, _)) = open_lists.last() {
-              let spaced = items[item.slot].1 && next.is_some();
-              lists[list].1.1 |= apart || item.firm || spaced;
+              let loose = items[item.slot].1;
+              let spaced = loose && next.is_some();
+              lists[list].1.1 |= apart || item.firm || spaced || (loose && item.pair);
             }
           } else if open_lists.last().is_some_and(|&(_, base)| base == depth) {
             let (slot, _) = open_lists.pop().expect("a list is open");
@@ -136,6 +147,7 @@ impl<'s> Writer<'s, '_> {
                 items[item.slot].1 = true;
                 item.firm = true;
               }
+              item.pair |= item.last.is_some();
               item.inline = true;
               item.prose = true;
             }

@@ -93,6 +93,8 @@ fn joins_nested_lists_like_prettier() {
     ("- a\n\n  - b\n\n  1. c\n", "- a\n\n  - b\n  1. c\n"),
     ("- a\n  - b\n\n  1. c\n- d\n", "- a\n  - b\n  1. c\n\n- d\n"),
     ("- a\n\n  > q\n\n  - b\n", "- a\n\n  > q\n  - b\n"),
+    ("- a\n  > q\n\n  - b\n", "- a\n\n  > q\n  - b\n"),
+    ("- > q\n\n  - b\n\n  p\n", "- > q\n  - b\n\n  p\n"),
   ];
   for (source, expected) in cases {
     assert_eq!(prettier(source), expected, "{source}");
@@ -100,7 +102,7 @@ fn joins_nested_lists_like_prettier() {
   for source in ["- a\n\n  ```\n  x\n  ```\n\n  - b\n", "- a\n\n  <div>\n\n  - b\n"] {
     assert_eq!(prettier(source), source, "{source}");
   }
-  assert_eq!(prettier("- a\n  > q\n\n  - b\n"), "- a\n\n  > q\n\n  - b\n");
+  assert_eq!(prettier("- c\n- > q\n\n  - b\n"), "- c\n- > q\n\n  - b\n");
 }
 
 #[test]
@@ -347,6 +349,14 @@ fn starts_footnotes_like_prettier() {
     tidy::markdown::format("x[^1]\n\n[^1]: two\n    lines\n", &width(Wrap::Always)),
     "x[^1]\n\n[^1]: two lines\n"
   );
+  let cases = [
+    ("x[^1]\n\n[^1]: one\\\n    two\n", "x[^1]\n\n[^1]: one\\\ntwo\n"),
+    ("x[^1]\n\n[^1]: one\n    two  \n    three\n", "x[^1]\n\n[^1]: one two  \nthree\n"),
+    ("> x[^1]\n>\n> [^1]: one\\\n>     two\n", "> x[^1]\n>\n> [^1]: one\\\n> two\n"),
+  ];
+  for (source, expected) in cases {
+    assert_eq!(tidy::markdown::format(source, &width(Wrap::Never)), expected, "{source}");
+  }
 }
 
 #[test]
@@ -457,8 +467,21 @@ fn keeps_inline_html_and_code_when_wrapping() {
     "a <span\n  title=\"x\n  y\">b</span> c d e f\n\n- a <span\n    title=\"x\">b</span> c\n";
   let always = Options { wrap: Wrap::Always, width: 20, ..Options::default() };
   let expected =
-    "a <span\n  title=\"x\n  y\">b</span> c d e\nf\n\n- a <span\n    title=\"x\">b</span>\n  c\n";
+    "a <span\n  title=\"x\n  y\">b</span> c d e\nf\n\n- a <span\n    title=\"x\">b</span> c\n";
   assert_eq!(tidy::markdown::format(source, &always), expected);
+  let cases = [
+    (
+      "a <span\n  title=\"x\">b</span> cccccccccccccccccccccccccc d\n",
+      "a <span\n  title=\"x\">b</span> cccccccccccccccccccccccccc\nd\n",
+    ),
+    (
+      "aaaaaaaaaaaaaaaaaa <span\n  title=\"x\">b</span> c d\n",
+      "aaaaaaaaaaaaaaaaaa\n<span\n  title=\"x\">b</span> c\nd\n",
+    ),
+  ];
+  for (source, expected) in cases {
+    assert_eq!(tidy::markdown::format(source, &always), expected, "{source}");
+  }
   let never = Options { wrap: Wrap::Never, ..Options::default() };
   assert_eq!(
     tidy::markdown::format("> a `code\n>     span` b\n", &never),
