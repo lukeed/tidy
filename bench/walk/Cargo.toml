@@ -1,0 +1,19 @@
+[package]
+name = "walk-bench"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+crossbeam-channel = "0.5"
+crossbeam-deque = "0.8"
+crossbeam-utils = "0.8"
+ignore = "0.4"
+libc = "0.2"
+mdtidy = { path = "../../../mdtidy/crates/mdtidy" }
+tidy = { path = "../../crates/tidy" }
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+opt-level = 3
