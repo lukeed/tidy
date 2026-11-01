@@ -11,8 +11,6 @@ fn flags() -> Flags {
     | Flags::ENABLE_FOOTNOTES
     | Flags::ENABLE_STRIKETHROUGH
     | Flags::ENABLE_TASKLISTS
-    | Flags::ENABLE_YAML_STYLE_METADATA_BLOCKS
-    | Flags::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
 }
 
 /// The events of `text`, with where lines break inside text not counting. Link labels match

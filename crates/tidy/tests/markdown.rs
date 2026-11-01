@@ -209,6 +209,23 @@ fn quotes_and_nesting() {
 #[test]
 fn keeps_front_matter() {
   assert_eq!(prettier("---\na:   1\n---\n# x\n"), "---\na:   1\n---\n\n# x\n");
+  assert_eq!(prettier("+++\na = 1\n+++\nx\n"), "+++\na = 1\n+++\n\nx\n");
+  assert_eq!(prettier("---yaml\na: 1\n...\nx\n"), "---yaml\na: 1\n...\n\nx\n");
+  assert_eq!(prettier("---\n---\nx\n"), "---\n---\n\nx\n");
+  let mut langs = Vec::new();
+  for source in ["---\na\n---\n", "+++\na\n+++\n", "---json\n{}\n---\n"] {
+    mdtidy::format_with(source, &Options::default(), |code| {
+      langs.push(code.lang.to_string());
+      None
+    });
+  }
+  assert_eq!(langs, ["yaml", "toml", "json"]);
+}
+
+#[test]
+fn reads_front_matter_only_at_the_start() {
+  assert_eq!(prettier("x\n\n---\na: 1\n---\n"), "x\n\n---\n\n## a: 1\n");
+  assert_eq!(prettier("3. a\n\n   ---\n   **P**\n---\n"), "3. a\n\n   ***\n\n   **P**\n\n---\n");
 }
 
 #[test]

@@ -1,11 +1,11 @@
 use super::Writer;
+use crate::front::Front;
 use crate::{Code, Fence};
 
-/// A block collected whole before it's written: code for the caller to format, or front matter.
+/// A code block collected whole before it's written, for the caller to format.
 pub(super) enum Block {
   Fenced { info: String, fence: String, text: String },
   Indented,
-  Front { fence: &'static str, text: String },
 }
 
 /// The opening fence of a fenced code block written at the start of `text`.
@@ -68,21 +68,21 @@ impl<'s> Writer<'s, '_> {
     self.newline();
   }
 
-  pub(super) fn front(&mut self, fence: &'static str, mut text: String) {
-    let lang = if fence == "---" { "yaml" } else { "toml" };
+  /// Write front matter as written, unless the caller formats it, then end the block.
+  pub(super) fn front(&mut self, front: &Front<'_>) {
     let width = self.options.width;
-    if let Some(formatted) = (self.code)(Code { lang, text: &text, width }) {
-      text = formatted;
-    }
-    self.out.push_str(fence);
+    let formatted = (self.code)(Code { lang: front.lang, text: front.text, width });
+    let text = formatted.as_deref().unwrap_or(front.text);
+    self.out.push_str(front.open);
     self.out.push('\n');
-    self.out.push_str(&text);
+    self.out.push_str(text);
     if !text.is_empty() && !text.ends_with('\n') {
       self.out.push('\n');
     }
-    self.out.push_str(fence);
+    self.out.push_str(front.close);
     self.out.push('\n');
     self.start = true;
+    self.end();
   }
 
   /// Verbatim lines of code or HTML, each behind the container prefix. Code loses the spaces and

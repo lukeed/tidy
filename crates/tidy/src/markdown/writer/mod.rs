@@ -7,11 +7,11 @@ mod inline;
 mod list;
 
 use pulldown_cmark::{
-  CodeBlockKind, Event, LinkType, MetadataBlockKind, OffsetIter, Options as Flags, Parser, Tag,
-  TagEnd,
+  CodeBlockKind, Event, LinkType, OffsetIter, Options as Flags, Parser, Tag, TagEnd,
 };
 
 use crate::directive::{self, Directive};
+use crate::front;
 use crate::opener::{Fix, interrupts};
 use crate::table::Table;
 use crate::wrap::Paragraph;
@@ -27,8 +27,6 @@ pub(crate) fn flags() -> Flags {
     | Flags::ENABLE_FOOTNOTES
     | Flags::ENABLE_STRIKETHROUGH
     | Flags::ENABLE_TASKLISTS
-    | Flags::ENABLE_YAML_STYLE_METADATA_BLOCKS
-    | Flags::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
 }
 
 pub(crate) fn format(
@@ -39,12 +37,14 @@ pub(crate) fn format(
   if directive::skips_file(source, &options.ignore) {
     return source.to_string();
   }
-  let parser = Parser::new_ext(source, flags());
+  let front = front::split(source);
+  let body = front.as_ref().map_or(source, |front| &source[front.end..]);
+  let parser = Parser::new_ext(body, flags());
   let mut definitions: Vec<Range<usize>> =
     parser.reference_definitions().iter().map(|(_, definition)| definition.span.clone()).collect();
   definitions.sort_unstable_by_key(|span| span.start);
   let mut writer = Writer {
-    source,
+    source: body,
     options,
     code,
     out: String::with_capacity(source.len() + source.len() / 8),
@@ -70,6 +70,9 @@ pub(crate) fn format(
     defined: None,
     joins: None,
   };
+  if let Some(front) = front {
+    writer.front(&front);
+  }
   let mut events = Events { iter: parser.into_offset_iter(), ahead: VecDeque::new() };
   while let Some((event, range)) = events.next() {
     writer.event(event, range, &mut events);
@@ -197,7 +200,7 @@ impl<'s> Writer<'s, '_> {
         self.last = range.end;
       }
       Event::Text(text) => match &mut self.block {
-        Some(Block::Fenced { text: code, .. } | Block::Front { text: code, .. }) => {
+        Some(Block::Fenced { text: code, .. }) => {
           code.push_str(&text);
         }
         Some(Block::Indented) => self.lines(&text, true),
@@ -452,11 +455,6 @@ impl<'s> Writer<'s, '_> {
           self.link = Some(Link { text: range.start + 1, end });
         }
       }
-      Tag::MetadataBlock(kind) => {
-        self.block(range.start);
-        let fence = if kind == MetadataBlockKind::YamlStyle { "---" } else { "+++" };
-        self.block = Some(Block::Front { fence, text: String::new() });
-      }
       _ => {
         self.atom(&self.source[range]);
         self.skip = 1;
@@ -499,10 +497,9 @@ impl<'s> Writer<'s, '_> {
         self.adjacent = None;
         self.end();
       }
-      TagEnd::CodeBlock | TagEnd::MetadataBlock(_) => {
+      TagEnd::CodeBlock => {
         match self.block.take() {
           Some(Block::Fenced { info, fence, text }) => self.fenced(&info, fence, text),
-          Some(Block::Front { fence, text }) => self.front(fence, text),
           Some(Block::Indented) => {
             self.finish();
             self.containers.pop();
@@ -765,7 +762,6 @@ fn is_block(tag: &Tag<'_>) -> bool {
       | Tag::List(_)
       | Tag::Table(_)
       | Tag::FootnoteDefinition(_)
-      | Tag::MetadataBlock(_)
   )
 }
 
