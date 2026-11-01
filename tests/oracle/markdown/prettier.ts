@@ -3,18 +3,21 @@ import { existsSync } from "node:fs";
 import { cp, rm } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 
-// Usage: mise run oracle:prettier -- <corpus>... [--show <kind>]
+// Usage: mise run oracle:prettier -- <corpus>... [--wrap <mode>] [--show <kind>]
 // Formats one copy of each corpus with Prettier, the reference, and one with mdtidy's Prettier
-// preset, then counts identical files and sorts the differences by kind. --show prints the hunks
-// of one kind. Prettier's copy is cached in target/oracle: delete it after changing a corpus.
+// preset, then counts identical files and sorts the differences by kind. --wrap sets mdtidy's
+// `wrap` and Prettier's `--prose-wrap` (preserve, always, or never). --show prints the hunks of
+// one kind. Prettier's copy is cached in target/oracle: delete it after changing a corpus.
 
 const PRETTIER = "prettier@3.9.10";
 
 type Hunk = { file: string; removed: string[]; added: string[] };
 
 let args = Bun.argv.slice(2);
-let show = args.includes("--show") ? args[args.indexOf("--show") + 1] : undefined;
-let corpora = args.filter((arg, index) => !arg.startsWith("--") && args[index - 1] !== "--show");
+let option = (name: string) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
+let show = option("--show");
+let wrap = option("--wrap") ?? "preserve";
+let corpora = args.filter((arg, index) => !arg.startsWith("--") && !args[index - 1]?.startsWith("--"));
 if (corpora.length === 0) throw new Error("usage: mise run oracle:prettier -- <corpus>... [--show <kind>]");
 
 let root = new URL("..", import.meta.url).pathname;
@@ -23,11 +26,11 @@ let { target_directory } = await $`cargo metadata --format-version 1 --no-deps`.
 let mdtidy = join(target_directory, "release", "mdtidy");
 
 for (let corpus of corpora.map((corpus) => resolve(corpus))) {
-	let cache = join(target_directory, "oracle", `${basename(corpus)}-${Bun.hash(corpus).toString(36)}`);
+	let cache = join(target_directory, "oracle", `${basename(corpus)}-${wrap}-${Bun.hash(corpus).toString(36)}`);
 	let expected = join(cache, "prettier");
 	if (!existsSync(expected)) {
 		await cp(corpus, expected, { recursive: true });
-		let flags = ["--no-config", "--no-editorconfig", "--ignore-path=", "--embedded-language-formatting=off"];
+		let flags = ["--no-config", "--no-editorconfig", "--ignore-path=", "--embedded-language-formatting=off", `--prose-wrap=${wrap}`];
 		await $`bunx ${PRETTIER} ${flags} --log-level=silent --write .`.cwd(expected).nothrow();
 	}
 	let actual = join(cache, "mdtidy");
@@ -38,7 +41,7 @@ for (let corpus of corpora.map((corpus) => resolve(corpus))) {
 		.filter((file) => !file.split("/").includes("node_modules"))
 		.sort();
 	for (let index = 0; index < files.length; index += 500) {
-		await $`${mdtidy} --write ${files.slice(index, index + 500)}`.cwd(actual).quiet().nothrow();
+		await $`${mdtidy} --write --wrap ${wrap} ${files.slice(index, index + 500)}`.cwd(actual).quiet().nothrow();
 	}
 
 	let hunks: Hunk[] = [];
@@ -57,7 +60,7 @@ for (let corpus of corpora.map((corpus) => resolve(corpus))) {
 		}
 	}
 
-	console.log(`${basename(corpus)}: ${same}/${files.length} files match Prettier`);
+	console.log(`${basename(corpus)}: ${same}/${files.length} files match Prettier (wrap ${wrap})`);
 	let kinds = Map.groupBy(hunks, (hunk) => kind(hunk.removed, hunk.added));
 	for (let [name, group] of [...kinds].sort((a, b) => b[1].length - a[1].length)) {
 		let count = new Set(group.map((hunk) => hunk.file)).size;
