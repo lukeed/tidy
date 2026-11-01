@@ -38,16 +38,15 @@ Both oracles live in the repo, with mise tasks to run them. Corpora don't: build
 
 - **Semantics**: `MDTIDY_CORPUS=<dir>[:<dir>...] mise run oracle:semantics`. Every output re-parses to the same events (adjacent text merged, soft breaks as spaces, whitespace collapsed) and settles after one pass. It runs the Prettier preset, the Preserve preset, `wrap: always` at width 40, and `wrap: never`. It caught every real bug so far: trust it over reading diffs. When a file fails, `mise run oracle:shrink -- <file> [mdtidy options...]` removes lines while it still fails and prints the few that are left. The events it compares come from `tests/support/events.rs`, shared by the test and the `events` example.
 - **Speed**: `mise run bench:ab -- [--rev <rev>] <dir>...` builds the working tree and `<rev>` (HEAD by default, in a temporary worktree), times both checking the folders in both orders, and compares medians: means swing with machine load. Each fix on 2026-10-30 and 2026-11-01 was within noise; together they cost about 2–3% (about 38 to 39 ms on A + B).
-- **Prettier**: the target is Prettier 3.9.10. `mise run oracle:prettier -- <corpus>... [--show <kind>]` formats one copy with Prettier (cached in `target/oracle`), one with mdtidy, counts identical files, and sorts the differences by kind. It hands mdtidy every file by name, because the CLI skips hidden folders on purpose. Last result: A 870/872, B 2,140/2,142, C 3,412/3,466, D 272/310. The semantics oracle passes on A and B; C and D fail only on the bugs listed below. `bun fmt` is close (8 misses, all inside code blocks) but it is not the reference.
+- **Prettier**: the target is Prettier 3.9.10. `mise run oracle:prettier -- <corpus>... [--show <kind>]` formats one copy with Prettier (cached in `target/oracle`), one with mdtidy, counts identical files, and sorts the differences by kind. It hands mdtidy every file by name, because the CLI skips hidden folders on purpose. Last result: A 870/872, B 2,140/2,142, C 3,415/3,466, D 273/310. The semantics oracle passes on A, B, and C; D fails only on the bugs listed below. `bun fmt` is close (8 misses, all inside code blocks) but it is not the reference.
 
 ## Known gaps against Prettier
 
 Most files first. The rules are in Prettier's `src/language-markdown/print/` (`mdast.js`, `children.js`, `list.js`): read them before guessing.
 
-1. Hugo and Liquid templates (bootstrap): Prettier parses `{{ }}` and `{% %}` as their own nodes, keeps their paragraph lines as written, and puts no blank line around them.
-2. Tables: Prettier doesn't pad a row with fewer cells than the header. A `|` inside a code span in a cell splits the cell in GFM, and the two tools write the pieces differently.
-3. Footnote definitions: Prettier keeps the text on the `[^1]:` line only for one paragraph that is on one line (or with `wrap: never`). Otherwise the text starts on the next line, indented 4.
-4. A code span over two lines in a list item or quote: Prettier writes the second line with no indent and no `>`. That still parses the same but reads worse, so it isn't planned.
+1. Hugo and Liquid templates (bootstrap, most of what C still misses): Prettier parses `{{ }}` and `{% %}` as their own nodes, keeps the indents of their paragraph lines, and puts no blank line around them.
+2. Footnote definitions: Prettier keeps the text on the `[^1]:` line only for one paragraph that is on one line (or with `wrap: never`). Otherwise the text starts on the next line, indented 4.
+3. A code span over two lines in a list item or quote: Prettier writes the second line with no indent and no `>`. That still parses the same but reads worse, so it isn't planned.
 
 Kept on purpose:
 
@@ -60,17 +59,14 @@ Kept on purpose:
 
 ## Known bugs that change meaning
 
-Found by corpora C and D. The first two show up only with `wrap: always` or `wrap: never`, and they are the only ones C hits.
-
-- Joining lines inside inline HTML or a code span changes its content: the spaces after the line break collapse.
-- Filling can move a block HTML tag to the start of a line, where it opens an HTML block (`opens_block` in `wrap.rs` doesn't know HTML; `opener.rs` does).
-
-These four D fixtures also fail with the default options:
+Four of Prettier's fixtures (corpus D) still fail the semantics oracle, with the default options too:
 
 - `blockquote/prose-wrap-always/encoded-newline.md`: an encoded newline (`&NewLine;`) in a quote.
 - `ignore/top-level-range.md`: an ignore range at the top level doesn't settle after one pass.
 - `list/followed-by-indented-things.md`: a list item with a wide marker, followed by indented code.
 - `list/huge-first-number.md`: renumbering past 9 digits (`999999999.` becomes `1000000000.`, which isn't a list marker).
+
+With wrapping on, an atom keeps its line breaks as written and a code span over two lines is written from its parsed value. One edge differs from Prettier: after an atom whose last line is already past the width, mdtidy breaks before the next word and Prettier doesn't.
 
 ## napi-rs
 
