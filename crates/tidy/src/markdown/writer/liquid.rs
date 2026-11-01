@@ -33,6 +33,7 @@ impl<'s> Writer<'s, '_> {
     let margin = !self.containers.is_empty() && self.source[..next].ends_with('\n');
     self.lazy = margin && (self.lazy || liquid(line));
     self.bare = self.lazy;
+    self.stray = self.lazy && liquid(line);
   }
 
   /// Whether the soft break at `at`, before the line starting at `next`, touches a Liquid line.

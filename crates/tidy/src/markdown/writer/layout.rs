@@ -14,7 +14,8 @@ impl<'s> Writer<'s, '_> {
     }
     let loose = matches!(self.containers.last(), Some(Container::Item { loose: true, .. }));
     self.settle(at, loose);
-    let liquid = self.liquid.take() == Some(self.containers.len());
+    let stray = std::mem::take(&mut self.stray);
+    let liquid = self.liquid.take() == Some(self.containers.len()) || stray;
     if liquid && self.gap == Gap::Blank && !blank(self.source, self.last.min(at), at) {
       self.gap = Gap::Line;
     }

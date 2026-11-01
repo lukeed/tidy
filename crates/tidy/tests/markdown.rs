@@ -337,6 +337,8 @@ fn lays_out_liquid_like_prettier() {
     "> q\n{{< /highlight >}}\n",
     "{{< markdown >}}\n{% for x in y %}\n- a\n- b\n{{- end -}}\n",
     "# h\n{{ x }}\ntext\n",
+    "1. a\n{{< /markdown >}}\n</div>\n",
+    "- b\n{{ x }}\n# h\n",
   ] {
     assert_eq!(prettier(source), source, "{source}");
     assert_eq!(preserve(source), source, "{source}");

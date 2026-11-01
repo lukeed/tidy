@@ -86,6 +86,7 @@ pub(crate) fn format(
     liquid: None,
     lazy: false,
     bare: false,
+    stray: false,
     raw: None,
   };
   if let Some(front) = front {
@@ -211,6 +212,9 @@ struct Writer<'s, 'o> {
   lazy: bool,
   /// The next line starts at the left margin, without the container prefix.
   bare: bool,
+  /// The last line written is a lazy Liquid line, which Prettier reads as a block after the
+  /// container, so the block after it stays beside it.
+  stray: bool,
   /// Where the rest of a paragraph starts that is copied as written, up to its first block event.
   raw: Option<usize>,
 }
