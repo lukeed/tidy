@@ -8,6 +8,7 @@ use pulldown_cmark::{
 };
 
 use crate::directive::{self, Directive};
+use crate::opener::{Fix, interrupts};
 use crate::table::Table;
 use crate::wrap::Paragraph;
 use crate::{Bullet, Code, Emphasis, Fence, Heading, Numbering, Options, Rule, Strong, Wrap};
@@ -259,7 +260,17 @@ impl<'s> Writer<'s, '_> {
         } else if self.heading.is_none() && self.wraps() {
           self.paragraph.get_or_insert_default().space();
         } else {
-          self.newline();
+          let next = events.peek(0).map_or(self.source.len(), |(_, range)| range.start);
+          let line = &self.source[next..];
+          let escaped = self.source[..next].ends_with('\\');
+          match interrupts(line.split('\n').next().unwrap_or("")).filter(|_| !escaped) {
+            Some(Fix::Join) => self.atom(" "),
+            Some(Fix::Escape) => {
+              self.newline();
+              self.write("\\");
+            }
+            None => self.newline(),
+          }
         }
       }
       Event::HardBreak => {

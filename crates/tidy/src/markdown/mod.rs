@@ -10,6 +10,7 @@
 //! ```
 
 mod directive;
+mod opener;
 mod options;
 mod table;
 mod wrap;
