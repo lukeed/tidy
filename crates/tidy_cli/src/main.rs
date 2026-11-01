@@ -1,11 +1,11 @@
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-use std::sync::{Condvar, Mutex, PoisonError};
 
 use tidy::config::{Config, Resolver};
 use tidy::embed::Verbatim;
 use tidy::{Error, Formatter, Language, Options, Shared, Whitespace, css, doc, handlebars};
+use tidy_walk::Output;
 
 const HELP: &str = "\
 tidy: a fast markup formatter
@@ -143,29 +143,59 @@ fn run() -> Result<ExitCode, String> {
     return Err("pass --check or --write to format more than one file".into());
   }
 
-  let queue = Queue::new(&paths);
-  let cores = std::thread::available_parallelism().map_or(1, |count| count.get());
-  let threads = threads.unwrap_or(cores).max(1);
-  let mut outcomes: Vec<(PathBuf, Outcome)> = std::thread::scope(|scope| {
-    let workers: Vec<_> =
-      (0..threads).map(|_| scope.spawn(|| work(&queue, &sources, language, write))).collect();
-    workers.into_iter().flat_map(|worker| worker.join().unwrap_or_default()).collect()
+  let mut options = tidy_walk::Options { wanted: &wanted, ..tidy_walk::Options::default() };
+  if let Some(threads) = threads.map(|threads| threads.max(1)) {
+    match options.workers {
+      0 => options.io = threads,
+      _ => options.workers = threads,
+    }
+  }
+  let listing = |dir: &Path, entries: &[tidy_walk::Entry]| {
+    if let Some(resolver) = &sources.resolver {
+      let configs = entries.iter().filter(|entry| entry.kind == tidy_walk::Kind::File);
+      resolver.listing(dir, configs.map(|entry| entry.name));
+    }
+  };
+  let report = tidy_walk::run(&paths, &options, listing, Formatter::default, |formatter, file| {
+    let source = match std::str::from_utf8(&file.bytes) {
+      Ok(source) => source,
+      Err(error) => {
+        return Some(Output {
+          value: Err(format!("{}: {error}", file.path.display())),
+          write: None,
+        });
+      }
+    };
+    match sources.format(formatter, source, language, &file.path) {
+      Ok(output) if output == source => None,
+      Ok(output) => {
+        Some(Output { value: Ok(()), write: write.then(|| output.as_bytes().to_vec()) })
+      }
+      Err(error) => Some(Output { value: Err(error), write: None }),
+    }
   });
-  outcomes.sort_by(|(left, _), (right, _)| left.cmp(right));
 
   let (mut listed, mut errors) = (String::new(), String::new());
-  for (path, outcome) in &outcomes {
+  for (path, outcome) in &report.results {
     match outcome {
-      Outcome::Changed => listed.push_str(&format!("{}\n", path.display())),
-      Outcome::Failed(error) => errors.push_str(&format!("tidy: {error}\n")),
+      Ok(()) => listed.push_str(&format!("{}\n", path.display())),
+      Err(error) => errors.push_str(&format!("tidy: {error}\n")),
     }
+  }
+  for (path, error) in &report.errors {
+    errors.push_str(&format!("tidy: {}: {error}\n", path.display()));
   }
   std::io::stdout().write_all(listed.as_bytes()).map_err(|error| error.to_string())?;
   std::io::stderr().write_all(errors.as_bytes()).map_err(|error| error.to_string())?;
   if !errors.is_empty() {
     return Ok(ExitCode::from(2));
   }
-  Ok(if check && !outcomes.is_empty() { ExitCode::FAILURE } else { ExitCode::SUCCESS })
+  Ok(if check && !report.results.is_empty() { ExitCode::FAILURE } else { ExitCode::SUCCESS })
+}
+
+/// Whether to format a file found in a folder: whether its language is known.
+fn wanted(_: &Path, name: &std::ffi::OsStr) -> bool {
+  Language::of_path(&name.to_string_lossy()).is_some()
 }
 
 /// The shared choices that the flags make.
@@ -254,152 +284,4 @@ fn describe(error: &Error, source: &str, name: &str) -> String {
     }
     Error::TooDeep => format!("{name}: {error}"),
   }
-}
-
-/// Runs `format` on the file at `path`, and turns a panic into an error for it, with a new formatter in place of the
-/// one that panicked.
-fn guarded(
-  path: &Path,
-  formatter: &mut Formatter,
-  format: impl FnOnce(&mut Formatter) -> Option<Outcome>,
-) -> Option<Outcome> {
-  std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| format(formatter))).unwrap_or_else(
-    |panic| {
-      *formatter = Formatter::default();
-      let message = panic
-        .downcast_ref::<&str>()
-        .map(|it| it.to_string())
-        .or_else(|| panic.downcast_ref::<String>().cloned())
-        .unwrap_or_default();
-      Some(Outcome::Failed(format!("{}: panicked: {message}", path.display())))
-    },
-  )
-}
-
-/// What happened to a file that isn't formatted already.
-enum Outcome {
-  Changed,
-  Failed(String),
-}
-
-fn work(
-  queue: &Queue,
-  sources: &Sources,
-  language: Option<Language>,
-  write: bool,
-) -> Vec<(PathBuf, Outcome)> {
-  let mut outcomes = Vec::new();
-  let mut formatter = Formatter::default();
-  let mut source = String::new();
-  while let Some(task) = queue.next() {
-    let path = match task {
-      Task::Folder(dir) => {
-        queue.done(read(&dir, sources.resolver.as_ref()));
-        continue;
-      }
-      Task::File(path) => path,
-    };
-    source.clear();
-    let read = std::fs::File::open(&path).and_then(|mut file| file.read_to_string(&mut source));
-    let outcome = match read {
-      Err(error) => Some(Outcome::Failed(format!("{}: {error}", path.display()))),
-      Ok(_) => guarded(&path, &mut formatter, |formatter| {
-        match sources.format(formatter, &source, language, &path) {
-          Err(error) => Some(Outcome::Failed(error)),
-          Ok(output) if output == source => None,
-          Ok(output) => Some(match write.then(|| std::fs::write(&path, output)) {
-            Some(Err(error)) => Outcome::Failed(format!("{}: {error}", path.display())),
-            _ => Outcome::Changed,
-          }),
-        }
-      }),
-    };
-    let Some(outcome) = outcome else {
-      queue.done(Vec::new());
-      continue;
-    };
-    outcomes.push((path, outcome));
-    queue.done(Vec::new());
-  }
-  outcomes
-}
-
-enum Task {
-  Folder(PathBuf),
-  File(PathBuf),
-}
-
-/// The folders to read and the files to format, which the workers share. Reading a folder adds what it holds, so
-/// formatting starts before the walk ends.
-struct Queue {
-  /// The tasks, and how many workers are busy with one.
-  state: Mutex<(Vec<Task>, usize)>,
-  ready: Condvar,
-}
-
-impl Queue {
-  fn new(paths: &[PathBuf]) -> Queue {
-    let tasks = paths
-      .iter()
-      .map(|path| match path.is_dir() {
-        true => Task::Folder(path.clone()),
-        false => Task::File(path.clone()),
-      })
-      .collect();
-    Queue { state: Mutex::new((tasks, 0)), ready: Condvar::new() }
-  }
-
-  /// The next task, or `None` once there's none left and no busy worker can add more.
-  fn next(&self) -> Option<Task> {
-    let mut state = self.state.lock().unwrap_or_else(PoisonError::into_inner);
-    loop {
-      if let Some(task) = state.0.pop() {
-        state.1 += 1;
-        return Some(task);
-      }
-      if state.1 == 0 {
-        return None;
-      }
-      state = self.ready.wait(state).unwrap_or_else(PoisonError::into_inner);
-    }
-  }
-
-  /// Ends a task, adding the tasks that it found.
-  fn done(&self, found: Vec<Task>) {
-    let mut state = self.state.lock().unwrap_or_else(PoisonError::into_inner);
-    let wakes = !found.is_empty() || state.1 == 1;
-    state.0.extend(found);
-    state.1 -= 1;
-    drop(state);
-    if wakes {
-      self.ready.notify_all();
-    }
-  }
-}
-
-/// The files in `dir` that tidy formats, and the folders to read next, skipping hidden folders and
-/// `node_modules`. Tells `resolver` which config files are there.
-fn read(dir: &Path, resolver: Option<&Resolver>) -> Vec<Task> {
-  let mut found = Vec::new();
-  let mut configs = Vec::new();
-  let Ok(entries) = std::fs::read_dir(dir) else { return found };
-  for entry in entries.flatten() {
-    let name = entry.file_name();
-    let Ok(kind) = entry.file_type() else { continue };
-    let path = entry.path();
-    if kind.is_dir() {
-      let name = name.to_string_lossy();
-      if !name.starts_with('.') && name != "node_modules" {
-        found.push(Task::Folder(path));
-      }
-    } else if Language::of_path(&path.to_string_lossy()).is_some() {
-      found.push(Task::File(path));
-    } else if name == ".editorconfig" || tidy::config::NAMES.iter().any(|it| name == *it) {
-      configs.push(name);
-    }
-  }
-  if let Some(resolver) = resolver {
-    resolver.listing(dir, configs.iter().map(|name| name.as_os_str()));
-  }
-  found
 }

@@ -13,6 +13,7 @@ path = "src/main.rs"
 
 [dependencies]
 tidy = { workspace = true, features = ["config"] }
+tidy_walk = { workspace = true }
 pico-args = { version = "0.5.0", features = ["eq-separator"] }
 
 [lints]
