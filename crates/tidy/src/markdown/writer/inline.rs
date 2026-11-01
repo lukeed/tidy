@@ -63,15 +63,19 @@ pub(super) fn has_run(text: &str, length: usize) -> bool {
 impl<'s> Writer<'s, '_> {
   /// Whether emphasis ending at `end` touches a word on either side, where `_` doesn't work.
   pub(super) fn inside(&self, end: usize) -> bool {
-    let before = match (&self.paragraph, &self.table) {
+    let after = self.source[end..].chars().next();
+    self.before().is_some_and(char::is_alphanumeric) || after.is_some_and(char::is_alphanumeric)
+  }
+
+  /// The last character written on the current line.
+  pub(super) fn before(&self) -> Option<char> {
+    match (&self.paragraph, &self.table) {
       (_, Some(table)) => {
         table.rows.last().and_then(|row| row.last()).and_then(|cell| cell.chars().next_back())
       }
       (Some(paragraph), None) => paragraph.last(),
       (None, None) if self.start => None,
       (None, None) => self.out.chars().next_back(),
-    };
-    let after = self.source[end..].chars().next();
-    before.is_some_and(char::is_alphanumeric) || after.is_some_and(char::is_alphanumeric)
+    }
   }
 }

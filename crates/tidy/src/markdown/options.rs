@@ -41,7 +41,8 @@ pub enum Bullet {
 }
 
 /// The delimiter of emphasis. `_` falls back to `*` where it can't work: inside a word and inside
-/// other emphasis.
+/// other emphasis. Either becomes `_` right after another `*`, where the two would merge into one
+/// run that nests differently.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Emphasis {
   Keep,

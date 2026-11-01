@@ -410,10 +410,12 @@ impl<'s> Writer<'s, '_> {
         }
       }
       Tag::Emphasis => {
+        let word = self.inside(range.end);
         let mark: Cow<'s, str> = match self.options.emphasis {
           Emphasis::Keep => self.source[range.start..range.start + 1].into(),
+          _ if !word && self.before() == Some('*') => "_".into(),
           Emphasis::Asterisk => "*".into(),
-          Emphasis::Underscore if self.emphasis > 0 || self.inside(range.end) => "*".into(),
+          Emphasis::Underscore if self.emphasis > 0 || word => "*".into(),
           Emphasis::Underscore => "_".into(),
         };
         self.emphasis += 1;

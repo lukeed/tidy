@@ -67,6 +67,8 @@ fn chooses_emphasis_delimiters() {
     Options { emphasis: Emphasis::Asterisk, strong: Strong::Underscore, ..Options::default() };
   assert_eq!(mdtidy::format("_a_ **b** c**d**\n", &options), "*a* __b__ c**d**\n");
   assert_eq!(prettier("~a~\n"), "~~a~~\n");
+  assert_eq!(prettier("x ***_a_*** y\n"), "x _**_a_**_ y\n");
+  assert_eq!(prettier("_a **b *c*** d_\n"), "_a **b *c*** d_\n");
 }
 
 #[test]
