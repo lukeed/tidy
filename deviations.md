@@ -1,6 +1,6 @@
 # Deviations from Prettier
 
-tidyrs prints what Prettier 3.9.9 prints, except where this file says otherwise. Each entry below says what tidyrs prints instead, why, where the rule is, and whether Luke has signed it off. `crates/tidyrs/tests/deviations.json` holds every input that was checked against both tools, and `cargo test --test deviations` fails if tidyrs stops printing what an entry says.
+tidyrs prints what Prettier 3.9.9 prints, and XML what `@prettier/plugin-xml` 3.4.2 prints, except where this file says otherwise. Each entry below says what tidyrs prints instead, why, where the rule is, and whether Luke has signed it off. `crates/tidyrs/tests/deviations.json` holds every input that was checked against both tools, and `cargo test --test deviations` fails if tidyrs stops printing what an entry says.
 
 ## Process
 
@@ -61,6 +61,9 @@ Most entries come from bun's ports, which correct the places where Prettier's ou
 | [html-ignored-void-without-slash](#html-ignored-void-without-slash) | html | approved 2026-11-01 |
 | [html-text-after-nul](#html-text-after-nul) | html/vue | approved 2026-11-01 |
 | [vue-v-pre-interpolation](#vue-v-pre-interpolation) | vue | approved 2026-11-01 |
+| [xml-embed-by-name](#xml-embed-by-name) | xml | proposed |
+| [xml-hex-character-reference](#xml-hex-character-reference) | xml | proposed |
+| [xml-ignore-trims-xml-whitespace](#xml-ignore-trims-xml-whitespace) | xml | proposed |
 | [html-borrowed-markers-once](#html-borrowed-markers-once) | html | approved 2026-11-01 |
 | [the rule in step 2](#process) | all | proposed |
 | [tempura and text mode](#beyond-prettier) | handlebars | approved 2026-10-31 |
@@ -708,6 +711,61 @@ tidyrs:   "<template>\n  <p v-pre>Use {{msg}} and {{a+b}} here</p>\n</template>\
 ```
 
 Only visible when the embed hook formats JavaScript, so `tests/deviations.json` doesn't hold it. It was checked through the napi binding with a hook backed by Prettier, as `tests/oracle/conformance.ts` does.
+
+## XML
+
+### xml-embed-by-name
+
+- Status: proposed
+- Why: The plugin formats the content of any element that is named after one of Prettier's parsers as code in that language: `<remark>` as Markdown, `<yaml>`, `<json>`, `<html>`, `<css>`. These are ordinary elements whose text is data, such as DocBook's `<remark>`, and formatting it changes the text. tidyrs formats code only in `<style>` and `<script>` with a `type` of `text/...`, as the plugin does there.
+- Where: crates/tidyrs/src/xml/print.rs:392 (`embedded_language`)
+- Parser: xml
+
+```
+input:    "<article>\n  <remark>Use *this*   or  _that_.</remark>\n</article>\n"
+Prettier: "<article>\n  <remark>\nUse _this_ or _that_.\n  </remark>\n</article>\n"
+tidyrs:   "<article>\n  <remark>Use *this*   or  _that_.</remark>\n</article>\n"
+```
+
+Found in `docbook/xslt10-stylesheets`, where these are the only files that `tests/oracle/xml.ts` prints differently. The oracle limits the plugin's embedding to `<style>` and `<script>` unless `--plugin-embed` is set.
+
+### xml-hex-character-reference
+
+- Status: proposed
+- Why: The plugin's lexer reads only the first digit of a hexadecimal character reference (`&#x[a-fA-F0-9]`), so `&#x41;` is the reference `&#x4` and then the text `1;`. With `--whitespace ignore`, a space goes between them, and the output is no longer well-formed XML. tidyrs reads `&#x41;` as one reference. A reference without `;` is read as the plugin reads it, so the same files parse. With `--whitespace preserve`, an element that only holds such a reference now has no text, and prints as the plugin prints one that holds `&#65;`.
+- Where: crates/tidyrs/src/xml/lexer.rs:120
+- Parser: xml, with `--whitespace ignore` or `preserve`
+
+```
+input:    "<a>one &amp; two &#65; three &#x41; four</a>\n"
+Prettier: "<a>\n  one &amp; two &#65; three &#x4 1; four\n</a>\n"
+tidyrs:   "<a>\n  one &amp; two &#65; three &#x41; four\n</a>\n"
+```
+
+With `--whitespace preserve`:
+
+```
+input:    "<a><b>&#x41;</b><c>&#65;</c></a>\n"
+Prettier: "<a>\n  <b>&#x41;</b>\n  <c>\n    &#65;\n  </c>\n</a>\n"
+tidyrs:   "<a>\n  <b>\n    &#x41;\n  </b>\n  <c>\n    &#65;\n  </c>\n</a>\n"
+```
+
+In the corpus of `tests/oracle/xml.ts`, this changes 67 files with `--whitespace ignore` or `preserve`, most in `docbook/xslt10-stylesheets`, where `&#x2022;` (a bullet) becomes `&#x2 022;`.
+
+### xml-ignore-trims-xml-whitespace
+
+- Status: proposed
+- Why: With `--whitespace ignore`, the plugin trims text with JavaScript's `\s`, which also matches a no-break space and other characters that XML doesn't count as whitespace. An element that holds only a no-break space loses it. tidyrs trims only space, tab and line feed.
+- Where: crates/tidyrs/src/xml/print.rs:204 (`words`)
+- Parser: xml, with `--whitespace ignore`
+
+```
+input:    "<a><b>\u00a0</b><c>\u00a0x\u00a0</c></a>\n"
+Prettier: "<a>\n  <b></b>\n  <c>x</c>\n</a>\n"
+tidyrs:   "<a>\n  <b>\u00a0</b>\n  <c>\u00a0x\u00a0</c>\n</a>\n"
+```
+
+In the corpus of `tests/oracle/xml.ts`, this changes 9 files. One is an SVG of Vite's documentation, where `<tspan>` elements that hold a no-break space put the spaces between "Vite", "Dev" and "Server", and the plugin removes them.
 
 ## Beyond Prettier
 

@@ -2277,5 +2277,71 @@
     "whitespace": "strict"
    }
   ]
+ },
+ {
+  "id": "xml-embed-by-name",
+  "rows": [
+   {
+    "parsers": [
+     "xml"
+    ],
+    "input": "<article>\n  <remark>Use *this*   or  _that_.</remark>\n</article>\n",
+    "prettier": "<article>\n  <remark>\nUse _this_ or _that_.\n  </remark>\n</article>\n",
+    "tidyrs": "<article>\n  <remark>Use *this*   or  _that_.</remark>\n</article>\n"
+   },
+   {
+    "parsers": [
+     "xml"
+    ],
+    "input": "<config><yaml>a:   1\nb:    [1,2]</yaml></config>\n",
+    "prettier": "<config><yaml>\na: 1\nb: [1, 2]\n  </yaml></config>\n",
+    "tidyrs": "<config><yaml>a:   1\nb:    [1,2]</yaml></config>\n"
+   },
+   {
+    "parsers": [
+     "xml"
+    ],
+    "input": "<a><json>{\"a\":1}</json></a>\n",
+    "prettier": "<a><json>\n{ \"a\": 1 }\n  </json></a>\n",
+    "tidyrs": "<a><json>{\"a\":1}</json></a>\n"
+   }
+  ]
+ },
+ {
+  "id": "xml-hex-character-reference",
+  "rows": [
+   {
+    "parsers": [
+     "xml"
+    ],
+    "input": "<a>one &amp; two &#65; three &#x41; four</a>\n",
+    "prettier": "<a>\n  one &amp; two &#65; three &#x4 1; four\n</a>\n",
+    "tidyrs": "<a>\n  one &amp; two &#65; three &#x41; four\n</a>\n",
+    "whitespace": "ignore"
+   },
+   {
+    "parsers": [
+     "xml"
+    ],
+    "input": "<a><b>&#x41;</b><c>&#65;</c></a>\n",
+    "prettier": "<a>\n  <b>&#x41;</b>\n  <c>\n    &#65;\n  </c>\n</a>\n",
+    "tidyrs": "<a>\n  <b>\n    &#x41;\n  </b>\n  <c>\n    &#65;\n  </c>\n</a>\n",
+    "whitespace": "preserve"
+   }
+  ]
+ },
+ {
+  "id": "xml-ignore-trims-xml-whitespace",
+  "rows": [
+   {
+    "parsers": [
+     "xml"
+    ],
+    "input": "<a><b> </b><c> x </c></a>\n",
+    "prettier": "<a>\n  <b></b>\n  <c>x</c>\n</a>\n",
+    "tidyrs": "<a>\n  <b> </b>\n  <c> x </c>\n</a>\n",
+    "whitespace": "ignore"
+   }
+  ]
  }
 ]

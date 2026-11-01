@@ -3,10 +3,10 @@
 
 use serde_json::Value;
 use tidyrs::embed::Verbatim;
-use tidyrs::{css, handlebars, html};
+use tidyrs::{css, handlebars, html, xml};
 
-fn format(parser: &str, input: &str, whitespace: Option<&str>) -> String {
-  let whitespace = match whitespace {
+fn format(parser: &str, input: &str, option: Option<&str>) -> String {
+  let whitespace = match option {
     Some("ignore") => html::Whitespace::Ignore,
     Some("strict") => html::Whitespace::Strict,
     _ => html::Whitespace::Css,
@@ -32,6 +32,15 @@ fn format(parser: &str, input: &str, whitespace: Option<&str>) -> String {
       };
       let settings = css::Settings { dialect, ..css::Settings::default() };
       css::format(input, &settings, &mut Verbatim).map_err(|error| error.to_string())
+    }
+    "xml" => {
+      let whitespace = match option {
+        Some("ignore") => xml::Whitespace::Ignore,
+        Some("preserve") => xml::Whitespace::Preserve,
+        _ => xml::Whitespace::Strict,
+      };
+      let settings = xml::Settings { whitespace, ..xml::Settings::default() };
+      xml::format(input, &settings, &mut Verbatim).map_err(|error| error.to_string())
     }
     other => panic!("unknown parser {other}"),
   };
