@@ -218,7 +218,7 @@ fn keeps_html_beside_a_paragraph_or_html() {
 
 #[test]
 fn keeps_indented_lines_from_opening_blocks() {
-  for line in ["# h", "- x", "1. x", "> q"] {
+  for line in ["# h", "- x", "1. x", "> q", "1000000000. x"] {
     assert_eq!(prettier(&format!("text\n    {line}\n")), format!("text {line}\n"), "{line}");
   }
   for line in ["```", "***", "<div>", "<!-- c -->"] {

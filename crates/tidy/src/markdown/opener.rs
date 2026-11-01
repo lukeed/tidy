@@ -30,8 +30,7 @@ pub(crate) fn interrupts(line: &str) -> Option<Fix> {
     byte if byte.is_ascii_digit() => {
       let digits = bytes.iter().take_while(|byte| byte.is_ascii_digit()).count();
       let after = bytes.get(digits + 1).copied();
-      let marker = digits <= 9
-        && matches!(bytes.get(digits), Some(b'.' | b')'))
+      let marker = matches!(bytes.get(digits), Some(b'.' | b')'))
         && matches!(after, None | Some(b' ' | b'\t'));
       marker.then_some(Fix::Join)
     }
@@ -188,7 +187,8 @@ mod tests {
     for line in ["===", "---", "-", "="] {
       assert_eq!(interrupts(line), Some(Fix::Escape), "{line}");
     }
-    for line in ["#h", "1234567890. x", "2.x", "-x", "``", "<span>", "<divx>", "a", "*a*"] {
+    assert_eq!(interrupts("1234567890. x"), Some(Fix::Join));
+    for line in ["#h", "2.x", "-x", "``", "<span>", "<divx>", "a", "*a*"] {
       assert_eq!(interrupts(line), None, "{line}");
     }
   }
