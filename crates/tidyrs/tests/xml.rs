@@ -1,8 +1,9 @@
 //! Edge cases of XML, each with what `@prettier/plugin-xml` prints for it, recorded by `tests/oracle/xml-cases.ts`.
 
 use serde_json::Value;
+use tidyrs::Whitespace;
 use tidyrs::embed::Verbatim;
-use tidyrs::xml::{Quotes, Settings, Whitespace, format, is_xml_path};
+use tidyrs::xml::{Quotes, Settings, format, is_xml_path};
 
 fn settings(options: &Value) -> Settings {
   let flag = |name: &str| options.get(name).and_then(Value::as_bool);
@@ -16,7 +17,7 @@ fn settings(options: &Value) -> Settings {
     tabs: flag("useTabs").unwrap_or_default(),
     whitespace: match text("xmlWhitespaceSensitivity") {
       Some("ignore") => Whitespace::Ignore,
-      Some("preserve") => Whitespace::Preserve,
+      Some("preserve") => Whitespace::Auto,
       _ => Whitespace::Strict,
     },
     self_closing_space: flag("xmlSelfClosingSpace").unwrap_or(true),

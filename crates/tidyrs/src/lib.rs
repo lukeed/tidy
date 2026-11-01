@@ -13,6 +13,20 @@ mod syntax;
 mod text;
 pub mod xml;
 
+/// Where whitespace is significant, with the same names in each language. Each language has its own default: `Auto`
+/// for HTML, Vue and Handlebars, `Strict` for XML.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Whitespace {
+  /// Wherever it could be. Prettier's `strict`.
+  Strict,
+  /// Where the language says it is. In HTML, Vue and Handlebars, where the default `display` of an element makes it
+  /// significant: Prettier's `css`. In XML, in the text of an element, but not between elements: the plugin's
+  /// `preserve`.
+  Auto,
+  /// Nowhere. Prettier's `ignore`.
+  Ignore,
+}
+
 /// Splits off a byte order mark. Prettier's `formatWithCursor` puts it back in front of the output.
 pub(crate) fn without_bom(text: &str) -> (bool, &str) {
   match text.strip_prefix('\u{FEFF}') {

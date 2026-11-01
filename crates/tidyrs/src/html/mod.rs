@@ -17,6 +17,8 @@ mod print;
 mod tag;
 mod utilities;
 
+use crate::Whitespace;
+
 /// How deep elements may nest before formatting gives up, rather than overflow the stack.
 const MAX_DEPTH: u32 = 1000;
 
@@ -28,18 +30,6 @@ pub enum Parser {
   Angular,
   Lwc,
   Mjml,
-}
-
-/// Prettier's `htmlWhitespaceSensitivity`.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-pub enum Whitespace {
-  /// Decided by the default value of the CSS property `display`.
-  #[default]
-  Css,
-  /// All of it.
-  Strict,
-  /// None of it.
-  Ignore,
 }
 
 /// The `options` that Prettier's functions receive.
@@ -89,7 +79,7 @@ impl Default for Settings {
       tab_width: 2,
       tabs: false,
       eol: crate::doc::Eol::Lf,
-      whitespace: Whitespace::Css,
+      whitespace: Whitespace::Auto,
       single_attribute_per_line: false,
       bracket_same_line: false,
       vue_indent_script_and_style: false,

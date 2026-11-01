@@ -150,7 +150,7 @@ pub struct Settings {
   pub tabs: bool,
   pub eol: doc::Eol,
   /// `htmlWhitespaceSensitivity`: Glimmer only tells `ignore` from the rest.
-  pub whitespace: crate::html::Whitespace,
+  pub whitespace: crate::Whitespace,
   pub single_quote: bool,
   pub dialect: Dialect,
   /// The file's path. A template of another language than HTML, such as `robots.txt.hbs`, keeps its text as it is
@@ -168,7 +168,7 @@ impl Default for Settings {
       tab_width: 2,
       tabs: false,
       eol: doc::Eol::Lf,
-      whitespace: crate::html::Whitespace::Css,
+      whitespace: crate::Whitespace::Auto,
       single_quote: false,
       dialect: Dialect::Auto,
       filepath: None,
@@ -298,7 +298,7 @@ impl Formatter {
       source: &content,
       front_matter: &text[..front_matter_end],
       options: &options,
-      is_white_space_sensitive: settings.whitespace != crate::html::Whitespace::Ignore,
+      is_white_space_sensitive: settings.whitespace != crate::Whitespace::Ignore,
       single_quote: settings.single_quote,
       docs: &mut docs,
       embed,

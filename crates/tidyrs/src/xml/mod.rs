@@ -13,6 +13,7 @@ mod parser;
 mod print;
 mod sort;
 
+use crate::Whitespace;
 use crate::doc::{self, Docs};
 use crate::embed::Embed;
 use crate::stack::Stack;
@@ -177,18 +178,6 @@ pub fn is_xml_path(path: &str) -> bool {
     })
 }
 
-/// `xmlWhitespaceSensitivity`
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
-pub enum Whitespace {
-  /// The content of each element prints as it is written.
-  #[default]
-  Strict,
-  /// The text of an element prints as it is written. An element with no text puts each child on its own line.
-  Preserve,
-  /// Whitespace is never significant: each child goes on its own line, and text is filled.
-  Ignore,
-}
-
 /// `xmlQuoteAttributes`
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
 pub enum Quotes {
@@ -207,6 +196,8 @@ pub struct Settings {
   pub tab_width: usize,
   pub tabs: bool,
   pub eol: doc::Eol,
+  /// `xmlWhitespaceSensitivity`. `Auto` is the plugin's `preserve`: the text of an element prints as it is written,
+  /// and an element without text puts each child on its own line.
   pub whitespace: Whitespace,
   /// `xmlSelfClosingSpace`: a space before `/>` and `?>`.
   pub self_closing_space: bool,

@@ -3,10 +3,11 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::{Condvar, Mutex, PoisonError};
 
+use tidyrs::Whitespace;
 use tidyrs::css;
 use tidyrs::embed::Verbatim;
 use tidyrs::handlebars::{self, Dialect};
-use tidyrs::html::{self, Parser, Whitespace};
+use tidyrs::html::{self, Parser};
 use tidyrs::xml;
 
 const HELP: &str = "\
@@ -196,7 +197,7 @@ fn settings(args: &mut pico_args::Arguments) -> Result<Settings, String> {
   settings.whitespace = match whitespace.as_deref() {
     Some("strict") => Whitespace::Strict,
     Some("ignore") => Whitespace::Ignore,
-    _ => Whitespace::Css,
+    _ => Whitespace::Auto,
   };
   settings.single_attribute_per_line = args.contains("--single-attribute-per-line");
   settings.bracket_same_line = args.contains("--bracket-same-line");
@@ -221,9 +222,9 @@ fn settings(args: &mut pico_args::Arguments) -> Result<Settings, String> {
     tab_width: settings.tab_width,
     tabs: settings.tabs,
     whitespace: match whitespace.as_deref() {
-      Some("preserve") => xml::Whitespace::Preserve,
-      Some("ignore") => xml::Whitespace::Ignore,
-      _ => xml::Whitespace::Strict,
+      Some("preserve") => tidyrs::Whitespace::Auto,
+      Some("ignore") => tidyrs::Whitespace::Ignore,
+      _ => tidyrs::Whitespace::Strict,
     },
     bracket_same_line: settings.bracket_same_line,
     single_attribute_per_line: settings.single_attribute_per_line,

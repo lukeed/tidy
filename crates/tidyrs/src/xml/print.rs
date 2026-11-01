@@ -1,7 +1,8 @@
 //! The printer of `@prettier/plugin-xml` (`src/printer.js` and `src/embed.js`).
 
 use super::ast::{Attribute, Doctype, Element, External, Item, Prolog, Span, Top, Tree};
-use super::{Quotes, Settings, Whitespace, sort};
+use super::{Quotes, Settings, sort};
+use crate::Whitespace;
 use crate::doc::{Align, Docs};
 use crate::embed::{Embed, Kind as Purpose, Request};
 use crate::stack::Stack;
@@ -133,7 +134,7 @@ impl<'a> Printer<'_, 'a> {
       self.close_tag(&element);
       return self.docs.close(group);
     }
-    if self.settings.whitespace == Whitespace::Preserve
+    if self.settings.whitespace == Whitespace::Auto
       && items.iter().any(|item| matches!(item, Item::Text(_)))
     {
       let group = self.docs.group();

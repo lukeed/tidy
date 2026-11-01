@@ -1,7 +1,8 @@
 use napi::bindgen_prelude::Function;
 use napi_derive::napi;
+use tidyrs::Whitespace;
 use tidyrs::embed::{Kind, Request};
-use tidyrs::html::{Parser, Settings, Whitespace};
+use tidyrs::html::{Parser, Settings};
 use tidyrs::{css, handlebars, xml};
 
 /// A piece of embedded code for the host to format.
@@ -168,9 +169,9 @@ fn invalid(name: &str, value: &str) -> napi::Error {
 
 fn xml_settings(input: &FormatOptions, format_embedded: bool) -> napi::Result<xml::Settings> {
   let whitespace = match input.whitespace.as_deref() {
-    None | Some("strict") => xml::Whitespace::Strict,
-    Some("preserve") => xml::Whitespace::Preserve,
-    Some("ignore") => xml::Whitespace::Ignore,
+    None | Some("strict") => tidyrs::Whitespace::Strict,
+    Some("preserve") => tidyrs::Whitespace::Auto,
+    Some("ignore") => tidyrs::Whitespace::Ignore,
     Some(other) => return Err(invalid("whitespace", other)),
   };
   let quotes = match input.quote_attributes.as_deref() {
@@ -202,7 +203,7 @@ fn settings(input: FormatOptions, language: Language) -> napi::Result<Settings> 
   }
   if let Some(whitespace) = input.whitespace.filter(|_| !matches!(language, Language::Xml)) {
     settings.whitespace = match whitespace.as_str() {
-      "css" => Whitespace::Css,
+      "css" => Whitespace::Auto,
       "strict" => Whitespace::Strict,
       "ignore" => Whitespace::Ignore,
       other => return Err(invalid("whitespace", other)),

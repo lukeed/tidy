@@ -7,9 +7,9 @@ use tidyrs::{css, handlebars, html, xml};
 
 fn format(parser: &str, input: &str, option: Option<&str>) -> String {
   let whitespace = match option {
-    Some("ignore") => html::Whitespace::Ignore,
-    Some("strict") => html::Whitespace::Strict,
-    _ => html::Whitespace::Css,
+    Some("ignore") => tidyrs::Whitespace::Ignore,
+    Some("strict") => tidyrs::Whitespace::Strict,
+    _ => tidyrs::Whitespace::Auto,
   };
   let result = match parser {
     "html" | "vue" => {
@@ -35,9 +35,9 @@ fn format(parser: &str, input: &str, option: Option<&str>) -> String {
     }
     "xml" => {
       let whitespace = match option {
-        Some("ignore") => xml::Whitespace::Ignore,
-        Some("preserve") => xml::Whitespace::Preserve,
-        _ => xml::Whitespace::Strict,
+        Some("ignore") => tidyrs::Whitespace::Ignore,
+        Some("preserve") => tidyrs::Whitespace::Auto,
+        _ => tidyrs::Whitespace::Strict,
       };
       let settings = xml::Settings { whitespace, ..xml::Settings::default() };
       xml::format(input, &settings, &mut Verbatim).map_err(|error| error.to_string())

@@ -1,9 +1,9 @@
 //! Prettier's `language-html/utilities/index.js` and `utilities/html-whitespace.js`.
 
-use super::Whitespace as HtmlWhitespaceSensitivity;
 use super::ast::{Attribute, Flags, Id, Kind, Node, Span, Tree};
 use super::data::{self, Display};
 use super::{Options, Parser};
+use crate::Whitespace as HtmlWhitespaceSensitivity;
 use crate::strings;
 use std::borrow::Cow;
 
@@ -447,7 +447,7 @@ impl<'a> Tree<'a> {
     match options.whitespace {
       HtmlWhitespaceSensitivity::Strict => Display::Inline,
       HtmlWhitespaceSensitivity::Ignore => Display::Block,
-      HtmlWhitespaceSensitivity::Css => {
+      HtmlWhitespaceSensitivity::Auto => {
         let is_html = node.kind == Kind::Element
           && (node.namespace.is_empty() || is_svg || is_unknown_namespace(node));
         is_html.then(|| data::css_display_of_tag(&node.name)).flatten().unwrap_or(Display::Inline)
