@@ -467,8 +467,21 @@ fn keeps_inline_html_and_code_when_wrapping() {
     "a <span\n  title=\"x\n  y\">b</span> c d e f\n\n- a <span\n    title=\"x\">b</span> c\n";
   let always = Options { wrap: Wrap::Always, width: 20, ..Options::default() };
   let expected =
-    "a <span\n  title=\"x\n  y\">b</span> c d e\nf\n\n- a <span\n    title=\"x\">b</span>\n  c\n";
+    "a <span\n  title=\"x\n  y\">b</span> c d e\nf\n\n- a <span\n    title=\"x\">b</span> c\n";
   assert_eq!(tidy::markdown::format(source, &always), expected);
+  let cases = [
+    (
+      "a <span\n  title=\"x\">b</span> cccccccccccccccccccccccccc d\n",
+      "a <span\n  title=\"x\">b</span> cccccccccccccccccccccccccc\nd\n",
+    ),
+    (
+      "aaaaaaaaaaaaaaaaaa <span\n  title=\"x\">b</span> c d\n",
+      "aaaaaaaaaaaaaaaaaa\n<span\n  title=\"x\">b</span> c\nd\n",
+    ),
+  ];
+  for (source, expected) in cases {
+    assert_eq!(tidy::markdown::format(source, &always), expected, "{source}");
+  }
   let never = Options { wrap: Wrap::Never, ..Options::default() };
   assert_eq!(
     tidy::markdown::format("> a `code\n>     span` b\n", &never),

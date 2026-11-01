@@ -98,12 +98,14 @@ impl Paragraph {
 
   /// Fill the words into lines no wider than `width`, or into one line per hard break without it.
   /// The first line is never an HTML tag alone, which would start an HTML block, and no line is a
-  /// setext underline or thematic break alone.
+  /// setext underline or thematic break alone. After a word over more than one line, the next word
+  /// stays beside it when its first line fit, because Prettier measures only up to its first break.
   pub(crate) fn fill(&self, width: Option<usize>) -> Vec<String> {
     let mut lines = Vec::new();
     let mut line = String::new();
     let mut used = 0;
     let mut space = false;
+    let mut tall: Option<usize> = None;
     for unit in self.units() {
       match unit {
         Unit::Space => space = !line.is_empty(),
@@ -111,10 +113,11 @@ impl Paragraph {
           lines.push(std::mem::take(&mut line));
           used = 0;
           space = false;
+          tall = None;
         }
         Unit::Word(word) => {
           let first = crate::markdown::width::width(word.split('\n').next().unwrap_or_default());
-          let over = width.is_some_and(|width| used + 1 + first > width);
+          let over = width.is_some_and(|width| tall.unwrap_or(used + 1 + first) > width);
           let tag = lines.is_empty() && crate::markdown::opener::starts_html(&line);
           if space && over && !tag && !alone(&line) {
             lines.push(std::mem::take(&mut line));
@@ -124,6 +127,7 @@ impl Paragraph {
             used += 1;
           }
           line.push_str(&word);
+          tall = word.contains('\n').then_some(used + first);
           used = match word.rsplit_once('\n') {
             Some((_, last)) => crate::markdown::width::width(last),
             None => used + first,
@@ -329,6 +333,6 @@ mod tests {
     paragraph.text("a ");
     paragraph.atom("<b\n  c>");
     paragraph.text(" d e");
-    assert_eq!(paragraph.fill(Some(5)), ["a <b\n  c>", "d e"]);
+    assert_eq!(paragraph.fill(Some(5)), ["a <b\n  c> d", "e"]);
   }
 }

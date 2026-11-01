@@ -22,7 +22,6 @@ const cases: Case[] = [
 	{ id: "wrap-cj-latin", kind: "meaning", signed: "rule", wrap: "always", width: 20, title: "A line break between Chinese or Japanese and Latin text joins as a space", why: "Prettier joins with nothing when the paragraph mostly has no such spaces, which removes a space that renders." },
 	{ id: "wrap-cj-emoji", kind: "meaning", signed: "rule", wrap: "always", width: 20, title: "A line break between Chinese or Japanese and an emoji joins with nothing", why: "Both are wide, so CSS renders the break as nothing. Prettier treats the emoji as Latin text and may write a space, which renders." },
 	{ id: "wrap-label", kind: "meaning", signed: "rule", wrap: "always", width: 20, title: "A line break between wide characters in a link label stays", why: "Joining with nothing would change the label so it no longer matches its definition, and Prettier's space renders where the break does not." },
-	{ id: "wrap-atom", kind: "layout", signed: "pending", wrap: "always", width: 20, title: "After an atom whose last line is past the width, the next word starts a new line", why: "Prettier measures the atom's first line only and keeps the next word beside it." },
 ];
 
 const signoff = { rule: "Luke's rule: formatting never changes what a document means.", pending: "Not signed off yet: ask Luke." };
