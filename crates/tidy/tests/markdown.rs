@@ -135,6 +135,7 @@ fn formats_link_text_like_other_text() {
   assert_eq!(prettier("<http://a.b>  x [](u)\n"), "<http://a.b> x [](u)\n");
   assert_eq!(prettier("- [a\n  ](u)\n"), "- [a\n  ](u)\n");
   assert_eq!(prettier("> [a\n> ](u)\n"), "> [a\n> ](u)\n");
+  assert_eq!(prettier("[![a][]][b]\n\n[a]: /a\n[b]: /b\n"), "[![a][]][b]\n\n[a]: /a\n[b]: /b\n");
   let never = Options { wrap: Wrap::Always, width: 6, ..Options::default() };
   assert_eq!(mdtidy::format("x [a b\nc](u) y\n", &never), "x\n[a b c](u)\ny\n");
 }
@@ -154,6 +155,7 @@ fn hangs_task_items_after_the_box() {
     "1. [x] a\n       b\n\n> - [ ] q\n>       r\n"
   );
   assert_eq!(prettier("- [ ]   a\n"), "- [ ] a\n");
+  assert_eq!(prettier("- [ ] a\n  - [ ] b\n- [ ] c\n"), "- [ ] a\n  - [ ] b\n- [ ] c\n");
   let source = "- [ ] a\n\n  <div>x\n  y</div>\n\n  p\n  q\n\n  - n\n    m\n";
   assert_eq!(prettier(source), source);
   let always = Options { wrap: Wrap::Always, width: 14, ..Options::default() };

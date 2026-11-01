@@ -459,6 +459,9 @@ impl<'s> Writer<'s, '_> {
         let end = if collapsed { range.end + 2 } else { range.end };
         let image = matches!(tag, Tag::Image { .. });
         if image || matches!(link_type, LinkType::Autolink | LinkType::Email) {
+          if let Some(link) = &mut self.link {
+            link.text = link.text.max(end);
+          }
           self.atom(&self.source[range.start..end]);
           self.skip = 1;
         } else {
@@ -482,9 +485,6 @@ impl<'s> Writer<'s, '_> {
     match tag {
       TagEnd::Paragraph => {
         self.finish();
-        if let Some(Container::Item { hang, .. }) = self.containers.last_mut() {
-          *hang = false;
-        }
         self.end();
       }
       TagEnd::HtmlBlock => {
@@ -728,6 +728,9 @@ impl<'s> Writer<'s, '_> {
   /// Start a block: emit pending reference definitions before it, then separate it.
   fn block(&mut self, at: usize) {
     self.finish();
+    if let Some(Container::Item { hang, .. }) = self.containers.last_mut() {
+      *hang = false;
+    }
     self.flush(at);
     if self.adjacent.as_ref().is_some_and(|adjacent| adjacent.depth == self.containers.len()) {
       self.adjacent = None;
