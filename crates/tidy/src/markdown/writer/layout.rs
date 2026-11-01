@@ -94,8 +94,9 @@ impl<'s> Writer<'s, '_> {
             self.out.extend(std::iter::repeat_n(' ', width));
           }
         },
-        Container::Footnote { marker } => match marker.take() {
+        Container::Footnote { marker, flush } => match marker.take() {
           Some(marker) => self.out.push_str(&marker),
+          None if *flush => {}
           None => self.out.push_str("    "),
         },
       }
@@ -112,6 +113,7 @@ impl<'s> Writer<'s, '_> {
         Container::Quote => 2,
         Container::Item { width, hang: true, .. } => width + BOX,
         Container::Item { width, .. } => *width,
+        Container::Footnote { flush: true, .. } => 0,
         Container::Footnote { .. } | Container::Code => 4,
       })
       .sum()

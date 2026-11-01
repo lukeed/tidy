@@ -349,6 +349,14 @@ fn starts_footnotes_like_prettier() {
     tidy::markdown::format("x[^1]\n\n[^1]: two\n    lines\n", &width(Wrap::Always)),
     "x[^1]\n\n[^1]: two lines\n"
   );
+  let cases = [
+    ("x[^1]\n\n[^1]: one\\\n    two\n", "x[^1]\n\n[^1]: one\\\ntwo\n"),
+    ("x[^1]\n\n[^1]: one\n    two  \n    three\n", "x[^1]\n\n[^1]: one two  \nthree\n"),
+    ("> x[^1]\n>\n> [^1]: one\\\n>     two\n", "> x[^1]\n>\n> [^1]: one\\\n> two\n"),
+  ];
+  for (source, expected) in cases {
+    assert_eq!(tidy::markdown::format(source, &width(Wrap::Never)), expected, "{source}");
+  }
 }
 
 #[test]

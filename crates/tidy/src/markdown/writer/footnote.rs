@@ -4,11 +4,22 @@ use super::{Events, Writer};
 use crate::markdown::Wrap;
 use crate::markdown::width::width;
 
+/// Where a footnote definition's text starts, as Prettier decides.
+pub(super) enum Start {
+  /// On the next line, indented.
+  Below,
+  /// Beside the marker, with the lines after it indented.
+  Beside,
+  /// Beside the marker, with the lines after it at the margin: one paragraph with `Wrap::Never`,
+  /// which Prettier prints without the indent.
+  Flush,
+}
+
 impl<'s> Writer<'s, '_> {
-  /// Whether the footnote definition that just started puts its text on the next line, as
-  /// Prettier decides. One paragraph stays beside its `marker` when it is on one line, or always
-  /// with `Wrap::Never`. Otherwise the first block stays only if it prints as one line that fits.
-  pub(super) fn hangs(&self, events: &mut Events<'s>, marker: &str) -> bool {
+  /// Where the footnote definition that just started puts its text. One paragraph stays beside its
+  /// `marker` when it is on one line, or always with `Wrap::Never`. Otherwise the first block stays
+  /// only if it prints as one line that fits.
+  pub(super) fn start(&self, events: &mut Events<'s>, marker: &str) -> Start {
     let preserve = self.options.wrap == Wrap::Preserve;
     let mut depth = 0usize;
     let mut index = 0;
@@ -46,15 +57,18 @@ impl<'s> Writer<'s, '_> {
       }
     }
     if children == 0 {
-      return false;
+      return Start::Beside;
     }
     let single = children == 1 && paragraph;
-    if single && (self.options.wrap == Wrap::Never || (preserve && !lines)) {
-      return false;
+    if single && self.options.wrap == Wrap::Never {
+      return Start::Flush;
+    }
+    if single && preserve && !lines {
+      return Start::Beside;
     }
     let flat: usize = self.source[first].split_whitespace().map(|word| width(word) + 1).sum();
     let room = self.options.width.saturating_sub(self.indent() + marker.len());
-    lines || leaves > 1 || flat.saturating_sub(1) > room
+    if lines || leaves > 1 || flat.saturating_sub(1) > room { Start::Below } else { Start::Beside }
   }
 }
 

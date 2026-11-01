@@ -20,6 +20,7 @@ use crate::markdown::table::Table;
 use crate::markdown::wrap::Paragraph;
 use crate::markdown::{Code, Heading, Numbering, Options, Rule, Wrap};
 use code::{Block, fence};
+use footnote::Start;
 use inline::{Image, Link, collapse, span};
 use list::{Adjacent, List, TAB, aligned, widen};
 use source::{Events, blank, escaped, is_block};
@@ -137,6 +138,8 @@ enum Container {
   },
   Footnote {
     marker: Option<String>,
+    /// The lines after the first are at the margin, as Prettier writes one paragraph unwrapped.
+    flush: bool,
   },
   /// An indented code block.
   Code,
@@ -543,12 +546,16 @@ impl<'s> Writer<'s, '_> {
       Tag::FootnoteDefinition(label) => {
         self.block(range.start);
         let marker = format!("[^{label}]: ");
-        if self.hangs(events, &marker) {
-          self.write(marker.trim_end());
-          self.newline();
-          self.containers.push(Container::Footnote { marker: None });
-        } else {
-          self.containers.push(Container::Footnote { marker: Some(marker) });
+        match self.start(events, &marker) {
+          Start::Below => {
+            self.write(marker.trim_end());
+            self.newline();
+            self.containers.push(Container::Footnote { marker: None, flush: false });
+          }
+          start => {
+            let flush = matches!(start, Start::Flush);
+            self.containers.push(Container::Footnote { marker: Some(marker), flush });
+          }
         }
       }
       Tag::Table(alignments) => {
@@ -641,7 +648,7 @@ impl<'s> Writer<'s, '_> {
             }
             marker
           }
-          Some(Container::Footnote { marker }) => marker,
+          Some(Container::Footnote { marker, .. }) => marker,
           _ => None,
         };
         if let Some(marker) = marker {
