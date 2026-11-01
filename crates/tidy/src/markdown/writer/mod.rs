@@ -345,12 +345,19 @@ impl<'s> Writer<'s, '_> {
             self.raw = Some(next);
             return;
           }
-          let kept = self.liquid_break(range.start, next);
+          let label = self.link.as_ref().is_some_and(|link| link.label);
+          let before = self.source[..range.start].chars().next_back();
+          let wide = label
+            && crate::wrap::wide(before)
+            && crate::wrap::wide(self.source[next..].chars().next());
+          let kept = wide || self.liquid_break(range.start, next);
           let paragraph = self.paragraph.get_or_insert_default();
           if kept {
             paragraph.hard("");
-          } else {
+          } else if label {
             paragraph.space();
+          } else {
+            paragraph.line();
           }
         } else {
           let next = events.peek(0).map_or(self.source.len(), |(_, range)| range.start);

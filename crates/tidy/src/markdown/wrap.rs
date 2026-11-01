@@ -12,6 +12,9 @@ pub(crate) struct Paragraph {
 enum Token {
   Word(String),
   Space,
+  /// A line break in the source, which joins the lines as Prettier does: a space, or nothing
+  /// between Chinese or Japanese text.
+  Line,
   /// A hard line break, after its mark (`\` or two spaces) on the word before.
   Hard,
 }
@@ -54,8 +57,15 @@ impl Paragraph {
     }
   }
 
+  /// A line break in the source, where the lines join.
+  pub(crate) fn line(&mut self) {
+    if matches!(self.tokens.last(), Some(Token::Word(_))) {
+      self.tokens.push(Token::Line);
+    }
+  }
+
   pub(crate) fn hard(&mut self, mark: &str) {
-    if matches!(self.tokens.last(), Some(Token::Space)) {
+    if matches!(self.tokens.last(), Some(Token::Space | Token::Line)) {
       self.tokens.pop();
     }
     self.glue(mark);
@@ -66,7 +76,7 @@ impl Paragraph {
   pub(crate) fn last(&self) -> Option<char> {
     match self.tokens.last()? {
       Token::Word(word) => word.chars().next_back(),
-      Token::Space | Token::Hard => Some(' '),
+      Token::Space | Token::Line | Token::Hard => Some(' '),
     }
   }
 
@@ -128,6 +138,27 @@ impl Paragraph {
       match token {
         Token::Word(word) => units.push(Unit::Word(Cow::Borrowed(word))),
         Token::Hard => units.push(Unit::Hard),
+        Token::Line => {
+          let next = match tokens.peek() {
+            Some(Token::Word(next)) => Some(next),
+            _ => None,
+          };
+          let glue = match (units.last(), next) {
+            (Some(Unit::Word(word)), Some(next)) => {
+              join(word.chars().next_back(), next.chars().next())
+            }
+            _ => None,
+          };
+          match (units.last_mut(), next, glue) {
+            (Some(Unit::Word(word)), Some(next), Some(glue)) => {
+              let word = word.to_mut();
+              word.push_str(glue);
+              word.push_str(next);
+              tokens.next();
+            }
+            _ => units.push(Unit::Space),
+          }
+        }
         Token::Space => {
           let next = match tokens.peek() {
             Some(Token::Word(next)) => Some(next),
@@ -150,6 +181,29 @@ impl Paragraph {
     }
     units
   }
+}
+
+/// What a line break between `before` and `after` becomes when lines join: `None` for a space that
+/// may break, or the text that glues them. Between two wide characters, other than Korean, it is
+/// nothing, as Prettier writes and as CSS renders it. Beside Chinese or Japanese text, it is a space
+/// that doesn't break, where Prettier sometimes writes nothing and so changes the rendered text.
+fn join(before: Option<char>, after: Option<char>) -> Option<&'static str> {
+  if wide(before) && wide(after) {
+    return Some("");
+  }
+  let (Some(before), Some(after)) = (before, after) else { return None };
+  (cj(before) || cj(after)).then_some(" ")
+}
+
+/// Whether `char` is wide (Chinese, Japanese, or emoji) and not Korean: a line break between two
+/// of them renders as nothing in CSS.
+pub(crate) fn wide(char: Option<char>) -> bool {
+  char.is_some_and(|char| unicode_width::UnicodeWidthChar::width(char) == Some(2) && !korean(char))
+}
+
+/// Whether `char` is Korean, which Prettier treats like Latin text.
+fn korean(char: char) -> bool {
+  matches!(char, '\u{1100}'..='\u{11FF}' | '\u{3130}'..='\u{318F}' | '\u{A960}'..='\u{A97F}' | '\u{AC00}'..='\u{D7FF}')
 }
 
 /// A word or group of words to fill, a place to break, or a hard break.

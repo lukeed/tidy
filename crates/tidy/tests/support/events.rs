@@ -21,7 +21,7 @@ pub fn events(text: &str) -> Vec<String> {
         continue;
       }
       Event::SoftBreak => {
-        pending.push(' ');
+        pending.push('\n');
         continue;
       }
       _ => {}
@@ -60,7 +60,7 @@ pub fn events(text: &str) -> Vec<String> {
 /// Close a run of text, whose whitespace only matters as a separator. Whitespace alone renders
 /// as nothing.
 fn close(out: &mut Vec<String>, pending: &mut String) {
-  let text = words(pending);
+  let text = words(&unbreak(pending));
   if !text.is_empty() {
     out.push(format!("Text({text:?})"));
   }
@@ -69,4 +69,30 @@ fn close(out: &mut Vec<String>, pending: &mut String) {
 
 fn words(text: &str) -> String {
   text.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// `text` without the line breaks between two wide characters (Chinese, Japanese, or emoji, but
+/// not Korean), with any spaces around them, which CSS renders as nothing.
+fn unbreak(text: &str) -> String {
+  let wide = |char: Option<char>| {
+    char.is_some_and(|char| {
+      let korean = matches!(char, '\u{1100}'..='\u{11FF}' | '\u{3130}'..='\u{318F}' | '\u{A960}'..='\u{A97F}' | '\u{AC00}'..='\u{D7FF}');
+      unicode_width::UnicodeWidthChar::width(char) == Some(2) && !korean
+    })
+  };
+  let mut out = String::with_capacity(text.len());
+  let mut rest = text;
+  while let Some(start) = rest.find(char::is_whitespace) {
+    let run = rest[start..].len() - rest[start..].trim_start().len();
+    let (before, space, after) = (&rest[..start], &rest[start..start + run], &rest[start + run..]);
+    out.push_str(before);
+    let joined =
+      space.contains('\n') && wide(out.chars().next_back()) && wide(after.chars().next());
+    if !joined {
+      out.push_str(space);
+    }
+    rest = after;
+  }
+  out.push_str(rest);
+  out
 }

@@ -16,6 +16,9 @@ pub(super) struct Link {
   /// An inline link, whose text Prettier never breaks across lines. A reference link's text breaks
   /// like other text.
   pub(super) inline: bool,
+  /// The text is the label, as in `[label]` and `[label][]`, so a line break in it stays a space:
+  /// gluing wide characters would change the label.
+  pub(super) label: bool,
 }
 
 /// An image whose alt text is skipped to be copied as written, before Prettier's form of the rest.
@@ -280,7 +283,14 @@ impl<'s> Writer<'s, '_> {
         } else {
           self.atom("[");
           let inline = link_type == LinkType::Inline;
-          self.link = Some(Link { text: range.start + 1, end, tail, inline });
+          let label = matches!(
+            link_type,
+            LinkType::Shortcut
+              | LinkType::ShortcutUnknown
+              | LinkType::Collapsed
+              | LinkType::CollapsedUnknown
+          );
+          self.link = Some(Link { text: range.start + 1, end, tail, inline, label });
         }
       }
       _ => {}

@@ -489,6 +489,18 @@ fn breaks_long_definitions_when_wrapping() {
 }
 
 #[test]
+fn joins_chinese_and_japanese_lines_like_prettier() {
+  let source =
+    std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/cjk.md"))
+      .expect("read fixture");
+  let expected = "モード: 探索、調査、学習フォーカス: 行動の前に理解する\n\n（エラー修正以外）❌ パフォーマンス\n\n日本語の文 English words\n\nEnglish words 日本語の文\n\nテキスト( 注意)\n\n한국어 日本語\n\nReactコンポーネントフック\n\nこれは English と Textの文\n";
+  let never = Options { wrap: Wrap::Never, ..Options::default() };
+  assert_eq!(mdtidy::format(&source, &never), expected);
+  let link = "[ウィ\nキペディア]\n\n[ウィ キペディア]: /w\n";
+  assert_eq!(mdtidy::format(link, &never), link);
+}
+
+#[test]
 fn never_wraps_into_a_block() {
   let options = Options { wrap: Wrap::Always, width: 5, ..Options::default() };
   assert_eq!(mdtidy::format("aaaa - b\n", &options), "aaaa -\nb\n");
