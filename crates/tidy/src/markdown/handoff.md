@@ -38,7 +38,7 @@ Both oracles live in the repo, with mise tasks to run them. Corpora don't: build
 
 - **Semantics**: `MDTIDY_CORPUS=<dir>[:<dir>...] mise run oracle:semantics`. Every output re-parses to the same events (adjacent text merged, soft breaks as spaces, whitespace collapsed) and settles after one pass. It runs the Prettier preset, the Preserve preset, `wrap: always` at width 40, and `wrap: never`. It caught every real bug so far: trust it over reading diffs. When a file fails, `mise run oracle:shrink -- <file> [mdtidy options...]` removes lines while it still fails and prints the few that are left. The events it compares come from `tests/support/events.rs`, shared by the test and the `events` example.
 - **Speed**: `mise run bench:ab -- [--rev <rev>] <dir>...` builds the working tree and `<rev>` (HEAD by default, in a temporary worktree), times both checking the folders in both orders, and compares medians: means swing with machine load. Each fix on 2026-10-30 and 2026-11-01 was within noise; together they cost about 2–3% (about 38 to 39 ms on A + B).
-- **Prettier**: the target is Prettier 3.9.10. `mise run oracle:prettier -- <corpus>... [--show <kind>]` formats one copy with Prettier (cached in `target/oracle`), one with mdtidy, counts identical files, and sorts the differences by kind. It hands mdtidy every file by name, because the CLI skips hidden folders on purpose. Last result: A 870/872, B 2,140/2,142, C 3,415/3,466, D 273/310. The semantics oracle passes on A, B, and C; D fails only on the bugs listed below. `bun fmt` is close (8 misses, all inside code blocks) but it is not the reference.
+- **Prettier**: the target is Prettier 3.9.10. `mise run oracle:prettier -- <corpus>... [--show <kind>]` formats one copy with Prettier (cached in `target/oracle`), one with mdtidy, counts identical files, and sorts the differences by kind. It hands mdtidy every file by name, because the CLI skips hidden folders on purpose. Last result: A 870/872, B 2,140/2,142, C 3,416/3,466, D 278/310. The semantics oracle passes on all four. `bun fmt` is close (8 misses, all inside code blocks) but it is not the reference.
 
 ## Known gaps against Prettier
 
@@ -57,14 +57,7 @@ Kept on purpose:
 - Link targets and definitions stay as written where Prettier's form would read differently: unbalanced parentheses, `<`, `>`, a backslash, text that decodes as an entity, or a title with `(` in parentheses.
 - An emphasis mark right after a `*` is `_`. Prettier writes `*`, which merges into `***` and nests the other way.
 
-## Known bugs that change meaning
-
-Four of Prettier's fixtures (corpus D) still fail the semantics oracle, with the default options too:
-
-- `blockquote/prose-wrap-always/encoded-newline.md`: an encoded newline (`&NewLine;`) in a quote.
-- `ignore/top-level-range.md`: an ignore range at the top level doesn't settle after one pass.
-- `list/followed-by-indented-things.md`: a list item with a wide marker, followed by indented code.
-- `list/huge-first-number.md`: renumbering past 9 digits (`999999999.` becomes `1000000000.`, which isn't a list marker).
+## Wrapping
 
 With wrapping on, an atom keeps its line breaks as written and a code span over two lines is written from its parsed value. One edge differs from Prettier: after an atom whose last line is already past the width, mdtidy breaks before the next word and Prettier doesn't.
 
