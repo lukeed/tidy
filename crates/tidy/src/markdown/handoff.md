@@ -1,99 +1,118 @@
 # mdtidy handoff
 
-State as of 2026-11-01. Nothing is pushed or published. Starship uses this repo through a symlink (see [Starship](#starship)).
+State as of 2026-11-01, for the merge into tidy (`~/repos/oss/tidyrs`). Nothing is pushed or published. The tree is clean, and `mise run check` passes.
 
-## Picking up
+mdtidy is a Markdown formatter in Rust. Its default preset matches Prettier 3.9.10 byte for byte where that keeps the document's meaning, and it differs on purpose where Prettier's output would read differently from its input.
 
-1. Run `mise run check`. Done when fmt, Clippy, the Rust tests, the napi build, and the Bun tests are all green.
-2. Run the semantics oracle on a real corpus (see [Oracles](#oracles)). Done when all three option sets pass with zero failures.
-3. Pick the work:
-   - **A formatting rule**: write the failing case in `crates/mdtidy/tests/format.rs` first, then change `writer.rs`. Done when the case passes, both oracles hold, and the Prettier match didn't drop.
-   - **The Node binding**: see [napi-rs](#napi-rs). Done when `bun test` passes in `crates/mdtidy_napi` and `index.d.ts` reads as intended.
-   - **The folder walk**: the CLI walks, reads, formats and writes through `tidy_walk`, a std-only crate shared with tidy, in `~/repos/oss/tidyrs` (design: `/tmp/tidy-walk-design.md`, revision 3). It is a path dependency, and tidyrs has no remote yet, so CI can't build this workspace until Luke decides how to share it. mdtidy sets `io` to the core count and `workers: 0`, which beat tidy_walk's macOS default here (CLI `--check`: A+B 33.8 ms, C 54 ms). Once mdtidy merges into tidy and one walk covers trees of many small files, drop the override and use the default (io 6, workers = cores): one pool is 42% slower on such trees.
-   - **Publishing**: ask Luke first. Every package is unpublished on purpose.
-4. Commit each slice on its own: conventional subject under 28 characters, the reason in the body.
+## Open work
 
-## Design
+| Item | Status |
+|---|---|
+| Merge into tidy | Not started. The tidy session does it and keeps this repo's history. |
+| `tidy_walk` dependency | Done in `mdtidy_cli` as a path dependency on `../../../tidyrs/crates/tidy_walk`. The merge replaces it with a workspace dependency. Until then, CI can't build this repo, because tidyrs has no remote. |
+| Walk shape | `mdtidy_cli` sets `io` to the core count and `workers: 0`, the fastest shape on Markdown alone (CLI `--check`: A+B 33.8 ms, C 54 ms, D 5.2 ms on an M1 Max). After the merge, when one walk covers every language, drop this override and use tidy_walk's default: one pool is 42% slower on trees of many small files. |
+| Readme benchmarks | Stale: they predate tidy_walk and the latest fixes. Replace them with the final benchmarks after the merge. |
+| Layout divergences | Three entries in `divergences.md` wait for Luke's sign-off: `nested-blank`, `footnote-never`, and `wrap-atom`. |
+| pulldown-cmark bugs | Two, not reported yet. Ask Luke before reporting: it is outward-facing. See [Bugs](#bugs). |
+| Publishing | Nothing is published. Ask Luke first, every time. |
+| `mdtidy_napi` | Builds and passes its Bun tests here. Never released; the release workflow has never run. |
 
-One pass over pulldown-cmark's offset events, writing straight into a `String`. No tree and no layout document. That is the whole speed story: keep it _streaming_.
+## Gaps, divergences, and bugs
 
-- **Blocks are normalized, inlines are mostly copied.** Text, HTML, entities, escapes, and image alt text are written as source slices. A text event's range starts after a backslash escape, so the writer extends it back one byte (`writer/mod.rs`, `Event::Text`). Text loses runs of spaces (`collapse`, which uses memchr so plain text costs no copy), code spans get their delimiters rewritten (`span`), and link text goes through the same path as other inline content (`Link`). Inline link and image targets and definitions are written from their parsed values (`writer/inline.rs`: `tail`, `definition`), except where that would read differently: then the source stays.
-- **The writer is a folder module.** `writer/mod.rs` holds the event loop; `layout.rs` (gaps and prefixes), `list.rs`, `survey.rs` (what lists need to know, read once per top-level list), `code.rs`, `inline.rs` (inline tags, links, labels), `define.rs` (definitions), `footnote.rs`, and `liquid.rs` (soft breaks and Liquid tags) are child modules that reach its private state. `front.rs` finds front matter, `opener.rs` finds lines that would open a block, and `width.rs` measures columns with an ASCII fast path. Keep each file under 800 lines: split again rather than grow `mod.rs`.
-- **Containers are a prefix stack** (`Container`: quote, list item, footnote, indented code). A list item's marker replaces its indent on its first line.
-- **Lookahead is a small buffer** (`Events`). It reads up to three ordered-list items for Prettier's numbering and alignment rules before the first item is written. Each top-level list is surveyed once (`survey.rs`) for every nested list's marker width and looseness and every item's looseness, so nested lists never read ahead again.
-- **Blank lines between list items follow the source** (`Gap::Source`, `blank()`). Inside an item they follow the source too, unless the item is loose by Prettier's `isLooseListItem` (a blank line between direct children, or before the next item): then every block gets one, except a nested list.
-- **Front matter is found by hand**, with Prettier's rule, only at the very start (`front.rs`). pulldown-cmark's metadata flags are off because they find front matter anywhere, even inside a list item.
-- **An indented continuation line never opens a block** (`opener.rs`). Without its indent, a line starting with `>`, `#`, or a list marker joins the line before; a line of `=` or `-` gets a backslash; a fence, a break, or a block HTML tag keeps its break and indent at the top level, and joins inside containers.
-- **Definitions have no events.** pulldown-cmark lists one per label, so the gap after each sibling block (`cursor`) is parsed for the ones it left out (`define.rs`). Definitions are flushed before a container ends and after a list ends, since a list's range stretches over the definitions after it.
-- **Liquid** (`{{ }}`, `{% %}`, Hugo shortcodes) is a block of its own in Prettier's parser and paragraph text in pulldown-cmark's. mdtidy keeps pulldown-cmark's reading and copies Prettier's layout where it is safe (`liquid.rs`): no blank line beside a Liquid line, lazy Liquid lines stay at the margin, an HTML start after a Liquid line keeps the rest of the paragraph as written, and filling never breaks a Liquid tag or the lines beside one.
-- **Footnotes** read ahead to their end to decide whether the text starts on the `[^1]:` line (`footnote.rs`).
-- **Paragraphs are buffered only when wrapping** (`wrap.rs`). A line never starts with something that opens a block (`opens_block`).
-- **Code blocks are buffered** for the `format_with` callback. Front matter goes to it before parsing starts.
-- **Prettier rules** (from `printer-markdown`): adjacent sibling lists alternate `-`/`*` and `.`/`)`, git-diff-friendly numbering, `isAligned` with tab width 2, `_` emphasis falling back to `*` next to a word or inside emphasis, `---` (or `***` inside a list), backtick fences one longer than any run inside, aligned tables that only compact under `wrap: never`, the block after `<!-- prettier-ignore -->` on the very next line, code spans with the fewest backticks that no run inside matches, one space for each run of spaces in text, sibling definitions on adjacent lines, no trailing whitespace on code lines, and a task item's first paragraph indented past its box (`BOX`).
+### Divergences
 
-## Oracles
+`divergences.md` (repo root) records each place where mdtidy's Prettier preset differs from Prettier on purpose. It is generated: `mise run oracle:divergences` runs every case in `oracle/divergences/*.md` through Prettier 3.9.10 (`bunx`) and the release CLI, and writes the input and both outputs. The titles, reasons, options, and sign-offs are in the table at the top of `oracle/divergences.ts`. A case where both outputs now agree is marked "stale", so remove it or fix the case.
 
-Both oracles live in the repo, with mise tasks to run them. Corpora don't: build one with `mise run oracle:corpus -- <out> <repo>...`, which copies the Markdown files each repo tracks. The 2026-11 runs used four corpora:
+Each entry has a kind:
 
-- A: vite + storybook + shadcn-svelte (872 files).
-- B: starship + bun (2,142 files, without `node_modules`).
-- C: angular (`angular-html-parser`), rolldown, jest, v, bootstrap, deno, deno_lint, oxc, Prettier's docs, and everything-claude-code (3,466 files, many not in English).
-- D: Prettier's own `tests/format` fixtures (310 files). They are edge cases on purpose, so don't rank gaps by them.
+- **Meaning**: Prettier's output reads differently from its input (another block opens, a link ends, emphasis nests the other way, or rendered text changes). These are signed off by Luke's standing rule: formatting never changes what a document means.
+- **Layout**: two outputs that read the same, where mdtidy chose differently. Each needs Luke's sign-off, recorded as `signed: "pending"` until he gives it.
 
-- **Semantics**: `MDTIDY_CORPUS=<dir>[:<dir>...] mise run oracle:semantics`. Every output re-parses to the same events (adjacent text merged, soft breaks as spaces, whitespace collapsed) and settles after one pass. It runs the Prettier preset, the Preserve preset, `wrap: always` at width 40, and `wrap: never`. It caught every real bug so far: trust it over reading diffs. When a file fails, `mise run oracle:shrink -- <file> [mdtidy options...]` removes lines while it still fails and prints the few that are left. The events it compares come from `tests/support/events.rs`, shared by the test and the `events` example.
-- **Speed**: `mise run bench:ab -- [--rev <rev>] <dir>...` builds the working tree and `<rev>` (HEAD by default, in a temporary worktree), times both checking the folders in both orders, and compares medians: means swing with machine load. Each fix on 2026-10-30 and 2026-11-01 was within noise; together they cost about 2–3% (about 38 to 39 ms on A + B).
-- **Prettier**: the target is Prettier 3.9.10. `mise run oracle:prettier -- <corpus>... [--show <kind>]` formats one copy with Prettier (cached in `target/oracle`), one with mdtidy, counts identical files, and sorts the differences by kind. It hands mdtidy every file by name, because the CLI skips hidden folders on purpose. Last result: A 871/872, B 2,141/2,142, C 3,456/3,466, D 303/310. The semantics oracle passes on all four. With `--wrap always` (which starship uses for `lineBreaks: auto`): A 870/872, B 2,067/2,142, C 3,417/3,466, D 286/310. With `--wrap never`: A 870, B 2,142, C 3,444, D 292. Most of what's left there is Prettier changing the document (an inline `<div>`, `<script>` or `<!--` moved to a line start, which opens an HTML block; the first line of a paragraph left as a lone tag; a line break between Chinese or Japanese and an emoji turned into a space), bun's JSON-like fixtures with HTML, the pulldown-cmark tab bug, and Hugo shortcodes inside link destinations. `bun fmt` is close (8 misses, all inside code blocks) but it is not the reference.
+To add a divergence: add a minimal case file to `oracle/divergences/`, add its row to the table, pin mdtidy's output with a test in `crates/mdtidy/tests/format.rs`, run the task, and ask Luke for a layout entry.
 
-## Known gaps against Prettier
+### Gaps
 
-Most files first. The rules are in Prettier's `src/language-markdown/print/` (`mdast.js`, `children.js`, `list.js`): read them before guessing.
+These are places where mdtidy should match Prettier and doesn't yet. Most files first:
 
-What C still misses:
+1. **Deep Hugo templates** (bootstrap's `examples/_index.md`): Prettier reads nested Liquid and HTML as HTML blocks and keeps their lines as written. Hugo shortcodes inside a link destination (`(…/{{< param x >}})`) also differ.
+2. **A `|` inside a code span in a table cell**: GFM splits the cell there, and Prettier trims the pieces differently.
+3. **Emphasis escapes**: Prettier escapes a `_` or `*` in text that could open emphasis (`\_#include`). mdtidy copies the text as written, which reads the same.
+4. **Prettier's own syntax in D**: remark-math, the `@format` pragma, Liquid inside a table, a lazy `</example>` after a nested item, and `encodedLink` (where Prettier percent-encodes `>` and so changes the URL, a meaning case).
+5. **bun's JSON-like test fixtures** with `(kind: ok)` before inline HTML: Prettier puts the HTML at a line start (a meaning case). With wrapping on, mdtidy moves the word before it down too.
 
-1. Deep Hugo templates (bootstrap's `examples/_index.md`): Prettier reads nested Liquid and HTML as HTML blocks and keeps their lines as written.
-2. A `|` inside a code span in a table cell splits the cell in GFM, and Prettier trims the pieces differently.
-3. Prettier escapes a `_` or `*` in text that could open emphasis (`\_#include`); mdtidy copies text as written, which reads the same.
-4. Two pulldown-cmark bugs to report upstream, both with tabs: it doesn't close a fence followed by tabs (```` ```→→ ````), so the rest of the file reads as code; and it reads a tab-indented `>` after a quote line as a quote marker, though a tab is 4 columns. mdtidy follows pulldown-cmark's reading.
+### Bugs
 
-What D (Prettier's fixtures) still misses, beyond those: Prettier-only syntax (remark-math, the `@format` pragma), Liquid inside a table, a lazy `</example>` after a nested item, and `encodedLink`, where Prettier percent-encodes a `>` and so changes the URL.
+Two pulldown-cmark 0.13.6 bugs, both with tabs. mdtidy follows pulldown-cmark's reading, so its output is stable but differs from CommonMark:
 
-Kept on purpose:
+1. A closing fence followed by tabs (```` ```→→ ````) doesn't close the fence, so the rest of the file reads as code (seen in `v/doc/c_and_v_type_interoperability.md`).
+2. A tab-indented `>` after a quote line reads as a quote marker, though a tab is 4 columns.
 
-- HTML blocks in a task item keep their indent. Prettier indents their lines after the first past the task box, and adds 4 more spaces on every pass.
-- Collapsing spaces, trimming code line ends, keeping HTML beside a paragraph or HTML block, and keeping HTML indents apply to every preset, not only Prettier's: all are layout, and none changes how the document parses.
-- An indented continuation line that would open a fence, a thematic break, or an HTML block keeps its indent. Prettier drops the indent, which opens the block.
-- With `wrap: never`, the line after a hard break in a one-line footnote keeps its indent. Prettier drops it, which reads the same but worse.
-- Link targets and definitions stay as written where Prettier's form would read differently: unbalanced parentheses, `<`, `>`, a backslash, text that decodes as an entity, or a title with `(` in parentheses.
-- An emphasis mark right after a `*` is `_`. Prettier writes `*`, which merges into `***` and nests the other way.
-- A blank line before a nested list in a list item stays when it is all that keeps the list loose; Prettier drops it, and the list turns tight.
-- A code span over two lines keeps its second line as written. Prettier writes it from the parsed value without the container's indent or `>`, so in a list item the indent then eats spaces that belong to the code.
+## Tests, oracles, and benchmarks
 
-## Wrapping
+Every command runs through mise. Run `mise trust` once per checkout.
 
-With wrapping on, an atom keeps its line breaks as written and a code span over two lines is written from its parsed value. An inline link's text never breaks; a reference link's text does, as in Prettier. A line may start with inline HTML or an autolink, but never with a tag or marker that would interrupt a paragraph (`opener::interrupts`): as in Prettier, the space before it never breaks, so it moves down with the word before it. A word like `=` or `---` only opens a block alone on its line, so only a line holding it alone is refused. A paragraph's first line is never a lone tag. A space between two texts, beside Chinese or Japanese, never breaks; beside markup (code, emphasis, links, HTML) it does, as in Prettier. Prettier's `[[wiki links]]` (`writer/wiki.rs`) never break, and a paragraph whose text has `[[` and a later `]]` or wiki link keeps its text and line breaks as written. When lines join, a break between two wide characters (not Korean) becomes nothing, as Prettier writes and CSS renders it, and a break between Chinese or Japanese and Latin text becomes a space that does not break, where Prettier sometimes writes nothing and changes the text. Inside a shortcut or collapsed link label, a break between wide characters stays a line break, because joining would change the label that matches the definition. A definition too wide for its line puts its destination and title on lines of their own. One edge differs from Prettier: after an atom whose last line is already past the width, mdtidy breaks before the next word and Prettier doesn't.
+- **Check everything**: `mise run check` runs rustfmt, Clippy with warnings denied, `cargo test --workspace`, the napi build, and the Bun tests. Commit only when it passes.
+- **Semantics oracle**: `MDTIDY_CORPUS=<dir>[:<dir>...] mise run oracle:semantics` (`crates/mdtidy/tests/semantics.rs`). Every output must re-parse to the same events and settle after one pass, with the Prettier preset, the Preserve preset, `wrap: always` at width 40, and `wrap: never`. The events are normalized in `tests/support/events.rs`: adjacent text merged, soft breaks as spaces, whitespace collapsed, and a line break between two wide characters dropped, as CSS renders it. It has caught every real bug: trust it over reading diffs. `mise run oracle:shrink -- <file> [mdtidy options...]` cuts a failing file down to the lines that still fail.
+- **Prettier oracle**: `mise run oracle:prettier -- <corpus>... [--wrap preserve|always|never] [--show <kind>]` formats one copy with Prettier (cached in `target/oracle`; delete the cache after changing a corpus) and one with mdtidy, counts identical files, and groups the differences by kind. `--show` prints the hunks of one kind.
+- **A/B speed**: `mise run bench:ab -- [--rev <rev>] <dir>...` builds the working tree and `<rev>` (HEAD by default, in a temporary worktree) and times both on `--check` with hyperfine, in both orders, by median. Bench every change; a fix that costs more than noise needs a reason.
+- **Against other tools**: `mise run bench -- <dir> [--runs <n>]` compares mdtidy with `bun fmt` (Bun's Prettier-compatible formatter, with code blocks left alone). `bun fmt` is fast and close to Prettier (8 misses on A+B, all inside code blocks), but Prettier is the reference. For the final benchmarks, add Prettier itself and any other incumbents, such as dprint's Markdown plugin.
+- **Divergences**: `mise run oracle:divergences`, see above.
 
-## napi-rs
+### Corpora
 
-`crates/mdtidy_napi` is a `cdylib` built with napi 3.16, napi-derive 3.7, and `@napi-rs/cli` 3.10.9.
+Corpora are not in the repo. `mise run oracle:corpus -- <out> <repo>...` copies the Markdown files that each git repo tracks into `<out>/<repo name>`, skipping `node_modules`. The checkouts are local:
 
-- **Build**: `mise run build:napi` (`napi build --platform --release --esm`) writes `index.js`, `index.d.ts`, and `mdtidy.<platform>.node`. All three are generated and git-ignored; `mise run test` builds before it tests.
-- **API**: `format(source, options?, code?)` and `check(source, options?)`. Options are camelCase strings and numbers, parsed with the library's `FromStr` impls, so an unknown value throws `unknown <option> \`<value>\``. A callback that throws makes `format` throw the same error.
-- **Typing**: each option field carries `#[napi(ts_type = "'a' | 'b'")]`. Both functions carry a hand-written `ts_args_type`, because napi's own signature for the callback is unreadable. Read `index.d.ts` after any change to `src/lib.rs`.
-- **The callback** is `Function<FnArgs<(String, String, u32)>, Option<String>>`, aliased as `Callback`. `FnArgs` spreads the tuple into three JS arguments; a bare tuple arrives as one array argument.
-- **Package**: the crate's `package.json` is the published `mdtidy`, as in oxc's `napi/parser`. `napi.targets` lists macOS arm64/x64, Linux gnu and musl arm64/x64, and Windows arm64/x64. Platform packages take napi's default unscoped names (`mdtidy-darwin-arm64`). `@mdtidy` on npm belongs to someone else.
-- **Release**: `.github/workflows/release.yml`, run by hand. Each target builds in a matrix: macOS cross-compiles x64, Linux gnu uses `--use-napi-cross` (glibc 2.17), musl uses `-x` (zig), and Windows cross-compiles arm64. The publish job runs `napi create-npm-dirs`, `napi artifacts --output-dir artifacts`, and `napi pre-publish -t npm --no-gh-release`, which publishes every platform package and adds them to `optionalDependencies`. Then it publishes `mdtidy`. Both `napi artifacts` and `napi pre-publish` fail if any target is missing.
-- **Publishing, when Luke says so**: add an `NPM_TOKEN` secret first. Trusted publishing can't be set up for packages that don't exist yet. Luke owns `mdtidy` on npm.
+| Corpus | Path used | Repos | Files |
+|---|---|---|---|
+| A | `/tmp/mdtidy-bench/corpus/a` | `~/repos/oss/{vite,storybook,shadcn-svelte}` | 872 |
+| B | `/tmp/mdtidy-bench/corpus/b` | `~/repos/oss/bun`, `~/repos/personal/starship.io/starship` | 2,142 |
+| C | `/tmp/mdtidy-corpus/c` | `~/repos/oss/{angular-html-parser,rolldown,jest,v,deno,deno_lint,oxc,prettier}`, `~/repos/testing/{bootstrap,everything-claude-code}` | 3,466 |
+| D | `/tmp/mdtidy-corpus/d` | `~/repos/oss/prettier`, only `tests/format` | 310 |
 
-## Starship
+D is Prettier's edge-case fixtures: don't rank gaps by it. C has many files in Chinese and Japanese, which test wrapping.
 
-`starship/vendor/mdtidy` is a committed symlink to `/Users/lukee/repos/oss/mdtidy`, and `ss_check` depends on `vendor/mdtidy/crates/mdtidy` by path. Changes here show up in starship's next build. A machine or CI without this repo at that path can't build starship until mdtidy is published.
+### Last results
 
-Starship formats with the Prettier preset. It maps `lineBreaks: preserve` to `Wrap::Preserve` and `auto` to `Wrap::Always`, sets `ignore` to `starship-ignore`, and sends code fences and front matter back through its own formatters. Changing a default here changes starship's output: check its Markdown with `starship format --format minimal` before committing there.
+Files that match Prettier 3.9.10, by `--wrap`:
 
-## Pitfalls
+| Wrap | A | B | C | D |
+|---|---|---|---|---|
+| preserve (default) | 871/872 | 2,141/2,142 | 3,456/3,466 | 303/310 |
+| always | 870 | 2,067 | 3,417 | 286 |
+| never | 870 | 2,142 | 3,444 | 292 |
 
-- **`CARGO_TARGET_DIR` leaks** from a starship shell into this repo, and builds land in starship's `target/`. `mise.toml` pins it to `{{config_root}}/target`; set it explicitly when running `cargo` outside mise.
-- **An untrusted `mise.toml` fails the `cd`** into the repo, and anything after it in a `&&` chain is skipped. Run `mise trust` once per checkout.
-- **napi's macros emit `unsafe`**, so the workspace lint is `unsafe_code = "deny"`. `forbid` can't be overridden and breaks the build.
-- **Doc comments on `#[napi]` items** become `index.d.ts` JSDoc, and a `\n` in them becomes a real line break. Keep examples free of escapes.
-- **The crates.io name `mdtidy`** was free on 2026-10-30. `mdfmt` is taken there by an abandoned crate.
+The semantics oracle passes on all four. Library speed: about 54 ms single-threaded for A+B (9.9 MB).
+
+## Design decisions and invariants
+
+- **Streaming**: one pass over pulldown-cmark's offset events, writing straight into a `String`, with no tree and no layout document. That is where the speed comes from. Lookahead is a small buffer (`Events::peek`). A top-level list is surveyed once (`writer/survey.rs`), so nested lists and items never read ahead again. Paragraphs are buffered only when wrapping (`wrap.rs`), and code blocks only for the `format_with` callback.
+- **Never change meaning**: every output must parse to the same events as its input and settle in one pass. Where copying Prettier would break that, mdtidy differs and records why in `divergences.md`.
+- **Blocks are normalized, inlines are copied**: text, HTML, entities, escapes, and image alt text are written from source slices. A text event's range starts after a backslash escape, so the writer extends it back one byte. Text loses runs of spaces (`collapse`), code spans get the fewest backticks that work (`span`), and link targets and definitions are written from their parsed values unless that would read differently.
+- **Presets**: `Preset::Prettier` (the default) normalizes to Prettier's style: `-` bullets alternating with `*` in adjacent lists, `_` emphasis, `**` strong, git-diff-friendly numbering, `---` rules, backtick fences, setext headings kept, and `prettier-ignore`. `Preset::Preserve` keeps every marker as written and uses `mdtidy-ignore`. Collapsing spaces, trimming code line ends, keeping HTML beside a paragraph or HTML block, and keeping HTML indents apply to both presets: all are layout, and none changes meaning. Options parse from lowercase names with `FromStr` (`options.rs`), which the CLI and the Node binding share.
+- **Ignore directives** (`directive.rs`): `<!-- name -->` keeps the next block as written, `<!-- name-start -->` to `<!-- name-end -->` keeps a range at the top level only (as in Prettier), and `<!-- name-file -->` at the top of a file (after front matter) keeps the whole file. Starship sets the name to `starship-ignore`.
+- **Front matter** is found by hand at the very start of the file, with Prettier's rule (`front.rs`). pulldown-cmark's metadata flags stay off, because they find front matter anywhere.
+- **Openers** (`opener.rs`): an indented continuation line never opens a block. A line that would open a quote, heading, or list joins the line before; a line of `=` or `-` gets a backslash; a fence, break, or block HTML tag keeps its indent at the top level. Wrapping never starts a line with something that opens a block: the space before it never breaks, as Prettier does for its own markers.
+- **Liquid and Hugo** (`writer/liquid.rs`) are paragraph text to pulldown-cmark and blocks to Prettier. mdtidy keeps pulldown-cmark's reading and copies Prettier's layout where it is safe. Filling never breaks a Liquid tag.
+- **Wrapping** (`wrap.rs`, `writer/wiki.rs`): Prettier's `fill` with its word rules. A space beside Chinese or Japanese text breaks only next to markup. A line break between two wide characters (not Korean) joins with nothing, and one between Chinese or Japanese and Latin text joins as a space. Prettier's `[[wiki links]]` never break, and a paragraph whose text has `[[` and a later `]]` or wiki link keeps its text as written. Inline link text never breaks; reference link text does. A paragraph's first line is never a lone tag.
+- **Definitions have no events**: pulldown-cmark lists one per label, so the gaps between blocks are parsed for the repeats it leaves out (`writer/define.rs`).
+- **File size**: keep each file under 800 lines. `writer/mod.rs` is at 799: split it before adding to it.
+- **Code style**: no comments except one-line ones; doc comments in Simplified Technical English. Commit subjects are conventional and under 28 characters, with the reason in the body.
+
+## What the merge must carry over
+
+- **Crates**: `crates/mdtidy` (library, crates.io name `mdtidy`, free on 2026-10-30), `crates/mdtidy_cli` (binary `mdtidy`), `crates/mdtidy_napi` (`cdylib`, `publish = false`). The workspace pins Rust 1.98, edition 2024, MIT, `unsafe_code = "deny"` (napi's macros emit `unsafe`, so `forbid` breaks the build), Clippy `all = warn` with `-D warnings` in CI, and a release profile with `lto = "fat"`, `codegen-units = 1`, `strip = true`. Dependencies: `memchr`, `pulldown-cmark` 0.13.6 (no default features), `unicode-width`, `pico-args`, napi 3.16 and napi-derive 3.7.
+- **mise tasks** (`mise.toml`): `build`, `build:napi`, `fmt`, `fmt:fix`, `clippy`, `test` (depends on `build:napi`), `check`, `bench`, `bench:ab`, `oracle:corpus`, `oracle:divergences`, `oracle:prettier`, `oracle:semantics`, `oracle:shrink`. Tools: Rust 1.98.0 with clippy and rustfmt, Bun 1.4.4. `[env] CARGO_TARGET_DIR = "{{config_root}}/target"` stops a starship shell's target dir from leaking in.
+- **Scripts**: `bench/run.ts`, `bench/ab.ts`, `oracle/*.ts`, and `oracle/divergences/`. They find the repo root from their own path and build `-p mdtidy_cli`; rename the package there if it changes.
+- **Tests**: `crates/mdtidy/tests/format.rs` (rules), `semantics.rs` (the oracle, which skips without `MDTIDY_CORPUS`), `support/events.rs` (shared with `examples/events.rs`), `fixtures/`, `crates/mdtidy_cli/tests/cli.rs`, and `crates/mdtidy_napi/index.test.ts`.
+- **npm**: the napi crate's `package.json` is the published `mdtidy` package (Luke owns the name), ESM, built with `@napi-rs/cli` 3.10.9. `napi.binaryName` is `mdtidy`, and the platform packages take napi's default unscoped names (`mdtidy-darwin-arm64` and so on). `@mdtidy` on npm belongs to someone else. `repository.directory` is `crates/mdtidy_napi`: update it with the new path. `index.js`, `index.d.ts`, `*.node`, `artifacts/`, and `npm/` are generated and git-ignored.
+- **Release** (`.github/workflows/release.yml`, `workflow_dispatch` only): a matrix of 8 targets (macOS arm64 and x64, Linux gnu and musl on arm64 and x64, Windows arm64 and x64), with `--use-napi-cross` for Linux gnu (glibc 2.17) and `-x` (zig) for musl. The publish job runs `napi create-npm-dirs`, `napi artifacts`, and `napi pre-publish -t npm --no-gh-release`, then `npm publish`. It needs an `NPM_TOKEN` secret, because trusted publishing can't be set up before a package exists. Actions are pinned by SHA. There is no CI workflow for pushes or pull requests.
+- **Starship**: `starship/vendor/mdtidy` is a committed symlink to `/Users/lukee/repos/oss/mdtidy`, and starship's `ss_check` depends on `vendor/mdtidy/crates/mdtidy` by path. After the merge, point the symlink, or the path, at the new location, or starship stops building. Starship uses the Prettier preset, maps `lineBreaks: preserve` to `Wrap::Preserve` and `auto` to `Wrap::Always`, sets `ignore` to `starship-ignore`, and sends code fences and front matter back through its own formatters. Check its Markdown with `starship format --format minimal` after any change to defaults.
+- **Repository URL**: `workspace.package.repository` is `https://github.com/lukeed/mdtidy`. Update it to tidy's.
+
+## What I would do in the merge
+
+- **Keep the three crates as they are**, as `crates/mdtidy`, `crates/mdtidy_cli`, and `crates/mdtidy_napi`, if tidy's layout allows it. Their names are the published names, and the scripts build `-p mdtidy_cli`.
+- **Make the tidy CLI call `mdtidy::format_with` directly** for `.md` and `.markdown` in the same walk, and send code fences back through tidy's other formatters with the callback, as starship does. Keep `mdtidy_cli` as a thin standalone binary only if Luke wants both.
+- **Keep `pulldown-cmark` pinned exactly** (`0.13.6`): its event ranges and the two tab bugs are part of mdtidy's behavior, and an upgrade needs the semantics and Prettier oracles run on all four corpora.
+- **Move the corpus paths into one place** (a mise env var or a small config) instead of `/tmp`. They are lost on reboot today.
+- **Keep the oracles as mise tasks** under a `markdown:` or `md:` prefix if tidy has its own `oracle:` tasks, and run `oracle:semantics` in CI on a small committed sample.
