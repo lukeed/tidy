@@ -32,7 +32,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: crates/mdtidy_napi
+        working-directory: crates/tidy_napi
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
@@ -49,15 +49,15 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: addon-${{ matrix.target }}
-          path: crates/mdtidy_napi/mdtidy.*.node
+          path: crates/tidy_napi/tidyrs.*.node
           if-no-files-found: error
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: matrix.target == 'x86_64-unknown-linux-gnu'
         with:
           name: loader
           path: |
-            crates/mdtidy_napi/index.js
-            crates/mdtidy_napi/index.d.ts
+            crates/tidy_napi/index.js
+            crates/tidy_napi/index.d.ts
           if-no-files-found: error
 
   publish:
@@ -68,7 +68,7 @@ jobs:
       id-token: write
     defaults:
       run:
-        working-directory: crates/mdtidy_napi
+        working-directory: crates/tidy_napi
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
@@ -80,12 +80,12 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: addon-*
-          path: crates/mdtidy_napi/artifacts
+          path: crates/tidy_napi/artifacts
           merge-multiple: true
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: loader
-          path: crates/mdtidy_napi
+          path: crates/tidy_napi
       - run: bunx napi create-npm-dirs
       - run: bunx napi artifacts --output-dir artifacts
       - run: bunx napi pre-publish -t npm --no-gh-release
