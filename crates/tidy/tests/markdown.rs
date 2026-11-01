@@ -290,6 +290,12 @@ fn ignores_ranges_in_quotes() {
 }
 
 #[test]
+fn caps_list_numbers() {
+  let huge = "999999998. a\n999999998. b\n999999998. c\n";
+  assert_eq!(prettier(huge), "999999998. a\n999999999. b\n999999999. c\n");
+}
+
+#[test]
 fn quotes_and_nesting() {
   assert_eq!(prettier(">a\n>\n>b\n"), "> a\n>\n> b\n");
   assert_eq!(prettier("> - a\n>   > b\n"), "> - a\n>   > b\n");

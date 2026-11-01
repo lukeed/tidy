@@ -27,6 +27,9 @@ pub(super) struct Adjacent {
   pub(super) width: usize,
 }
 
+/// The largest number an ordered list marker can have: CommonMark allows nine digits.
+const LARGEST: u64 = 999_999_999;
+
 /// The tab width that Prettier aligns ordered list content to.
 pub(super) const TAB: usize = 2;
 
@@ -106,7 +109,7 @@ impl<'s> Writer<'s, '_> {
       let number = match index {
         0 => list.start,
         _ if list.repeats => 1,
-        _ => list.start + index as u64,
+        _ => (list.start + index as u64).min(LARGEST),
       };
       let delimiter = if list.nth.is_multiple_of(2) { '.' } else { ')' };
       return format!("{number}{delimiter}");
