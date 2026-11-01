@@ -21,7 +21,7 @@ use rustc_hash::FxHashMap;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::{Arc, Mutex, PoisonError};
 
 /// The names of a config file, in the order they are looked for.
@@ -370,12 +370,19 @@ impl Resolver {
     Ok(options)
   }
 
-  /// `path` from the root, without `.` in it.
+  /// `path` from the root, without `.` and `..`, as Node's `path.resolve` gives it.
   fn absolute(&self, path: &Path) -> PathBuf {
-    match path.is_absolute() {
-      true => path.components().collect(),
-      false => self.cwd.join(path).components().collect(),
+    let mut absolute = PathBuf::new();
+    for component in self.cwd.join(path).components() {
+      match component {
+        Component::ParentDir => {
+          absolute.pop();
+        }
+        Component::CurDir => {}
+        component => absolute.push(component),
+      }
     }
+    absolute
   }
 
   fn folder(&self, dir: &Path) -> Result<Arc<Folder>, String> {

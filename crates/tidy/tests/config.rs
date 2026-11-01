@@ -108,6 +108,17 @@ fn resolves_the_nearest_config_and_editorconfig() {
 }
 
 #[test]
+fn resolves_parent_folders_before_looking_up() {
+  let root = std::env::temp_dir().join(format!("tidy-parent-{}", std::process::id()));
+  let _ = std::fs::remove_dir_all(&root);
+  std::fs::create_dir_all(root.join("proj")).unwrap();
+  std::fs::write(root.join("proj/tidy.json"), r#"{ "width": 20 }"#).unwrap();
+  let options = Resolver::default().options(&root.join("proj/../docs/a.html")).unwrap();
+  assert_eq!(options.html.width, 80);
+  std::fs::remove_dir_all(&root).unwrap();
+}
+
+#[test]
 fn formats_by_language() {
   let options = Options::default();
   let mut formatter = tidy::Formatter::default();
