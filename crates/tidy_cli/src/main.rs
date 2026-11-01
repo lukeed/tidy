@@ -15,9 +15,9 @@ Usage
 
   Without paths, reads stdin and prints the result.
   With one file, prints the result unless --check or --write is set.
-  Folders are searched for .html, .htm, .vue, .hbs, .handlebars, .css, .scss, and .less files, and for XML
-  files: .xml, .svg, .plist, .csproj, pom.xml, and the other files that @prettier/plugin-xml formats.
-  Style sheets in <style> and style=\"\" are formatted. Scripts are left as they are written.
+  Folders are searched for .html, .htm, .vue, .hbs, .handlebars, .css, .scss, .less, .md, and .markdown
+  files, and for XML files: .xml, .svg, .plist, .csproj, pom.xml, and the others that @prettier/plugin-xml
+  formats. Style sheets in <style> and style=\"\" are formatted. Scripts and code blocks are left as written.
 
   Each file takes its options from the nearest tidy.json, tidy.jsonc or tidy.toml, and from .editorconfig.
   Options given here override them.
@@ -25,7 +25,8 @@ Usage
 Options
   --check                         List files that aren't formatted, and exit 1 if any
   -w, --write                     Rewrite files in place
-  --parser <name>                 html, vue, handlebars, tempura, css, scss, less, or xml (default: by file name)
+  --parser <name>                 html, vue, handlebars, tempura, css, scss, less, xml, or markdown (default: by
+                                  file name)
   --stdin-filepath <path>         The path of the text on stdin, for its language and its config files
   --config <path>                 Use this config for every file instead of the nearest one
   --no-config                     Read no config files and no .editorconfig
@@ -86,6 +87,7 @@ fn run() -> Result<ExitCode, String> {
         "scss" => (Language::Css(css::Dialect::Scss), None),
         "less" => (Language::Css(css::Dialect::Less), None),
         "xml" => (Language::Xml, None),
+        "markdown" => (Language::Markdown, None),
         other => return Err(format!("unknown parser `{other}`")),
       };
       flags.handlebars.dialect = dialect;
