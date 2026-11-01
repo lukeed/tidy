@@ -419,7 +419,8 @@ fn run(
               let (last_start, last_stop) = all[all.len() - 1];
               let mut chosen = Command::new(indent, Mode::Break, last_start, last_stop);
               if !broken {
-                for &(state_start, state_stop) in &all[1..all.len() - 1] {
+                // Prettier tries each state after the first flat, the last one too, and else breaks the last.
+                for &(state_start, state_stop) in &all[1..] {
                   let flat = Command::new(indent, Mode::Flat, state_start, state_stop);
                   if fits(docs, &mut scratch, &[flat], &commands, remaining, pending, &modes, false)
                   {
