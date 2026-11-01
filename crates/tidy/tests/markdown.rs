@@ -58,6 +58,27 @@ fn keeps_lists_tight_or_loose() {
 }
 
 #[test]
+fn spreads_loose_items_like_prettier() {
+  let cases = [
+    ("- a\n  ```\n  x\n  ```\n\n  b\n- c\n", "- a\n\n  ```\n  x\n  ```\n\n  b\n\n- c\n"),
+    ("- a\n  > q\n\n  > r\n- d\n", "- a\n\n  > q\n\n  > r\n\n- d\n"),
+    ("- a\n  - b\n\n  c\n- d\n", "- a\n  - b\n\n  c\n\n- d\n"),
+    ("- a\n\n  b\n  > q\n", "- a\n\n  b\n\n  > q\n"),
+    ("1. a\n   ```\n   x\n   ```\n\n2. b\n", "1. a\n\n   ```\n   x\n   ```\n\n2. b\n"),
+  ];
+  for (source, expected) in cases {
+    assert_eq!(prettier(source), expected, "{source}");
+  }
+  for source in [
+    "- a\n  - b\n\n  - c\n- d\n",
+    "1. a\n   ```\n   x\n\n   y\n   ```\n2. b\n",
+    "- a\n  <div>\n\n  b\n",
+  ] {
+    assert_eq!(prettier(source), source, "{source}");
+  }
+}
+
+#[test]
 fn chooses_emphasis_delimiters() {
   assert_eq!(prettier("*a* and __b__\n"), "_a_ and **b**\n");
   assert_eq!(prettier("a*b*c\n"), "a*b*c\n");

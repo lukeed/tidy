@@ -134,6 +134,8 @@ enum Container {
     /// The lines after the first are indented past a task box too, as Prettier does in the first
     /// paragraph of a task item.
     hang: bool,
+    /// Prettier separates every block in a loose item with a blank line.
+    loose: bool,
   },
   Footnote {
     marker: Option<String>,
@@ -367,7 +369,7 @@ impl<'s> Writer<'s, '_> {
         self.html = Some(limit.unwrap_or(usize::MAX));
         let beside = self.joins == Some(self.containers.len())
           && !blank(self.source, self.last.min(range.start), range.start);
-        if beside && self.gap == Gap::Blank {
+        if beside && matches!(self.gap, Gap::Blank | Gap::Source) {
           self.gap = Gap::Line;
         }
         self.block(range.start);
@@ -391,6 +393,7 @@ impl<'s> Writer<'s, '_> {
           }
           _ => 0,
         };
+        self.settle(range.start, false);
         self.block(range.start);
         self.adjacent = None;
         let items = self.scan(events, ordered);
@@ -409,12 +412,13 @@ impl<'s> Writer<'s, '_> {
         self.lists.push(list);
       }
       Tag::Item => {
+        let loose = self.loose(events);
         let list = self.lists.last_mut().expect("an item is inside a list");
         if list.items > 0 {
           let blank = list.spread || blank(self.source, self.last.min(range.start), range.start);
           self.gap = if blank { Gap::Blank } else { Gap::Line };
         }
-        list.spread = false;
+        list.spread = loose;
         let index = list.items;
         list.items += 1;
         let aligned = list.aligned;
@@ -426,7 +430,8 @@ impl<'s> Writer<'s, '_> {
           marker.extend(std::iter::repeat_n(' ', TAB - marker.len() % TAB));
         }
         let width = marker.len();
-        self.containers.push(Container::Item { width, marker: Some(marker), hang: false });
+        let item = Container::Item { width, marker: Some(marker), hang: false, loose };
+        self.containers.push(item);
       }
       Tag::FootnoteDefinition(label) => {
         self.block(range.start);
@@ -658,14 +663,22 @@ impl<'s> Writer<'s, '_> {
     if self.adjacent.as_ref().is_some_and(|adjacent| adjacent.depth == self.containers.len()) {
       self.adjacent = None;
     }
-    if self.gap == Gap::Source {
-      let blank = blank(self.source, self.last.min(at), at);
-      self.gap = if blank { Gap::Blank } else { Gap::Line };
-      if blank && let Some(list) = self.lists.last_mut() {
-        list.spread = true;
-      }
-    }
+    let loose = matches!(self.containers.last(), Some(Container::Item { loose: true, .. }));
+    self.settle(at, loose);
     self.separate();
+  }
+
+  /// Settle the gap before a block in a list item: a blank line if the item is loose, or if the
+  /// source has one.
+  fn settle(&mut self, at: usize, loose: bool) {
+    if self.gap != Gap::Source {
+      return;
+    }
+    let blank = loose || blank(self.source, self.last.min(at), at);
+    self.gap = if blank { Gap::Blank } else { Gap::Line };
+    if blank && let Some(list) = self.lists.last_mut() {
+      list.spread = true;
+    }
   }
 
   fn separate(&mut self) {

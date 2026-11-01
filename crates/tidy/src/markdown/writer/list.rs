@@ -1,6 +1,6 @@
 use pulldown_cmark::Event;
 
-use super::{Events, Writer};
+use super::{Events, Writer, blank, is_block};
 use crate::{Bullet, Numbering};
 
 pub(super) struct List {
@@ -118,5 +118,56 @@ impl<'s> Writer<'s, '_> {
       Bullet::Plus => ("+", "-"),
     };
     (if list.nth.is_multiple_of(2) { even } else { odd }).to_string()
+  }
+
+  /// Whether the item that just started is loose, as Prettier decides: a blank line between two of
+  /// its direct children, or between it and the next item. Blank lines deeper in don't count.
+  pub(super) fn loose(&self, events: &mut Events<'s>) -> bool {
+    let mut depth = 0usize;
+    let mut index = 0;
+    let mut last: Option<usize> = None;
+    let mut inline = false;
+    let gap = |last: Option<usize>, at: usize| last.is_some_and(|end| blank(self.source, end, at));
+    while let Some((event, range)) = events.peek(index) {
+      let (start, end) = (range.start, range.end);
+      let opens = match event {
+        Event::Start(tag) => Some(is_block(tag)),
+        Event::End(_) => None,
+        _ => Some(false),
+      };
+      let leaf = !matches!(event, Event::Start(_) | Event::End(_));
+      index += 1;
+      match opens {
+        None if depth == 0 => {
+          let next = match events.peek(index) {
+            Some((Event::Start(_), next)) => Some(next.start),
+            _ => None,
+          };
+          return next.is_some_and(|next| gap(last, next));
+        }
+        None => {
+          depth -= 1;
+          if depth == 0 {
+            last = Some(end);
+          }
+        }
+        Some(block) => {
+          if depth == 0 && (block || !inline) {
+            if gap(last, start) {
+              return true;
+            }
+            inline = !block;
+          }
+          if leaf {
+            if depth == 0 {
+              last = Some(end);
+            }
+          } else {
+            depth += 1;
+          }
+        }
+      }
+    }
+    false
   }
 }
