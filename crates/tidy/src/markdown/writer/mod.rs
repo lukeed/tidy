@@ -605,11 +605,16 @@ impl<'s> Writer<'s, '_> {
           if let Some(link) = &mut self.link {
             link.text = link.text.max(end);
           }
+          let raw = &self.source[range.start..end];
+          let lines = raw.contains('\n') && !self.containers.is_empty();
           match tail.filter(|_| image) {
             Some(tail) => {
               self.image = Some(Image { start: range.start, text: range.start + 2, tail })
             }
-            None => self.atom(&self.source[range.start..end]),
+            None => match inline::image(raw, link_type).filter(|_| image && !lines) {
+              Some(image) => self.atom(&image),
+              None => self.atom(raw),
+            },
           }
           self.skip = 1;
         } else {
@@ -726,8 +731,7 @@ impl<'s> Writer<'s, '_> {
           let tail = match (link.tail, reference) {
             (Some(tail), _) => Cow::Owned(tail),
             (None, Some(label)) if !label.contains('\\') => {
-              let label = label.split_whitespace().collect::<Vec<_>>().join(" ");
-              Cow::Owned(format!("][{label}]"))
+              Cow::Owned(format!("][{}]", inline::squash(label)))
             }
             (None, _) => Cow::Borrowed(raw),
           };

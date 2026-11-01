@@ -32,11 +32,41 @@ pub(super) fn tail(url: &str, title: &str) -> Option<String> {
 pub(super) fn definition(source: &str, url: &str, title: Option<&str>) -> Option<String> {
   let label = label(source)?;
   let url = destination(url, false)?;
-  let label = label.split_whitespace().collect::<Vec<_>>().join(" ");
+  let label = squash(label);
   match title {
     None | Some("") => Some(format!("[{label}]: {url}")),
     Some(title) => Some(format!("[{label}]: {url} {}", quote(title)?)),
   }
+}
+
+/// `label` with each run of whitespace as one space, as Prettier writes labels. Unlike `collapse`,
+/// it joins lines too, and like Prettier it keeps one space at either edge.
+pub(super) fn squash(label: &str) -> String {
+  let mut out = String::with_capacity(label.len());
+  for char in label.chars() {
+    let space = char.is_ascii_whitespace();
+    if !(space && out.ends_with(' ')) {
+      out.push(if space { ' ' } else { char });
+    }
+  }
+  out
+}
+
+/// An image reference with its label as Prettier writes it, or `None` to keep `raw` as written:
+/// `![alt][label]`, `![label][]`, or `![label]`.
+pub(super) fn image(raw: &str, link_type: pulldown_cmark::LinkType) -> Option<String> {
+  use pulldown_cmark::LinkType;
+  let open = match link_type {
+    LinkType::Reference => raw.rfind('[')?,
+    LinkType::Collapsed | LinkType::Shortcut => 1,
+    _ => return None,
+  };
+  let label = label(&raw[open..])?;
+  if label.contains('\\') {
+    return None;
+  }
+  let after = &raw[open + label.len() + 2..];
+  Some(format!("{}[{}]{after}", &raw[..open], squash(label)))
 }
 
 /// The label of a definition or full reference that `source` starts with, as written.

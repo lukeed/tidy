@@ -285,6 +285,13 @@ fn writes_destinations_and_titles_like_prettier() {
 }
 
 #[test]
+fn squashes_labels_like_prettier() {
+  let source = "[ a  b ]: /x\n\n![ a  b ][]\n\n![ a\n  b ]\n\n![alt  x][ a  b ]\n\n[t][ a  b ]\n";
+  let expected = "[ a b ]: /x\n\n![ a b ][]\n\n![ a b ]\n\n![alt  x][ a b ]\n\n[t][ a b ]\n";
+  assert_eq!(prettier(source), expected);
+}
+
+#[test]
 fn keeps_destinations_that_would_read_differently() {
   for source in ["[a](a\\(b)", "[a](a\\\\b)", "[a](\\&amp;)", "[a](<a<b>)", "[a](u \"\\&amp;\")"] {
     assert_eq!(prettier(&format!("{source}\n")), format!("{source}\n"), "{source}");
