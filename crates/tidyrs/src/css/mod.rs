@@ -169,17 +169,18 @@ struct Style<'s> {
 }
 
 /// The document of `text`, a style sheet embedded in markup: Prettier's `textToDoc`, with the `cleanDoc` that HTML's
-/// printer runs. `is_style_attribute` is set for the value of a `style` attribute.
+/// printer runs if `is_cleaned` is set. `is_style_attribute` is set for the value of a `style` attribute.
 pub(crate) fn document(
   text: &str,
   settings: &Settings,
   is_style_attribute: bool,
+  is_cleaned: bool,
   embed: &mut dyn Embed,
 ) -> Result<Document, Failure> {
   let text = crate::strings::lf(text.as_bytes());
   let mut memo = Memo::default();
   let style = Style { settings, is_style_attribute };
-  let sink = parse_and_print(&text, style, Sink::to_document(true), &mut memo, embed)?;
+  let sink = parse_and_print(&text, style, Sink::to_document(is_cleaned), &mut memo, embed)?;
   Ok(sink.into_document())
 }
 

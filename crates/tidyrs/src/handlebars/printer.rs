@@ -463,7 +463,7 @@ impl<'a> Printer<'a, '_> {
         tab_width: self.options.tab_width,
         ..crate::css::Settings::default()
       };
-      let document = crate::css::document(code, &settings, false, self.embed).ok()?;
+      let document = crate::css::document(code, &settings, false, true, self.embed).ok()?;
       return (!code.trim().is_empty()).then_some(StyleSheet::Document(document));
     };
     let formatted = formatted.trim_end_matches(['\n', '\r']);

@@ -2,7 +2,7 @@ use napi::bindgen_prelude::Function;
 use napi_derive::napi;
 use tidyrs::embed::{Kind, Request};
 use tidyrs::html::{Parser, Settings, Whitespace};
-use tidyrs::{css, handlebars};
+use tidyrs::{css, handlebars, xml};
 
 /// A piece of embedded code for the host to format.
 #[napi(object)]
@@ -24,14 +24,15 @@ type Callback<'a> = Function<'a, EmbedRequest, Option<String>>;
 #[napi(object)]
 #[derive(Default)]
 pub struct FormatOptions {
-  #[napi(ts_type = "'html' | 'vue' | 'handlebars' | 'css' | 'scss' | 'less'")]
+  #[napi(ts_type = "'html' | 'vue' | 'handlebars' | 'css' | 'scss' | 'less' | 'xml'")]
   pub parser: Option<String>,
   /// The line width. Default: 80.
   pub width: Option<u32>,
   /// The width of an indent. Default: 2.
   pub tab_width: Option<u32>,
   pub use_tabs: Option<bool>,
-  #[napi(ts_type = "'css' | 'strict' | 'ignore'")]
+  /// `css` is for HTML and Handlebars only, `preserve` for XML only. Default: `css`, and `strict` for XML.
+  #[napi(ts_type = "'css' | 'strict' | 'preserve' | 'ignore'")]
   pub whitespace: Option<String>,
   pub single_attribute_per_line: Option<bool>,
   pub bracket_same_line: Option<bool>,
@@ -47,6 +48,13 @@ pub struct FormatOptions {
   pub trailing_comma: Option<String>,
   /// The file's path, which decides some details.
   pub filepath: Option<String>,
+  /// XML: a space before `/>` and `?>`. Default: true.
+  pub self_closing_space: Option<bool>,
+  /// XML: sort attributes by name, `xmlns` first. Default: false.
+  pub sort_attributes: Option<bool>,
+  /// XML: the quotes around attribute values. Default: `"preserve"`.
+  #[napi(ts_type = "'preserve' | 'single' | 'double'")]
+  pub quote_attributes: Option<String>,
 }
 
 /// Format markup. `embed` receives each piece of code in another language.
@@ -59,17 +67,23 @@ pub fn format(
   embed: Option<Callback<'_>>,
 ) -> napi::Result<String> {
   let options = options.unwrap_or_default();
-  let dialect = match options.parser.as_deref() {
-    Some("css") => Some(css::Dialect::Css),
-    Some("scss") => Some(css::Dialect::Scss),
-    Some("less") => Some(css::Dialect::Less),
-    _ => None,
+  let language = match options.parser.as_deref() {
+    None | Some("html" | "vue") => Language::Markup,
+    Some("handlebars") => Language::Handlebars,
+    Some("css") => Language::Css(css::Dialect::Css),
+    Some("scss") => Language::Css(css::Dialect::Scss),
+    Some("less") => Language::Css(css::Dialect::Less),
+    Some("xml") => Language::Xml,
+    Some(other) => return Err(invalid("parser", other)),
   };
-  let is_handlebars = options.parser.as_deref() == Some("handlebars") || dialect.is_some();
   let single_quote = options.single_quote.unwrap_or_default();
   let trailing_comma = options.trailing_comma.as_deref() != Some("none");
   let format_embedded = options.embedded_language_formatting.as_deref() != Some("off");
-  let settings = settings(options, is_handlebars)?;
+  let xml = match language {
+    Language::Xml => Some(xml_settings(&options, format_embedded)?),
+    _ => None,
+  };
+  let settings = settings(options, language)?;
   let mut failure = None;
   let mut hook = |request: Request<'_>| -> Option<String> {
     let embed = embed.as_ref()?;
@@ -98,8 +112,8 @@ pub fn format(
     }
   };
   let error = |error: &dyn std::fmt::Display| napi::Error::from_reason(error.to_string());
-  let output = match is_handlebars {
-    true if let Some(dialect) = dialect => {
+  let output = match language {
+    Language::Css(dialect) => {
       let settings = css::Settings {
         dialect,
         width: settings.width,
@@ -112,7 +126,7 @@ pub fn format(
       };
       css::format(&source, &settings, &mut hook).map_err(|it| error(&it))?
     }
-    true => {
+    Language::Handlebars => {
       let settings = handlebars::Settings {
         width: settings.width,
         tab_width: settings.tab_width,
@@ -125,7 +139,11 @@ pub fn format(
       };
       handlebars::format(&source, &settings, &mut hook).map_err(|it| error(&it))?
     }
-    false => {
+    Language::Xml => {
+      let settings = xml.unwrap_or_default();
+      xml::format(&source, &settings, &mut hook).map_err(|it| error(&it))?
+    }
+    Language::Markup => {
       let settings = Settings { format_embedded, ..settings };
       tidyrs::html::format(&source, &settings, &mut hook).map_err(|it| error(&it))?
     }
@@ -136,18 +154,53 @@ pub fn format(
   }
 }
 
-fn settings(input: FormatOptions, is_handlebars: bool) -> napi::Result<Settings> {
-  let invalid =
-    |name: &str, value: &str| napi::Error::from_reason(format!("unknown {name}: {value}"));
+#[derive(Clone, Copy)]
+enum Language {
+  Markup,
+  Handlebars,
+  Css(css::Dialect),
+  Xml,
+}
+
+fn invalid(name: &str, value: &str) -> napi::Error {
+  napi::Error::from_reason(format!("unknown {name}: {value}"))
+}
+
+fn xml_settings(input: &FormatOptions, format_embedded: bool) -> napi::Result<xml::Settings> {
+  let whitespace = match input.whitespace.as_deref() {
+    None | Some("strict") => xml::Whitespace::Strict,
+    Some("preserve") => xml::Whitespace::Preserve,
+    Some("ignore") => xml::Whitespace::Ignore,
+    Some(other) => return Err(invalid("whitespace", other)),
+  };
+  let quotes = match input.quote_attributes.as_deref() {
+    None | Some("preserve") => xml::Quotes::Preserve,
+    Some("single") => xml::Quotes::Single,
+    Some("double") => xml::Quotes::Double,
+    Some(other) => return Err(invalid("quoteAttributes", other)),
+  };
+  let defaults = xml::Settings::default();
+  Ok(xml::Settings {
+    width: input.width.map_or(defaults.width, |width| width as usize),
+    tab_width: input.tab_width.map_or(defaults.tab_width, |width| width as usize),
+    tabs: input.use_tabs.unwrap_or(defaults.tabs),
+    whitespace,
+    self_closing_space: input.self_closing_space.unwrap_or(defaults.self_closing_space),
+    sort_attributes: input.sort_attributes.unwrap_or_default(),
+    quotes,
+    bracket_same_line: input.bracket_same_line.unwrap_or_default(),
+    single_attribute_per_line: input.single_attribute_per_line.unwrap_or_default(),
+    format_embedded,
+    ..defaults
+  })
+}
+
+fn settings(input: FormatOptions, language: Language) -> napi::Result<Settings> {
   let mut settings = Settings::default();
-  if let Some(parser) = input.parser.filter(|_| !is_handlebars) {
-    settings.parser = match parser.as_str() {
-      "html" => Parser::Html,
-      "vue" => Parser::Vue,
-      other => return Err(invalid("parser", other)),
-    };
+  if input.parser.as_deref() == Some("vue") {
+    settings.parser = Parser::Vue;
   }
-  if let Some(whitespace) = input.whitespace {
+  if let Some(whitespace) = input.whitespace.filter(|_| !matches!(language, Language::Xml)) {
     settings.whitespace = match whitespace.as_str() {
       "css" => Whitespace::Css,
       "strict" => Whitespace::Strict,

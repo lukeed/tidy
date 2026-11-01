@@ -93,4 +93,14 @@ messages! {
   UnsupportedMustache = "Partials, decorators and raw blocks are not supported",
   WrongEndTag = "This end tag does not match the open element",
   WrongNameAtEndOfBlock = "This name does not match the open block",
+  // XML
+  ExpectedClose = "Expected \">\"",
+  ExpectedDeclarationEnd = "Expected \"?>\"",
+  ExpectedElement = "Expected an element",
+  ExpectedEndOfInput = "Expected the end of the file",
+  ExpectedEndTag = "Expected an end tag",
+  ExpectedEquals = "Expected \"=\"",
+  ExpectedExternalId = "Expected SYSTEM or PUBLIC",
+  ExpectedString = "Expected a quoted value",
+  ExpectedTagEnd = "Expected \">\" or \"/>\"",
 }

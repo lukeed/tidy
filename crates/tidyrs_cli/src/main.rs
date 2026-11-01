@@ -7,6 +7,7 @@ use tidyrs::css;
 use tidyrs::embed::Verbatim;
 use tidyrs::handlebars::{self, Dialect};
 use tidyrs::html::{self, Parser, Whitespace};
+use tidyrs::xml;
 
 const HELP: &str = "\
 tidyrs: a fast markup formatter
@@ -16,17 +17,18 @@ Usage
 
   Without paths, reads stdin and prints the result.
   With one file, prints the result unless --check or --write is set.
-  Folders are searched for .html, .htm, .vue, .hbs, .handlebars, .css, .scss, and .less files.
+  Folders are searched for .html, .htm, .vue, .hbs, .handlebars, .css, .scss, and .less files, and for XML
+  files: .xml, .svg, .plist, .csproj, pom.xml, and the other files that @prettier/plugin-xml formats.
   Style sheets in <style> and style=\"\" are formatted. Scripts are left as they are written.
 
 Options
   --check                         List files that aren't formatted, and exit 1 if any
   -w, --write                     Rewrite files in place
-  --parser <name>                 html, vue, handlebars, tempura, css, scss, or less (default: by extension)
+  --parser <name>                 html, vue, handlebars, tempura, css, scss, less, or xml (default: by extension)
   --width <n>                     Line width (default: 80)
   --tab-width <n>                 Indent width (default: 2)
   --use-tabs                      Indent with tabs
-  --whitespace <how>              css (default), strict, or ignore
+  --whitespace <how>              css (HTML's default), strict (XML's default), preserve (XML), or ignore
   --single-attribute-per-line     Put each attribute on its own line
   --bracket-same-line             Keep the > of a multi-line tag on the last line
   --vue-indent-script-and-style   Indent the code in Vue's <script> and <style>
@@ -74,6 +76,7 @@ fn run() -> Result<ExitCode, String> {
       "css" => Ok(Language::Css(css::Dialect::Css)),
       "scss" => Ok(Language::Css(css::Dialect::Scss)),
       "less" => Ok(Language::Css(css::Dialect::Less)),
+      "xml" => Ok(Language::Xml),
       other => Err(format!("unknown parser `{other}`")),
     })
     .map_err(|error| error.to_string())?;
@@ -163,12 +166,17 @@ enum Language {
   Markup(Parser),
   Handlebars(Dialect),
   Css(css::Dialect),
+  Xml,
 }
 
 /// The language of the file at `path`, by its extension.
 fn language_of(path: &Path) -> Language {
-  if let Some(dialect) = css::Dialect::of_path(&path.to_string_lossy()) {
+  let name = path.to_string_lossy();
+  if let Some(dialect) = css::Dialect::of_path(&name) {
     return Language::Css(dialect);
+  }
+  if xml::is_xml_path(&name) {
+    return Language::Xml;
   }
   match path.extension().and_then(|it| it.to_str()) {
     Some("vue") => Language::Markup(Parser::Vue),
@@ -183,6 +191,7 @@ struct Settings {
   html: html::Settings,
   handlebars: handlebars::Settings,
   css: css::Settings,
+  xml: xml::Settings,
 }
 
 fn settings(args: &mut pico_args::Arguments) -> Result<Settings, String> {
@@ -195,17 +204,17 @@ fn settings(args: &mut pico_args::Arguments) -> Result<Settings, String> {
     settings.tab_width = width;
   }
   settings.tabs = args.contains("--use-tabs");
-  if let Some(whitespace) = args
+  let whitespace = args
     .opt_value_from_fn("--whitespace", |name: &str| match name {
-      "css" => Ok(Whitespace::Css),
-      "strict" => Ok(Whitespace::Strict),
-      "ignore" => Ok(Whitespace::Ignore),
+      "css" | "strict" | "preserve" | "ignore" => Ok(name.to_owned()),
       other => Err(format!("unknown whitespace `{other}`")),
     })
-    .map_err(error)?
-  {
-    settings.whitespace = whitespace;
-  }
+    .map_err(error)?;
+  settings.whitespace = match whitespace.as_deref() {
+    Some("strict") => Whitespace::Strict,
+    Some("ignore") => Whitespace::Ignore,
+    _ => Whitespace::Css,
+  };
   settings.single_attribute_per_line = args.contains("--single-attribute-per-line");
   settings.bracket_same_line = args.contains("--bracket-same-line");
   settings.vue_indent_script_and_style = args.contains("--vue-indent-script-and-style");
@@ -224,7 +233,20 @@ fn settings(args: &mut pico_args::Arguments) -> Result<Settings, String> {
     single_quote: handlebars.single_quote,
     ..css::Settings::default()
   };
-  Ok(Settings { html: settings, handlebars, css })
+  let xml = xml::Settings {
+    width: settings.width,
+    tab_width: settings.tab_width,
+    tabs: settings.tabs,
+    whitespace: match whitespace.as_deref() {
+      Some("preserve") => xml::Whitespace::Preserve,
+      Some("ignore") => xml::Whitespace::Ignore,
+      _ => xml::Whitespace::Strict,
+    },
+    bracket_same_line: settings.bracket_same_line,
+    single_attribute_per_line: settings.single_attribute_per_line,
+    ..xml::Settings::default()
+  };
+  Ok(Settings { html: settings, handlebars, css, xml })
 }
 
 /// A formatter for each language, each reusing its buffers.
@@ -233,6 +255,7 @@ struct Formatters {
   html: html::Formatter,
   handlebars: handlebars::Formatter,
   css: css::Formatter,
+  xml: xml::Formatter,
 }
 
 impl Formatters {
@@ -258,6 +281,9 @@ impl Formatters {
       Language::Css(dialect) => {
         let settings = css::Settings { dialect, ..settings.css.clone() };
         self.css.format(source, &settings, &mut Verbatim).map_err(|it| error(&it))
+      }
+      Language::Xml => {
+        self.xml.format(source, &settings.xml, &mut Verbatim).map_err(|it| error(&it))
       }
     }
   }
@@ -304,7 +330,7 @@ fn work(
   }
 }
 
-/// Collect markup files under `dir`, skipping hidden folders and `node_modules`.
+/// Collect markup, style sheet and XML files under `dir`, skipping hidden folders and `node_modules`.
 fn walk(dir: &Path, files: &mut Vec<PathBuf>) {
   let Ok(entries) = std::fs::read_dir(dir) else { return };
   for entry in entries.flatten() {
@@ -319,7 +345,8 @@ fn walk(dir: &Path, files: &mut Vec<PathBuf>) {
     } else if matches!(
       path.extension().and_then(|it| it.to_str()),
       Some("html" | "htm" | "vue" | "hbs" | "handlebars" | "css" | "scss" | "less")
-    ) {
+    ) || xml::is_xml_path(&path.to_string_lossy())
+    {
       files.push(path);
     }
   }

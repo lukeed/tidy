@@ -11,6 +11,7 @@ mod stack;
 mod strings;
 mod syntax;
 mod text;
+pub mod xml;
 
 /// Splits off a byte order mark. Prettier's `formatWithCursor` puts it back in front of the output.
 pub(crate) fn without_bom(text: &str) -> (bool, &str) {

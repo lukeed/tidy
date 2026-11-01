@@ -187,7 +187,7 @@ fn style_sheet(
     tab_width: printer.options.tab_width,
     ..crate::css::Settings::default()
   };
-  crate::css::document(code, &settings, is_style_attribute, printer.embed).ok()
+  crate::css::document(code, &settings, is_style_attribute, true, printer.embed).ok()
 }
 
 /// The expression in `{{ }}`.

@@ -68,7 +68,12 @@ pub(crate) struct Document(Builder);
 impl Document {
   /// Writes the document to `docs`.
   pub(crate) fn write(&self, docs: &mut Docs<'_>) {
-    self.0.write(docs);
+    self.0.write(docs, false);
+  }
+
+  /// Writes the document to `docs` after Prettier's `replaceEndOfLine`: each line break in a text is a literal line.
+  pub(crate) fn write_lines(&self, docs: &mut Docs<'_>) {
+    self.0.write(docs, true);
   }
 }
 
@@ -215,16 +220,24 @@ impl Builder {
     }
   }
 
-  /// Writes the document to `docs`.
-  fn write(&self, docs: &mut Docs<'_>) {
+  /// Writes the document to `docs`, with each line break in a text as a literal line if `lines` is set.
+  fn write(&self, docs: &mut Docs<'_>, lines: bool) {
     let mut marks = Vec::new();
-    let text = |start: u32, len: u32| {
-      let bytes = &self.texts[start as usize..(start + len) as usize];
-      String::from_utf8_lossy(bytes)
+    let text = |docs: &mut Docs<'_>, start: u32, len: u32| {
+      let text = String::from_utf8_lossy(&self.texts[start as usize..(start + len) as usize]);
+      if !lines {
+        return docs.owned(&text);
+      }
+      for (index, line) in text.split('\n').enumerate() {
+        if index > 0 {
+          docs.literalline();
+        }
+        docs.owned(line);
+      }
     };
     for element in &self.list {
       match *element {
-        Element::Text(start, len) => docs.owned(&text(start, len)),
+        Element::Text(start, len) => text(docs, start, len),
         Element::Line => docs.line(),
         Element::SoftLine => docs.softline(),
         Element::HardLine => docs.hardline(),
@@ -233,7 +246,7 @@ impl Builder {
         Element::LineSuffixBoundary => docs.line_suffix_boundary(),
         Element::IfBreak(start, len) => {
           let mark = docs.if_break(Branch::Break, None);
-          docs.owned(&text(start, len));
+          text(docs, start, len);
           docs.close(mark);
         }
         Element::Nothing => {}
@@ -393,7 +406,7 @@ impl<'o> Sink<'o> {
     let Some(output) = &mut self.output else { return };
     self.bump.reset();
     let mut docs = Docs::reuse(&self.bump, &mut self.scratch);
-    self.builder.write(&mut docs);
+    self.builder.write(&mut docs, false);
     self.line_start_column = doc::print_at(&docs, &output.options, output.out, self.depth, column);
     self.line_start = output.out.len();
     self.scratch = docs.into_scratch();

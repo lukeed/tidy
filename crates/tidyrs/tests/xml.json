@@ -1,0 +1,349 @@
+[
+ {
+  "input": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a/>",
+  "output": "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<a />\n"
+ },
+ {
+  "input": "<?xml\nversion=\"1.0\"?>\n<a/>",
+  "output": "<?xml\nversion=\"1.0\" ?>\n<a />\n"
+ },
+ {
+  "input": "<?xml version=\"1.0\"?><a/>",
+  "options": {
+   "xmlSelfClosingSpace": false
+  },
+  "output": "<?xml version=\"1.0\"?>\n<a/>\n"
+ },
+ {
+  "input": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" something=\"very long value that goes past the line width\"?><a/>",
+  "output": "<?xml\n  version=\"1.0\"\n  encoding=\"UTF-8\"\n  standalone=\"yes\"\n  something=\"very long value that goes past the line width\"\n?>\n<a />\n"
+ },
+ {
+  "input": "\n<?xml version=\"1.0\"?><a/>",
+  "output": "!error"
+ },
+ {
+  "input": "<!DOCTYPE html><html/>",
+  "output": "<!DOCTYPE html>\n<html />\n"
+ },
+ {
+  "input": "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\"><svg/>",
+  "output": "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\"\n  \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n<svg />\n"
+ },
+ {
+  "input": "<!DOCTYPE note SYSTEM \"Note.dtd\"><note/>",
+  "options": {
+   "printWidth": 20
+  },
+  "output": "<!DOCTYPE note SYSTEM\n  \"Note.dtd\">\n<note />\n"
+ },
+ {
+  "input": "<!DOCTYPE note OTHER \"Note.dtd\"><note/>",
+  "output": "!error"
+ },
+ {
+  "input": "<!DOCTYPE x [ <!ENTITY a \"b\"> ]><x/>",
+  "output": "!error"
+ },
+ {
+  "input": "<!ELEMENT a (b)>\n<a/>",
+  "output": "<a />\n"
+ },
+ {
+  "input": "<a></b>",
+  "output": "<a />\n"
+ },
+ {
+  "input": "<a>   </a>",
+  "output": "<a>   </a>\n"
+ },
+ {
+  "input": "<a>   </a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "ignore"
+  },
+  "output": "<a />\n"
+ },
+ {
+  "input": "<a>x</a>\ntext",
+  "output": "!error"
+ },
+ {
+  "input": "",
+  "output": ""
+ },
+ {
+  "input": "  \n ",
+  "output": ""
+ },
+ {
+  "input": " ",
+  "output": ""
+ },
+ {
+  "input": "<café/>",
+  "output": "!error"
+ },
+ {
+  "input": "<a.b-c:d_1 e.f=\"1\"/>",
+  "output": "<a.b-c:d_1 e.f=\"1\" />\n"
+ },
+ {
+  "input": "<a b = \"c\" d='e'/>",
+  "output": "<a b=\"c\" d='e' />\n"
+ },
+ {
+  "input": "<a b=\"1\" c='it''s'/>",
+  "output": "!error"
+ },
+ {
+  "input": "<a b=\"say &quot;hi&quot;\" c='x\"y' d=\"it's\"/>",
+  "options": {
+   "xmlQuoteAttributes": "single"
+  },
+  "output": "<a b='say &quot;hi&quot;' c='x\"y' d='it&apos;s' />\n"
+ },
+ {
+  "input": "<a b=\"say &quot;hi&quot;\" c='x\"y' d=\"it's\"/>",
+  "options": {
+   "xmlQuoteAttributes": "double"
+  },
+  "output": "<a b=\"say &quot;hi&quot;\" c=\"x&quot;y\" d=\"it's\" />\n"
+ },
+ {
+  "input": "<a b=\"line one\n  line two\" c=\"d\"/>",
+  "output": "<a b=\"line one\n  line two\" c=\"d\" />\n"
+ },
+ {
+  "input": "<a z=\"1\" xmlns:b=\"2\" b:c=\"3\" xmlns=\"4\" a:z=\"5\" A=\"6\" a=\"7\" _x=\"8\" x-y=\"9\" x1=\"10\" a:a=\"11\"/>",
+  "options": {
+   "xmlSortAttributesByKey": true
+  },
+  "output": "<a\n  xmlns=\"4\"\n  xmlns:b=\"2\"\n  a:a=\"11\"\n  a:z=\"5\"\n  b:c=\"3\"\n  _x=\"8\"\n  a=\"7\"\n  A=\"6\"\n  x-y=\"9\"\n  x1=\"10\"\n  z=\"1\"\n/>\n"
+ },
+ {
+  "input": "<a one=\"111111111111111\" two=\"222222222222222\" three=\"333333333333333\" four=\"44444444\"><b/></a>",
+  "output": "<a\n  one=\"111111111111111\"\n  two=\"222222222222222\"\n  three=\"333333333333333\"\n  four=\"44444444\"\n><b /></a>\n"
+ },
+ {
+  "input": "<a one=\"111111111111111\" two=\"222222222222222\" three=\"333333333333333\" four=\"44444444\"/>",
+  "options": {
+   "bracketSameLine": true
+  },
+  "output": "<a\n  one=\"111111111111111\"\n  two=\"222222222222222\"\n  three=\"333333333333333\"\n  four=\"44444444\" />\n"
+ },
+ {
+  "input": "<a one=\"111111111111111\" two=\"222222222222222\" three=\"333333333333333\" four=\"44444444\"/>",
+  "options": {
+   "xmlSelfClosingSpace": false
+  },
+  "output": "<a\n  one=\"111111111111111\"\n  two=\"222222222222222\"\n  three=\"333333333333333\"\n  four=\"44444444\"\n/>\n"
+ },
+ {
+  "input": "<a one=\"1\" two=\"2\"><b/></a>",
+  "options": {
+   "singleAttributePerLine": true
+  },
+  "output": "<a\n  one=\"1\"\n  two=\"2\"\n><b /></a>\n"
+ },
+ {
+  "input": "<a one=\"111111111111111\" two=\"222222222222222\" three=\"333333333333333\">text</a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "ignore"
+  },
+  "output": "<a one=\"111111111111111\" two=\"222222222222222\" three=\"333333333333333\">text</a>\n"
+ },
+ {
+  "input": "<a><!-- one\n  two --><b/></a>",
+  "output": "<a><!-- one\n  two --><b /></a>\n"
+ },
+ {
+  "input": "<a><!-- one\n  two --><b/></a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "ignore"
+  },
+  "output": "<a>\n  <!-- one\n  two -->\n  <b />\n</a>\n"
+ },
+ {
+  "input": "<a>x<![CDATA[ y ]]>z</a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "ignore"
+  },
+  "output": "<a>x<![CDATA[ y ]]>z</a>\n"
+ },
+ {
+  "input": "<a xml:space=\"preserve\">  x  <b/>  </a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "ignore"
+  },
+  "output": "<a xml:space=\"preserve\">  x  <b />  </a>\n"
+ },
+ {
+  "input": "<xsl:text>  x  <b/>  </xsl:text>",
+  "options": {
+   "xmlWhitespaceSensitivity": "ignore"
+  },
+  "output": "<xsl:text>  x  <b />  </xsl:text>\n"
+ },
+ {
+  "input": "<a>\n  <b/>\n\n\n  <c/>\n  text\n\n  &amp;\n</a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "ignore"
+  },
+  "output": "<a>\n  <b />\n\n  <c />\n  text\n  &amp;\n</a>\n"
+ },
+ {
+  "input": "<a>x&#x41;y&#x4z</a>",
+  "output": "<a>x&#x41;y&#x4z</a>\n"
+ },
+ {
+  "input": "<a>&amp</a>",
+  "output": "!error"
+ },
+ {
+  "input": "<a>& b</a>",
+  "output": "!error"
+ },
+ {
+  "input": "<a>\n  <!-- prettier-ignore-start -->\n  <b   c=\"d\"   />\n  <!-- prettier-ignore-end -->\n  <e   f=\"g\"/>\n</a>",
+  "output": "<a>\n  <!-- prettier-ignore-start -->\n  <b   c=\"d\"   />\n  <!-- prettier-ignore-end -->\n  <e f=\"g\" />\n</a>\n"
+ },
+ {
+  "input": "<a>\n  <!-- prettier-ignore-start -->\n  <b   c=\"d\"   />\n  <!-- prettier-ignore-end -->\n  <e   f=\"g\"/>\n</a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "ignore"
+  },
+  "output": "<a>\n  <!-- prettier-ignore-start -->\n  <b   c=\"d\"   />\n  <!-- prettier-ignore-end -->\n  <e f=\"g\" />\n</a>\n"
+ },
+ {
+  "input": "<a><?pi one ?> two ?><?pi\nthree?></a>",
+  "output": "!error"
+ },
+ {
+  "input": "<a><?pi one ?> two ?></a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "ignore"
+  },
+  "output": "<a>\n  <?pi one ?> two ?>\n</a>\n"
+ },
+ {
+  "input": "<a><!-- a b --></a>",
+  "output": "!error"
+ },
+ {
+  "input": "<a>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt.</a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "ignore"
+  },
+  "output": "<a>\n  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor\n  incididunt.\n</a>\n"
+ },
+ {
+  "input": "<a>Lorem ipsum dolor sit amet, consectetur adipiscing elit,   sed do eiusmod tempor. incididunt ut labore\n    et dolore magna aliqua.</a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "ignore"
+  },
+  "output": "<a>\n  Lorem ipsum dolor sit amet, consectetur adipiscing elit,   sed do eiusmod\n  tempor. incididunt ut labore\n    et dolore magna aliqua.\n</a>\n"
+ },
+ {
+  "input": "<a>中文中文中文 中文中文中文 中文中文中文 中文中文中文 中文中文中文 中文中文中文 x</a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "ignore"
+  },
+  "output": "<a>\n  中文中文中文 中文中文中文 中文中文中文 中文中文中文 中文中文中文 中文中文中文 x\n</a>\n"
+ },
+ {
+  "input": "<a>\n  text <b>bold</b> more\n  <c/>\n</a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "preserve"
+  },
+  "output": "<a>\n  text <b>bold</b> more\n  <c />\n</a>\n"
+ },
+ {
+  "input": "<a>\n  <b/>\n  <c/>\n</a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "preserve"
+  },
+  "output": "<a>\n  <b />\n  <c />\n</a>\n"
+ },
+ {
+  "input": "<a>  x<b/>y  z</a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "preserve"
+  },
+  "output": "<a>  x<b />y  z</a>\n"
+ },
+ {
+  "input": "<root>\r\n  <a>x</a>\r\n\r\n  <b/>\r</root>\r\n",
+  "options": {
+   "xmlWhitespaceSensitivity": "ignore"
+  },
+  "output": "<root>\n  <a>x</a>\n\n  <b />\n</root>\n"
+ },
+ {
+  "input": "﻿<a/>",
+  "output": "﻿<a />\n"
+ },
+ {
+  "input": "<svg><style type=\"text/css\">.a{fill:red}.b{stroke:blue}</style></svg>",
+  "output": "<svg><style type=\"text/css\">\n.a {\n  fill: red;\n}\n.b {\n  stroke: blue;\n}\n  </style></svg>\n"
+ },
+ {
+  "input": "<svg><style type=\"text/css\">/* one\n two */ .a{fill:red}</style></svg>",
+  "output": "<svg><style type=\"text/css\">\n/* one\n two */\n.a {\n  fill: red;\n}\n  </style></svg>\n"
+ },
+ {
+  "input": "<svg><style type=\"text/css\"></style><style type=\"text/css\">a{b:c}<x/></style><style>.a{fill:red}</style></svg>",
+  "output": "<svg><style type=\"text/css\" /><style type=\"text/css\">a{b:c}<x /></style><style\n  >.a{fill:red}</style></svg>\n"
+ },
+ {
+  "input": "<svg><style type=\"text/css\" media=\"all and (min-width: 100px) and (max-width: 200px)\">.a{fill:red}</style></svg>",
+  "options": {
+   "bracketSameLine": true
+  },
+  "output": "<svg><style\n    type=\"text/css\"\n    media=\"all and (min-width: 100px) and (max-width: 200px)\">\n.a {\n  fill: red;\n}\n  </style></svg>\n"
+ },
+ {
+  "input": "<svg><style type=\"text/css\">.a{fill:red}</style></svg>",
+  "options": {
+   "embeddedLanguageFormatting": "off"
+  },
+  "output": "<svg><style type=\"text/css\">.a{fill:red}</style></svg>\n"
+ },
+ {
+  "input": "<a><b><c><d><e>x</e></d></c></b></a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "ignore",
+   "printWidth": 10
+  },
+  "output": "<a>\n  <b>\n    <c>\n      <d>\n        <e\n        >\n          x\n        </e>\n      </d>\n    </c>\n  </b>\n</a>\n"
+ },
+ {
+  "input": "<a\n  b=\"c\"\n>\n  <d/>\n</a>",
+  "options": {
+   "useTabs": true,
+   "xmlWhitespaceSensitivity": "ignore"
+  },
+  "output": "<a b=\"c\">\n\t<d />\n</a>\n"
+ },
+ {
+  "input": "<a><b>x</b> <c>y</c></a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "ignore"
+  },
+  "output": "<a>\n  <b>x</b>\n  <c>y</c>\n</a>\n"
+ },
+ {
+  "input": "<a>x<!-- c --></a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "ignore"
+  },
+  "output": "<a>\n  x\n  <!-- c -->\n</a>\n"
+ },
+ {
+  "input": "<a> <b> </b></a>",
+  "options": {
+   "xmlWhitespaceSensitivity": "preserve"
+  },
+  "output": "<a> <b> </b></a>\n"
+ }
+]
