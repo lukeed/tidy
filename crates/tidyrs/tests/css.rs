@@ -28,3 +28,14 @@ fn formats_each_dialect() {
 fn keeps_a_byte_order_mark() {
   assert_eq!(css("\u{feff}a{b:c}", Dialect::Css), "\u{feff}a {\n  b: c;\n}\n");
 }
+
+#[test]
+fn takes_another_ignore_directive() {
+  let settings =
+    Settings { dialect: Dialect::Scss, ignore: "tidy-ignore".into(), ..Settings::default() };
+  assert_eq!(
+    format("// tidy-ignore\na{b:c}\n/* prettier-ignore */\nd{e:f}", &settings, &mut Verbatim)
+      .unwrap(),
+    "// tidy-ignore\na{b:c}\n/* prettier-ignore */\nd {\n  e: f;\n}\n"
+  );
+}

@@ -61,6 +61,9 @@ pub struct Settings {
   /// Prettier's `embeddedLanguageFormatting`: `"auto"` if true, `"off"` if false. Off, front matter stays as it is
   /// written.
   pub format_embedded: bool,
+  /// The ignore directive, Prettier's `prettier-ignore` by default. `/* name */`, or `// name` in SCSS and Less, keeps
+  /// the next node as it is written.
+  pub ignore: String,
 }
 
 impl Default for Settings {
@@ -74,6 +77,7 @@ impl Default for Settings {
       single_quote: false,
       trailing_comma: true,
       format_embedded: true,
+      ignore: "prettier-ignore".into(),
     }
   }
 }
@@ -292,6 +296,7 @@ fn parse_and_print<'o>(
       convertible_sets: Default::default(),
     },
     single_quote: settings.single_quote,
+    ignore: settings.ignore.as_bytes(),
     trailing_comma: settings.trailing_comma,
     is_html_style_attribute: style.is_style_attribute,
     value_stack: Vec::new(),

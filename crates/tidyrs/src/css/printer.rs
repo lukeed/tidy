@@ -89,6 +89,8 @@ impl<'s, 'a> Statement<'s, 'a> {
 pub(crate) struct Printer<'a, 'o> {
   pub(crate) context: Context<'a>,
   pub(crate) single_quote: bool,
+  /// The ignore directive: `/* prettier-ignore */` keeps the next node as it is written.
+  pub(crate) ignore: &'a [u8],
   /// `trailingComma` is `"es5"` or `"all"`.
   pub(crate) trailing_comma: bool,
   /// Prettier's `__isHTMLStyleAttribute`: the declarations go on one line if they fit. It isn't part of the memo key
@@ -364,7 +366,7 @@ impl<'a> Printer<'a, '_> {
     let start = (raw.start as usize).min(text.len());
     if previous.is_some_and(|it| {
       it.kind == Kind::Comment
-        && crate::strings::trim_js_whitespace(self.context.of(it.text)) == b"prettier-ignore"
+        && crate::strings::trim_js_whitespace(self.context.of(it.text)) == self.ignore
     }) {
       let end = self.context.end_of(tree, id, parsed);
       return self.sink.text(text.get(start..end).unwrap_or_default());
