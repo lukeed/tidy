@@ -214,20 +214,16 @@ fn keeps_html_beside_a_paragraph_or_html() {
 
 #[test]
 fn keeps_indented_lines_from_opening_blocks() {
-  for (line, joined) in [
-    ("# h", true),
-    ("- x", true),
-    ("1. x", true),
-    ("> q", true),
-    ("```", true),
-    ("***", true),
-    ("<div>", true),
-    ("<!-- c -->", true),
-    ("<span>", false),
-    ("plain", false),
-  ] {
-    let expected = if joined { format!("text {line}\n") } else { format!("text\n{line}\n") };
-    assert_eq!(prettier(&format!("text\n    {line}\n")), expected, "{line}");
+  for line in ["# h", "- x", "1. x", "> q"] {
+    assert_eq!(prettier(&format!("text\n    {line}\n")), format!("text {line}\n"), "{line}");
+  }
+  for line in ["```", "***", "<div>", "<!-- c -->"] {
+    let source = format!("text\n    {line}\n");
+    assert_eq!(prettier(&source), source, "{line}");
+    assert_eq!(prettier(&format!("- text\n      {line}\n")), format!("- text {line}\n"));
+  }
+  for line in ["<span>", "plain"] {
+    assert_eq!(prettier(&format!("text\n    {line}\n")), format!("text\n{line}\n"), "{line}");
   }
   assert_eq!(prettier("text\n    ===\n\nmore\n    -\n"), "text\n\\===\n\nmore\n\\-\n");
   assert_eq!(prettier("> a\n    > b\n"), "> a > b\n");

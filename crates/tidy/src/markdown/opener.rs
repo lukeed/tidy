@@ -6,6 +6,9 @@ pub(crate) enum Fix {
   Join,
   /// Escape a line of `=` or `-`, which would underline a setext heading, as Prettier does.
   Escape,
+  /// Keep the line break and the line's indent, which keeps it text. Prettier keeps the break
+  /// before a fence, a break, or HTML, but drops the indent, which opens the block.
+  Keep,
 }
 
 /// The fix for a continuation line that starts with `line`, if it could interrupt a paragraph.
@@ -16,24 +19,24 @@ pub(crate) fn interrupts(line: &str) -> Option<Fix> {
   let run = bytes.iter().take_while(|&&byte| byte == first).count();
   let after = bytes.get(run).copied();
   let spaced = matches!(after, None | Some(b' ' | b'\t'));
-  let joins = match first {
-    b'=' | b'-' if run == bytes.len() => return Some(Fix::Escape),
-    b'>' => true,
-    b'#' => run <= 6 && spaced,
-    b'-' | b'+' | b'*' if run == 1 && spaced => true,
-    b'-' | b'*' | b'_' => rule(line),
-    b'`' | b'~' => run >= 3,
-    b'<' => html(line),
+  match first {
+    b'=' | b'-' if run == bytes.len() => Some(Fix::Escape),
+    b'>' => Some(Fix::Join),
+    b'#' => (run <= 6 && spaced).then_some(Fix::Join),
+    b'-' | b'+' | b'*' if run == 1 && spaced => Some(Fix::Join),
+    b'-' | b'*' | b'_' => rule(line).then_some(Fix::Keep),
+    b'`' | b'~' => (run >= 3).then_some(Fix::Keep),
+    b'<' => html(line).then_some(Fix::Keep),
     byte if byte.is_ascii_digit() => {
       let digits = bytes.iter().take_while(|byte| byte.is_ascii_digit()).count();
       let after = bytes.get(digits + 1).copied();
-      digits <= 9
+      let marker = digits <= 9
         && matches!(bytes.get(digits), Some(b'.' | b')'))
-        && matches!(after, None | Some(b' ' | b'\t'))
+        && matches!(after, None | Some(b' ' | b'\t'));
+      marker.then_some(Fix::Join)
     }
-    _ => false,
-  };
-  joins.then_some(Fix::Join)
+    _ => None,
+  }
 }
 
 /// Whether `line` is a thematic break: three or more of one marker, with only spaces between.
@@ -174,11 +177,13 @@ mod tests {
 
   #[test]
   fn finds_lines_that_open_blocks() {
-    for line in ["# h", "######", "- x", "+", "1. x", "123456789) x", "> q", "```js", "~~~"] {
+    for line in ["# h", "######", "- x", "+", "1. x", "123456789) x", "> q", "* * *"] {
       assert_eq!(interrupts(line), Some(Fix::Join), "{line}");
     }
-    for line in ["***", "_ _ _", "* * *", "<div>", "</div>", "<DIV class=x>", "<hr/>", "<!-- c"] {
-      assert_eq!(interrupts(line), Some(Fix::Join), "{line}");
+    for line in
+      ["```js", "~~~", "***", "_ _ _", "<div>", "</div>", "<DIV class=x>", "<hr/>", "<!-- c"]
+    {
+      assert_eq!(interrupts(line), Some(Fix::Keep), "{line}");
     }
     for line in ["===", "---", "-", "="] {
       assert_eq!(interrupts(line), Some(Fix::Escape), "{line}");

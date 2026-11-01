@@ -12,7 +12,12 @@ impl<'s> Writer<'s, '_> {
   pub(super) fn soft(&mut self, at: usize, next: usize) {
     let line = self.source[next..].split('\n').next().unwrap_or("");
     match interrupts(line).filter(|_| !escaped(self.source, next)) {
-      Some(Fix::Join) => return self.atom(" "),
+      Some(Fix::Keep) if self.containers.is_empty() => {
+        let start = self.source[..next].rfind('\n').map_or(0, |index| index + 1);
+        self.newline();
+        return self.write(&self.source[start..next]);
+      }
+      Some(Fix::Join | Fix::Keep) => return self.atom(" "),
       Some(Fix::Escape) => {
         self.newline();
         return self.write("\\");
