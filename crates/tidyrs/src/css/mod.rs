@@ -332,6 +332,7 @@ fn print_front_matter(raw: &[u8], sink: &mut Sink<'_>, settings: &Settings, embe
       kind: Purpose::FrontMatter,
       indent: 0,
       width: settings.width,
+      module: true,
     };
     embed.format(request).map(|text| text.trim_end_matches(['\n', '\r']).to_owned())
   });

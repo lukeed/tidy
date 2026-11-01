@@ -406,6 +406,7 @@ impl<'a> Printer<'a, '_> {
         kind: Purpose::FrontMatter,
         indent: 0,
         width: self.options.width,
+        module: true,
       };
       match self.embed.format(request) {
         Some(text) => formatted = text.trim_end_matches(['\n', '\r']).to_owned(),
@@ -455,6 +456,7 @@ impl<'a> Printer<'a, '_> {
       kind: Purpose::Block,
       indent: self.indents,
       width: self.options.width,
+      module: true,
     };
     let Some(formatted) = self.embed.format(request) else {
       if !self.options.formats_embedded {
@@ -1034,6 +1036,7 @@ impl<'a> Printer<'a, '_> {
       kind,
       indent: self.indents + extra,
       width: self.options.width.saturating_sub(reserved),
+      module: true,
     };
     let formatted = self.embed.format(request)?;
     Some(formatted.trim_end_matches(['\n', '\r']).to_owned())

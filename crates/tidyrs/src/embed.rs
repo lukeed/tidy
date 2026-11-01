@@ -24,6 +24,9 @@ pub struct Request<'a> {
   pub indent: usize,
   /// The line width.
   pub width: usize,
+  /// JavaScript that is a module, not a classic script: Prettier's `__babelSourceType`. Only a `<script>` in HTML is
+  /// a classic script, unless its `type` makes it a module.
+  pub module: bool,
 }
 
 /// Formats the code of another language. `None` leaves it as it is written.

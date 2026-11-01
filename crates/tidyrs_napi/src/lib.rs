@@ -16,6 +16,8 @@ pub struct EmbedRequest {
   /// How many indents the code starts at. Indent the lines after the first by this much.
   pub indent: u32,
   pub width: u32,
+  /// JavaScript that is a module, not a classic script.
+  pub module: bool,
 }
 
 /// Called with each piece of embedded code; returns its formatted text, or `undefined` to keep it.
@@ -106,6 +108,7 @@ pub fn format(
       kind: kind.to_string(),
       indent: request.indent as u32,
       width: request.width as u32,
+      module: request.module,
     };
     match embed.call(request) {
       Ok(text) => text,

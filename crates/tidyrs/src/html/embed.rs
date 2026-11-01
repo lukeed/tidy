@@ -21,6 +21,7 @@ pub(crate) struct Embedded<'c> {
   kind: Purpose,
   /// Indents beyond the printer's own, where the code is printed in an `indent`.
   extra: usize,
+  module: bool,
 }
 
 impl<'c> Embedded<'c> {
@@ -31,6 +32,7 @@ impl<'c> Embedded<'c> {
       kind: self.kind,
       indent: indents + self.extra,
       width: options.width,
+      module: self.module,
     }
   }
 }
@@ -110,7 +112,13 @@ pub(crate) fn element(printer: &mut Printer<'_, '_>, id: Id) -> bool {
   let mut formatted = String::new();
   if !strings::trim_js_whitespace(content).is_empty() {
     let code = text(html_trim_preserve_indentation(content));
-    match printer.embed_text(Embedded { code: &code, language, kind: Purpose::Block, extra: 0 }) {
+    match printer.embed_text(Embedded {
+      code: &code,
+      language,
+      kind: Purpose::Block,
+      extra: 0,
+      module: true,
+    }) {
       Some(text) => formatted = text,
       None => return false,
     }
@@ -144,8 +152,13 @@ pub(crate) fn script(printer: &mut Printer<'_, '_>, id: Id, parent: Id) -> bool 
   } else {
     text(value).into_owned()
   };
-  let formatted =
-    printer.embed_text(Embedded { code: &code, language, kind: Purpose::Block, extra: 0 });
+  let module = is_module(printer, parent, language);
+  let embedded = Embedded { code: &code, language, kind: Purpose::Block, extra: 0, module };
+  // `</script` would end the element. Prettier only prints one in a template of HTML in JavaScript, where it escapes it.
+  let formatted = printer.embed_text(embedded).map(|formatted| match &tree[parent].name[..] {
+    b"script" => escape_script_end(formatted),
+    _ => formatted,
+  });
   // Without the host's answer, a style sheet is formatted here.
   let document = match &formatted {
     Some(_) => None,
@@ -163,6 +176,37 @@ pub(crate) fn script(printer: &mut Printer<'_, '_>, id: Id, parent: Id) -> bool 
   }
   printer.marker(|tags, out| tags.closing_tag_suffix(id, out));
   true
+}
+
+/// Whether the code of a `<script>` is a module. In HTML, Prettier parses JavaScript as a classic script, unless `type`
+/// makes it a module.
+fn is_module(printer: &Printer<'_, '_>, id: Id, language: &str) -> bool {
+  if printer.options.parser != Parser::Html || language != "babel" {
+    return true;
+  }
+  let attribute = |name: &[u8]| printer.tree.attribute(id, name).flatten().unwrap_or_default();
+  match attribute(b"type") {
+    b"module" => true,
+    b"text/babel" | b"text/jsx" => attribute(b"data-type") == b"module",
+    _ => false,
+  }
+}
+
+/// `text` with each `</script`, in any case, as `<\/script`.
+fn escape_script_end(text: String) -> String {
+  let lower = text.to_ascii_lowercase();
+  if !lower.contains("</script") {
+    return text;
+  }
+  let mut escaped = String::with_capacity(text.len() + 8);
+  let mut last = 0;
+  for (at, _) in lower.match_indices("</script") {
+    escaped.push_str(&text[last..at + 1]);
+    escaped.push('\\');
+    last = at + 1;
+  }
+  escaped.push_str(&text[last..]);
+  escaped
 }
 
 /// The document of a style sheet in `language`, formatted by `crate::css`, or `None` if it isn't one or doesn't parse.
@@ -199,9 +243,13 @@ pub(crate) fn interpolation(printer: &mut Printer<'_, '_>, id: Id, parent: Id) -
     _ => "__js_expression",
   };
   let code = text(&tree[id].value).into_owned();
-  let Some(formatted) =
-    printer.embed_text(Embedded { code: &code, language, kind: Purpose::Expression, extra: 1 })
-  else {
+  let Some(formatted) = printer.embed_text(Embedded {
+    code: &code,
+    language,
+    kind: Purpose::Expression,
+    extra: 1,
+    module: true,
+  }) else {
     return false;
   };
   let indent = printer.docs.indent();
@@ -234,8 +282,13 @@ pub(crate) fn front_matter(printer: &mut Printer<'_, '_>, raw: &[u8]) -> bool {
   let mut formatted = String::new();
   if !value.is_empty() {
     let saved = std::mem::replace(&mut printer.indents, 0);
-    let result =
-      printer.embed_text(Embedded { code: value, language, kind: Purpose::FrontMatter, extra: 0 });
+    let result = printer.embed_text(Embedded {
+      code: value,
+      language,
+      kind: Purpose::FrontMatter,
+      extra: 0,
+      module: true,
+    });
     printer.indents = saved;
     match result {
       Some(text) => formatted = text,
@@ -341,15 +394,22 @@ fn value_of<'v>(
   } else if full == b"style" && embedded {
     let code = text(unescaped);
     let width = printer.options.width;
-    let request =
-      Request { code: &code, language: "css", kind: Purpose::Attribute, indent: 0, width };
+    let request = Request {
+      code: &code,
+      language: "css",
+      kind: Purpose::Attribute,
+      indent: 0,
+      width,
+      module: true,
+    };
     match printer.embed.format(request) {
       Some(formatted) => Some(Value::Style(formatted)),
       None => style_sheet(printer, "css", &code, true).map(Value::Css),
     }
   } else if embedded && is_event_handler(full) {
     let code = text(unescaped);
-    let embedded = Embedded { code: &code, language: "babel", kind: Purpose::Attribute, extra: 2 };
+    let embedded =
+      Embedded { code: &code, language: "babel", kind: Purpose::Attribute, extra: 2, module: true };
     printer.embed_text(embedded).map(Value::Expand)
   } else if printer.options.parser == Parser::Vue {
     let code = text(unescaped);
@@ -770,7 +830,7 @@ fn expression<'v>(
   language: &str,
   hug: Hug,
 ) -> Option<Value<'v>> {
-  let request = |extra| Embedded { code, language, kind: Purpose::Attribute, extra };
+  let request = |extra| Embedded { code, language, kind: Purpose::Attribute, extra, module: true };
   if hug == Hug::Always {
     return printer.embed_text(request(1)).map(Value::Hug);
   }
@@ -842,14 +902,20 @@ fn v_for<'v>(printer: &mut Printer<'_, '_>, code: &str) -> Option<Value<'v>> {
   let (left, operator, right) = parse_v_for(code)?;
   let ts = printer.options.typescript;
   let language = if ts { "__vue_ts_for_left" } else { "__vue_for_left" };
-  let left =
-    printer.embed_text(Embedded { code: &left, language, kind: Purpose::Attribute, extra: 1 })?;
+  let left = printer.embed_text(Embedded {
+    code: &left,
+    language,
+    kind: Purpose::Attribute,
+    extra: 1,
+    module: true,
+  })?;
   let script = if ts { "__ts_expression" } else { "__js_expression" };
   let right = printer.embed_text(Embedded {
     code: right,
     language: script,
     kind: Purpose::Attribute,
     extra: 1,
+    module: true,
   })?;
   Some(Value::For(left, operator, right))
 }

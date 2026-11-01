@@ -69,3 +69,16 @@ fn takes_another_ignore_directive() {
     "<!-- tidy-ignore -->\n<p   a=b>x</p>\n<!-- tidy-ignore-attribute -->\n<p a=b>x</p>\n<!-- prettier-ignore -->\n<p a=\"b\">x</p>\n"
   );
 }
+
+#[test]
+fn tells_the_host_whether_a_script_is_a_module() {
+  let mut modules = Vec::new();
+  let mut hook = |request: tidyrs::embed::Request<'_>| {
+    modules.push(request.module);
+    Some("x = `</SCRIPT>`".to_owned())
+  };
+  let text = "<script>a</script>\n<script type=\"module\">a</script>\n<script type=\"text/babel\" data-type=\"module\">a</script>\n";
+  let printed = format(text, &Settings::default(), &mut hook).unwrap();
+  assert_eq!(modules, [false, true, true]);
+  assert_eq!(printed.matches(r"x = `<\/SCRIPT>`").count(), 3, "{printed}");
+}

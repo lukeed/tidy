@@ -364,8 +364,14 @@ impl<'a> Printer<'_, 'a> {
       return false;
     }
     let code = &self.text[first.start(self.tree) as usize..last.span(self.tree).end as usize];
-    let request =
-      Request { code, language, kind: Purpose::Block, indent: 0, width: self.settings.width };
+    let request = Request {
+      code,
+      language,
+      kind: Purpose::Block,
+      indent: 0,
+      width: self.settings.width,
+      module: true,
+    };
     let formatted = self.embed.format(request);
     let document = match &formatted {
       Some(_) => None,
