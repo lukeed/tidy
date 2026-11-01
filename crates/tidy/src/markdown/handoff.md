@@ -17,12 +17,15 @@ State as of 2026-10-30. Nothing is pushed or published. Starship uses this repo 
 One pass over pulldown-cmark's offset events, writing straight into a `String`. No tree and no layout document. That is the whole speed story: keep it _streaming_.
 
 - **Blocks are normalized, inlines are mostly copied.** Text, HTML, entities, escapes, and image alt text are written as source slices. A text event's range starts after a backslash escape, so the writer extends it back one byte (`writer/mod.rs`, `Event::Text`). Text loses runs of spaces (`collapse`, which uses memchr so plain text costs no copy), code spans get their delimiters rewritten (`span`), and link text goes through the same path as other inline content (`Link`). Inline link and image targets and definitions are written from their parsed values (`writer/inline.rs`: `tail`, `definition`), except where that would read differently: then the source stays.
-- **The writer is a folder module.** `writer/mod.rs` holds the event loop and layout; `list.rs`, `code.rs`, and `inline.rs` are child modules that reach its private state. `front.rs` finds front matter and `opener.rs` finds lines that would open a block.
+- **The writer is a folder module.** `writer/mod.rs` holds the event loop; `layout.rs` (gaps and prefixes), `list.rs`, `code.rs`, `inline.rs`, `define.rs` (definitions), `footnote.rs`, and `liquid.rs` (soft breaks) are child modules that reach its private state. `front.rs` finds front matter and `opener.rs` finds lines that would open a block. Keep each file under 800 lines: split again rather than grow `mod.rs`.
 - **Containers are a prefix stack** (`Container`: quote, list item, footnote, indented code). A list item's marker replaces its indent on its first line.
 - **Lookahead is a small buffer** (`Events`). It reads up to three ordered-list items for Prettier's numbering and alignment rules before the first item is written, and each item reads ahead to its end to decide whether it is loose (`loose`).
 - **Blank lines between list items follow the source** (`Gap::Source`, `blank()`). Inside an item they follow the source too, unless the item is loose by Prettier's `isLooseListItem` (a blank line between direct children, or before the next item): then every block gets one, except a nested list.
 - **Front matter is found by hand**, with Prettier's rule, only at the very start (`front.rs`). pulldown-cmark's metadata flags are off because they find front matter anywhere, even inside a list item.
-- **An indented continuation line never opens a block** (`opener.rs`). Without its indent, a line starting with `>`, `#`, a list marker, a fence, a break, or a block HTML tag joins the line before; a line of `=` or `-` gets a backslash.
+- **An indented continuation line never opens a block** (`opener.rs`). Without its indent, a line starting with `>`, `#`, or a list marker joins the line before; a line of `=` or `-` gets a backslash; a fence, a break, or a block HTML tag keeps its break and indent at the top level, and joins inside containers.
+- **Definitions have no events.** pulldown-cmark lists one per label, so the gap after each sibling block (`cursor`) is parsed for the ones it left out (`define.rs`). Definitions are flushed before a container ends and after a list ends, since a list's range stretches over the definitions after it.
+- **Liquid** (`{{ }}`, `{% %}`, Hugo shortcodes) is a block of its own in Prettier's parser and paragraph text in pulldown-cmark's. mdtidy keeps pulldown-cmark's reading and copies Prettier's layout where it is safe (`liquid.rs`): no blank line beside a Liquid line, lazy Liquid lines stay at the margin, an HTML start after a Liquid line keeps the rest of the paragraph as written, and filling never breaks a Liquid tag or the lines beside one.
+- **Footnotes** read ahead to their end to decide whether the text starts on the `[^1]:` line (`footnote.rs`).
 - **Paragraphs are buffered only when wrapping** (`wrap.rs`). A line never starts with something that opens a block (`opens_block`).
 - **Code blocks are buffered** for the `format_with` callback. Front matter goes to it before parsing starts.
 - **Prettier rules** (from `printer-markdown`): adjacent sibling lists alternate `-`/`*` and `.`/`)`, git-diff-friendly numbering, `isAligned` with tab width 2, `_` emphasis falling back to `*` next to a word or inside emphasis, `---` (or `***` inside a list), backtick fences one longer than any run inside, aligned tables that only compact under `wrap: never`, the block after `<!-- prettier-ignore -->` on the very next line, code spans with the fewest backticks that no run inside matches, one space for each run of spaces in text, sibling definitions on adjacent lines, no trailing whitespace on code lines, and a task item's first paragraph indented past its box (`BOX`).
@@ -38,22 +41,26 @@ Both oracles live in the repo, with mise tasks to run them. Corpora don't: build
 
 - **Semantics**: `MDTIDY_CORPUS=<dir>[:<dir>...] mise run oracle:semantics`. Every output re-parses to the same events (adjacent text merged, soft breaks as spaces, whitespace collapsed) and settles after one pass. It runs the Prettier preset, the Preserve preset, `wrap: always` at width 40, and `wrap: never`. It caught every real bug so far: trust it over reading diffs. When a file fails, `mise run oracle:shrink -- <file> [mdtidy options...]` removes lines while it still fails and prints the few that are left. The events it compares come from `tests/support/events.rs`, shared by the test and the `events` example.
 - **Speed**: `mise run bench:ab -- [--rev <rev>] <dir>...` builds the working tree and `<rev>` (HEAD by default, in a temporary worktree), times both checking the folders in both orders, and compares medians: means swing with machine load. Each fix on 2026-10-30 and 2026-11-01 was within noise; together they cost about 2–3% (about 38 to 39 ms on A + B).
-- **Prettier**: the target is Prettier 3.9.10. `mise run oracle:prettier -- <corpus>... [--show <kind>]` formats one copy with Prettier (cached in `target/oracle`), one with mdtidy, counts identical files, and sorts the differences by kind. It hands mdtidy every file by name, because the CLI skips hidden folders on purpose. Last result: A 870/872, B 2,140/2,142, C 3,416/3,466, D 278/310. The semantics oracle passes on all four. `bun fmt` is close (8 misses, all inside code blocks) but it is not the reference.
+- **Prettier**: the target is Prettier 3.9.10. `mise run oracle:prettier -- <corpus>... [--show <kind>]` formats one copy with Prettier (cached in `target/oracle`), one with mdtidy, counts identical files, and sorts the differences by kind. It hands mdtidy every file by name, because the CLI skips hidden folders on purpose. Last result: A 870/872, B 2,141/2,142, C 3,442/3,466, D 283/310. The semantics oracle passes on all four. `bun fmt` is close (8 misses, all inside code blocks) but it is not the reference.
 
 ## Known gaps against Prettier
 
 Most files first. The rules are in Prettier's `src/language-markdown/print/` (`mdast.js`, `children.js`, `list.js`): read them before guessing.
 
-1. Hugo and Liquid templates (bootstrap, most of what C still misses): Prettier parses `{{ }}` and `{% %}` as their own nodes, keeps the indents of their paragraph lines, and puts no blank line around them.
-2. Footnote definitions: Prettier keeps the text on the `[^1]:` line only for one paragraph that is on one line (or with `wrap: never`). Otherwise the text starts on the next line, indented 4.
+Most of what C still misses is setext headings, kept as ATX on purpose. The rest:
+
+1. Deep Hugo templates (bootstrap's `examples/_index.md`): Prettier reads nested Liquid and HTML as HTML blocks and keeps their lines as written.
+2. A `|` inside a code span in a table cell splits the cell in GFM, and Prettier trims the pieces differently.
 3. A code span over two lines in a list item or quote: Prettier writes the second line with no indent and no `>`. That still parses the same but reads worse, so it isn't planned.
+4. pulldown-cmark doesn't close a fence followed by tabs (```` ```→→ ````), which CommonMark allows, so the rest of the file reads as code. That's a parser bug to report upstream.
 
 Kept on purpose:
 
 - Setext headings become ATX. Prettier 3.9 keeps setext.
 - HTML blocks in a task item keep their indent. Prettier indents their lines after the first past the task box, and adds 4 more spaces on every pass.
 - Collapsing spaces, trimming code line ends, keeping HTML beside a paragraph or HTML block, and keeping HTML indents apply to every preset, not only Prettier's: all are layout, and none changes how the document parses.
-- An indented continuation line that would open a fence, a thematic break, or an HTML block joins the line before. Prettier keeps the line break there, which changes the document.
+- An indented continuation line that would open a fence, a thematic break, or an HTML block keeps its indent. Prettier drops the indent, which opens the block.
+- With `wrap: never`, the line after a hard break in a one-line footnote keeps its indent. Prettier drops it, which reads the same but worse.
 - Link targets and definitions stay as written where Prettier's form would read differently: unbalanced parentheses, `<`, `>`, a backslash, text that decodes as an entity, or a title with `(` in parentheses.
 - An emphasis mark right after a `*` is `_`. Prettier writes `*`, which merges into `***` and nests the other way.
 
