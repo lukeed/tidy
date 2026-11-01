@@ -19,6 +19,8 @@ pub(super) struct List {
   pub(super) width: usize,
   /// The width every marker needs, so an indented code block after the list stays out of it.
   pub(super) least: usize,
+  /// The list stays loose without the blank lines Prettier drops before a nested list.
+  pub(super) firm: bool,
 }
 
 /// The list that ended last, while nothing else followed it at the same depth.

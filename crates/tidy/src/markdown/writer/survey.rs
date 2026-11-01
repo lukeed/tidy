@@ -6,16 +6,18 @@ use super::{Events, Writer, blank, is_block};
 
 /// What the lists ahead must know before their first line is written, found in one pass over a
 /// top-level list, so that nested lists and items don't read ahead again: each list's marker
-/// width, and whether each item is loose. Both are kept in document order by where they start.
+/// width and whether it stays loose, and whether each item is loose. They are kept in document
+/// order by where they start.
 #[derive(Default)]
 pub(super) struct Survey {
-  lists: VecDeque<(usize, usize)>,
+  lists: VecDeque<(usize, (usize, bool))>,
   items: VecDeque<(usize, bool)>,
 }
 
 impl Survey {
-  /// The marker width of the list starting at `at`, if surveyed.
-  pub(super) fn list(&mut self, at: usize) -> Option<usize> {
+  /// The marker width of the list starting at `at`, and whether it stays loose without the blank
+  /// lines Prettier drops before a nested list, if surveyed.
+  pub(super) fn list(&mut self, at: usize) -> Option<(usize, bool)> {
     take(&mut self.lists, at)
   }
 
@@ -47,12 +49,17 @@ struct Item {
   base: usize,
   last: Option<usize>,
   inline: bool,
+  /// The last direct child is a paragraph or code, after which Prettier keeps a blank line before a
+  /// nested list, or HTML, which only a blank line ends.
+  prose: bool,
+  /// Loose even without the blank lines Prettier drops.
+  firm: bool,
 }
 
 impl<'s> Writer<'s, '_> {
   /// Survey the list that just started at `start`, reading ahead to its end once.
   pub(super) fn survey(&self, events: &mut Events<'s>, start: usize) -> Survey {
-    let mut lists = vec![(start, 0)];
+    let mut lists = vec![(start, (0, false))];
     let mut items: Vec<(usize, bool)> = Vec::new();
     let mut open_lists = vec![(0usize, 0usize)];
     let mut open_items: Vec<Item> = Vec::new();
@@ -69,18 +76,24 @@ impl<'s> Writer<'s, '_> {
           if direct && let Some(item) = open_items.last_mut() {
             if (block || !item.inline) && gap(item.last, start) {
               items[item.slot].1 = true;
+              item.firm |= !matches!(tag, Tag::List(_)) || item.prose;
             }
             if block || !item.inline {
               item.inline = !block;
+              item.prose =
+                !block || matches!(tag, Tag::Paragraph | Tag::CodeBlock(_) | Tag::HtmlBlock);
             }
           }
           match tag {
             Tag::List(_) => {
               open_lists.push((lists.len(), depth));
-              lists.push((start, 0));
+              lists.push((start, (0, false)));
             }
             Tag::Item => {
-              open_items.push(Item { slot: items.len(), base: depth, last: None, inline: false });
+              let slot = items.len();
+              let item =
+                Item { slot, base: depth, last: None, inline: false, prose: false, firm: false };
+              open_items.push(item);
               items.push((start, false));
             }
             _ => {}
@@ -95,12 +108,17 @@ impl<'s> Writer<'s, '_> {
               Some((Event::Start(Tag::Item), next)) => Some(next.start),
               _ => None,
             };
-            if next.is_some_and(|next| gap(item.last, next)) {
+            let apart = next.is_some_and(|next| gap(item.last, next));
+            if apart {
               items[item.slot].1 = true;
+            }
+            if let Some(&(list, _)) = open_lists.last() {
+              let spaced = items[item.slot].1 && next.is_some();
+              lists[list].1.1 |= apart || item.firm || spaced;
             }
           } else if open_lists.last().is_some_and(|&(_, base)| base == depth) {
             let (slot, _) = open_lists.pop().expect("a list is open");
-            lists[slot].1 = least(events, index);
+            lists[slot].1.0 = least(events, index);
             if open_lists.is_empty() {
               break;
             }
@@ -116,8 +134,10 @@ impl<'s> Writer<'s, '_> {
             if !item.inline {
               if gap(item.last, start) {
                 items[item.slot].1 = true;
+                item.firm = true;
               }
               item.inline = true;
+              item.prose = true;
             }
             item.last = Some(end);
           }

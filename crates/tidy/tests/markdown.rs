@@ -86,6 +86,22 @@ fn spreads_loose_items_like_prettier() {
 }
 
 #[test]
+fn joins_nested_lists_like_prettier() {
+  let cases = [
+    ("- a\n\n  - b\n\n  1. c\n", "- a\n\n  - b\n  1. c\n"),
+    ("- a\n  - b\n\n  1. c\n- d\n", "- a\n  - b\n  1. c\n\n- d\n"),
+    ("- a\n\n  > q\n\n  - b\n", "- a\n\n  > q\n  - b\n"),
+  ];
+  for (source, expected) in cases {
+    assert_eq!(prettier(source), expected, "{source}");
+  }
+  for source in ["- a\n\n  ```\n  x\n  ```\n\n  - b\n", "- a\n\n  <div>\n\n  - b\n"] {
+    assert_eq!(prettier(source), source, "{source}");
+  }
+  assert_eq!(prettier("- a\n  > q\n\n  - b\n"), "- a\n\n  > q\n\n  - b\n");
+}
+
+#[test]
 fn chooses_emphasis_delimiters() {
   assert_eq!(prettier("*a* and __b__\n"), "_a_ and **b**\n");
   assert_eq!(prettier("a*b*c\n"), "a*b*c\n");

@@ -89,6 +89,7 @@ pub(crate) fn format(
     lazy: false,
     bare: false,
     stray: false,
+    previous: None,
     surveyed: Survey::default(),
     raw: None,
   };
@@ -218,6 +219,9 @@ struct Writer<'s, 'o> {
   /// The last line written is a lazy Liquid line, which Prettier reads as a block after the
   /// container, so the block after it stays beside it.
   stray: bool,
+  /// The depth of the last block that ended, and whether it was a paragraph, code, or HTML, after
+  /// which a nested list keeps its blank line.
+  previous: Option<(usize, bool)>,
   /// What the lists ahead need to know, surveyed at the start of each top-level list.
   surveyed: Survey,
   /// Where the rest of a paragraph starts that is copied as written, up to its first block event.
@@ -273,6 +277,7 @@ impl<'s> Writer<'s, '_> {
         let liquid = tag == TagEnd::Paragraph && self.ends_liquid(range.end);
         let block = liquid::ends_block(&tag);
         let list = matches!(tag, TagEnd::List(_));
+        let prose = matches!(tag, TagEnd::Paragraph | TagEnd::CodeBlock | TagEnd::HtmlBlock);
         if matches!(tag, TagEnd::BlockQuote(_) | TagEnd::Item | TagEnd::FootnoteDefinition) {
           self.flush(range.end);
         }
@@ -282,6 +287,7 @@ impl<'s> Writer<'s, '_> {
         }
         if block {
           self.cursor = Some(range.end);
+          self.previous = Some((self.containers.len(), prose));
         }
         self.joins = joins.then_some(self.containers.len());
         self.liquid = liquid.then_some(self.containers.len());
@@ -351,6 +357,7 @@ impl<'s> Writer<'s, '_> {
       }
       Event::Rule => {
         self.joins = None;
+        self.previous = Some((self.containers.len(), false));
         if self.verbatim(range.start, &range) {
           return;
         }
@@ -464,14 +471,18 @@ impl<'s> Writer<'s, '_> {
           }
           _ => 0,
         };
+        let prose = self.previous == Some((self.containers.len(), true));
+        if self.gap == Gap::Source && !prose && self.lists.last().is_some_and(|list| list.firm) {
+          self.gap = Gap::Line;
+        }
         self.settle(range.start, false);
         self.block(range.start);
         self.adjacent = None;
-        let least = match self.surveyed.list(range.start) {
-          Some(least) => least,
+        let (least, firm) = match self.surveyed.list(range.start) {
+          Some(facts) => facts,
           None => {
             self.surveyed = self.survey(events, range.start);
-            self.surveyed.list(range.start).unwrap_or(0)
+            self.surveyed.list(range.start).unwrap_or((0, false))
           }
         };
         let items = self.scan(events, ordered);
@@ -486,8 +497,18 @@ impl<'s> Writer<'s, '_> {
           && least == 0
           && (!ordered || aligned(&items));
         let start = first.unwrap_or(1);
-        let list =
-          List { spread: false, items: 0, ordered, nth, start, repeats, aligned, width: 0, least };
+        let list = List {
+          spread: false,
+          items: 0,
+          ordered,
+          nth,
+          start,
+          repeats,
+          aligned,
+          width: 0,
+          least,
+          firm,
+        };
         self.lists.push(list);
       }
       Tag::Item => {
