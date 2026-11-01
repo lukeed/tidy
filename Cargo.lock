@@ -389,6 +389,7 @@ dependencies = [
  "rustc-hash",
  "serde_json",
  "toml",
+ "unicode-ident",
  "unicode-width",
 ]
 

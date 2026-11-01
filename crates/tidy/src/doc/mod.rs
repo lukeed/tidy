@@ -231,6 +231,11 @@ impl<'a> Docs<'a> {
     self.run = self.elements.len() as u32 - 1;
   }
 
+  /// A copy of `text` that lives as long as the stream.
+  pub(crate) fn keep(&self, text: &str) -> &'a str {
+    self.bump.alloc_str(text)
+  }
+
   /// A text this stream keeps.
   pub fn owned(&mut self, text: &str) {
     if text.is_empty() {

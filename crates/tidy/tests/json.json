@@ -1,0 +1,4394 @@
+[
+ {
+  "input": "",
+  "options": {
+   "parser": "json"
+  },
+  "output": ""
+ },
+ {
+  "input": "",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": ""
+ },
+ {
+  "input": "",
+  "options": {
+   "parser": "json5"
+  },
+  "output": ""
+ },
+ {
+  "input": "",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": ""
+ },
+ {
+  "input": " \n",
+  "options": {
+   "parser": "json"
+  },
+  "output": ""
+ },
+ {
+  "input": " \n",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": ""
+ },
+ {
+  "input": " \n",
+  "options": {
+   "parser": "json5"
+  },
+  "output": ""
+ },
+ {
+  "input": " \n",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": ""
+ },
+ {
+  "input": "// c",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "// c",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "// c\n"
+ },
+ {
+  "input": "// c",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "// c",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "/* c */",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "/* c */",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "/* c */\n"
+ },
+ {
+  "input": "/* c */",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "/* c */",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "// a\n/* b */\n",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "// a\n/* b */\n",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "// a\n/* b */\n"
+ },
+ {
+  "input": "// a\n/* b */\n",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "// a\n/* b */\n",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "\n\n// a\n\n// b\n\n",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "\n\n// a\n\n// b\n\n",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "// a\n// b\n"
+ },
+ {
+  "input": "\n\n// a\n\n// b\n\n",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "\n\n// a\n\n// b\n\n",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "1",
+  "options": {
+   "parser": "json"
+  },
+  "output": "1\n"
+ },
+ {
+  "input": "1",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "1\n"
+ },
+ {
+  "input": "1",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "1\n"
+ },
+ {
+  "input": "1",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "1\n"
+ },
+ {
+  "input": "-1",
+  "options": {
+   "parser": "json"
+  },
+  "output": "-1\n"
+ },
+ {
+  "input": "-1",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "-1\n"
+ },
+ {
+  "input": "-1",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "-1\n"
+ },
+ {
+  "input": "-1",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "-1\n"
+ },
+ {
+  "input": "+1",
+  "options": {
+   "parser": "json"
+  },
+  "output": "+1\n"
+ },
+ {
+  "input": "+1",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "+1\n"
+ },
+ {
+  "input": "+1",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "+1\n"
+ },
+ {
+  "input": "+1",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "1\n"
+ },
+ {
+  "input": "- 1",
+  "options": {
+   "parser": "json"
+  },
+  "output": "-1\n"
+ },
+ {
+  "input": "- 1",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "-1\n"
+ },
+ {
+  "input": "- 1",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "-1\n"
+ },
+ {
+  "input": "- 1",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "-1\n"
+ },
+ {
+  "input": "-/* c */1",
+  "options": {
+   "parser": "json"
+  },
+  "output": "-(/* c */ 1)\n"
+ },
+ {
+  "input": "-/* c */1",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "-(/* c */ 1)\n"
+ },
+ {
+  "input": "-/* c */1",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "-(/* c */ 1)\n"
+ },
+ {
+  "input": "-/* c */1",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "+Infinity",
+  "options": {
+   "parser": "json"
+  },
+  "output": "+Infinity\n"
+ },
+ {
+  "input": "+Infinity",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "+Infinity\n"
+ },
+ {
+  "input": "+Infinity",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "+Infinity\n"
+ },
+ {
+  "input": "+Infinity",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "Infinity\n"
+ },
+ {
+  "input": "-NaN",
+  "options": {
+   "parser": "json"
+  },
+  "output": "-NaN\n"
+ },
+ {
+  "input": "-NaN",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "-NaN\n"
+ },
+ {
+  "input": "-NaN",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "-NaN\n"
+ },
+ {
+  "input": "-NaN",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "-NaN\n"
+ },
+ {
+  "input": "undefined",
+  "options": {
+   "parser": "json"
+  },
+  "output": "undefined\n"
+ },
+ {
+  "input": "undefined",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "undefined\n"
+ },
+ {
+  "input": "undefined",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "undefined\n"
+ },
+ {
+  "input": "undefined",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "undefined\n"
+ },
+ {
+  "input": "Infinity",
+  "options": {
+   "parser": "json"
+  },
+  "output": "Infinity\n"
+ },
+ {
+  "input": "Infinity",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "Infinity\n"
+ },
+ {
+  "input": "Infinity",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "Infinity\n"
+ },
+ {
+  "input": "Infinity",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "Infinity\n"
+ },
+ {
+  "input": "NaN",
+  "options": {
+   "parser": "json"
+  },
+  "output": "NaN\n"
+ },
+ {
+  "input": "NaN",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "NaN\n"
+ },
+ {
+  "input": "NaN",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "NaN\n"
+ },
+ {
+  "input": "NaN",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "NaN\n"
+ },
+ {
+  "input": "null",
+  "options": {
+   "parser": "json"
+  },
+  "output": "null\n"
+ },
+ {
+  "input": "null",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "null\n"
+ },
+ {
+  "input": "null",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "null\n"
+ },
+ {
+  "input": "null",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "null\n"
+ },
+ {
+  "input": "true",
+  "options": {
+   "parser": "json"
+  },
+  "output": "true\n"
+ },
+ {
+  "input": "true",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "true\n"
+ },
+ {
+  "input": "true",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "true\n"
+ },
+ {
+  "input": "true",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "true\n"
+ },
+ {
+  "input": ".5",
+  "options": {
+   "parser": "json"
+  },
+  "output": "0.5\n"
+ },
+ {
+  "input": ".5",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "0.5\n"
+ },
+ {
+  "input": ".5",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "0.5\n"
+ },
+ {
+  "input": ".5",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": ".5\n"
+ },
+ {
+  "input": "5.",
+  "options": {
+   "parser": "json"
+  },
+  "output": "5\n"
+ },
+ {
+  "input": "5.",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "5\n"
+ },
+ {
+  "input": "5.",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "5\n"
+ },
+ {
+  "input": "5.",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "5.\n"
+ },
+ {
+  "input": "1.0",
+  "options": {
+   "parser": "json"
+  },
+  "output": "1.0\n"
+ },
+ {
+  "input": "1.0",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "1.0\n"
+ },
+ {
+  "input": "1.0",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "1.0\n"
+ },
+ {
+  "input": "1.0",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "1.0\n"
+ },
+ {
+  "input": "1.50",
+  "options": {
+   "parser": "json"
+  },
+  "output": "1.5\n"
+ },
+ {
+  "input": "1.50",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "1.5\n"
+ },
+ {
+  "input": "1.50",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "1.5\n"
+ },
+ {
+  "input": "1.50",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "1.50\n"
+ },
+ {
+  "input": "0XFF",
+  "options": {
+   "parser": "json"
+  },
+  "output": "0xff\n"
+ },
+ {
+  "input": "0XFF",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "0xff\n"
+ },
+ {
+  "input": "0XFF",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "0xff\n"
+ },
+ {
+  "input": "0XFF",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "0XFF\n"
+ },
+ {
+  "input": "0b11",
+  "options": {
+   "parser": "json"
+  },
+  "output": "0b11\n"
+ },
+ {
+  "input": "0b11",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "0b11\n"
+ },
+ {
+  "input": "0b11",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "0b11\n"
+ },
+ {
+  "input": "0b11",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "0b11\n"
+ },
+ {
+  "input": "0o17",
+  "options": {
+   "parser": "json"
+  },
+  "output": "0o17\n"
+ },
+ {
+  "input": "0o17",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "0o17\n"
+ },
+ {
+  "input": "0o17",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "0o17\n"
+ },
+ {
+  "input": "0o17",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "0o17\n"
+ },
+ {
+  "input": "017",
+  "options": {
+   "parser": "json"
+  },
+  "output": "017\n"
+ },
+ {
+  "input": "017",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "017\n"
+ },
+ {
+  "input": "017",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "017\n"
+ },
+ {
+  "input": "017",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "017\n"
+ },
+ {
+  "input": "08.5",
+  "options": {
+   "parser": "json"
+  },
+  "output": "08.5\n"
+ },
+ {
+  "input": "08.5",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "08.5\n"
+ },
+ {
+  "input": "08.5",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "08.5\n"
+ },
+ {
+  "input": "08.5",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "08.5\n"
+ },
+ {
+  "input": "1_000",
+  "options": {
+   "parser": "json"
+  },
+  "output": "1_000\n"
+ },
+ {
+  "input": "1_000",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "1_000\n"
+ },
+ {
+  "input": "1_000",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "1_000\n"
+ },
+ {
+  "input": "1_000",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "1_000\n"
+ },
+ {
+  "input": "1e+05",
+  "options": {
+   "parser": "json"
+  },
+  "output": "1e5\n"
+ },
+ {
+  "input": "1e+05",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "1e5\n"
+ },
+ {
+  "input": "1e+05",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "1e5\n"
+ },
+ {
+  "input": "1e+05",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "1e+05\n"
+ },
+ {
+  "input": "1E-05",
+  "options": {
+   "parser": "json"
+  },
+  "output": "1e-5\n"
+ },
+ {
+  "input": "1E-05",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "1e-5\n"
+ },
+ {
+  "input": "1E-05",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "1e-5\n"
+ },
+ {
+  "input": "1E-05",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "1E-05\n"
+ },
+ {
+  "input": "1e00",
+  "options": {
+   "parser": "json"
+  },
+  "output": "1\n"
+ },
+ {
+  "input": "1e00",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "1\n"
+ },
+ {
+  "input": "1e00",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "1\n"
+ },
+ {
+  "input": "1e00",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "1e00\n"
+ },
+ {
+  "input": "10n",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "10n",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "10n",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "10n",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "0_1",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "0_1",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "0_1",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "0_1",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "1__0",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "1__0",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "1__0",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "1__0",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "'a\"b'",
+  "options": {
+   "parser": "json"
+  },
+  "output": "\"a\\\"b\"\n"
+ },
+ {
+  "input": "'a\"b'",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "\"a\\\"b\"\n"
+ },
+ {
+  "input": "'a\"b'",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "'a\"b'\n"
+ },
+ {
+  "input": "'a\"b'",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "\"a\\\"b\"\n"
+ },
+ {
+  "input": "\"a'b\"",
+  "options": {
+   "parser": "json"
+  },
+  "output": "\"a'b\"\n"
+ },
+ {
+  "input": "\"a'b\"",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "\"a'b\"\n"
+ },
+ {
+  "input": "\"a'b\"",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "\"a'b\"\n"
+ },
+ {
+  "input": "\"a'b\"",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "\"a'b\"\n"
+ },
+ {
+  "input": "'a\\'b'",
+  "options": {
+   "parser": "json"
+  },
+  "output": "\"a'b\"\n"
+ },
+ {
+  "input": "'a\\'b'",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "\"a'b\"\n"
+ },
+ {
+  "input": "'a\\'b'",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "\"a'b\"\n"
+ },
+ {
+  "input": "'a\\'b'",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "\"a'b\"\n"
+ },
+ {
+  "input": "\"\\u0041\"",
+  "options": {
+   "parser": "json"
+  },
+  "output": "\"\\u0041\"\n"
+ },
+ {
+  "input": "\"\\u0041\"",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "\"\\u0041\"\n"
+ },
+ {
+  "input": "\"\\u0041\"",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "\"\\u0041\"\n"
+ },
+ {
+  "input": "\"\\u0041\"",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "\"\\u0041\"\n"
+ },
+ {
+  "input": "'line\\\ncontinued'",
+  "options": {
+   "parser": "json"
+  },
+  "output": "\"line\\\ncontinued\"\n"
+ },
+ {
+  "input": "'line\\\ncontinued'",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "\"line\\\ncontinued\"\n"
+ },
+ {
+  "input": "'line\\\ncontinued'",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "\"line\\\ncontinued\"\n"
+ },
+ {
+  "input": "'line\\\ncontinued'",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "\"line\\\ncontinued\"\n"
+ },
+ {
+  "input": "\" \"",
+  "options": {
+   "parser": "json"
+  },
+  "output": "\" \"\n"
+ },
+ {
+  "input": "\" \"",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "\" \"\n"
+ },
+ {
+  "input": "\" \"",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "\" \"\n"
+ },
+ {
+  "input": "\" \"",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "\" \"\n"
+ },
+ {
+  "input": "`tpl`",
+  "options": {
+   "parser": "json"
+  },
+  "output": "`tpl`\n"
+ },
+ {
+  "input": "`tpl`",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "`tpl`\n"
+ },
+ {
+  "input": "`tpl`",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "`tpl`\n"
+ },
+ {
+  "input": "`tpl`",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "\"tpl\"\n"
+ },
+ {
+  "input": "`a\nb`",
+  "options": {
+   "parser": "json"
+  },
+  "output": "`a\nb`\n"
+ },
+ {
+  "input": "`a\nb`",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "`a\nb`\n"
+ },
+ {
+  "input": "`a\nb`",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "`a\nb`\n"
+ },
+ {
+  "input": "`a\nb`",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "\"a\\nb\"\n"
+ },
+ {
+  "input": "`${a}`",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "`${a}`",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "`${a}`",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "`${a}`",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "`\\u{41}\\x41\\n`",
+  "options": {
+   "parser": "json"
+  },
+  "output": "`\\u{41}\\x41\\n`\n"
+ },
+ {
+  "input": "`\\u{41}\\x41\\n`",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "`\\u{41}\\x41\\n`\n"
+ },
+ {
+  "input": "`\\u{41}\\x41\\n`",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "`\\u{41}\\x41\\n`\n"
+ },
+ {
+  "input": "`\\u{41}\\x41\\n`",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "\"AA\\n\"\n"
+ },
+ {
+  "input": "[]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[]\n"
+ },
+ {
+  "input": "[]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[]\n"
+ },
+ {
+  "input": "[]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[]\n"
+ },
+ {
+  "input": "[]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[]\n"
+ },
+ {
+  "input": "[ ]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[]\n"
+ },
+ {
+  "input": "[ ]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[]\n"
+ },
+ {
+  "input": "[ ]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[]\n"
+ },
+ {
+  "input": "[ ]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[]\n"
+ },
+ {
+  "input": "[1,]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[1]\n"
+ },
+ {
+  "input": "[1,]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[1]\n"
+ },
+ {
+  "input": "[1,]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[1]\n"
+ },
+ {
+  "input": "[1,]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[\n  1\n]\n"
+ },
+ {
+  "input": "[,]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[,]\n"
+ },
+ {
+  "input": "[,]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[,]\n"
+ },
+ {
+  "input": "[,]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[,]\n"
+ },
+ {
+  "input": "[,]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[\n  null\n]\n"
+ },
+ {
+  "input": "[1,,2]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[1, , 2]\n"
+ },
+ {
+  "input": "[1,,2]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[1, , 2]\n"
+ },
+ {
+  "input": "[1,,2]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[1, , 2]\n"
+ },
+ {
+  "input": "[1,,2]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[\n  1,\n  null,\n  2\n]\n"
+ },
+ {
+  "input": "[1,,]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[1, ,]\n"
+ },
+ {
+  "input": "[1,,]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[1, ,]\n"
+ },
+ {
+  "input": "[1,,]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[1, ,]\n"
+ },
+ {
+  "input": "[1,,]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[\n  1,\n  null\n]\n"
+ },
+ {
+  "input": "[,1]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[, 1]\n"
+ },
+ {
+  "input": "[,1]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[, 1]\n"
+ },
+ {
+  "input": "[,1]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[, 1]\n"
+ },
+ {
+  "input": "[,1]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[\n  null,\n  1\n]\n"
+ },
+ {
+  "input": "{}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{}\n"
+ },
+ {
+  "input": "{}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{}\n"
+ },
+ {
+  "input": "{}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{}\n"
+ },
+ {
+  "input": "{}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{}\n"
+ },
+ {
+  "input": "{ }",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{}\n"
+ },
+ {
+  "input": "{ }",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{}\n"
+ },
+ {
+  "input": "{ }",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{}\n"
+ },
+ {
+  "input": "{ }",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{}\n"
+ },
+ {
+  "input": "{a:1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": 1 }\n"
+ },
+ {
+  "input": "{a:1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": 1 }\n"
+ },
+ {
+  "input": "{a:1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: 1 }\n"
+ },
+ {
+  "input": "{a:1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a\": 1\n}\n"
+ },
+ {
+  "input": "{'a':1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": 1 }\n"
+ },
+ {
+  "input": "{'a':1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": 1 }\n"
+ },
+ {
+  "input": "{'a':1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: 1 }\n"
+ },
+ {
+  "input": "{'a':1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a\": 1\n}\n"
+ },
+ {
+  "input": "{\"a\":1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": 1 }\n"
+ },
+ {
+  "input": "{\"a\":1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": 1 }\n"
+ },
+ {
+  "input": "{\"a\":1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: 1 }\n"
+ },
+ {
+  "input": "{\"a\":1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a\": 1\n}\n"
+ },
+ {
+  "input": "{1:1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"1\": 1 }\n"
+ },
+ {
+  "input": "{1:1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"1\": 1 }\n"
+ },
+ {
+  "input": "{1:1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ 1: 1 }\n"
+ },
+ {
+  "input": "{1:1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"1\": 1\n}\n"
+ },
+ {
+  "input": "{1.0:1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ 1.0: 1 }\n"
+ },
+ {
+  "input": "{1.0:1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ 1.0: 1 }\n"
+ },
+ {
+  "input": "{1.0:1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ 1.0: 1 }\n"
+ },
+ {
+  "input": "{1.0:1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  1.0: 1\n}\n"
+ },
+ {
+  "input": "{1.50:2}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"1.5\": 2 }\n"
+ },
+ {
+  "input": "{1.50:2}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"1.5\": 2 }\n"
+ },
+ {
+  "input": "{1.50:2}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ 1.5: 2 }\n"
+ },
+ {
+  "input": "{1.50:2}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  1.50: 2\n}\n"
+ },
+ {
+  "input": "{0x10:1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ 0x10: 1 }\n"
+ },
+ {
+  "input": "{0x10:1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ 0x10: 1 }\n"
+ },
+ {
+  "input": "{0x10:1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ 0x10: 1 }\n"
+ },
+ {
+  "input": "{0x10:1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  0x10: 1\n}\n"
+ },
+ {
+  "input": "{1e3:1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ 1e3: 1 }\n"
+ },
+ {
+  "input": "{1e3:1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ 1e3: 1 }\n"
+ },
+ {
+  "input": "{1e3:1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ 1e3: 1 }\n"
+ },
+ {
+  "input": "{1e3:1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  1e3: 1\n}\n"
+ },
+ {
+  "input": "{999999999999999999999:1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ 999999999999999999999: 1 }\n"
+ },
+ {
+  "input": "{999999999999999999999:1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ 999999999999999999999: 1 }\n"
+ },
+ {
+  "input": "{999999999999999999999:1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ 999999999999999999999: 1 }\n"
+ },
+ {
+  "input": "{999999999999999999999:1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  999999999999999999999: 1\n}\n"
+ },
+ {
+  "input": "{a:1,}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": 1 }\n"
+ },
+ {
+  "input": "{a:1,}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": 1 }\n"
+ },
+ {
+  "input": "{a:1,}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: 1 }\n"
+ },
+ {
+  "input": "{a:1,}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a\": 1\n}\n"
+ },
+ {
+  "input": "{a:1,b:2}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": 1, \"b\": 2 }\n"
+ },
+ {
+  "input": "{a:1,b:2}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": 1, \"b\": 2 }\n"
+ },
+ {
+  "input": "{a:1,b:2}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: 1, b: 2 }\n"
+ },
+ {
+  "input": "{a:1,b:2}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a\": 1,\n  \"b\": 2\n}\n"
+ },
+ {
+  "input": "{\n\"a\":1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  \"a\": 1\n}\n"
+ },
+ {
+  "input": "{\n\"a\":1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  \"a\": 1,\n}\n"
+ },
+ {
+  "input": "{\n\"a\":1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  a: 1,\n}\n"
+ },
+ {
+  "input": "{\n\"a\":1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a\": 1\n}\n"
+ },
+ {
+  "input": "{\"a\":1,\n\n\"b\":2}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  \"a\": 1,\n\n  \"b\": 2\n}\n"
+ },
+ {
+  "input": "{\"a\":1,\n\n\"b\":2}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  \"a\": 1,\n\n  \"b\": 2,\n}\n"
+ },
+ {
+  "input": "{\"a\":1,\n\n\"b\":2}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  a: 1,\n\n  b: 2,\n}\n"
+ },
+ {
+  "input": "{\"a\":1,\n\n\"b\":2}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a\": 1,\n  \"b\": 2\n}\n"
+ },
+ {
+  "input": "{\"a\":{\"b\":{}}}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": { \"b\": {} } }\n"
+ },
+ {
+  "input": "{\"a\":{\"b\":{}}}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": { \"b\": {} } }\n"
+ },
+ {
+  "input": "{\"a\":{\"b\":{}}}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: { b: {} } }\n"
+ },
+ {
+  "input": "{\"a\":{\"b\":{}}}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a\": {\n    \"b\": {}\n  }\n}\n"
+ },
+ {
+  "input": "[[1,2],[3,4]]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[\n  [1, 2],\n  [3, 4]\n]\n"
+ },
+ {
+  "input": "[[1,2],[3,4]]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[\n  [1, 2],\n  [3, 4],\n]\n"
+ },
+ {
+  "input": "[[1,2],[3,4]]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[\n  [1, 2],\n  [3, 4],\n]\n"
+ },
+ {
+  "input": "[[1,2],[3,4]]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[\n  [\n    1,\n    2\n  ],\n  [\n    3,\n    4\n  ]\n]\n"
+ },
+ {
+  "input": "[{\"a\":1,\"b\":2},{\"a\":1,\"b\":2}]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[\n  { \"a\": 1, \"b\": 2 },\n  { \"a\": 1, \"b\": 2 }\n]\n"
+ },
+ {
+  "input": "[{\"a\":1,\"b\":2},{\"a\":1,\"b\":2}]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[\n  { \"a\": 1, \"b\": 2 },\n  { \"a\": 1, \"b\": 2 },\n]\n"
+ },
+ {
+  "input": "[{\"a\":1,\"b\":2},{\"a\":1,\"b\":2}]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[\n  { a: 1, b: 2 },\n  { a: 1, b: 2 },\n]\n"
+ },
+ {
+  "input": "[{\"a\":1,\"b\":2},{\"a\":1,\"b\":2}]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[\n  {\n    \"a\": 1,\n    \"b\": 2\n  },\n  {\n    \"a\": 1,\n    \"b\": 2\n  }\n]\n"
+ },
+ {
+  "input": "[[1],[2]]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[[1], [2]]\n"
+ },
+ {
+  "input": "[[1],[2]]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[[1], [2]]\n"
+ },
+ {
+  "input": "[[1],[2]]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[[1], [2]]\n"
+ },
+ {
+  "input": "[[1],[2]]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[\n  [\n    1\n  ],\n  [\n    2\n  ]\n]\n"
+ },
+ {
+  "input": "[{\"a\":1},[1,2]]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[{ \"a\": 1 }, [1, 2]]\n"
+ },
+ {
+  "input": "[{\"a\":1},[1,2]]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[{ \"a\": 1 }, [1, 2]]\n"
+ },
+ {
+  "input": "[{\"a\":1},[1,2]]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[{ a: 1 }, [1, 2]]\n"
+ },
+ {
+  "input": "[{\"a\":1},[1,2]]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[\n  {\n    \"a\": 1\n  },\n  [\n    1,\n    2\n  ]\n]\n"
+ },
+ {
+  "input": "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[\n  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,\n  23, 24, 25, 26, 27, 28, 29, 30\n]\n"
+ },
+ {
+  "input": "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[\n  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,\n  23, 24, 25, 26, 27, 28, 29, 30,\n]\n"
+ },
+ {
+  "input": "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[\n  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,\n  23, 24, 25, 26, 27, 28, 29, 30,\n]\n"
+ },
+ {
+  "input": "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[\n  1,\n  2,\n  3,\n  4,\n  5,\n  6,\n  7,\n  8,\n  9,\n  10,\n  11,\n  12,\n  13,\n  14,\n  15,\n  16,\n  17,\n  18,\n  19,\n  20,\n  21,\n  22,\n  23,\n  24,\n  25,\n  26,\n  27,\n  28,\n  29,\n  30\n]\n"
+ },
+ {
+  "input": "[-1, +2, 3.5, -4e10, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[\n  -1, +2, 3.5, -4e10, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,\n  21, 22, 23, 24, 25, 26, 27\n]\n"
+ },
+ {
+  "input": "[-1, +2, 3.5, -4e10, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[\n  -1, +2, 3.5, -4e10, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,\n  21, 22, 23, 24, 25, 26, 27,\n]\n"
+ },
+ {
+  "input": "[-1, +2, 3.5, -4e10, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[\n  -1, +2, 3.5, -4e10, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,\n  21, 22, 23, 24, 25, 26, 27,\n]\n"
+ },
+ {
+  "input": "[-1, +2, 3.5, -4e10, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[\n  -1,\n  2,\n  3.5,\n  -4e10,\n  5,\n  6,\n  7,\n  8,\n  9,\n  10,\n  11,\n  12,\n  13,\n  14,\n  15,\n  16,\n  17,\n  18,\n  19,\n  20,\n  21,\n  22,\n  23,\n  24,\n  25,\n  26,\n  27\n]\n"
+ },
+ {
+  "input": "[1, 2,\n\n3, 4]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[\n  1, 2,\n\n  3, 4\n]\n"
+ },
+ {
+  "input": "[1, 2,\n\n3, 4]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[\n  1, 2,\n\n  3, 4,\n]\n"
+ },
+ {
+  "input": "[1, 2,\n\n3, 4]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[\n  1, 2,\n\n  3, 4,\n]\n"
+ },
+ {
+  "input": "[1, 2,\n\n3, 4]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[\n  1,\n  2,\n  3,\n  4\n]\n"
+ },
+ {
+  "input": "[1, // a\n2]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[\n  1, // a\n  2\n]\n"
+ },
+ {
+  "input": "[1, // a\n2]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[\n  1, // a\n  2,\n]\n"
+ },
+ {
+  "input": "[1, // a\n2]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[\n  1, // a\n  2,\n]\n"
+ },
+ {
+  "input": "[1, // a\n2]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "[1, 2 // a\n]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[\n  1,\n  2 // a\n]\n"
+ },
+ {
+  "input": "[1, 2 // a\n]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[\n  1,\n  2, // a\n]\n"
+ },
+ {
+  "input": "[1, 2 // a\n]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[\n  1,\n  2, // a\n]\n"
+ },
+ {
+  "input": "[1, 2 // a\n]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "[1, /* a */ 2]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[1, /* a */ 2]\n"
+ },
+ {
+  "input": "[1, /* a */ 2]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[1, /* a */ 2]\n"
+ },
+ {
+  "input": "[1, /* a */ 2]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[1, /* a */ 2]\n"
+ },
+ {
+  "input": "[1, /* a */ 2]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "[// a\n1]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[\n  // a\n  1\n]\n"
+ },
+ {
+  "input": "[// a\n1]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[\n  // a\n  1,\n]\n"
+ },
+ {
+  "input": "[// a\n1]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[\n  // a\n  1,\n]\n"
+ },
+ {
+  "input": "[// a\n1]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "[\n// a\n]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[\n  // a\n]\n"
+ },
+ {
+  "input": "[\n// a\n]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[\n  // a\n]\n"
+ },
+ {
+  "input": "[\n// a\n]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[\n  // a\n]\n"
+ },
+ {
+  "input": "[\n// a\n]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "[/* a */]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[/* a */]\n"
+ },
+ {
+  "input": "[/* a */]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[/* a */]\n"
+ },
+ {
+  "input": "[/* a */]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[/* a */]\n"
+ },
+ {
+  "input": "[/* a */]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "[, // a\n]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[\n  ,// a\n]\n"
+ },
+ {
+  "input": "[, // a\n]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[\n  ,// a\n]\n"
+ },
+ {
+  "input": "[, // a\n]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[\n  ,// a\n]\n"
+ },
+ {
+  "input": "[, // a\n]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "[\"aaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbb\", \"cccccccccccccccccccccc\", \"ddddddddddddd\"]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[\n  \"aaaaaaaaaaaaaaaaaaaa\",\n  \"bbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"cccccccccccccccccccccc\",\n  \"ddddddddddddd\"\n]\n"
+ },
+ {
+  "input": "[\"aaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbb\", \"cccccccccccccccccccccc\", \"ddddddddddddd\"]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[\n  \"aaaaaaaaaaaaaaaaaaaa\",\n  \"bbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"cccccccccccccccccccccc\",\n  \"ddddddddddddd\",\n]\n"
+ },
+ {
+  "input": "[\"aaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbb\", \"cccccccccccccccccccccc\", \"ddddddddddddd\"]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[\n  \"aaaaaaaaaaaaaaaaaaaa\",\n  \"bbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"cccccccccccccccccccccc\",\n  \"ddddddddddddd\",\n]\n"
+ },
+ {
+  "input": "[\"aaaaaaaaaaaaaaaaaaaa\", \"bbbbbbbbbbbbbbbbbbbbbbbb\", \"cccccccccccccccccccccc\", \"ddddddddddddd\"]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[\n  \"aaaaaaaaaaaaaaaaaaaa\",\n  \"bbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"cccccccccccccccccccccc\",\n  \"ddddddddddddd\"\n]\n"
+ },
+ {
+  "input": "[\"a\",\n\n\"b\"]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[\"a\", \"b\"]\n"
+ },
+ {
+  "input": "[\"a\",\n\n\"b\"]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[\"a\", \"b\"]\n"
+ },
+ {
+  "input": "[\"a\",\n\n\"b\"]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[\"a\", \"b\"]\n"
+ },
+ {
+  "input": "[\"a\",\n\n\"b\"]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[\n  \"a\",\n  \"b\"\n]\n"
+ },
+ {
+  "input": "[\"a\", // c\n\n\"b\"]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[\n  \"a\", // c\n\n  \"b\"\n]\n"
+ },
+ {
+  "input": "[\"a\", // c\n\n\"b\"]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[\n  \"a\", // c\n\n  \"b\",\n]\n"
+ },
+ {
+  "input": "[\"a\", // c\n\n\"b\"]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[\n  \"a\", // c\n\n  \"b\",\n]\n"
+ },
+ {
+  "input": "[\"a\", // c\n\n\"b\"]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{// a\n}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  // a\n}\n"
+ },
+ {
+  "input": "{// a\n}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  // a\n}\n"
+ },
+ {
+  "input": "{// a\n}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  // a\n}\n"
+ },
+ {
+  "input": "{// a\n}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{/* a */}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{/* a */}\n"
+ },
+ {
+  "input": "{/* a */}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{/* a */}\n"
+ },
+ {
+  "input": "{/* a */}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{/* a */}\n"
+ },
+ {
+  "input": "{/* a */}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\n// a\n// b\n}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  // a\n  // b\n}\n"
+ },
+ {
+  "input": "{\n// a\n// b\n}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  // a\n  // b\n}\n"
+ },
+ {
+  "input": "{\n// a\n// b\n}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  // a\n  // b\n}\n"
+ },
+ {
+  "input": "{\n// a\n// b\n}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": // c\n1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  // c\n  \"a\": 1\n}\n"
+ },
+ {
+  "input": "{\"a\": // c\n1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  // c\n  \"a\": 1,\n}\n"
+ },
+ {
+  "input": "{\"a\": // c\n1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  // c\n  a: 1,\n}\n"
+ },
+ {
+  "input": "{\"a\": // c\n1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": /* c */ 1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": /* c */ 1 }\n"
+ },
+ {
+  "input": "{\"a\": /* c */ 1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": /* c */ 1 }\n"
+ },
+ {
+  "input": "{\"a\": /* c */ 1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: /* c */ 1 }\n"
+ },
+ {
+  "input": "{\"a\": /* c */ 1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\" /* c */: 1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\" /* c */: 1 }\n"
+ },
+ {
+  "input": "{\"a\" /* c */: 1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\" /* c */: 1 }\n"
+ },
+ {
+  "input": "{\"a\" /* c */: 1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a /* c */: 1 }\n"
+ },
+ {
+  "input": "{\"a\" /* c */: 1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\":\n// c\n1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  \"a\":\n    // c\n    1\n}\n"
+ },
+ {
+  "input": "{\"a\":\n// c\n1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  \"a\":\n    // c\n    1,\n}\n"
+ },
+ {
+  "input": "{\"a\":\n// c\n1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  a:\n    // c\n    1,\n}\n"
+ },
+ {
+  "input": "{\"a\":\n// c\n1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\":\n/**\n * c\n */\n1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  \"a\":\n    /**\n     * c\n     */\n    1\n}\n"
+ },
+ {
+  "input": "{\"a\":\n/**\n * c\n */\n1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  \"a\":\n    /**\n     * c\n     */\n    1,\n}\n"
+ },
+ {
+  "input": "{\"a\":\n/**\n * c\n */\n1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  a:\n    /**\n     * c\n     */\n    1,\n}\n"
+ },
+ {
+  "input": "{\"a\":\n/**\n * c\n */\n1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{/* a */ \"a\": 1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ /* a */ \"a\": 1 }\n"
+ },
+ {
+  "input": "{/* a */ \"a\": 1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ /* a */ \"a\": 1 }\n"
+ },
+ {
+  "input": "{/* a */ \"a\": 1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ /* a */ a: 1 }\n"
+ },
+ {
+  "input": "{/* a */ \"a\": 1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": 1 /* c */, \"b\": 2}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": 1 /* c */, \"b\": 2 }\n"
+ },
+ {
+  "input": "{\"a\": 1 /* c */, \"b\": 2}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": 1 /* c */, \"b\": 2 }\n"
+ },
+ {
+  "input": "{\"a\": 1 /* c */, \"b\": 2}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: 1 /* c */, b: 2 }\n"
+ },
+ {
+  "input": "{\"a\": 1 /* c */, \"b\": 2}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": 1, /* c */ \"b\": 2}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": 1, /* c */ \"b\": 2 }\n"
+ },
+ {
+  "input": "{\"a\": 1, /* c */ \"b\": 2}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": 1, /* c */ \"b\": 2 }\n"
+ },
+ {
+  "input": "{\"a\": 1, /* c */ \"b\": 2}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: 1, /* c */ b: 2 }\n"
+ },
+ {
+  "input": "{\"a\": 1, /* c */ \"b\": 2}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": 1, // c\n\"b\": 2}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  \"a\": 1, // c\n  \"b\": 2\n}\n"
+ },
+ {
+  "input": "{\"a\": 1, // c\n\"b\": 2}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  \"a\": 1, // c\n  \"b\": 2,\n}\n"
+ },
+ {
+  "input": "{\"a\": 1, // c\n\"b\": 2}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  a: 1, // c\n  b: 2,\n}\n"
+ },
+ {
+  "input": "{\"a\": 1, // c\n\"b\": 2}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": 1 // c\n}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  \"a\": 1 // c\n}\n"
+ },
+ {
+  "input": "{\"a\": 1 // c\n}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  \"a\": 1, // c\n}\n"
+ },
+ {
+  "input": "{\"a\": 1 // c\n}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  a: 1, // c\n}\n"
+ },
+ {
+  "input": "{\"a\": 1 // c\n}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": 1\n// c\n}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  \"a\": 1\n  // c\n}\n"
+ },
+ {
+  "input": "{\"a\": 1\n// c\n}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  \"a\": 1,\n  // c\n}\n"
+ },
+ {
+  "input": "{\"a\": 1\n// c\n}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  a: 1,\n  // c\n}\n"
+ },
+ {
+  "input": "{\"a\": 1\n// c\n}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": 1\n\n// c\n}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  \"a\": 1\n\n  // c\n}\n"
+ },
+ {
+  "input": "{\"a\": 1\n\n// c\n}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  \"a\": 1,\n\n  // c\n}\n"
+ },
+ {
+  "input": "{\"a\": 1\n\n// c\n}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  a: 1,\n\n  // c\n}\n"
+ },
+ {
+  "input": "{\"a\": 1\n\n// c\n}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": 1 /* x */ // y\n}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  \"a\": 1 /* x */ // y\n}\n"
+ },
+ {
+  "input": "{\"a\": 1 /* x */ // y\n}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  \"a\": 1 /* x */, // y\n}\n"
+ },
+ {
+  "input": "{\"a\": 1 /* x */ // y\n}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  a: 1 /* x */, // y\n}\n"
+ },
+ {
+  "input": "{\"a\": 1 /* x */ // y\n}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": 1 /* x */ /* y */}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": 1 /* x */ /* y */ }\n"
+ },
+ {
+  "input": "{\"a\": 1 /* x */ /* y */}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": 1 /* x */ /* y */ }\n"
+ },
+ {
+  "input": "{\"a\": 1 /* x */ /* y */}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: 1 /* x */ /* y */ }\n"
+ },
+ {
+  "input": "{\"a\": 1 /* x */ /* y */}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "// head\n{\"a\":1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "// head\n{ \"a\": 1 }\n"
+ },
+ {
+  "input": "// head\n{\"a\":1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "// head\n{ \"a\": 1 }\n"
+ },
+ {
+  "input": "// head\n{\"a\":1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "// head\n{ a: 1 }\n"
+ },
+ {
+  "input": "// head\n{\"a\":1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "// head\n\n{\"a\":1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "// head\n\n{ \"a\": 1 }\n"
+ },
+ {
+  "input": "// head\n\n{\"a\":1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "// head\n\n{ \"a\": 1 }\n"
+ },
+ {
+  "input": "// head\n\n{\"a\":1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "// head\n\n{ a: 1 }\n"
+ },
+ {
+  "input": "// head\n\n{\"a\":1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\":1}\n// tail",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": 1 }\n// tail\n"
+ },
+ {
+  "input": "{\"a\":1}\n// tail",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": 1 }\n// tail\n"
+ },
+ {
+  "input": "{\"a\":1}\n// tail",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: 1 }\n// tail\n"
+ },
+ {
+  "input": "{\"a\":1}\n// tail",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\":1} // tail",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": 1 } // tail\n"
+ },
+ {
+  "input": "{\"a\":1} // tail",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": 1 } // tail\n"
+ },
+ {
+  "input": "{\"a\":1} // tail",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: 1 } // tail\n"
+ },
+ {
+  "input": "{\"a\":1} // tail",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\":1}\n\n// tail",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": 1 }\n\n// tail\n"
+ },
+ {
+  "input": "{\"a\":1}\n\n// tail",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": 1 }\n\n// tail\n"
+ },
+ {
+  "input": "{\"a\":1}\n\n// tail",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: 1 }\n\n// tail\n"
+ },
+ {
+  "input": "{\"a\":1}\n\n// tail",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "/* a */ {\"a\":1} /* b */",
+  "options": {
+   "parser": "json"
+  },
+  "output": "/* a */ { \"a\": 1 } /* b */\n"
+ },
+ {
+  "input": "/* a */ {\"a\":1} /* b */",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "/* a */ { \"a\": 1 } /* b */\n"
+ },
+ {
+  "input": "/* a */ {\"a\":1} /* b */",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "/* a */ { a: 1 } /* b */\n"
+ },
+ {
+  "input": "/* a */ {\"a\":1} /* b */",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "/**\n * doc\n */\n{}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "/**\n * doc\n */\n{}\n"
+ },
+ {
+  "input": "/**\n * doc\n */\n{}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "/**\n * doc\n */\n{}\n"
+ },
+ {
+  "input": "/**\n * doc\n */\n{}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "/**\n * doc\n */\n{}\n"
+ },
+ {
+  "input": "/**\n * doc\n */\n{}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "/*\n  plain\n    block\n*/\n{}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "/*\n  plain\n    block\n*/\n{}\n"
+ },
+ {
+  "input": "/*\n  plain\n    block\n*/\n{}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "/*\n  plain\n    block\n*/\n{}\n"
+ },
+ {
+  "input": "/*\n  plain\n    block\n*/\n{}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "/*\n  plain\n    block\n*/\n{}\n"
+ },
+ {
+  "input": "/*\n  plain\n    block\n*/\n{}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "/**\n * doc  \n * more\n */\n{}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "/**\n * doc  \n * more\n */\n{}\n"
+ },
+ {
+  "input": "/**\n * doc  \n * more\n */\n{}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "/**\n * doc  \n * more\n */\n{}\n"
+ },
+ {
+  "input": "/**\n * doc  \n * more\n */\n{}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "/**\n * doc  \n * more\n */\n{}\n"
+ },
+ {
+  "input": "/**\n * doc  \n * more\n */\n{}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": 1, /**\n * x\n */ \"b\": 2}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  \"a\": 1,\n  /**\n   * x\n   */ \"b\": 2\n}\n"
+ },
+ {
+  "input": "{\"a\": 1, /**\n * x\n */ \"b\": 2}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  \"a\": 1,\n  /**\n   * x\n   */ \"b\": 2,\n}\n"
+ },
+ {
+  "input": "{\"a\": 1, /**\n * x\n */ \"b\": 2}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  a: 1,\n  /**\n   * x\n   */ b: 2,\n}\n"
+ },
+ {
+  "input": "{\"a\": 1, /**\n * x\n */ \"b\": 2}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\n  // prettier-ignore\n  \"a\": [1,   2],\n  \"b\": [1,   2]\n}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  // prettier-ignore\n  \"a\": [1,   2],\n  \"b\": [1, 2]\n}\n"
+ },
+ {
+  "input": "{\n  // prettier-ignore\n  \"a\": [1,   2],\n  \"b\": [1,   2]\n}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  // prettier-ignore\n  \"a\": [1,   2],\n  \"b\": [1, 2],\n}\n"
+ },
+ {
+  "input": "{\n  // prettier-ignore\n  \"a\": [1,   2],\n  \"b\": [1,   2]\n}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  // prettier-ignore\n  \"a\": [1,   2],\n  b: [1, 2],\n}\n"
+ },
+ {
+  "input": "{\n  // prettier-ignore\n  \"a\": [1,   2],\n  \"b\": [1,   2]\n}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": [1,   2], // prettier-ignore\n\"b\": 1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  \"a\": [1,   2], // prettier-ignore\n  \"b\": 1\n}\n"
+ },
+ {
+  "input": "{\"a\": [1,   2], // prettier-ignore\n\"b\": 1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  \"a\": [1,   2], // prettier-ignore\n  \"b\": 1,\n}\n"
+ },
+ {
+  "input": "{\"a\": [1,   2], // prettier-ignore\n\"b\": 1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  \"a\": [1,   2], // prettier-ignore\n  b: 1,\n}\n"
+ },
+ {
+  "input": "{\"a\": [1,   2], // prettier-ignore\n\"b\": 1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "// prettier-ignore\n{\"a\":   1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "// prettier-ignore\n{\"a\":   1}\n"
+ },
+ {
+  "input": "// prettier-ignore\n{\"a\":   1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "// prettier-ignore\n{\"a\":   1}\n"
+ },
+ {
+  "input": "// prettier-ignore\n{\"a\":   1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "// prettier-ignore\n{\"a\":   1}\n"
+ },
+ {
+  "input": "// prettier-ignore\n{\"a\":   1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": /* prettier-ignore */ [1,   2]}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": /* prettier-ignore */ [1,   2] }\n"
+ },
+ {
+  "input": "{\"a\": /* prettier-ignore */ [1,   2]}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": /* prettier-ignore */ [1,   2] }\n"
+ },
+ {
+  "input": "{\"a\": /* prettier-ignore */ [1,   2]}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: /* prettier-ignore */ [1,   2] }\n"
+ },
+ {
+  "input": "{\"a\": /* prettier-ignore */ [1,   2]}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "[1, // prettier-ignore\n[2,   3]]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[\n  1, // prettier-ignore\n  [2, 3]\n]\n"
+ },
+ {
+  "input": "[1, // prettier-ignore\n[2,   3]]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[\n  1, // prettier-ignore\n  [2, 3],\n]\n"
+ },
+ {
+  "input": "[1, // prettier-ignore\n[2,   3]]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[\n  1, // prettier-ignore\n  [2, 3],\n]\n"
+ },
+ {
+  "input": "[1, // prettier-ignore\n[2,   3]]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"key\": \"a very long string value that goes past the print width of eighty characters for sure\"}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  \"key\": \"a very long string value that goes past the print width of eighty characters for sure\"\n}\n"
+ },
+ {
+  "input": "{\"key\": \"a very long string value that goes past the print width of eighty characters for sure\"}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  \"key\": \"a very long string value that goes past the print width of eighty characters for sure\",\n}\n"
+ },
+ {
+  "input": "{\"key\": \"a very long string value that goes past the print width of eighty characters for sure\"}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  key: \"a very long string value that goes past the print width of eighty characters for sure\",\n}\n"
+ },
+ {
+  "input": "{\"key\": \"a very long string value that goes past the print width of eighty characters for sure\"}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"key\": \"a very long string value that goes past the print width of eighty characters for sure\"\n}\n"
+ },
+ {
+  "input": "{\"a very long key that is long long long long long long long long long\": \"and a long value too\"}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  \"a very long key that is long long long long long long long long long\": \"and a long value too\"\n}\n"
+ },
+ {
+  "input": "{\"a very long key that is long long long long long long long long long\": \"and a long value too\"}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  \"a very long key that is long long long long long long long long long\": \"and a long value too\",\n}\n"
+ },
+ {
+  "input": "{\"a very long key that is long long long long long long long long long\": \"and a long value too\"}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  \"a very long key that is long long long long long long long long long\": \"and a long value too\",\n}\n"
+ },
+ {
+  "input": "{\"a very long key that is long long long long long long long long long\": \"and a long value too\"}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a very long key that is long long long long long long long long long\": \"and a long value too\"\n}\n"
+ },
+ {
+  "input": "{\"a\": {\"b\": 1, \"c\": 2}, \"d\": [1, 2, 3], \"e\": {\"f\": {\"g\": {\"h\": \"iiiiiiiiiiiiiiiiiiiiiiiiiiiiii\"}}}}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  \"a\": { \"b\": 1, \"c\": 2 },\n  \"d\": [1, 2, 3],\n  \"e\": { \"f\": { \"g\": { \"h\": \"iiiiiiiiiiiiiiiiiiiiiiiiiiiiii\" } } }\n}\n"
+ },
+ {
+  "input": "{\"a\": {\"b\": 1, \"c\": 2}, \"d\": [1, 2, 3], \"e\": {\"f\": {\"g\": {\"h\": \"iiiiiiiiiiiiiiiiiiiiiiiiiiiiii\"}}}}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  \"a\": { \"b\": 1, \"c\": 2 },\n  \"d\": [1, 2, 3],\n  \"e\": { \"f\": { \"g\": { \"h\": \"iiiiiiiiiiiiiiiiiiiiiiiiiiiiii\" } } },\n}\n"
+ },
+ {
+  "input": "{\"a\": {\"b\": 1, \"c\": 2}, \"d\": [1, 2, 3], \"e\": {\"f\": {\"g\": {\"h\": \"iiiiiiiiiiiiiiiiiiiiiiiiiiiiii\"}}}}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  a: { b: 1, c: 2 },\n  d: [1, 2, 3],\n  e: { f: { g: { h: \"iiiiiiiiiiiiiiiiiiiiiiiiiiiiii\" } } },\n}\n"
+ },
+ {
+  "input": "{\"a\": {\"b\": 1, \"c\": 2}, \"d\": [1, 2, 3], \"e\": {\"f\": {\"g\": {\"h\": \"iiiiiiiiiiiiiiiiiiiiiiiiiiiiii\"}}}}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a\": {\n    \"b\": 1,\n    \"c\": 2\n  },\n  \"d\": [\n    1,\n    2,\n    3\n  ],\n  \"e\": {\n    \"f\": {\n      \"g\": {\n        \"h\": \"iiiiiiiiiiiiiiiiiiiiiiiiiiiiii\"\n      }\n    }\n  }\n}\n"
+ },
+ {
+  "input": "{\"__proto__\": 1, \"__proto__\": 2}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"__proto__\": 1, \"__proto__\": 2}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"__proto__\": 1, \"__proto__\": 2}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"__proto__\": 1, \"__proto__\": 2}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{__proto__: 1, \"__proto__\": 2}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{__proto__: 1, \"__proto__\": 2}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{__proto__: 1, \"__proto__\": 2}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{__proto__: 1, \"__proto__\": 2}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"__proto__\": 1, \"__proto__\": 2}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"__proto__\": 1, \"__proto__\": 2}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"__proto__\": 1, \"__proto__\": 2}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"__proto__\": 1, \"__proto__\": 2}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{a: b}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{a: b}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{a: b}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{a: b}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": -undefined}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": -undefined}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": -undefined}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": -undefined}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": --1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": --1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": --1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": --1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "(1)",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "(1)",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "(1)",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "(1)",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "1 2",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "1 2",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "1 2",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "1 2",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "1,",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "1,",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "1,",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "1,",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{a}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{a}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{a}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{a}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{[a]: 1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{[a]: 1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{[a]: 1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{[a]: 1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{a(){}}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{a(){}}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{a(){}}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{a(){}}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "#!/x\n{}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "#!/x\n{}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "#!/x\n{}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "#!/x\n{}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "\"use strict\"\n{}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "\"use strict\"\n{}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "\"use strict\"\n{}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "\"use strict\"\n{}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{café: 1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"café\": 1 }\n"
+ },
+ {
+  "input": "{café: 1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"café\": 1 }\n"
+ },
+ {
+  "input": "{café: 1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ café: 1 }\n"
+ },
+ {
+  "input": "{café: 1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"café\": 1\n}\n"
+ },
+ {
+  "input": "{\\u0061: 1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": 1 }\n"
+ },
+ {
+  "input": "{\\u0061: 1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": 1 }\n"
+ },
+ {
+  "input": "{\\u0061: 1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: 1 }\n"
+ },
+ {
+  "input": "{\\u0061: 1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a\": 1\n}\n"
+ },
+ {
+  "input": "{\"a-b\": 1, c: 2}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a-b\": 1, \"c\": 2 }\n"
+ },
+ {
+  "input": "{\"a-b\": 1, c: 2}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a-b\": 1, \"c\": 2 }\n"
+ },
+ {
+  "input": "{\"a-b\": 1, c: 2}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ \"a-b\": 1, c: 2 }\n"
+ },
+ {
+  "input": "{\"a-b\": 1, c: 2}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a-b\": 1,\n  \"c\": 2\n}\n"
+ },
+ {
+  "input": "{'a': 1, \"b-c\": 2}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": 1, \"b-c\": 2 }\n"
+ },
+ {
+  "input": "{'a': 1, \"b-c\": 2}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": 1, \"b-c\": 2 }\n"
+ },
+ {
+  "input": "{'a': 1, \"b-c\": 2}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: 1, \"b-c\": 2 }\n"
+ },
+ {
+  "input": "{'a': 1, \"b-c\": 2}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a\": 1,\n  \"b-c\": 2\n}\n"
+ },
+ {
+  "input": "{\"1\": 1, \"a\": 2}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"1\": 1, \"a\": 2 }\n"
+ },
+ {
+  "input": "{\"1\": 1, \"a\": 2}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"1\": 1, \"a\": 2 }\n"
+ },
+ {
+  "input": "{\"1\": 1, \"a\": 2}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ \"1\": 1, a: 2 }\n"
+ },
+ {
+  "input": "{\"1\": 1, \"a\": 2}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"1\": 1,\n  \"a\": 2\n}\n"
+ },
+ {
+  "input": "{'a': \"x\", b: 'y\"z'}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": \"x\", \"b\": \"y\\\"z\" }\n"
+ },
+ {
+  "input": "{'a': \"x\", b: 'y\"z'}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": \"x\", \"b\": \"y\\\"z\" }\n"
+ },
+ {
+  "input": "{'a': \"x\", b: 'y\"z'}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: \"x\", b: 'y\"z' }\n"
+ },
+ {
+  "input": "{'a': \"x\", b: 'y\"z'}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a\": \"x\",\n  \"b\": \"y\\\"z\"\n}\n"
+ },
+ {
+  "input": "{\"é\": 1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"é\": 1 }\n"
+ },
+ {
+  "input": "{\"é\": 1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"é\": 1 }\n"
+ },
+ {
+  "input": "{\"é\": 1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ é: 1 }\n"
+ },
+ {
+  "input": "{\"é\": 1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"é\": 1\n}\n"
+ },
+ {
+  "input": "{\"if\": 1, null: 2, true: 3}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"if\": 1, \"null\": 2, \"true\": 3 }\n"
+ },
+ {
+  "input": "{\"if\": 1, null: 2, true: 3}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"if\": 1, \"null\": 2, \"true\": 3 }\n"
+ },
+ {
+  "input": "{\"if\": 1, null: 2, true: 3}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ if: 1, null: 2, true: 3 }\n"
+ },
+ {
+  "input": "{\"if\": 1, null: 2, true: 3}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"if\": 1,\n  \"null\": 2,\n  \"true\": 3\n}\n"
+ },
+ {
+  "input": "{\"a\": 'it\\'s', \"b\": \"say \\\"hi\\\"\"}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": \"it's\", \"b\": \"say \\\"hi\\\"\" }\n"
+ },
+ {
+  "input": "{\"a\": 'it\\'s', \"b\": \"say \\\"hi\\\"\"}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": \"it's\", \"b\": \"say \\\"hi\\\"\" }\n"
+ },
+ {
+  "input": "{\"a\": 'it\\'s', \"b\": \"say \\\"hi\\\"\"}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: \"it's\", b: 'say \"hi\"' }\n"
+ },
+ {
+  "input": "{\"a\": 'it\\'s', \"b\": \"say \\\"hi\\\"\"}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a\": \"it's\",\n  \"b\": \"say \\\"hi\\\"\"\n}\n"
+ },
+ {
+  "input": "﻿{\"a\":1}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "﻿{ \"a\": 1 }\n"
+ },
+ {
+  "input": "﻿{\"a\":1}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "﻿{ \"a\": 1 }\n"
+ },
+ {
+  "input": "﻿{\"a\":1}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "﻿{ a: 1 }\n"
+ },
+ {
+  "input": "﻿{\"a\":1}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "﻿{\n  \"a\": 1\n}\n"
+ },
+ {
+  "input": "{\"a\":1}\r\n",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": 1 }\n"
+ },
+ {
+  "input": "{\"a\":1}\r\n",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": 1 }\n"
+ },
+ {
+  "input": "{\"a\":1}\r\n",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: 1 }\n"
+ },
+ {
+  "input": "{\"a\":1}\r\n",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a\": 1\n}\n"
+ },
+ {
+  "input": "{\r\n\"a\": 1,\r\n\r\n\"b\": 2\r\n}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{\n  \"a\": 1,\n\n  \"b\": 2\n}\n"
+ },
+ {
+  "input": "{\r\n\"a\": 1,\r\n\r\n\"b\": 2\r\n}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{\n  \"a\": 1,\n\n  \"b\": 2,\n}\n"
+ },
+ {
+  "input": "{\r\n\"a\": 1,\r\n\r\n\"b\": 2\r\n}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{\n  a: 1,\n\n  b: 2,\n}\n"
+ },
+ {
+  "input": "{\r\n\"a\": 1,\r\n\r\n\"b\": 2\r\n}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a\": 1,\n  \"b\": 2\n}\n"
+ },
+ {
+  "input": "[{}, {}]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[{}, {}]\n"
+ },
+ {
+  "input": "[{}, {}]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[{}, {}]\n"
+ },
+ {
+  "input": "[{}, {}]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[{}, {}]\n"
+ },
+ {
+  "input": "[{}, {}]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[\n  {},\n  {}\n]\n"
+ },
+ {
+  "input": "[[], []]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[[], []]\n"
+ },
+ {
+  "input": "[[], []]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[[], []]\n"
+ },
+ {
+  "input": "[[], []]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[[], []]\n"
+ },
+ {
+  "input": "[[], []]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[\n  [],\n  []\n]\n"
+ },
+ {
+  "input": "[{\"a\": 1}, {\"a\": 1, \"b\": 2}]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[{ \"a\": 1 }, { \"a\": 1, \"b\": 2 }]\n"
+ },
+ {
+  "input": "[{\"a\": 1}, {\"a\": 1, \"b\": 2}]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[{ \"a\": 1 }, { \"a\": 1, \"b\": 2 }]\n"
+ },
+ {
+  "input": "[{\"a\": 1}, {\"a\": 1, \"b\": 2}]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[{ a: 1 }, { a: 1, b: 2 }]\n"
+ },
+ {
+  "input": "[{\"a\": 1}, {\"a\": 1, \"b\": 2}]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "[\n  {\n    \"a\": 1\n  },\n  {\n    \"a\": 1,\n    \"b\": 2\n  }\n]\n"
+ },
+ {
+  "input": "{\"a\": [], \"b\": {}}",
+  "options": {
+   "parser": "json"
+  },
+  "output": "{ \"a\": [], \"b\": {} }\n"
+ },
+ {
+  "input": "{\"a\": [], \"b\": {}}",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "{ \"a\": [], \"b\": {} }\n"
+ },
+ {
+  "input": "{\"a\": [], \"b\": {}}",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "{ a: [], b: {} }\n"
+ },
+ {
+  "input": "{\"a\": [], \"b\": {}}",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "{\n  \"a\": [],\n  \"b\": {}\n}\n"
+ },
+ {
+  "input": "[\n  1, // one\n  2\n]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[\n  1, // one\n  2\n]\n"
+ },
+ {
+  "input": "[\n  1, // one\n  2\n]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[\n  1, // one\n  2,\n]\n"
+ },
+ {
+  "input": "[\n  1, // one\n  2\n]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[\n  1, // one\n  2,\n]\n"
+ },
+ {
+  "input": "[\n  1, // one\n  2\n]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "[\n  1,\n  // two\n  2\n]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[\n  1,\n  // two\n  2\n]\n"
+ },
+ {
+  "input": "[\n  1,\n  // two\n  2\n]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[\n  1,\n  // two\n  2,\n]\n"
+ },
+ {
+  "input": "[\n  1,\n  // two\n  2\n]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[\n  1,\n  // two\n  2,\n]\n"
+ },
+ {
+  "input": "[\n  1,\n  // two\n  2\n]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "[1 /* a */, 2]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[1 /* a */, 2]\n"
+ },
+ {
+  "input": "[1 /* a */, 2]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[1 /* a */, 2]\n"
+ },
+ {
+  "input": "[1 /* a */, 2]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[1 /* a */, 2]\n"
+ },
+ {
+  "input": "[1 /* a */, 2]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "[-1 // a\n, 2]",
+  "options": {
+   "parser": "json"
+  },
+  "output": "[\n  -1, // a\n  2\n]\n"
+ },
+ {
+  "input": "[-1 // a\n, 2]",
+  "options": {
+   "parser": "jsonc"
+  },
+  "output": "[\n  -1, // a\n  2,\n]\n"
+ },
+ {
+  "input": "[-1 // a\n, 2]",
+  "options": {
+   "parser": "json5"
+  },
+  "output": "[\n  -1, // a\n  2,\n]\n"
+ },
+ {
+  "input": "[-1 // a\n, 2]",
+  "options": {
+   "parser": "json-stringify"
+  },
+  "output": "!error"
+ },
+ {
+  "input": "{\"a\": 1, \"b-c\": 2, 'd': 3}",
+  "options": {
+   "parser": "json5",
+   "quoteProps": "consistent"
+  },
+  "output": "{ \"a\": 1, \"b-c\": 2, \"d\": 3 }\n"
+ },
+ {
+  "input": "{a: 1, b: 2, 'd': 3}",
+  "options": {
+   "parser": "json5",
+   "quoteProps": "consistent",
+   "singleQuote": true
+  },
+  "output": "{ a: 1, b: 2, d: 3 }\n"
+ },
+ {
+  "input": "{a: 1, \"b\": \"x\", 'd': 'y'}",
+  "options": {
+   "parser": "json5",
+   "quoteProps": "preserve"
+  },
+  "output": "{ a: 1, \"b\": \"x\", \"d\": \"y\" }\n"
+ },
+ {
+  "input": "{a: 1, \"b\": \"x\", 'd': 'y'}",
+  "options": {
+   "parser": "json5",
+   "quoteProps": "preserve",
+   "singleQuote": true
+  },
+  "output": "{ a: 1, 'b': 'x', 'd': 'y' }\n"
+ },
+ {
+  "input": "{a: 'x', \"b\": \"y\"}",
+  "options": {
+   "parser": "json5",
+   "singleQuote": true
+  },
+  "output": "{ a: 'x', b: 'y' }\n"
+ },
+ {
+  "input": "{\n\"a\": 1, \"b\": 2}",
+  "options": {
+   "parser": "json",
+   "objectWrap": "collapse"
+  },
+  "output": "{ \"a\": 1, \"b\": 2 }\n"
+ },
+ {
+  "input": "{\"a\": 1, \"b\": 2}",
+  "options": {
+   "parser": "json",
+   "bracketSpacing": false
+  },
+  "output": "{\"a\": 1, \"b\": 2}\n"
+ },
+ {
+  "input": "{\"a\": [1, 2, 3], \"b\": {\"c\": 1}}",
+  "options": {
+   "parser": "jsonc",
+   "trailingComma": "none",
+   "printWidth": 10
+  },
+  "output": "{\n  \"a\": [\n    1, 2,\n    3\n  ],\n  \"b\": {\n    \"c\": 1\n  }\n}\n"
+ },
+ {
+  "input": "{\"a\": [1, 2, 3], \"b\": {\"c\": 1}}",
+  "options": {
+   "parser": "jsonc",
+   "printWidth": 10
+  },
+  "output": "{\n  \"a\": [\n    1, 2,\n    3,\n  ],\n  \"b\": {\n    \"c\": 1,\n  },\n}\n"
+ },
+ {
+  "input": "{\"a\": [1, 2, 3], \"b\": {\"c\": 1}}",
+  "options": {
+   "parser": "json5",
+   "printWidth": 10,
+   "useTabs": true
+  },
+  "output": "{\n\ta: [\n\t\t1, 2,\n\t\t3,\n\t],\n\tb: {\n\t\tc: 1,\n\t},\n}\n"
+ },
+ {
+  "input": "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]",
+  "options": {
+   "parser": "jsonc",
+   "printWidth": 30
+  },
+  "output": "[\n  1, 2, 3, 4, 5, 6, 7, 8, 9,\n  10, 11, 12, 13, 14, 15, 16,\n  17, 18, 19, 20, 21, 22,\n]\n"
+ },
+ {
+  "input": "{\"a\":{\"b\":[1,{\"c\":2}]}}",
+  "options": {
+   "parser": "json-stringify",
+   "useTabs": true
+  },
+  "output": "{\n\t\"a\": {\n\t\t\"b\": [\n\t\t\t1,\n\t\t\t{\n\t\t\t\t\"c\": 2\n\t\t\t}\n\t\t]\n\t}\n}\n"
+ },
+ {
+  "input": "{\"a\":{\"b\":[1,{\"c\":2}]}}",
+  "options": {
+   "parser": "json-stringify",
+   "tabWidth": 4
+  },
+  "output": "{\n    \"a\": {\n        \"b\": [\n            1,\n            {\n                \"c\": 2\n            }\n        ]\n    }\n}\n"
+ }
+]

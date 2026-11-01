@@ -93,6 +93,12 @@ messages! {
   UnsupportedMustache = "Partials, decorators and raw blocks are not supported",
   WrongEndTag = "This end tag does not match the open element",
   WrongNameAtEndOfBlock = "This name does not match the open block",
+  // JSON
+  CommentInJson = "Comments are not allowed in JSON",
+  DuplicateProto = "Redefinition of __proto__ property",
+  InvalidEscape = "Invalid escape sequence",
+  InvalidNumber = "Invalid number",
+  NotJson = "This is not allowed in JSON",
   // XML
   ExpectedClose = "Expected \">\"",
   ExpectedDeclarationEnd = "Expected \"?>\"",
