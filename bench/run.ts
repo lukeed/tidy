@@ -6,8 +6,10 @@
 // The incumbents, where they format a language:
 // - Prettier 3.9.9, with @prettier/plugin-xml for XML;
 // - bun fmt (not XML);
-// - dprint's plugins: markup_fmt for HTML, Vue and XML, malva for style sheets, and dprint-plugin-markdown;
+// - dprint's plugins: markup_fmt for HTML, Vue and XML, malva for style sheets, dprint-plugin-json, and
+//   dprint-plugin-markdown;
 // - oxc's CSS formatter and lightningcss (CSS only, which reprints rather than formats) for style sheets;
+// - Biome 2.6.4 for JSON, with spaces, as Prettier indents;
 // - a naive formatter on @lukeed/html, as a floor for HTML in JavaScript.
 //
 // "all" is every corpus in one tree, and "all-but-xml" leaves out XML, which bun fmt doesn't format.
@@ -46,10 +48,14 @@ let sources: Record<string, { repo: string; extensions: string[]; path?: string 
 		{ repo: "lucide", extensions: ["svg"] },
 		{ repo: "docbook-xsl", extensions: ["xsl", "xml"] },
 	],
+	json: ["vite", "storybook", "rolldown", "oxc", "deno", "prettier"].map((repo) => ({
+		repo,
+		extensions: ["json", "jsonc", "json5"],
+	})),
 	markdown: ["vite", "storybook", "shadcn-svelte", "bun"].map((repo) => ({ repo, extensions: ["md"] })),
 };
 
-/** Prettier's options for each extension. */
+/** Prettier's options for each extension. JSON's parser depends on the file name, which Prettier infers. */
 let parsers: Record<string, Record<string, unknown>> = {
 	".html": { parser: "html" },
 	".vue": { parser: "vue" },
@@ -73,7 +79,8 @@ for (let [name, list] of Object.entries(sources)) {
 			if (/node_modules|\/dist\/|\/build\/|\.min\.css$|(^|\/)\./.test(file)) continue;
 			let source = await Bun.file(join(oss, repo, file)).text().catch(() => undefined);
 			if (source === undefined) continue;
-			if (!(await prettierApi.format(source, parsers[extname(file)]).then(() => true, () => false))) continue;
+			let parser = parsers[extname(file)] ?? { filepath: file };
+			if (!(await prettierApi.format(source, parser).then(() => true, () => false))) continue;
 			let to = join(corpus, name, repo, file);
 			mkdirSync(dirname(to), { recursive: true });
 			cpSync(join(oss, repo, file), to);
@@ -103,6 +110,7 @@ let commands = (dir: string): Record<string, string> => ({
 	oxc: `${target}/css/release/css-bench oxc ${dir}`,
 	lightningcss: `${target}/css/release/css-bench lightningcss ${dir}`,
 	naive: `bun ${root}/bench/naive.ts ${dir}`,
+	biome: `${root}/node_modules/.bin/biome format --indent-style=space --max-diagnostics=0 ${dir}`,
 	prettier: `${prettier} --check ${dir} ${off} --log-level silent --plugin @prettier/plugin-xml`,
 });
 
@@ -110,8 +118,9 @@ let commands = (dir: string): Record<string, string> => ({
 let markup = ["html", "vue", "pages"];
 let sheets = ["css", "scss", "less"];
 let formats: Record<string, string[]> = {
-	bun: [...markup, "handlebars", ...sheets, "markdown", "all-but-xml"],
-	dprint: [...markup, ...sheets, "xml", "markdown", "all", "all-but-xml"],
+	bun: [...markup, "handlebars", ...sheets, "json", "markdown", "all-but-xml"],
+	dprint: [...markup, ...sheets, "json", "xml", "markdown", "all", "all-but-xml"],
+	biome: ["json"],
 	oxc: sheets,
 	lightningcss: ["css"],
 	naive: markup,
@@ -132,7 +141,7 @@ async function time(names: string[], all: Record<string, string>, count: number)
 }
 
 let average = (values: number[]) => (values.reduce((sum, value) => sum + value, 0) / values.length) * 1000;
-let names = ["all", "all-but-xml", "html", "vue", "pages", "handlebars", "css", "scss", "less", "xml", "markdown"];
+let names = ["all", "all-but-xml", "html", "vue", "pages", "handlebars", "css", "scss", "less", "json", "xml", "markdown"];
 let rows: string[] = [];
 for (let name of names.filter((name) => !only || only.includes(name))) {
 	let dir = join(corpus, name);

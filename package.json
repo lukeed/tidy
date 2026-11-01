@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "devDependencies": {
+    "@biomejs/biome": "2.6.4",
     "@lukeed/html": "1.0.2",
     "@prettier/plugin-xml": "3.4.2",
     "json-test-suite": "1.0.0",
