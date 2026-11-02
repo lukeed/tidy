@@ -82,8 +82,8 @@ Most entries come from bun's ports, which correct the places where Prettier's ou
 | [ini-empty-section](#ini-empty-section) | ini | proposed |
 | [ini-empty-list](#ini-empty-list) | ini | proposed |
 | [ini-embedded](#ini-embedded) | markdown | proposed |
-| [graphql-block-string-padding](#graphql-block-string-padding) | graphql | proposed |
-| [graphql-block-string-trailing-space](#graphql-block-string-trailing-space) | graphql | proposed |
+| [graphql-block-string-padding](#graphql-block-string-padding) | graphql | approved 2026-11-02 |
+| [graphql-block-string-trailing-space](#graphql-block-string-trailing-space) | graphql | approved 2026-11-02 |
 | [the rule in step 2](#process) | all | proposed |
 | [tempura and text mode](#beyond-prettier) | handlebars | approved 2026-10-31 |
 
@@ -1041,7 +1041,7 @@ tidy's GraphQL is a port of bun's, which corrects the two places where Prettier 
 
 ### graphql-block-string-padding
 
-- Status: proposed
+- Status: approved 2026-11-02
 - Why: The value of a block string of one line keeps its leading and trailing white space. Prettier trims the line, which changes the value. tidy keeps such a string as it is written.
 - Where: crates/tidy/src/graphql/print.rs (`block_string`)
 - Parser: graphql
@@ -1054,7 +1054,7 @@ tidy:     "\"\"\" padded \"\"\"\nscalar A\n"
 
 ### graphql-block-string-trailing-space
 
-- Status: proposed
+- Status: approved 2026-11-02
 - Why: The spaces and tabs at the end of a line of a block string are part of its value. Prettier's line breaks drop them. tidy keeps them. In the corpus, Saleor's schema has such lines.
 - Where: crates/tidy/src/graphql/print.rs (`block_string`)
 - Parser: graphql
