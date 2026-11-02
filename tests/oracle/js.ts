@@ -1,6 +1,7 @@
 // Formats JavaScript and TypeScript files with Prettier and with tidy, and compares the outputs. Both rejecting a file
-// counts as the same. Every output of tidy must read back the same. Embedded code isn't formatted by either, unless
-// `--embedded` is given: then both format the CSS, GraphQL, Markdown and HTML in templates.
+// counts as the same. Every output of tidy must read back the same, unless Prettier formats it again as tidy does:
+// that is Prettier's own instability. Embedded code isn't formatted by either, unless `--embedded` is given: then both
+// format the CSS, GraphQL, Markdown and HTML in templates.
 //
 //   bun tests/oracle/js.ts [dir...] [--show=n] [--list=file] [--embedded]
 //
@@ -35,7 +36,15 @@ function files(path: string): string[] {
 	}
 }
 
-let counts = { same: 0, different: 0, rejected: 0, "tidy rejects": 0, "tidy accepts": 0, unstable: 0 };
+let counts = {
+	same: 0,
+	different: 0,
+	rejected: 0,
+	"tidy rejects": 0,
+	"tidy accepts": 0,
+	unstable: 0,
+	"unstable as Prettier": 0,
+};
 let differing: string[] = [];
 let shown = 0;
 let report = (title: string, ...texts: string[]) => {
@@ -75,11 +84,19 @@ for (let path of dirs.flatMap(files)) {
 	}
 	if (tidy !== undefined) {
 		let again = attempt(() => format(tidy, { filepath: path, embedded, js: { jsdoc: false } }));
-		if (again !== tidy) {
+		if (again !== tidy && (await isUnstableAsPrettier(tidy, again, parser, path))) {
+			counts["unstable as Prettier"]++;
+		} else if (again !== tidy) {
 			counts.unstable++;
 			differing.push(`unstable ${path}`);
 		}
 	}
 }
+/** True if Prettier formats `output`, its own and tidy's, to `again` as tidy does. */
+async function isUnstableAsPrettier(output: string, again: string | undefined, parser: string, path: string) {
+	let options = { parser, filepath: path, embeddedLanguageFormatting: embedded ? "auto" : "off" } as const;
+	return (await prettier.format(output, options).catch(() => undefined)) === again;
+}
+
 if (list) await Bun.write(list, `${differing.join("\n")}\n`);
 console.log(counts);
