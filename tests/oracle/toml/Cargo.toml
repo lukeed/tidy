@@ -8,4 +8,4 @@ publish = false
 logos = "=0.12.1"
 serde_json = "1"
 taplo = { version = "=0.14.0", default-features = false }
-tidy = { path = "../../../crates/tidy" }
+tidy = { path = "../../../crates/tidy", features = ["config"] }

@@ -4,6 +4,10 @@
 //!   cargo run --release -- files [--show=n] <folder>...
 //!   cargo run --release -- cases <toml.json>
 //!   cargo run --release -- lex [count]
+//!   cargo run --release -- values <toml-test/tests>
+//!
+//! `values` checks `tidy::toml::value` with the TOML 1.0 files of toml-test: each valid file has its value, and no
+//! invalid file has one.
 
 #[path = "../../../../crates/tidy/src/toml/lexer.rs"]
 #[allow(dead_code)]
@@ -21,13 +25,16 @@ fn main() {
   match args.first().map(String::as_str) {
     Some("files") => files(&args[1..]),
     Some("cases") => cases(&args[1]),
+    Some("values") => values(Path::new(&args[1])),
     Some("lex") => lex(args.get(1).and_then(|it| it.parse().ok()).unwrap_or(1_000_000)),
     Some("tokens") => {
       for text in &args[1..] {
         println!("{text:?}\n  logos {:?}\n  tidy  {:?}", logos_tokens(text), tidy_tokens(text));
       }
     }
-    _ => eprintln!("usage: files <folder>... | cases <toml.json> | lex [count]"),
+    _ => eprintln!(
+      "usage: files <folder>... | cases <toml.json> | lex [count] | values <toml-test/tests>"
+    ),
   }
 }
 
@@ -175,6 +182,67 @@ fn files(args: &[String]) {
     same as f64 * 100.0 / total as f64,
     sources.len()
   );
+}
+
+/// Valid files that tidy reads otherwise: taplo's parser rejects all but the last, whose dates keep the digits they have.
+const KNOWN: [&str; 8] = [
+  "valid/comment/nonascii.toml",
+  "valid/datetime/edge.toml",
+  "valid/float/exponent-upper.toml",
+  "valid/key/like-date.toml",
+  "valid/key/numeric-04.toml",
+  "valid/key/quoted-unicode.toml",
+  "valid/string/quoted-unicode.toml",
+  "valid/datetime/milliseconds.toml",
+];
+
+fn values(tests: &Path) {
+  let list =
+    std::fs::read_to_string(tests.join("files-toml-1.0.0")).expect("toml-test's file list");
+  let (mut same, mut total) = (0, 0);
+  for name in list.lines().filter(|it| it.ends_with(".toml") && !KNOWN.contains(it)) {
+    let Ok(text) = std::fs::read_to_string(tests.join(name)) else { continue };
+    total += 1;
+    let actual = tidy::toml::value(&text);
+    let wrong = match name.starts_with("valid/") {
+      true => {
+        let json = std::fs::read_to_string(tests.join(name.replace(".toml", ".json"))).unwrap();
+        let expected = untag(&serde_json::from_str(&json).unwrap());
+        match actual {
+          Ok(actual) if actual == expected => None,
+          Ok(actual) => Some(format!("expected {expected}\n  actual   {actual}")),
+          Err(error) => Some(format!("expected {expected}\n  error    {error}")),
+        }
+      }
+      false => actual.ok().map(|value| format!("accepted {value}")),
+    };
+    match wrong {
+      None => same += 1,
+      Some(wrong) => println!("✗ {name}\n  {wrong}"),
+    }
+  }
+  println!("\ntoml values: {same}/{total} right, {} known", KNOWN.len());
+}
+
+/// A value of toml-test's JSON, without its types. A date is its text, with `T` and `Z` in capitals.
+fn untag(value: &Value) -> Value {
+  match value {
+    Value::Array(items) => Value::Array(items.iter().map(untag).collect()),
+    Value::Object(map) => match (map.get("type").and_then(Value::as_str), map.get("value")) {
+      (Some(kind), Some(Value::String(text))) if map.len() == 2 => match kind {
+        "integer" => Value::from(text.parse::<i64>().unwrap()),
+        "float" => text
+          .parse::<f64>()
+          .ok()
+          .and_then(serde_json::Number::from_f64)
+          .map_or(Value::Null, Value::Number),
+        "bool" => Value::Bool(text == "true"),
+        _ => Value::String(text.clone()),
+      },
+      _ => Value::Object(map.iter().map(|(key, value)| (key.clone(), untag(value))).collect()),
+    },
+    _ => value.clone(),
+  }
 }
 
 fn walk(path: &Path, out: &mut Vec<PathBuf>) {

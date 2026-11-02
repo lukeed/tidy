@@ -55,7 +55,7 @@ description = "Record what Prettier prints for crates/tidy/tests/json.json"
 run = "bun tests/oracle/json-cases.ts"
 
 [tasks."oracle:toml"]
-description = "Compare TOML with taplo: mise run oracle:toml -- files <dir>... | cases crates/tidy/tests/toml.json | lex [count]"
+description = "Compare TOML with taplo: mise run oracle:toml -- files <dir>... | cases crates/tidy/tests/toml.json | lex [count] | values <toml-test/tests>"
 dir = "tests/oracle/toml"
 run = "cargo run --release --"
 
