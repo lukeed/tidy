@@ -14,7 +14,7 @@ struct Line {
 
 pub(crate) fn attach(root: &mut Root) {
   let lines = node_table(root);
-  let documents = root.node(root.root).children.clone();
+  let documents = root.node(root.root).children().to_vec();
   let mut rest = 0;
   let comments: Vec<Id> =
     root.comments.iter().copied().filter(|it| root.node(*it).parent.is_none()).collect();
@@ -61,18 +61,15 @@ fn init(root: &Root, lines: &mut [Line], id: Id) {
     }
   }
   if !matches!(node.kind, Kind::Root | Kind::Document | Kind::DocumentHead | Kind::DocumentBody) {
-    let mut numbers = vec![end.line];
-    if start.line != end.line {
-      numbers.push(start.line);
-    }
-    for number in numbers {
+    let numbers = [Some(end.line), (start.line != end.line).then_some(start.line)];
+    for number in numbers.into_iter().flatten() {
       let line = &mut lines[number as usize - 1];
       if line.trailing.is_none_or(|it| end.column >= root.node(it).position.end.column) {
         line.trailing = Some(id);
       }
     }
   }
-  for &child in &node.children {
+  for &child in node.children() {
     init(root, lines, child);
   }
 }
@@ -81,8 +78,8 @@ fn init(root: &Root, lines: &mut [Line], id: Id) {
 fn attach_comment(root: &mut Root, lines: &[Line], comment: Id, document: Id) {
   let comment_line = root.node(comment).position.start.line;
   if let Some(node) = lines[comment_line as usize - 1].trailing_attachable {
-    root.node_mut(comment).parent = Some(node);
-    root.node_mut(node).trailing_comment = Some(comment);
+    root.entry_mut(comment).parent = Some(node);
+    root.entry_mut(node).trailing_comment = Some(comment);
     return;
   }
   let document_start = root.node(document).position.start.line;
@@ -106,17 +103,17 @@ fn attach_comment(root: &mut Root, lines: &[Line], comment: Id, document: Id) {
       },
     };
     if matches!(root.node(current).kind, Kind::Sequence | Kind::Mapping) {
-      current = root.node(current).children[0];
+      current = root.node(current).children()[0];
     }
     if root.node(current).kind == Kind::MappingItem {
-      let children = &root.node(current).children;
+      let children = root.node(current).children();
       let (key, value) = (children[0], children[1]);
       current = if is_explicit_mapping_key(root, key) { key } else { value };
     }
     loop {
       if should_own_end_comment(root, current, comment) {
-        root.node_mut(comment).parent = Some(current);
-        root.node_mut(current).end_comments.push(comment);
+        root.entry_mut(comment).parent = Some(current);
+        root.extra_mut(current).end.push(comment);
         return;
       }
       match root.node(current).parent {
@@ -129,14 +126,14 @@ fn attach_comment(root: &mut Root, lines: &[Line], comment: Id, document: Id) {
   let document_end = root.node(document).position.end.line;
   for line in comment_line + 1..=document_end {
     if let Some(node) = lines.get(line as usize - 1).and_then(|it| it.leading) {
-      root.node_mut(comment).parent = Some(node);
-      root.node_mut(node).leading_comments.push(comment);
+      root.entry_mut(comment).parent = Some(node);
+      root.extra_mut(node).leading.push(comment);
       return;
     }
   }
-  let body = root.node(document).children[1];
-  root.node_mut(comment).parent = Some(body);
-  root.node_mut(body).end_comments.push(comment);
+  let body = root.node(document).children()[1];
+  root.entry_mut(comment).parent = Some(body);
+  root.extra_mut(body).end.push(comment);
 }
 
 /// `shouldOwnEndComment`
@@ -149,7 +146,7 @@ fn should_own_end_comment(root: &Root, id: Id, comment: Id) -> bool {
     match node.kind {
       Kind::FlowMapping | Kind::FlowSequence => {
         return node
-          .children
+          .children()
           .last()
           .is_none_or(|last| comment.start.line > root.node(*last).position.end.line);
       }
@@ -163,7 +160,7 @@ fn should_own_end_comment(root: &Root, id: Id, comment: Id) -> bool {
     Kind::SequenceItem => comment.start.column > node.position.start.column,
     Kind::MappingKey | Kind::MappingValue => {
       let parent = root.node(node.parent.expect("a key or value has a parent"));
-      let child = node.children.first().map(|it| root.node(*it).kind);
+      let child = node.children().first().map(|it| root.node(*it).kind);
       comment.start.column > parent.position.start.column
         && child.is_none_or(|kind| !matches!(kind, Kind::BlockFolded | Kind::BlockLiteral))
         && (node.kind == Kind::MappingValue || is_explicit_mapping_key(root, id))
@@ -176,26 +173,26 @@ fn should_own_end_comment(root: &Root, id: Id, comment: Id) -> bool {
 fn is_explicit_mapping_key(root: &Root, key: Id) -> bool {
   let node = root.node(key);
   node
-    .children
+    .children()
     .first()
     .is_none_or(|child| node.position.start.offset != root.node(*child).position.start.offset)
 }
 
 /// `updatePositions`
 pub(crate) fn update_positions(root: &mut Root, id: Id) {
-  for index in 0..root.node(id).children.len() {
-    let child = root.node(id).children[index];
+  for index in 0..root.node(id).children().len() {
+    let child = root.node(id).children()[index];
     update_positions(root, child);
   }
   if root.node(id).kind == Kind::Document {
-    let (head, body) = (root.node(id).children[0], root.node(id).children[1]);
+    let (head, body) = (root.node(id).children()[0], root.node(id).children()[1]);
     let (head_position, body_position) = (root.node(head).position, root.node(body).position);
     if head_position.start.offset == head_position.end.offset {
       let start = body_position.start;
-      root.node_mut(head).position = super::ast::Position { start, end: start };
+      root.entry_mut(head).position = super::ast::Position { start, end: start };
     } else if body_position.start.offset == body_position.end.offset {
       let end = head_position.end;
-      root.node_mut(body).position = super::ast::Position { start: end, end };
+      root.entry_mut(body).position = super::ast::Position { start: end, end };
     }
   }
   let mut start = root.node(id).position.start;
@@ -211,16 +208,16 @@ pub(crate) fn update_positions(root: &mut Root, id: Id) {
     }
   };
   let node = root.node(id);
-  if let (Some(first), Some(last)) = (node.end_comments.first(), node.end_comments.last()) {
+  if let (Some(first), Some(last)) = (node.end_comments().first(), node.end_comments().last()) {
     start_at(root.node(*first).position.start, &mut start);
     end_at(root.node(*last).position.end, &mut end);
   }
-  let children = &root.node(id).children;
+  let children = root.node(id).children();
   if let (Some(first), Some(last)) = (children.first(), children.last()) {
     let (first, last) = (root.node(*first), root.node(*last));
     start_at(first.position.start, &mut start);
     end_at(last.position.end, &mut end);
-    if let Some(comment) = first.leading_comments.first() {
+    if let Some(comment) = first.leading_comments().first() {
       start_at(root.node(*comment).position.start, &mut start);
     }
     if let Some(tag) = first.tag {
@@ -233,7 +230,7 @@ pub(crate) fn update_positions(root: &mut Root, id: Id) {
       end_at(root.node(comment).position.end, &mut end);
     }
   }
-  let node = root.node_mut(id);
+  let node = root.entry_mut(id);
   node.position.start = start;
   node.position.end = end;
 }

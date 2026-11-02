@@ -75,6 +75,7 @@ impl Tree {
   }
 
   /// Where the element starts in the text.
+  #[cfg(feature = "config")]
   pub(crate) fn start(&self, id: Id) -> u32 {
     self.elements[id as usize].start
   }

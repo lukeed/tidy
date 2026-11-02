@@ -1,7 +1,7 @@
 //! `yaml-unist-parser`'s transforms (`src/transforms/*`): the tree that Prettier prints, from the composed documents
 //! and the tokens of the syntax tree they come from.
 
-use super::ast::{Chomping, Id, Kind, Lines, Node, Position, Root};
+use super::ast::{Chomping, Entry, Extra, Id, Kind, Lines, Position, Root};
 use super::compose::{Cid, Composed, Composition, Content, Pair, ScalarType};
 use super::cst::{self, Item, Key, Node as Token, Prop, Source, Tree};
 
@@ -11,6 +11,8 @@ pub(crate) struct Transformer<'t> {
   pub(crate) composition: &'t Composition,
   pub(crate) lines: Lines<'t>,
   pub(crate) root: &'t mut Root,
+  /// The children of the nodes being built, innermost last.
+  pub(crate) pending: Vec<Id>,
 }
 
 /// A document's tokens, sorted: `DocumentData`.
@@ -47,17 +49,33 @@ impl<'t> Transformer<'t> {
     self.lines.position(start, end)
   }
 
-  fn add(&mut self, node: Node) -> Id {
-    self.root.add(node)
+  fn add(&mut self, entry: Entry, children: &[Id]) -> Id {
+    self.root.add(entry, children)
+  }
+
+  /// Adds a node with the children pending from `mark`.
+  fn add_pending(&mut self, entry: Entry, mark: usize) -> Id {
+    let id = self.root.add(entry, &self.pending[mark..]);
+    self.pending.truncate(mark);
+    id
+  }
+
+  /// Gives a node what few nodes hold, if it holds any.
+  fn extra(&mut self, id: Id, extra: Extra) {
+    if !extra.leading.is_empty()
+      || !extra.end.is_empty()
+      || !extra.middle.is_empty()
+      || !extra.parameters.is_empty()
+    {
+      self.root.set_extra(id, extra);
+    }
   }
 
   /// `parse`, after composing: the root, its documents, and every comment, sorted.
   pub(crate) fn transform(&mut self) {
     let documents = self.documents();
     let position = self.position(0, self.text.len() as u32);
-    let mut root = Node::new(Kind::Root, position);
-    root.children = documents;
-    let id = self.add(root);
+    let id = self.add(Entry::new(Kind::Root, position), &documents);
     self.root.root = id;
     let mut comments = std::mem::take(&mut self.root.comments);
     comments.sort_by_key(|id| self.root.node(*id).position.start.offset);
@@ -121,9 +139,8 @@ impl<'t> Transformer<'t> {
   }
 
   fn comment(&mut self, source: &Source) -> Id {
-    let mut node = Node::new(Kind::Comment, self.position(source.offset, source.end));
-    node.value = self.src(source)[1..].to_owned();
-    let id = self.add(node);
+    let id = self.add(Entry::new(Kind::Comment, self.position(source.offset, source.end)), &[]);
+    self.root.set_value(id, &self.src(source)[1..]);
     self.root.comments.push(id);
     id
   }
@@ -154,12 +171,11 @@ impl<'t> Transformer<'t> {
     let (body, end_point, trailing) =
       self.document_body(&data, doc_start, before_body, composed.range);
     let start = self.root.node(head).position.start;
-    let mut node = Node::new(Kind::Document, Position { start, end: end_point });
+    let mut node = Entry::new(Kind::Document, Position { start, end: end_point });
     node.directives_end_marker = doc_start.is_some();
     node.document_end_marker = data.end.is_some();
-    node.children = vec![head, body];
     node.trailing_comment = trailing;
-    self.add(node)
+    self.add(node, &[head, body])
   }
 
   /// `transformDocumentHead`: the head, the tokens after `---`, and `---`.
@@ -179,10 +195,10 @@ impl<'t> Transformer<'t> {
           match (attaches, last_directive) {
             (true, Some(directive)) => {
               let end = self.root.node(comment).position.end;
-              let node = self.root.node_mut(directive);
+              let node = self.root.entry_mut(directive);
               node.trailing_comment = Some(comment);
               node.position.end = end;
-              self.root.node_mut(comment).parent = Some(directive);
+              self.root.entry_mut(comment).parent = Some(directive);
             }
             _ => candidates.push(comment),
           }
@@ -235,23 +251,23 @@ impl<'t> Transformer<'t> {
       between.remove(0);
     }
     let end_comments = if doc_start.is_some() { candidates } else { Vec::new() };
-    let mut head = Node::new(Kind::DocumentHead, position);
-    head.children = directives;
-    head.end_comments = end_comments;
+    let mut head = Entry::new(Kind::DocumentHead, position);
     head.trailing_comment = trailing;
-    (self.add(head), between, doc_start)
+    let head = self.add(head, &directives);
+    self.extra(head, Extra { end: end_comments, ..Extra::default() });
+    (head, between, doc_start)
   }
 
   /// `transformDirective`
   fn directive(&mut self, offset: u32, end: u32) -> Id {
     let source = &self.text[offset as usize..end as usize];
     let mut parts = source.trim().split([' ', '\t']).filter(|it| !it.is_empty());
-    let name = parts.next().unwrap_or_default().trim_start_matches('%').to_owned();
+    let name = parts.next().unwrap_or_default().trim_start_matches('%');
     let parameters = parts.map(str::to_owned).collect();
-    let mut node = Node::new(Kind::Directive, self.position(offset, end));
-    node.value = name;
-    node.parameters = parameters;
-    self.add(node)
+    let id = self.add(Entry::new(Kind::Directive, self.position(offset, end)), &[]);
+    self.root.set_value(id, name);
+    self.extra(id, Extra { parameters, ..Extra::default() });
+    id
   }
 
   /// `transformDocumentBody`: the body, where the document ends, and its trailing comment.
@@ -330,10 +346,9 @@ impl<'t> Transformer<'t> {
       Some((_, source_end, _)) => self.lines.point(*source_end),
       None => position.end,
     };
-    let mut body = Node::new(Kind::DocumentBody, position);
-    body.children = content.into_iter().collect();
-    body.end_comments = end_comments;
-    (self.add(body), end_point, trailing)
+    let body = self.add(Entry::new(Kind::DocumentBody, position), content.as_slice());
+    self.extra(body, Extra { end: end_comments, ..Extra::default() });
+    (body, end_point, trailing)
   }
 
   /// `transformNode`
@@ -345,7 +360,7 @@ impl<'t> Transformer<'t> {
         self.scalar_end(src);
         let content = self.content(composed, props);
         let position = self.position(composed.range[0], composed.range[1]);
-        self.content_node(Kind::Alias, position, content, name.clone())
+        self.content_node(Kind::Alias, position, content, name)
       }
       Content::Map { flow: true, .. } => self.flow_map(composed, props),
       Content::Map { .. } => self.map(composed, props),
@@ -363,7 +378,7 @@ impl<'t> Transformer<'t> {
           let position = self.position(composed.range[0], composed.range[1]);
           let kind =
             if *kind == ScalarType::QuoteSingle { Kind::QuoteSingle } else { Kind::QuoteDouble };
-          self.content_node(kind, position, content, value.clone())
+          self.content_node(kind, position, content, value)
         }
       },
     }
@@ -381,14 +396,20 @@ impl<'t> Transformer<'t> {
     kind: Kind,
     position: Position,
     content: Properties,
-    value: String,
+    value: &str,
   ) -> Id {
-    let mut node = Node::new(kind, position);
-    node.value = value;
-    node.tag = content.tag;
-    node.anchor = content.anchor;
-    node.middle_comments = content.middle;
-    self.add(node)
+    let id = self.with_properties(Entry::new(kind, position), content, self.pending.len());
+    self.root.set_value(id, value);
+    id
+  }
+
+  /// Adds a node with its tag, anchor, the comments between them, and the children pending from `mark`.
+  fn with_properties(&mut self, mut entry: Entry, content: Properties, mark: usize) -> Id {
+    entry.tag = content.tag;
+    entry.anchor = content.anchor;
+    let id = self.add_pending(entry, mark);
+    self.extra(id, Extra { middle: content.middle, ..Extra::default() });
+    id
   }
 
   /// `transformPlain`
@@ -399,14 +420,14 @@ impl<'t> Transformer<'t> {
       let index =
         text[..from].iter().rposition(|it| !is_js_space(*it)).map_or(0, |at| at + 1) as u32;
       let content = self.content(composed, props);
-      return self.content_node(Kind::Plain, self.position(index, index), content, String::new());
+      return self.content_node(Kind::Plain, self.position(index, index), content, "");
     }
     if let Some(src) = composed.src {
       self.scalar_end(src);
     }
     let content = self.content(composed, props);
     let position = self.position(composed.range[0], composed.range[1]);
-    self.content_node(Kind::Plain, position, content, value.to_owned())
+    self.content_node(Kind::Plain, position, content, value)
   }
 
   /// `transformAstBlockValue`
@@ -434,13 +455,13 @@ impl<'t> Transformer<'t> {
     let position = self.position(composed.range[0], composed.range[1]);
     let content = self.content(composed, props);
     let kind = if kind == ScalarType::BlockFolded { Kind::BlockFolded } else { Kind::BlockLiteral };
-    let id = self.content_node(kind, position, content, value.to_owned());
-    let node = self.root.node_mut(id);
+    let id = self.content_node(kind, position, content, value);
+    let node = self.root.entry_mut(id);
     node.chomping = chomping;
     node.indent = indent;
-    node.indicator_comment = indicator;
     if let Some(comment) = indicator {
-      self.root.node_mut(comment).parent = Some(id);
+      self.root.extra_mut(id).indicator = Some(comment);
+      self.root.entry_mut(comment).parent = Some(id);
     }
     id
   }
@@ -455,22 +476,20 @@ impl<'t> Transformer<'t> {
         cst::Kind::Tag => {
           first.get_or_insert(range);
           let source = self.src(token);
-          let mut value = composed.tag.clone().unwrap_or_else(|| {
-            let skip = if source.starts_with("!!") { 2 } else { 1 };
-            source[skip..].to_owned()
-          });
-          if value == "!" {
-            value = "tag:yaml.org,2002:str".into();
-          }
-          let mut node = Node::new(Kind::Tag, self.position(range.0, range.1));
-          node.value = value;
-          properties.tag = Some(self.add(node));
+          let skip = if source.starts_with("!!") { 2 } else { 1 };
+          let value = match composed.tag.as_deref().unwrap_or(&source[skip..]) {
+            "!" => "tag:yaml.org,2002:str",
+            value => value,
+          };
+          let id = self.add(Entry::new(Kind::Tag, self.position(range.0, range.1)), &[]);
+          self.root.set_value(id, value);
+          properties.tag = Some(id);
         }
         cst::Kind::Anchor => {
           first.get_or_insert(range);
-          let mut node = Node::new(Kind::Anchor, self.position(range.0, range.1));
-          node.value = composed.anchor.clone().unwrap_or_default();
-          properties.anchor = Some(self.add(node));
+          let id = self.add(Entry::new(Kind::Anchor, self.position(range.0, range.1)), &[]);
+          self.root.set_value(id, composed.anchor.as_deref().unwrap_or_default());
+          properties.anchor = Some(id);
         }
         cst::Kind::Comment => {
           let comment = self.comment(token);
@@ -489,23 +508,23 @@ impl<'t> Transformer<'t> {
     let src = composed.src.expect("a block map has a token");
     let items = self.items_of(src);
     let Content::Map { items: pairs, .. } = &composed.content else { unreachable!() };
-    let children: Vec<Id> = pairs
-      .iter()
-      .enumerate()
-      .map(|(index, pair)| self.pair(pair, &items[index.min(items.len() - 1)], Kind::MappingItem))
-      .collect();
+    let mark = self.pending.len();
+    for (index, pair) in pairs.iter().enumerate() {
+      let child = self.pair(pair, &items[index.min(items.len() - 1)], Kind::MappingItem);
+      self.pending.push(child);
+    }
     for item in items.iter().skip(pairs.len()) {
       self.extract_comments(&item.start);
     }
-    let start = self.root.node(children[0]).position.start;
-    let end = self.root.node(*children.last().expect("a map has a pair")).position.end;
+    self.collection(composed, props, Kind::Mapping, mark)
+  }
+
+  /// Adds a block map or sequence with the items pending from `mark`.
+  fn collection(&mut self, composed: &Composed, props: &[Source], kind: Kind, mark: usize) -> Id {
+    let start = self.root.node(self.pending[mark]).position.start;
+    let end = self.root.node(*self.pending.last().expect("a collection has an item")).position.end;
     let content = self.content(composed, props);
-    let mut node = Node::new(Kind::Mapping, Position { start, end });
-    node.children = children;
-    node.tag = content.tag;
-    node.anchor = content.anchor;
-    node.middle_comments = content.middle;
-    self.add(node)
+    self.with_properties(Entry::new(kind, Position { start, end }), content, mark)
   }
 
   fn items_of(&self, src: cst::Id) -> &'t [Item] {
@@ -522,7 +541,7 @@ impl<'t> Transformer<'t> {
     let src = composed.src.expect("a block sequence has a token");
     let items = self.items_of(src);
     let Content::Seq { items: nodes, .. } = &composed.content else { unreachable!() };
-    let mut children = Vec::new();
+    let mark = self.pending.len();
     for (index, node) in nodes.iter().enumerate() {
       let item = &items[index.min(items.len() - 1)];
       let props: &[Source] = &item.start;
@@ -542,22 +561,14 @@ impl<'t> Transformer<'t> {
         Some(value) => self.root.node(value).position.end,
         None => self.lines.point(indicator.expect("an item has an indicator").end),
       };
-      let mut item = Node::new(Kind::SequenceItem, Position { start, end });
-      item.children = value.into_iter().collect();
-      children.push(self.add(item));
+      let item =
+        self.add(Entry::new(Kind::SequenceItem, Position { start, end }), value.as_slice());
+      self.pending.push(item);
     }
     for item in items.iter().skip(nodes.len()) {
       self.extract_comments(&item.start);
     }
-    let start = self.root.node(children[0]).position.start;
-    let end = self.root.node(*children.last().expect("a sequence has an item")).position.end;
-    let content = self.content(composed, props);
-    let mut node = Node::new(Kind::Sequence, Position { start, end });
-    node.children = children;
-    node.tag = content.tag;
-    node.anchor = content.anchor;
-    node.middle_comments = content.middle;
-    self.add(node)
+    self.collection(composed, props, Kind::Sequence, mark)
   }
 
   /// `transformFlowMap` and `transformFlowSeq`
@@ -565,21 +576,19 @@ impl<'t> Transformer<'t> {
     let Content::Map { items: pairs, .. } = &composed.content else { unreachable!() };
     let src = composed.src.expect("a flow map has a token");
     let items = self.items_of(src);
-    let children: Vec<Id> = pairs
-      .iter()
-      .enumerate()
-      .map(|(index, pair)| {
-        self.pair(pair, &items[index.min(items.len() - 1)], Kind::FlowMappingItem)
-      })
-      .collect();
-    self.flow_collection(composed, props, src, items, pairs.len(), children, Kind::FlowMapping)
+    let mark = self.pending.len();
+    for (index, pair) in pairs.iter().enumerate() {
+      let child = self.pair(pair, &items[index.min(items.len() - 1)], Kind::FlowMappingItem);
+      self.pending.push(child);
+    }
+    self.flow_collection(composed, props, src, pairs.len(), mark, Kind::FlowMapping)
   }
 
   fn flow_seq(&mut self, composed: &Composed, props: &[Source]) -> Id {
     let Content::Seq { items: nodes, .. } = &composed.content else { unreachable!() };
     let src = composed.src.expect("a flow sequence has a token");
     let items = self.items_of(src);
-    let mut children = Vec::new();
+    let mark = self.pending.len();
     for (index, node) in nodes.iter().enumerate() {
       let item = &items[index.min(items.len() - 1)];
       let child = self.composed(*node);
@@ -589,30 +598,30 @@ impl<'t> Transformer<'t> {
         }
         _ => None,
       };
-      if let Some(pair) = pair {
-        children.push(self.pair(&pair, item, Kind::FlowMappingItem));
-        continue;
-      }
-      let value = self.node(*node, &item.start);
-      let mut seq_item = Node::new(Kind::FlowSequenceItem, self.root.node(value).position);
-      seq_item.children = vec![value];
-      children.push(self.add(seq_item));
+      let child = match pair {
+        Some(pair) => self.pair(&pair, item, Kind::FlowMappingItem),
+        None => {
+          let value = self.node(*node, &item.start);
+          let position = self.root.node(value).position;
+          self.add(Entry::new(Kind::FlowSequenceItem, position), &[value])
+        }
+      };
+      self.pending.push(child);
     }
-    self.flow_collection(composed, props, src, items, nodes.len(), children, Kind::FlowSequence)
+    self.flow_collection(composed, props, src, nodes.len(), mark, Kind::FlowSequence)
   }
 
-  #[allow(clippy::too_many_arguments)]
+  /// Adds a flow collection with the items pending from `mark`, after `count` items with content.
   fn flow_collection(
     &mut self,
     composed: &Composed,
     props: &[Source],
     src: cst::Id,
-    items: &[Item],
     count: usize,
-    children: Vec<Id>,
+    mark: usize,
     kind: Kind,
   ) -> Id {
-    for item in items.iter().skip(count) {
+    for item in self.items_of(src).iter().skip(count) {
       self.extract_comments(&item.start);
     }
     let Token::FlowCollection { start, end, .. } = self.cst(src) else { unreachable!() };
@@ -623,12 +632,7 @@ impl<'t> Transformer<'t> {
     let close = close.expect("a flow collection ends");
     let position = self.position(start.offset, close.end);
     let content = self.content(composed, props);
-    let mut node = Node::new(kind, position);
-    node.children = children;
-    node.tag = content.tag;
-    node.anchor = content.anchor;
-    node.middle_comments = content.middle;
-    self.add(node)
+    self.with_properties(Entry::new(kind, position), content, mark)
   }
 
   /// `isEmptyNode`
@@ -688,9 +692,8 @@ impl<'t> Transformer<'t> {
     };
     let key_end =
       key_content.map_or(key_end, |content| self.root.node(content).position.end.offset);
-    let mut key = Node::new(Kind::MappingKey, self.position(key_start, key_end));
-    key.children = key_content.into_iter().collect();
-    let key = self.add(key);
+    let key = Entry::new(Kind::MappingKey, self.position(key_start, key_end));
+    let key = self.add(key, key_content.as_slice());
     let value = match (value_content, value_range) {
       (None, None) => None,
       (content, range) => {
@@ -703,20 +706,17 @@ impl<'t> Transformer<'t> {
           (None, Some(range)) => range.0 + 1,
           (None, None) => unreachable!(),
         };
-        let mut value = Node::new(Kind::MappingValue, self.position(start, end));
-        value.children = content.into_iter().collect();
-        Some(self.add(value))
+        let value = Entry::new(Kind::MappingValue, self.position(start, end));
+        Some(self.add(value, content.as_slice()))
       }
     };
     let key_position = self.root.node(key).position;
     let end = value.map_or(key_position.end, |value| self.root.node(value).position.end);
     let value = value.unwrap_or_else(|| {
       let empty = Position { start: key_position.end, end: key_position.end };
-      self.add(Node::new(Kind::MappingValue, empty))
+      self.add(Entry::new(Kind::MappingValue, empty), &[])
     });
-    let mut node = Node::new(kind, Position { start: key_position.start, end });
-    node.children = vec![key, value];
-    self.add(node)
+    self.add(Entry::new(kind, Position { start: key_position.start, end }), &[key, value])
   }
 }
 

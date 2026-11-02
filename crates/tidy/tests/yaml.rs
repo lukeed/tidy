@@ -77,9 +77,9 @@ fn formats_yaml_in_other_languages() {
 #[test]
 fn parses_the_tree_prettier_prints() {
   let root = tidy::yaml::parse("# head\na: 1 # one\n").unwrap();
-  let document = root.node(root.root).children[0];
-  let body = root.node(document).children[1];
-  let mapping = root.node(body).children[0];
+  let document = root.node(root.root).children()[0];
+  let body = root.node(document).children()[1];
+  let mapping = root.node(body).children()[0];
   assert_eq!(root.node(mapping).kind, tidy::yaml::Kind::Mapping);
   assert_eq!(root.comments.len(), 2);
 }

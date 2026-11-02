@@ -206,10 +206,10 @@ impl AstDump<'_> {
         | Kind::Directive
     );
     if valued {
-      map.insert("value".into(), json!(node.value));
+      map.insert("value".into(), json!(node.value()));
     }
     if node.kind == Kind::Directive {
-      map.insert("parameters".into(), json!(node.parameters));
+      map.insert("parameters".into(), json!(node.parameters()));
     }
     let leaf = matches!(
       node.kind,
@@ -227,22 +227,22 @@ impl AstDump<'_> {
     if !leaf {
       map.insert(
         "children".into(),
-        Value::Array(node.children.iter().map(|it| self.node(*it)).collect()),
+        Value::Array(node.children().iter().map(|it| self.node(*it)).collect()),
       );
     }
     let list = |ids: &[u32]| Value::Array(ids.iter().map(|it| self.node(*it)).collect());
-    if !node.leading_comments.is_empty() {
-      map.insert("leadingComments".into(), list(&node.leading_comments));
+    if !node.leading_comments().is_empty() {
+      map.insert("leadingComments".into(), list(node.leading_comments()));
     }
-    if !node.end_comments.is_empty() {
-      map.insert("endComments".into(), list(&node.end_comments));
+    if !node.end_comments().is_empty() {
+      map.insert("endComments".into(), list(node.end_comments()));
     }
-    if !node.middle_comments.is_empty() {
-      map.insert("middleComments".into(), list(&node.middle_comments));
+    if !node.middle_comments().is_empty() {
+      map.insert("middleComments".into(), list(node.middle_comments()));
     }
     for (key, value) in [
       ("trailingComment", node.trailing_comment),
-      ("indicatorComment", node.indicator_comment),
+      ("indicatorComment", node.indicator_comment()),
       ("tag", node.tag),
       ("anchor", node.anchor),
     ] {

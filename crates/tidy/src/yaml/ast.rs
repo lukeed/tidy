@@ -1,6 +1,8 @@
 //! The tree that Prettier prints: `yaml-unist-parser`'s, in one flat list. Each node has a position, its children,
 //! and the comments that are attached to it.
 
+use std::cell::Cell;
+
 /// A point in the text: its line and column, from 1, and its offset in bytes. The column counts UTF-16 code units, as
 /// `yaml`'s `LineCounter` does.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -100,88 +102,203 @@ pub enum Chomping {
 
 pub type Id = u32;
 
+/// What the tree stores of a node. Its lists and text are in the [`Root`], which [`Node`] reads.
 #[derive(Clone, Debug)]
-pub struct Node {
+pub struct Entry {
   pub kind: Kind,
   pub position: Position,
   pub parent: Option<Id>,
-  pub children: Vec<Id>,
-  /// The value of a comment, tag, anchor, alias or scalar, and the name of a directive.
-  pub value: String,
-  pub parameters: Vec<String>,
-  pub leading_comments: Vec<Id>,
   pub trailing_comment: Option<Id>,
-  pub end_comments: Vec<Id>,
-  pub middle_comments: Vec<Id>,
-  pub indicator_comment: Option<Id>,
   pub tag: Option<Id>,
   pub anchor: Option<Id>,
   pub chomping: Chomping,
   pub indent: Option<u32>,
   pub directives_end_marker: bool,
   pub document_end_marker: bool,
+  /// A range of [`Root::lists`].
+  children: (u32, u32),
+  /// A range of [`Root::strings`].
+  value: (u32, u32),
+  /// An index of [`Root::extras`], if it has one.
+  extra: Option<u32>,
 }
 
-impl Node {
-  pub(crate) fn new(kind: Kind, position: Position) -> Node {
-    Node {
+impl Entry {
+  pub(crate) fn new(kind: Kind, position: Position) -> Entry {
+    Entry {
       kind,
       position,
       parent: None,
-      children: Vec::new(),
-      value: String::new(),
-      parameters: Vec::new(),
-      leading_comments: Vec::new(),
       trailing_comment: None,
-      end_comments: Vec::new(),
-      middle_comments: Vec::new(),
-      indicator_comment: None,
       tag: None,
       anchor: None,
       chomping: Chomping::Clip,
       indent: None,
       directives_end_marker: false,
       document_end_marker: false,
+      children: (0, 0),
+      value: (0, 0),
+      extra: None,
     }
+  }
+}
+
+/// What few nodes hold: comments before, inside and at the end of them, and a directive's parameters.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct Extra {
+  pub(crate) leading: Vec<Id>,
+  pub(crate) end: Vec<Id>,
+  pub(crate) middle: Vec<Id>,
+  pub(crate) indicator: Option<Id>,
+  pub(crate) parameters: Vec<String>,
+}
+
+/// A node of a [`Root`], with what it holds.
+#[derive(Clone, Copy, Debug)]
+pub struct Node<'r> {
+  root: &'r Root,
+  entry: &'r Entry,
+}
+
+impl std::ops::Deref for Node<'_> {
+  type Target = Entry;
+
+  fn deref(&self) -> &Entry {
+    self.entry
+  }
+}
+
+impl<'r> Node<'r> {
+  pub fn children(&self) -> &'r [Id] {
+    let (start, end) = self.entry.children;
+    &self.root.lists[start as usize..end as usize]
+  }
+
+  /// The value of a comment, tag, anchor, alias or scalar, and the name of a directive.
+  pub fn value(&self) -> &'r str {
+    let (start, end) = self.entry.value;
+    &self.root.strings[start as usize..end as usize]
+  }
+
+  pub fn leading_comments(&self) -> &'r [Id] {
+    self.extra().map_or(&[], |extra| &extra.leading)
+  }
+
+  pub fn end_comments(&self) -> &'r [Id] {
+    self.extra().map_or(&[], |extra| &extra.end)
+  }
+
+  pub fn middle_comments(&self) -> &'r [Id] {
+    self.extra().map_or(&[], |extra| &extra.middle)
+  }
+
+  pub fn indicator_comment(&self) -> Option<Id> {
+    self.extra().and_then(|extra| extra.indicator)
+  }
+
+  pub fn parameters(&self) -> &'r [String] {
+    self.extra().map_or(&[], |extra| &extra.parameters)
+  }
+
+  fn extra(&self) -> Option<&'r Extra> {
+    self.entry.extra.map(|index| &self.root.extras[index as usize])
   }
 }
 
 /// A parsed YAML stream: its documents, as children of the root, and its comments.
 #[derive(Clone, Debug, Default)]
 pub struct Root {
-  pub nodes: Vec<Node>,
+  entries: Vec<Entry>,
+  /// The children of every node.
+  lists: Vec<Id>,
+  /// The values of every node.
+  strings: String,
+  extras: Vec<Extra>,
   /// All comments, in the order of the text.
   pub comments: Vec<Id>,
   pub root: Id,
 }
 
 impl Root {
-  pub fn node(&self, id: Id) -> &Node {
-    &self.nodes[id as usize]
+  pub fn node(&self, id: Id) -> Node<'_> {
+    Node { root: self, entry: &self.entries[id as usize] }
   }
 
-  pub(crate) fn node_mut(&mut self, id: Id) -> &mut Node {
-    &mut self.nodes[id as usize]
+  pub fn len(&self) -> usize {
+    self.entries.len()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.entries.is_empty()
+  }
+
+  pub(crate) fn entry_mut(&mut self, id: Id) -> &mut Entry {
+    &mut self.entries[id as usize]
   }
 
   /// Adds a node, and makes it the parent of the nodes it holds: `defineParents`, as the tree is built from its leaves.
-  pub(crate) fn add(&mut self, node: Node) -> Id {
-    let id = self.nodes.len() as Id;
-    let owned = [&node.children, &node.middle_comments, &node.end_comments, &node.leading_comments];
-    for child in owned.into_iter().flatten() {
-      self.nodes[*child as usize].parent = Some(id);
-    }
+  pub(crate) fn add(&mut self, mut entry: Entry, children: &[Id]) -> Id {
+    let id = self.entries.len() as Id;
+    let start = self.lists.len() as u32;
+    self.lists.extend_from_slice(children);
+    entry.children = (start, self.lists.len() as u32);
     for child in
-      [node.tag, node.anchor, node.indicator_comment, node.trailing_comment].into_iter().flatten()
+      children.iter().chain([entry.tag, entry.anchor, entry.trailing_comment].iter().flatten())
     {
-      self.nodes[child as usize].parent = Some(id);
+      self.entries[*child as usize].parent = Some(id);
     }
-    self.nodes.push(node);
+    self.entries.push(entry);
     id
   }
 
+  /// Gives a node its value.
+  pub(crate) fn set_value(&mut self, id: Id, value: &str) {
+    let start = self.strings.len() as u32;
+    self.strings.push_str(value);
+    self.entries[id as usize].value = (start, self.strings.len() as u32);
+  }
+
+  /// Gives a node what few nodes hold, and makes it the parent of its comments.
+  pub(crate) fn set_extra(&mut self, id: Id, extra: Extra) {
+    let comments = [&extra.leading, &extra.end, &extra.middle];
+    for comment in comments.into_iter().flatten().chain(&extra.indicator) {
+      self.entries[*comment as usize].parent = Some(id);
+    }
+    match self.entries[id as usize].extra {
+      Some(index) => self.extras[index as usize] = extra,
+      None => {
+        self.entries[id as usize].extra = Some(self.extras.len() as u32);
+        self.extras.push(extra);
+      }
+    }
+  }
+
+  /// What few nodes hold, to add to.
+  pub(crate) fn extra_mut(&mut self, id: Id) -> &mut Extra {
+    let index = match self.entries[id as usize].extra {
+      Some(index) => index,
+      None => {
+        self.extras.push(Extra::default());
+        let index = self.extras.len() as u32 - 1;
+        self.entries[id as usize].extra = Some(index);
+        index
+      }
+    };
+    &mut self.extras[index as usize]
+  }
+
+  /// Makes room for the nodes of a text of `bytes`.
+  pub(crate) fn reserve(&mut self, bytes: usize) {
+    self.entries.reserve(bytes / 8);
+    self.lists.reserve(bytes / 8);
+    self.strings.reserve(bytes / 2);
+  }
+
   pub(crate) fn clear(&mut self) {
-    self.nodes.clear();
+    self.entries.clear();
+    self.lists.clear();
+    self.strings.clear();
+    self.extras.clear();
     self.comments.clear();
     self.root = 0;
   }
@@ -193,6 +310,8 @@ pub(crate) struct Lines<'l> {
   starts: Vec<u32>,
   /// Whether each line is ASCII, so its columns are its byte offsets.
   ascii: Vec<bool>,
+  /// The line of the last point, as the next is most often on it or the one after.
+  last: Cell<usize>,
 }
 
 impl<'l> Lines<'l> {
@@ -206,11 +325,20 @@ impl<'l> Lines<'l> {
         bytes[starts[line] as usize..end].is_ascii()
       })
       .collect();
-    Lines { text, starts, ascii }
+    Lines { text, starts, ascii, last: Cell::new(1) }
   }
 
   pub(crate) fn point(&self, offset: u32) -> Point {
-    let line = self.starts.partition_point(|start| *start <= offset).max(1);
+    let has = |line: usize| {
+      self.starts[line - 1] <= offset && self.starts.get(line).is_none_or(|next| offset < *next)
+    };
+    let last = self.last.get();
+    let line = match () {
+      _ if has(last) => last,
+      _ if last < self.starts.len() && has(last + 1) => last + 1,
+      _ => self.starts.partition_point(|start| *start <= offset).max(1),
+    };
+    self.last.set(line);
     let start = self.starts[line - 1] as usize;
     let end = (offset as usize).min(self.text.len());
     let column = match self.ascii[line - 1] {

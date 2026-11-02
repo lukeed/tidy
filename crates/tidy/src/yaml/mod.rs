@@ -41,6 +41,7 @@ struct Parser {
   tree: cst::Tree,
   composition: compose::Composition,
   root: Root,
+  pending: Vec<ast::Id>,
 }
 
 impl Parser {
@@ -65,14 +66,17 @@ impl Parser {
       }
       Abort::TooDeep => Error::TooDeep,
     })?;
+    self.root.reserve(text.len());
     let mut transformer = transform::Transformer {
       text,
       tree: &self.tree,
       composition: &self.composition,
       lines: ast::Lines::new(text),
       root: &mut self.root,
+      pending: std::mem::take(&mut self.pending),
     };
     transformer.transform();
+    self.pending = transformer.pending;
     attach::attach(&mut self.root);
     let root = self.root.root;
     attach::update_positions(&mut self.root, root);

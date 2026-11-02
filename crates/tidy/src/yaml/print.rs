@@ -32,7 +32,7 @@ impl<'p, 'a> Printer<'p, 'a> {
     self.print(root, Step { last: true });
   }
 
-  fn node(&self, id: Id) -> &'a super::ast::Node {
+  fn node(&self, id: Id) -> super::ast::Node<'a> {
     let root: &'a Root = self.root;
     root.node(id)
   }
@@ -65,8 +65,8 @@ impl<'p, 'a> Printer<'p, 'a> {
     }
     let node = self.node(id);
     let kind = node.kind;
-    if kind != Kind::MappingValue && !node.leading_comments.is_empty() {
-      self.join_comments(id, &node.leading_comments);
+    if kind != Kind::MappingValue && !node.leading_comments().is_empty() {
+      self.join_comments(id, node.leading_comments());
       self.docs.hardline();
     }
     if let Some(tag) = node.tag {
@@ -89,16 +89,16 @@ impl<'p, 'a> Printer<'p, 'a> {
     ) && !self.is_last_descendant(id, step)
       && self.next_empty_line(id);
     if node.tag.is_some() || node.anchor.is_some() {
-      match matches!(kind, Kind::Sequence | Kind::Mapping) && node.middle_comments.is_empty() {
+      match matches!(kind, Kind::Sequence | Kind::Mapping) && node.middle_comments().is_empty() {
         true => self.docs.hardline(),
         false => self.docs.text(" "),
       }
     }
-    if !node.middle_comments.is_empty() {
-      if node.middle_comments.len() != 1 {
+    if !node.middle_comments().is_empty() {
+      if node.middle_comments().len() != 1 {
         self.docs.hardline();
       }
-      self.join_comments(id, &node.middle_comments);
+      self.join_comments(id, node.middle_comments());
       self.docs.hardline();
     }
     if self.is_ignored(id) {
@@ -113,7 +113,7 @@ impl<'p, 'a> Printer<'p, 'a> {
       && !matches!(kind, Kind::Document | Kind::DocumentHead)
     {
       let suffix = self.docs.line_suffix();
-      if !(kind == Kind::MappingValue && node.children.is_empty()) {
+      if !(kind == Kind::MappingValue && node.children().is_empty()) {
         self.docs.text(" ");
       }
       // `path.getParentNode(2)`: the parent of the parent of the parent.
@@ -132,7 +132,7 @@ impl<'p, 'a> Printer<'p, 'a> {
       // `alignWithSpaces(0, ...)` leaves the indent as it is.
       let align = (kind == Kind::SequenceItem).then(|| self.docs.align(Align::Text("  ")));
       self.docs.hardline();
-      for (index, comment) in node.end_comments.iter().enumerate() {
+      for (index, comment) in node.end_comments().iter().enumerate() {
         if index > 0 {
           self.docs.hardline();
         }
@@ -181,11 +181,11 @@ impl<'p, 'a> Printer<'p, 'a> {
     let last = match node.kind {
       Kind::DocumentBody => {
         let document = self.node(self.parent().expect("a body is in a document"));
-        self.node(document.children[0]).end_comments.last().copied()
+        self.node(document.children()[0]).end_comments().last().copied()
       }
-      _ => node.leading_comments.last().copied(),
+      _ => node.leading_comments().last().copied(),
     };
-    last.is_some_and(|comment| self.node(comment).value.trim() == self.options.ignore)
+    last.is_some_and(|comment| self.node(comment).value().trim() == self.options.ignore)
   }
 
   /// `replaceEndOfLine`
@@ -205,12 +205,12 @@ impl<'p, 'a> Printer<'p, 'a> {
       Kind::Root => self.print_root(id),
       Kind::Document => self.print_document(id, step),
       Kind::DocumentHead => {
-        let steps = self.list(&node.children, step);
+        let steps = self.list(node.children(), step);
         let items = node
-          .children
+          .children()
           .iter()
           .zip(steps)
-          .chain(node.end_comments.iter().map(|it| (it, Step { last: false })));
+          .chain(node.end_comments().iter().map(|it| (it, Step { last: false })));
         for (index, (item, step)) in items.enumerate() {
           if index > 0 {
             self.docs.hardline();
@@ -221,19 +221,19 @@ impl<'p, 'a> Printer<'p, 'a> {
       Kind::DocumentBody => self.print_body(id, step),
       Kind::Directive => {
         self.docs.text("%");
-        self.docs.text(&node.value);
-        for parameter in &node.parameters {
+        self.docs.text(node.value());
+        for parameter in node.parameters() {
           self.docs.text(" ");
           self.docs.text(parameter);
         }
       }
       Kind::Comment => {
         self.docs.text("#");
-        self.docs.text(&node.value);
+        self.docs.text(node.value());
       }
       Kind::Alias | Kind::Anchor => {
         self.docs.text(if node.kind == Kind::Alias { "*" } else { "&" });
-        self.docs.text(&node.value);
+        self.docs.text(node.value());
       }
       Kind::Tag => {
         let text = self.slice(node.position.start.offset, node.position.end.offset);
@@ -246,8 +246,8 @@ impl<'p, 'a> Printer<'p, 'a> {
       Kind::QuoteDouble | Kind::QuoteSingle => self.print_quote(id),
       Kind::BlockFolded | Kind::BlockLiteral => self.print_block(id, step),
       Kind::Mapping | Kind::Sequence => {
-        let steps = self.list(&node.children, step);
-        for (index, child) in node.children.iter().enumerate() {
+        let steps = self.list(node.children(), step);
+        for (index, child) in node.children().iter().enumerate() {
           if index > 0 {
             self.docs.hardline();
           }
@@ -257,13 +257,13 @@ impl<'p, 'a> Printer<'p, 'a> {
       Kind::SequenceItem => {
         self.docs.text("- ");
         let align = self.docs.align(Align::Text("  "));
-        if let Some(content) = node.children.first() {
+        if let Some(content) = node.children().first() {
           self.child(id, *content, step);
         }
         self.docs.close(align);
       }
       Kind::MappingKey | Kind::MappingValue | Kind::FlowSequenceItem => {
-        if let Some(content) = node.children.first() {
+        if let Some(content) = node.children().first() {
           self.child(id, *content, step);
         }
       }
@@ -277,14 +277,14 @@ impl<'p, 'a> Printer<'p, 'a> {
     let last = last_descendant(self.root, id);
     let keep = matches!(self.node(last).kind, Kind::BlockLiteral | Kind::BlockFolded)
       && self.node(last).chomping == Chomping::Keep;
-    let count = node.children.len();
-    for (index, document) in node.children.iter().enumerate() {
+    let count = node.children().len();
+    for (index, document) in node.children().iter().enumerate() {
       if index > 0 {
         self.docs.hardline();
       }
       let step = Step { last: index + 1 == count };
       self.child(id, *document, step);
-      if self.should_print_document_end_marker(*document, index, &node.children) {
+      if self.should_print_document_end_marker(*document, index, node.children()) {
         if !keep {
           self.docs.hardline();
         }
@@ -309,23 +309,23 @@ impl<'p, 'a> Printer<'p, 'a> {
       return true;
     }
     let Some(next) = documents.get(index + 1) else { return false };
-    let head = self.node(self.node(*next).children[0]);
-    !head.children.is_empty() || !head.end_comments.is_empty()
+    let head = self.node(self.node(*next).children()[0]);
+    !head.children().is_empty() || !head.end_comments().is_empty()
   }
 
   fn print_document(&mut self, id: Id, step: Step) {
     let node = self.node(id);
-    let (head_id, body_id) = (node.children[0], node.children[1]);
+    let (head_id, body_id) = (node.children()[0], node.children()[1]);
     let head = self.node(head_id);
     let body = self.node(body_id);
     let marker = node.directives_end_marker
-      || !head.children.is_empty()
-      || !head.end_comments.is_empty()
+      || !head.children().is_empty()
+      || !head.end_comments().is_empty()
       || head.trailing_comment.is_some();
-    let print_body = !body.children.is_empty() || !body.end_comments.is_empty();
+    let print_body = !body.children().is_empty() || !body.end_comments().is_empty();
     let mut first = true;
     if marker {
-      if !head.children.is_empty() || !head.end_comments.is_empty() {
+      if !head.children().is_empty() || !head.end_comments().is_empty() {
         self.child(id, head_id, step);
         first = false;
       }
@@ -353,14 +353,14 @@ impl<'p, 'a> Printer<'p, 'a> {
 
   fn print_body(&mut self, id: Id, step: Step) {
     let node = self.node(id);
-    let steps = self.list(&node.children, step);
-    for (index, child) in node.children.iter().enumerate() {
+    let steps = self.list(node.children(), step);
+    for (index, child) in node.children().iter().enumerate() {
       if index > 0 {
         self.docs.hardline();
       }
       self.child(id, *child, steps[index]);
     }
-    if !node.children.is_empty() && !node.end_comments.is_empty() {
+    if !node.children().is_empty() && !node.end_comments().is_empty() {
       let last = last_descendant(self.root, id);
       if matches!(self.node(last).kind, Kind::BlockFolded | Kind::BlockLiteral) {
         if self.node(last).chomping != Chomping::Keep {
@@ -368,8 +368,8 @@ impl<'p, 'a> Printer<'p, 'a> {
           self.docs.hardline();
         }
       } else {
-        let last_child = self.node(*node.children.last().expect("a child"));
-        let first_comment = self.node(node.end_comments[0]).position.start.offset as usize;
+        let last_child = self.node(*node.children().last().expect("a child"));
+        let first_comment = self.node(node.end_comments()[0]).position.start.offset as usize;
         let empty = last_child.kind == Kind::Mapping
           && crate::text::is_previous_line_empty(self.text.as_bytes(), first_comment);
         self.docs.hardline();
@@ -378,7 +378,7 @@ impl<'p, 'a> Printer<'p, 'a> {
         }
       }
     }
-    for (index, comment) in node.end_comments.iter().enumerate() {
+    for (index, comment) in node.end_comments().iter().enumerate() {
       if index > 0 {
         self.docs.hardline();
       }
@@ -474,7 +474,7 @@ impl<'p, 'a> Printer<'p, 'a> {
       Chomping::Keep => self.docs.text("+"),
       Chomping::Strip => self.docs.text("-"),
     }
-    if let Some(comment) = node.indicator_comment {
+    if let Some(comment) = node.indicator_comment() {
       self.docs.text(" ");
       self.child(id, comment, Step { last: false });
     }
@@ -520,7 +520,7 @@ impl<'p, 'a> Printer<'p, 'a> {
   /// `getBlockValueLineContents`
   fn block_value_line_contents(
     &self,
-    node: &super::ast::Node,
+    node: super::ast::Node<'_>,
     parent_indent: usize,
     last: bool,
   ) -> Vec<Vec<Cow<'a, str>>> {
@@ -611,11 +611,11 @@ impl<'p, 'a> Printer<'p, 'a> {
   /// `printMappingItem`
   fn print_mapping_item(&mut self, id: Id, step: Step) {
     let node = self.node(id);
-    let (key, value) = (node.children[0], node.children[1]);
+    let (key, value) = (node.children()[0], node.children()[1]);
     let key_node = self.node(key);
     let value_node = self.node(value);
-    let key_content = key_node.children.first().copied();
-    let value_content = value_node.children.first().copied();
+    let key_content = key_node.children().first().copied();
+    let value_content = value_node.children().first().copied();
     let empty_key = is_empty_node(key_node);
     let empty_value = is_empty_node(value_node);
     if empty_key && empty_value {
@@ -633,7 +633,7 @@ impl<'p, 'a> Printer<'p, 'a> {
       let set = parent
         .as_ref()
         .and_then(|it| it.tag)
-        .is_some_and(|tag| self.node(tag).value == "tag:yaml.org,2002:set");
+        .is_some_and(|tag| self.node(tag).value() == "tag:yaml.org,2002:set");
       if node.kind == Kind::MappingItem
         && self.absolutely_single_line(key_content)
         && !key_content.is_some_and(|it| self.node(it).trailing_comment.is_some())
@@ -654,7 +654,7 @@ impl<'p, 'a> Printer<'p, 'a> {
       self.child(id, value, step);
       return self.docs.close(align);
     }
-    if !value_node.leading_comments.is_empty()
+    if !value_node.leading_comments().is_empty()
       || !is_inline(key_content.map(|it| self.node(it).kind))
     {
       self.docs.text("? ");
@@ -662,7 +662,7 @@ impl<'p, 'a> Printer<'p, 'a> {
       self.child(id, key, step);
       self.docs.close(align);
       self.docs.hardline();
-      for comment in &value_node.leading_comments {
+      for comment in value_node.leading_comments() {
         self.ancestors.push(id);
         self.child(value, *comment, Step { last: false });
         self.ancestors.pop();
@@ -676,15 +676,15 @@ impl<'p, 'a> Printer<'p, 'a> {
     let key_has = |printer: &Self| {
       key_content.is_some_and(|it| {
         let content = printer.node(it);
-        !content.leading_comments.is_empty()
-          || !content.middle_comments.is_empty()
+        !content.leading_comments().is_empty()
+          || !content.middle_comments().is_empty()
           || content.trailing_comment.is_some()
-      }) || !key_node.end_comments.is_empty()
+      }) || !key_node.end_comments().is_empty()
     };
     let value_has = value_content.is_some_and(|it| {
       let content = self.node(it);
-      !content.leading_comments.is_empty() || !content.middle_comments.is_empty()
-    }) || !value_node.end_comments.is_empty();
+      !content.leading_comments().is_empty() || !content.middle_comments().is_empty()
+    }) || !value_node.end_comments().is_empty();
     if self.single_line(key_content)
       && !key_has(self)
       && !value_has
@@ -697,15 +697,15 @@ impl<'p, 'a> Printer<'p, 'a> {
       return self.child(id, value, step);
     }
     let value_kind = value_content.map(|it| self.node(it).kind);
-    let breaks_before_value = (!value_node.end_comments.is_empty()
+    let breaks_before_value = (!value_node.end_comments().is_empty()
       && value_content.is_some()
       && matches!(value_kind, Some(Kind::FlowMapping | Kind::FlowSequence))
-      && value_content.is_some_and(|it| self.node(it).children.is_empty()))
+      && value_content.is_some_and(|it| self.node(it).children().is_empty()))
     .then_some(Separator::Space)
     .or_else(|| {
       let content = value_content.map(|it| self.node(it));
-      let leading = content.is_some_and(|it| !it.leading_comments.is_empty());
-      let end = !value_node.end_comments.is_empty()
+      let leading = content.is_some_and(|it| !it.leading_comments().is_empty());
+      let end = !value_node.end_comments().is_empty()
         && value_content.is_some()
         && !matches!(value_kind, Some(Kind::Mapping | Kind::Sequence));
       let trailing_key = parent.as_ref().is_some_and(|it| it.kind == Kind::Mapping)
@@ -783,8 +783,8 @@ impl<'p, 'a> Printer<'p, 'a> {
       return false;
     }
     match self.options.wrap {
-      ProseWrap::Never => !node.value.contains('\n'),
-      _ => !node.value.contains(['\n', ' ']),
+      ProseWrap::Never => !node.value().contains('\n'),
+      _ => !node.value().contains(['\n', ' ']),
     }
   }
 
@@ -806,21 +806,21 @@ impl<'p, 'a> Printer<'p, 'a> {
     let node = self.node(id);
     let mapping = node.kind == Kind::FlowMapping;
     let (open, close) = if mapping { ("{", "}") } else { ("[", "]") };
-    let spaced = mapping && !node.children.is_empty() && self.options.bracket_spacing;
-    let last_empty = node.children.last().is_some_and(|last| {
+    let spaced = mapping && !node.children().is_empty() && self.options.bracket_spacing;
+    let last_empty = node.children().last().is_some_and(|last| {
       let item = self.node(*last);
       item.kind == Kind::FlowMappingItem
-        && is_empty_node(self.node(item.children[0]))
-        && is_empty_node(self.node(item.children[1]))
+        && is_empty_node(self.node(item.children()[0]))
+        && is_empty_node(self.node(item.children()[1]))
     });
     self.docs.text(open);
     let tab = SPACES[..self.options.tab_width.min(SPACES.len())].as_ref();
     let align = self.docs.align(Align::Text(tab));
     self.spacing(spaced);
-    let steps = self.list(&node.children, step);
-    for (index, child) in node.children.iter().enumerate() {
+    let steps = self.list(node.children(), step);
+    for (index, child) in node.children().iter().enumerate() {
       self.child(id, *child, steps[index]);
-      if let Some(next) = node.children.get(index + 1) {
+      if let Some(next) = node.children().get(index + 1) {
         self.docs.text(",");
         self.docs.line();
         let line = self.node(*child).position.start.line;
@@ -839,9 +839,9 @@ impl<'p, 'a> Printer<'p, 'a> {
       self.docs.text(",");
       self.docs.close(comma);
     }
-    if !node.end_comments.is_empty() {
+    if !node.end_comments().is_empty() {
       self.docs.hardline();
-      self.join_comments(id, &node.end_comments);
+      self.join_comments(id, node.end_comments());
     }
     self.docs.close(align);
     if !last_empty {
@@ -884,18 +884,18 @@ fn is_inline(kind: Option<Kind>) -> bool {
 }
 
 /// `isEmptyNode`: no children, and no comments.
-fn is_empty_node(node: &super::ast::Node) -> bool {
-  node.children.is_empty()
-    && node.leading_comments.is_empty()
-    && node.middle_comments.is_empty()
-    && node.indicator_comment.is_none()
+fn is_empty_node(node: super::ast::Node<'_>) -> bool {
+  node.children().is_empty()
+    && node.leading_comments().is_empty()
+    && node.middle_comments().is_empty()
+    && node.indicator_comment().is_none()
     && node.trailing_comment.is_none()
-    && node.end_comments.is_empty()
+    && node.end_comments().is_empty()
 }
 
 /// `shouldPrintEndComments`
-fn should_print_end_comments(node: &super::ast::Node) -> bool {
-  !node.end_comments.is_empty()
+fn should_print_end_comments(node: super::ast::Node<'_>) -> bool {
+  !node.end_comments().is_empty()
     && !matches!(
       node.kind,
       Kind::DocumentHead | Kind::DocumentBody | Kind::FlowMapping | Kind::FlowSequence
@@ -904,7 +904,7 @@ fn should_print_end_comments(node: &super::ast::Node) -> bool {
 
 /// `getLastDescendantNode`
 fn last_descendant(root: &Root, id: Id) -> Id {
-  match root.node(id).children.last() {
+  match root.node(id).children().last() {
     Some(last) => last_descendant(root, *last),
     None => id,
   }
