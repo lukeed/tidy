@@ -4,6 +4,7 @@
 pub mod config;
 pub mod css;
 pub mod doc;
+pub mod dockerfile;
 pub mod embed;
 mod front_matter;
 pub mod handlebars;

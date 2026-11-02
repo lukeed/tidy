@@ -1,0 +1,10 @@
+[package]
+name = "dockerfile-oracle"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+dprint-core = { version = "=0.70.0", default-features = false }
+dprint-plugin-dockerfile = "=0.7.0"
+tidy = { path = "../../../crates/tidy" }

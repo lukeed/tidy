@@ -1,7 +1,7 @@
 [workspace]
 resolver = "3"
 members = ["crates/*"]
-exclude = ["bench/css", "bench/dprint", "bench/parse", "bench/walk", "tests/oracle/toml", "tests/oracle/yaml"]
+exclude = ["bench/css", "bench/dprint", "bench/parse", "bench/walk", "tests/oracle/dockerfile", "tests/oracle/toml", "tests/oracle/yaml"]
 
 [workspace.package]
 version = "0.0.0"

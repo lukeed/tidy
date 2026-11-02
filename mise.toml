@@ -63,6 +63,11 @@ description = "Compare TOML with taplo: mise run oracle:toml -- files <dir>... |
 dir = "tests/oracle/toml"
 run = "cargo run --release --"
 
+[tasks."oracle:dockerfile"]
+description = "Compare Dockerfiles with dprint-plugin-dockerfile 0.7.0: mise run oracle:dockerfile -- specs <dir> | files <dir>... | fuzz [count] <dir>..."
+dir = "tests/oracle/dockerfile"
+run = "cargo run --release --"
+
 [tasks."oracle:yaml"]
 description = "Compare YAML with yaml 2.9.0 and Prettier: its syntax tree, what parses, its tree, and the output"
 dir = "tests/oracle/yaml"
