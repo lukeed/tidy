@@ -319,6 +319,7 @@ impl Formatter {
       FormatOptions { sort_imports: options.sort_imports.clone(), ..options.into() };
     let parsed = parse_any(allocator, text, source_types(options.dialect, path, text))?;
     let source_type = parsed.program.source_type;
+    let mut recovered = parsed.diagnostics.to_vec();
     let program = allocator.alloc(parsed.program);
     let mut file = ast::File::new(text, path.as_bytes(), source_type, program, allocator);
     let how = options.sort_imports.as_deref();
@@ -329,6 +330,7 @@ impl Formatter {
       })?;
       let sorted = allocator.alloc_str(&sorted);
       let parsed = parse_any(allocator, sorted, (source_type, None))?;
+      recovered = parsed.diagnostics.to_vec();
       let program = allocator.alloc(parsed.program);
       file = ast::File::new(sorted, path.as_bytes(), source_type, program, allocator);
     }
@@ -338,7 +340,8 @@ impl Formatter {
     self.output = String::from_utf8(out)
       .unwrap_or_else(|error| String::from_utf8_lossy(error.as_bytes()).into_owned());
     match formatted {
-      Ok(()) => Ok(()),
+      Ok(()) if recovered.is_empty() => Ok(()),
+      Ok(()) => keeps_errors(&recovered, &self.output, source_type),
       Err(FormatError::NestedTooDeeply) => Err(crate::Error::TooDeep),
       Err(error) => Err(crate::Error::Syntax { message: format!("{error:?}"), at: 0 }),
     }
@@ -382,10 +385,10 @@ fn parse_any<'a>(
   (first, second): (oxc_span::SourceType, Option<oxc_span::SourceType>),
 ) -> Result<oxc_parser::ParserReturn<'a>, crate::Error> {
   let parsed = parse_module_or_script(allocator, text, first);
-  let Some(error) = parsed.diagnostics.first() else { return Ok(parsed) };
+  let Some(error) = rejection(&parsed) else { return Ok(parsed) };
   if let Some(second) = second {
     let other = parse_module_or_script(allocator, text, second);
-    if other.diagnostics.is_empty() {
+    if rejection(&other).is_none() {
       return Ok(other);
     }
   }
@@ -405,14 +408,85 @@ fn parse_module_or_script<'a>(
     false => source_type.with_script(true),
   };
   let first = parse(allocator, text, source_type);
-  match first.diagnostics.is_empty() {
-    true => first,
-    false => match parse(allocator, text, other) {
-      second if second.diagnostics.is_empty() => second,
+  match rejection(&first) {
+    None => first,
+    Some(_) => match parse(allocator, text, other) {
+      second if rejection(&second).is_none() => second,
       _ => first,
     },
   }
 }
+
+/// Checks that `output`, formatted from a text with the errors `recovered`, has the same errors. Where oxc's tree has no
+/// room for what an error is about, as the `declare` of `declare accessor a`, the printer drops it.
+fn keeps_errors(
+  recovered: &[oxc_diagnostics::OxcDiagnostic],
+  output: &str,
+  source_type: oxc_span::SourceType,
+) -> Result<(), crate::Error> {
+  let allocator = oxc_allocator::Allocator::default();
+  let again = parse(&allocator, output, source_type);
+  // Printing puts modifiers in order and drops repeated ones, as Prettier does.
+  let fixed = |error: &&oxc_diagnostics::OxcDiagnostic| {
+    matches!(error.code.number.as_deref(), Some("1029" | "1030"))
+  };
+  let messages = |errors: &[oxc_diagnostics::OxcDiagnostic]| {
+    errors
+      .iter()
+      .filter(|error| !fixed(error))
+      .map(|error| error.message.clone())
+      .collect::<Vec<_>>()
+  };
+  if messages(&again.diagnostics) == messages(recovered) {
+    return Ok(());
+  }
+  let error = &recovered[0];
+  let at = error.labels.as_ref().first().map_or(0, |label| label.offset() as usize);
+  Err(crate::Error::Syntax { message: error.message.to_string(), at })
+}
+
+/// The first error that Prettier's parser throws for `parsed`, if any. Its `typescript` parser throws on TypeScript's
+/// syntax errors only, and its `babel` parser recovers from some errors (`allowedReasonCodes`), where oxc's tree is
+/// whole.
+fn rejection<'p>(
+  parsed: &'p oxc_parser::ParserReturn<'_>,
+) -> Option<&'p oxc_diagnostics::OxcDiagnostic> {
+  let typescript = parsed.program.source_type.is_typescript();
+  match parsed.fatal_error {
+    true => parsed.diagnostics.first(),
+    false => parsed.diagnostics.iter().find(|error| !is_recoverable(error, typescript)),
+  }
+}
+
+fn is_recoverable(error: &oxc_diagnostics::OxcDiagnostic, typescript: bool) -> bool {
+  let message = error.message.as_ref();
+  let code = error.code.number.as_deref().filter(|_| error.code.scope.as_deref() == Some("TS"));
+  if typescript && code.is_some_and(|code| CHECKER_ONLY.contains(&code)) {
+    return true;
+  }
+  // `VarRedeclaration`, `DeclarationMissingInitializer`, `allowNewTargetOutsideFunction` and, where TypeScript's
+  // scanner rejects it, `InvalidEscapeSequenceTemplate`.
+  matches!(
+    message,
+    "Missing initializer in const declaration"
+      | "Missing initializer in destructuring declaration"
+      | "Unexpected new.target expression"
+  ) || (message.starts_with("Identifier `") && message.ends_with("` has already been declared"))
+    || (!typescript && message == "Bad escape sequence in untagged template literal")
+}
+
+/// The codes of the errors that oxc's parser reports, that TypeScript 5.9 only reports in its checker or binder, never in
+/// its scanner or parser, and that typescript-estree doesn't check either.
+const CHECKER_ONLY: &[&str] = &[
+  "1009", "1015", "1016", "1019", "1021", "1024", "1028", "1029", "1030", "1031", "1035", "1036",
+  "1038", "1039", "1040", "1047", "1049", "1051", "1063", "1070", "1071", "1079", "1090", "1092",
+  "1093", "1094", "1095", "1096", "1097", "1098", "1099", "1108", "1113", "1141", "1147", "1164",
+  "1172", "1173", "1174", "1175", "1176", "1183", "1184", "1187", "1194", "1221", "1222", "1242",
+  "1243", "1248", "1249", "1257", "1268", "1273", "1274", "1275", "1276", "1277", "1316", "1318",
+  "1319", "1325", "1337", "1354", "1363", "1392", "1545", "1546", "2206", "2207", "2398", "2452",
+  "2499", "2528", "2566", "2681", "2730", "2784", "5085", "5086", "5087", "7059", "7060", "8002",
+  "8005", "8011", "8012", "8016", "8037", "18007", "18010", "18019", "18041", "18058", "18059",
+];
 
 fn parse<'a>(
   allocator: &'a oxc_allocator::Allocator,

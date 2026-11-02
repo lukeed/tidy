@@ -65,6 +65,7 @@ for (let path of dirs.flatMap(files)) {
 		differing.push(`rejects ${path}`);
 	} else if (expected === undefined) {
 		counts["tidy accepts"]++;
+		differing.push(`accepts ${path}`);
 	} else if (tidy === expected) {
 		counts.same++;
 	} else {

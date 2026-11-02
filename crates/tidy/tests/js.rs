@@ -92,3 +92,24 @@ fn formats_through_the_language() {
   let output = tidy::format(text, language, &options, Some("a.js"), &mut Verbatim).unwrap();
   assert_eq!(output, expected);
 }
+
+#[test]
+fn formats_what_prettier_parsers_recover_from() {
+  let options = Options { dialect: Dialect::Ts, ..Options::default() };
+  let text = "declare module m { class C { field = \"f\" } }\n";
+  let expected = "declare module m {\n  class C {\n    field = \"f\";\n  }\n}\n";
+  assert_eq!(format(text, "a.ts", &options), expected);
+  let text = "class C { public abstract readonly readonly x }\n";
+  assert_eq!(format(text, "a.ts", &options), "class C {\n  public abstract readonly x;\n}\n");
+  assert_eq!(
+    format("const a\nlet b; let b\n", "a.js", &Options::default()),
+    "const a;\nlet b;\nlet b;\n"
+  );
+}
+
+#[test]
+fn rejects_what_the_tree_cannot_hold() {
+  let options = Options { dialect: Dialect::Ts, ..Options::default() };
+  assert!(js::format("class C { declare accessor a: number }\n", "a.ts", &options).is_err());
+  assert!(js::format("class C { abstract m() {} }\n", "a.ts", &options).is_err());
+}
