@@ -65,7 +65,7 @@ Most entries come from bun's ports, which correct the places where Prettier's ou
 | [xml-hex-character-reference](#xml-hex-character-reference) | xml | proposed |
 | [xml-ignore-trims-xml-whitespace](#xml-ignore-trims-xml-whitespace) | xml | proposed |
 | [html-borrowed-markers-once](#html-borrowed-markers-once) | html | approved 2026-11-01 |
-| [toml-byte-order-mark](#toml-byte-order-mark) | toml | proposed |
+| [toml-byte-order-mark](#toml-byte-order-mark) | toml | approved 2026-11-01 |
 | [toml-embedded](#toml-embedded) | markdown/css/html/handlebars | approved 2026-11-01 |
 | [the rule in step 2](#process) | all | proposed |
 | [tempura and text mode](#beyond-prettier) | handlebars | approved 2026-10-31 |
@@ -775,7 +775,7 @@ The reference is the taplo 0.14.0 crate, run as `taplo fmt` runs it. `tests/orac
 
 ### toml-byte-order-mark
 
-- Status: proposed
+- Status: approved 2026-11-01
 - Why: taplo's lexer has no token for U+FEFF, so `taplo fmt` rejects a file that starts with a byte order mark. tidy keeps the mark, as it does in every other language, and formats the rest.
 - Where: crates/tidy/src/toml/mod.rs (`Formatter::format`)
 - Parser: toml
