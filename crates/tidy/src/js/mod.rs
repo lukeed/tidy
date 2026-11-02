@@ -373,9 +373,11 @@ fn source_types(
       .strip_suffix(".ts")
       .and_then(|stem| stem.rsplit_once(".d."))
       .is_some_and(|(_, inner)| !inner.contains('.'));
-  let definition =
-    |it: SourceType| it.with_typescript_definition(it.is_typescript() && declaration);
-  (definition(first.with_commonjs(commonjs)), second.map(definition))
+  // As Prettier's parsers do, read a module first, where `await(1)` awaits.
+  let definition = |it: SourceType| {
+    it.with_module(true).with_typescript_definition(it.is_typescript() && declaration)
+  };
+  (definition(first).with_commonjs(commonjs), second.map(definition))
 }
 
 /// Parses `text` as the first source type, or else the second, or fails with the error of the first.
