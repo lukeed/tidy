@@ -48,6 +48,11 @@ let sources: Record<string, string> = {
 	"oxc-yaml-parser": "oxc-yaml-parser",
 	"oxc-css-parser": "oxc-css-parser",
 	"oxc-htmlish-parser": "oxc-htmlish-parser",
+	"oxc-graphql-parser": "oxc-graphql-parser",
+	"apollo-parser": "apollo-parser",
+	"cynic-parser": "cynic-parser",
+	"graphql-parser": "graphql-parser",
+	"async-graphql-parser": "async-graphql-parser",
 };
 
 let output = await $`${join(target, "release/parse-bench")} --json ${Bun.argv.slice(2)}`.text();

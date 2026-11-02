@@ -96,6 +96,32 @@ fn languages() -> Vec<(&'static str, Vec<Tool>)> {
       ],
     ),
     (
+      "graphql",
+      vec![
+        tool("tidy", "tree, comments", tidy::bench::graphql),
+        tool("oxc-graphql-parser", "tree, comments", |text| {
+          let allocator = oxc_graphql_parser::Allocator::default();
+          let ast = oxc_graphql_parser::Parser::new(&allocator, text).parse();
+          black_box(ast.errors().next().is_none())
+        }),
+        tool("apollo-parser", "tree, trivia", |text| {
+          black_box(apollo_parser::Parser::new(text).parse().errors().next().is_none())
+        }),
+        tool("cynic-parser", "query or schema", |text| {
+          keep(cynic_parser::parse_executable_document(text))
+            || keep(cynic_parser::parse_type_system_document(text))
+        }),
+        tool("graphql-parser", "query or schema", |text| {
+          keep(graphql_parser::parse_query::<&str>(text))
+            || keep(graphql_parser::parse_schema::<&str>(text))
+        }),
+        tool("async-graphql-parser", "query or schema", |text| {
+          keep(async_graphql_parser::parse_query(text))
+            || keep(async_graphql_parser::parse_schema(text))
+        }),
+      ],
+    ),
+    (
       "css",
       vec![
         tool("tidy", "tree, values as text", |text| {

@@ -45,6 +45,7 @@ export function language(name: string) {
 		handlebars: "Handlebars",
 		markdown: "Markdown",
 		dockerfile: "Dockerfiles",
+		graphql: "GraphQL",
 		vue: "Vue",
 		pages: "HTML pages",
 		all: "all corpora",

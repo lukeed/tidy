@@ -12,6 +12,7 @@ dprint-plugin-toml = "=0.9.0"
 pretty_yaml = "=0.6.0"
 malva = "=0.16.0"
 markup_fmt = "=0.25.0"
+pretty_graphql = "=0.2.3"
 
 [profile.release]
 codegen-units = 1

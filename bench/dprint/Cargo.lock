@@ -18,6 +18,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
+name = "apollo-parser"
+version = "0.8.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61e7b65fce383a71e165834de0bc0fb44b84c840e174f0c5b3914ab76c88ff14"
+dependencies = [
+ "memchr",
+ "rowan",
+ "thiserror",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -48,6 +59,7 @@ dependencies = [
  "dprint-plugin-toml",
  "malva",
  "markup_fmt",
+ "pretty_graphql",
  "pretty_yaml",
 ]
 
@@ -269,6 +281,18 @@ name = "monch"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6bcc6ad3b93f756f2532d29f7c7291b8d246a2c460a99a3611327bb726830014"
+
+[[package]]
+name = "pretty_graphql"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea8c38ecedb3d28a998ea783469a78587f5f984d61226cf071f6979861e9e6a9"
+dependencies = [
+ "apollo-parser",
+ "memchr",
+ "rowan",
+ "tiny_pretty 0.2.1",
+]
 
 [[package]]
 name = "pretty_yaml"

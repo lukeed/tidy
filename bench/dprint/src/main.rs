@@ -1,7 +1,8 @@
 //! Formats the files under a folder the way dprint does with its plugins, leaving embedded code as it is written:
 //! markup_fmt (dprint-plugin-markup) for markup and XML, malva (dprint-plugin-malva) for style sheets,
 //! dprint-plugin-json for JSON, dprint-plugin-toml for TOML, pretty_yaml (dprint-plugin-yaml) for YAML,
-//! dprint-plugin-dockerfile for Dockerfiles, and dprint-plugin-markdown for Markdown. Exits 1 if any file changes,
+//! dprint-plugin-dockerfile for Dockerfiles, pretty_graphql (dprint-plugin-graphql) for GraphQL, and
+//! dprint-plugin-markdown for Markdown. Exits 1 if any file changes,
 //! like `--check`.
 
 use std::path::{Path, PathBuf};
@@ -35,7 +36,12 @@ fn main() {
       Some("json" | "jsonc" | "json5") => dprint_plugin_json::format_text(&path, &text, &json)
         .ok()
         .map(|output| output.unwrap_or_else(|| text.clone())),
-      Some("yml" | "yaml") => pretty_yaml::format_text(&text, &pretty_yaml::config::FormatOptions::default()).ok(),
+      Some("graphql" | "gql" | "graphqls") => {
+        pretty_graphql::format_text(&text, &pretty_graphql::config::FormatOptions::default()).ok()
+      }
+      Some("yml" | "yaml") => {
+        pretty_yaml::format_text(&text, &pretty_yaml::config::FormatOptions::default()).ok()
+      }
       Some("toml") => dprint_plugin_toml::format_text(&path, &text, &toml)
         .ok()
         .map(|output| output.unwrap_or_else(|| text.clone())),

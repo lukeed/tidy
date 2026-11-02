@@ -3,15 +3,17 @@
 // Markdown code blocks, so it does more work than the others. Each corpus only has the files that Prettier parses.
 // Each set runs in both orders; Prettier runs fewer times, since it is two orders of magnitude slower. The TOML corpus
 // only has the files that taplo parses, the Dockerfile corpus the ones that prettier-plugin-sh parses, and the INI
-// corpus the ones that prettier-plugin-ini parses, with the hidden files that hold INI, such as `.editorconfig`.
+// corpus the ones that prettier-plugin-ini parses, with the hidden files that hold INI, such as `.editorconfig`. The
+// GraphQL corpus is target/corpus/graphql, which `mise run corpus:graphql` builds: GitLab's queries and five public
+// schemas.
 //
 // The incumbents, where they format a language:
 // - Prettier 3.9.9, with @prettier/plugin-xml for XML;
 // - bun fmt (not XML);
 // - dprint's plugins: markup_fmt for HTML, Vue and XML, malva for style sheets, dprint-plugin-json, and
-//   dprint-plugin-markdown;
+//   pretty_graphql (dprint-plugin-graphql), and dprint-plugin-markdown;
 // - oxc's CSS formatter and lightningcss (CSS only, which reprints rather than formats) for style sheets;
-// - Biome 2.6.4 for JSON, with spaces, as Prettier indents;
+// - Biome 2.6.4 for JSON and GraphQL, with spaces, as Prettier indents;
 // - for TOML, which Prettier doesn't format: taplo 0.10.0, tidy's reference, tombi 1.9.8, and dprint-plugin-toml;
 // - Google's yamlfmt 0.21.0 for YAML;
 // - oxfmt, oxc's formatter, for every corpus but XML, Dockerfiles and INI, with a width of 80, as Prettier's. It
@@ -151,6 +153,8 @@ let parsers: Record<string, Record<string, unknown>> = {
 	".svg": { parser: "xml", plugins: ["@prettier/plugin-xml"] },
 	".xsl": { parser: "xml", plugins: ["@prettier/plugin-xml"] },
 	".md": { parser: "markdown" },
+	".graphql": { parser: "graphql" },
+	".gql": { parser: "graphql" },
 	".yml": { parser: "yaml" },
 	".yaml": { parser: "yaml" },
 };
@@ -175,7 +179,14 @@ for (let [name, list] of Object.entries(sources)) {
 	}
 }
 cpSync(join(oss, "html/bench/corpus"), join(corpus, "pages"), { recursive: true });
-for (let name of [...Object.keys(sources), "pages"]) {
+let graphql = join(root, "target/corpus/graphql");
+for (let file of readdirSync(graphql)) {
+	let source = await Bun.file(join(graphql, file)).text();
+	if (!(await parses(file, source, join(graphql, file)))) continue;
+	mkdirSync(join(corpus, "graphql"), { recursive: true });
+	cpSync(join(graphql, file), join(corpus, "graphql", file));
+}
+for (let name of [...Object.keys(sources), "pages", "graphql"]) {
 	cpSync(join(corpus, name), join(corpus, "all", name), { recursive: true });
 	if (name !== "xml") cpSync(join(corpus, name), join(corpus, "all-but-xml", name), { recursive: true });
 }
@@ -232,11 +243,11 @@ let versions: Record<string, string> = {
 let markup = ["html", "vue", "pages"];
 let sheets = ["css", "scss", "less"];
 let formats: Record<string, string[]> = {
-	bun: [...markup, "handlebars", ...sheets, "json", "yaml", "toml", "markdown", "all-but-xml"],
-	dprint: [...markup, ...sheets, "json", "yaml", "toml", "dockerfile", "xml", "markdown", "all", "all-but-xml"],
+	bun: [...markup, "handlebars", ...sheets, "json", "yaml", "toml", "graphql", "markdown", "all-but-xml"],
+	dprint: [...markup, ...sheets, "json", "yaml", "toml", "dockerfile", "graphql", "xml", "markdown", "all", "all-but-xml"],
 	yamlfmt: ["yaml"],
-	oxfmt: [...markup, "handlebars", ...sheets, "json", "yaml", "toml", "markdown", "all", "all-but-xml"],
-	biome: ["json"],
+	oxfmt: [...markup, "handlebars", ...sheets, "json", "yaml", "toml", "graphql", "markdown", "all", "all-but-xml"],
+	biome: ["json", "graphql"],
 	taplo: ["toml"],
 	tombi: ["toml"],
 	oxc: sheets,
@@ -274,6 +285,7 @@ let names = [
 	"toml",
 	"dockerfile",
 	"ini",
+	"graphql",
 	"xml",
 	"markdown",
 ];
