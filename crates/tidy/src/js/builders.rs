@@ -137,24 +137,6 @@ impl<'fmt, 'a, Separator: Format<'a>> JoinNodesBuilder<'fmt, 'a, Separator> {
         content.fmt(self.fmt);
     }
 
-    /// [`JoinNodesBuilder::entry`], with an empty line before it.
-    pub(crate) fn entry_after_empty_line(&mut self, content: &(impl Format<'a> + ?Sized)) {
-        if self.has_elements {
-            write!(self.fmt, empty_line());
-        }
-        self.has_elements = true;
-        content.fmt(self.fmt);
-    }
-
-    /// [`JoinNodesBuilder::entry`], but without keeping an empty line before it.
-    pub(crate) fn entry_without_empty_line(&mut self, content: &(impl Format<'a> + ?Sized)) {
-        if self.has_elements {
-            self.separator.fmt(self.fmt);
-        }
-        self.has_elements = true;
-        content.fmt(self.fmt);
-    }
-
     pub(crate) fn separator_no_entry(&mut self, span: Span) {
         if self.has_elements {
             if self.has_lines_before(span) {

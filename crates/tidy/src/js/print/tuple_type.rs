@@ -8,11 +8,7 @@ pub(crate) fn write_ts_tuple_type<'a>(
     elements: List<'a, TupleElem<'a>>,
     f: &mut Formatter<'a>,
 ) {
-    if f.file().is_flow() && super::flow::write_tuple_of_unknown_elements(ty, elements, f) {
-        return;
-    }
-    let needs_parentheses = f.file().is_flow() && super::flow::needs_parentheses(ty);
-    write!(f, [needs_parentheses.then_some("("), "["]);
+    write!(f, "[");
     if elements.is_empty() {
         write!(
             f,
@@ -20,11 +16,7 @@ pub(crate) fn write_ts_tuple_type<'a>(
         );
     } else {
         let element_types = format_with(|f| {
-            let trailing_separator =
-                match f.file().is_flow() && super::flow::is_inexact_tuple(elements) {
-                    true => TrailingSeparator::Disallowed,
-                    false => FormatTrailingCommas::ES5.trailing_separator(f.options()),
-                };
+            let trailing_separator = FormatTrailingCommas::ES5.trailing_separator(f.options());
             f.join_nodes_with_soft_line()
                 .entries_with_trailing_separator(
                     elements.iter().map(FormatTupleElement),
@@ -34,7 +26,7 @@ pub(crate) fn write_ts_tuple_type<'a>(
         });
         write!(f, group(&soft_block_indent(&element_types)));
     }
-    write!(f, ["]", needs_parentheses.then_some(")")]);
+    write!(f, "]");
 }
 
 /// An element and the comments around it form a group, as in Prettier's `printArrayElements`: a comment that ends its
@@ -58,9 +50,6 @@ impl<'a> Format<'a> for FormatTupleElement<'a> {
 
 /// `a: T`, `a?: T`, `T?`, `...T`, `...a: T`
 pub(crate) fn write_ts_tuple_element<'a>(element: TupleElem<'a>, f: &mut Formatter<'a>) {
-    if f.file().is_flow() {
-        return super::flow::write_tuple_element(element, f);
-    }
     write!(f, element.is_rest().then_some("..."));
     match element.name() {
         Some(label) => write!(

@@ -80,9 +80,6 @@ pub(crate) fn write_ts_interface_declaration<'a>(
     interface: Interface<'a>,
     f: &mut Formatter<'a>,
 ) {
-    if f.file().is_flow() && super::flow::is_opaque_type(statement, f) {
-        return super::flow::write_opaque_type(statement, interface, f);
-    }
     let name = interface.name().span();
     let type_params = interface.type_params();
     let extends = interface.extends();
@@ -216,9 +213,6 @@ pub(crate) fn write_ts_type_alias_declaration<'a>(
     alias: Alias<'a>,
     f: &mut Formatter<'a>,
 ) {
-    if f.file().is_flow() && super::flow::write_pseudo_type_alias(statement, alias, f) {
-        return;
-    }
     let ty = without_lone_operator(alias.ty());
     let right_node = ty.as_ast_nodes();
 
@@ -392,8 +386,6 @@ fn type_alias_layout<'a>(
         {
             true
         }
-        // Flow's `StringLiteralTypeAnnotation`
-        TypeKind::StringLit(_) if f.file().is_javascript() => true,
         _ => (leading_comments.iter())
             .any(|comment| comment.has_newline_after() || comment.is_indentable_block()),
     };
@@ -439,12 +431,7 @@ pub(crate) fn write_ts_enum_declaration<'a>(
     let body = AstNodes::TSEnumBody(statement);
     write!(f, identifier(declaration.name()));
     write_space_before_body(body, f);
-    format_node(body, f, |f| {
-        if f.file().is_flow() {
-            super::flow::write_explicit_type_of_enum(declaration, f);
-        }
-        write_ts_enum_body(body, declaration, f);
-    });
+    format_node(body, f, |f| write_ts_enum_body(body, declaration, f));
 }
 
 fn write_ts_enum_body<'a>(body: AstNodes<'a>, declaration: Enum<'a>, f: &mut Formatter<'a>) {
@@ -472,7 +459,6 @@ fn write_ts_enum_body<'a>(body: AstNodes<'a>, declaration: Enum<'a>, f: &mut For
         write!(
             f,
             block_indent(&format_with(|f| {
-                // Flow's `enum A { /* comment */ ... }`
                 let comments = f.comments().of_node(body).dangling;
                 write!(
                     f,
@@ -484,13 +470,7 @@ fn write_ts_enum_body<'a>(body: AstNodes<'a>, declaration: Enum<'a>, f: &mut For
                         (!comments.is_empty()).then_some(hard_line_break())
                     ]
                 );
-                let trailing_separator = match members
-                    .last()
-                    .is_some_and(super::flow::is_unknown_members_mark)
-                {
-                    true => TrailingSeparator::Disallowed,
-                    false => FormatTrailingCommas::ES5.trailing_separator(f.options()),
-                };
+                let trailing_separator = FormatTrailingCommas::ES5.trailing_separator(f.options());
                 f.join_nodes_with_soft_line()
                     .entries_with_trailing_separator(members.iter(), ",", trailing_separator);
             }))
@@ -504,9 +484,6 @@ fn write_ts_enum_body<'a>(body: AstNodes<'a>, declaration: Enum<'a>, f: &mut For
 
 /// `A`, `A = 1`, `"a" = 1`
 pub(crate) fn write_ts_enum_member<'a>(member: EnumMember<'a>, f: &mut Formatter<'a>) {
-    if super::flow::is_unknown_members_mark(member) {
-        return write!(f, "...");
-    }
     if let Some(key) = member.key() {
         // `["a"]` prints as `"a"`. Only a template keeps its brackets.
         let is_computed = key.is_computed()
@@ -532,7 +509,6 @@ pub(crate) fn write_ts_module_declaration<'a>(
     f: &mut Formatter<'a>,
 ) {
     let innermost = module.innermost();
-    let body_span = innermost.body_span();
     write!(f, is_declared(statement).then_some("declare "));
 
     match module.name() {
@@ -558,21 +534,14 @@ pub(crate) fn write_ts_module_declaration<'a>(
         current = nested;
     }
 
-    let Some(span) = body_span else {
+    if innermost.body_span().is_none() {
         return write!(f, OptionalSemicolon);
-    };
+    }
     let body = AstNodes::TSModuleBlock(statement);
     write_space_before_body(body, f);
     format_node(body, f, |f| {
         write!(f, "{");
         match is_empty_block(innermost.body()) {
-            // Prettier's `printBlock` doesn't know Flow's `declare namespace`.
-            true if f.file().is_flow()
-                && !module.uses_module_keyword()
-                && !f.comments().has_comment_in_span(span) =>
-            {
-                write!(f, hard_line_break());
-            }
             true => write!(f, dangling_comments(body).with_block_indent()),
             false => write!(f, block_indent(&FormatStatements(innermost.body()))),
         }

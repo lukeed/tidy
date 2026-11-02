@@ -612,8 +612,7 @@ impl<'a> Format<'a> for FormatNonNullMarks<'a> {
 /// This only dispatches. Each function it calls has its own stack frame, sized for that kind, and the kinds written
 /// inline here need no frame at all.
 ///
-/// It checks the stack because some callers get here without going through [`FormatExpr`] or [`format_expression`],
-/// such as the guard of a Flow `match` case.
+/// It checks the stack because some callers get here without going through [`FormatExpr`] or [`format_expression`].
 pub(crate) fn write_expression<'a>(e: Expr<'a>, options: ExprOptions, f: &mut Formatter<'a>) {
     if f.context_mut().has_stack_left() {
         write_expression_after_stack_check(e, options, f);
@@ -682,9 +681,7 @@ fn write_call_expression<'a>(e: Expr<'a>, f: &mut Formatter<'a>) {
 
 #[inline(never)]
 fn write_new_expression<'a>(e: Expr<'a>, f: &mut Formatter<'a>) {
-    if let Some(call) = e.as_call_like()
-        && !(f.file().is_flow() && print::flow::write_expression_with_braces(e, call, f))
-    {
+    if let Some(call) = e.as_call_like() {
         print::call_like_expression::write_new_expression(e, call, f);
     }
 }
@@ -781,10 +778,7 @@ fn write_less_common_expression<'a>(e: Expr<'a>, f: &mut Formatter<'a>) {
         ExprKind::Await(argument) => expressions::write_await_expression(e, argument, f),
         ExprKind::Yield { value, star } => expressions::write_yield_expression(value, star, f),
         ExprKind::As { .. } | ExprKind::AsConst(_) if e.is_angle_bracket_assertion() => {
-            match f.file().is_flow() {
-                true => print::flow::write_type_cast_expression(e, f),
-                false => expressions::write_ts_type_assertion(e, f),
-            }
+            expressions::write_ts_type_assertion(e, f)
         }
         ExprKind::As { .. } | ExprKind::AsConst(_) | ExprKind::Satisfies { .. } => {
             print::as_or_satisfies_expression::write_as_or_satisfies_expression(e, f);
@@ -1143,11 +1137,8 @@ fn write_type_in_parentheses<'a>(ty: TypeNode<'a>, f: &mut Formatter<'a>) {
         | TypeTag::Readonly
         | TypeTag::UniqueSymbol
         | TypeTag::Typeof
-        | TypeTag::Import => true,
-        // Flow's `renders T` writes its own.
-        TypeTag::Unique => !f.file().is_flow(),
-        // In Flow, as the return type of an arrow function: `(): (A<{ b: () => void }>) => c`.
-        TypeTag::Ref => f.file().is_flow(),
+        | TypeTag::Import
+        | TypeTag::Unique => true,
         _ => false,
     };
     let needs_parentheses = may_need_parentheses && parentheses::ts_type::needs_parentheses(ty, f);
@@ -1189,8 +1180,6 @@ fn format_type_with_comments<'a>(ty: TypeNode<'a>, f: &mut Formatter<'a>) {
 pub(crate) fn write_type<'a>(ty: TypeNode<'a>, f: &mut Formatter<'a>) {
     use print::ts_types;
     match ty.kind() {
-        TypeKind::Error | TypeKind::Unique(_)
-            if f.file().is_flow() && print::flow::write_nullable_type_or_type_operator(ty, f) => {}
         TypeKind::Error => write!(f, FormatSuppressedNode(ty.span())),
         TypeKind::Heritage { expr, args } => {
             write!(
@@ -1207,23 +1196,17 @@ pub(crate) fn write_type<'a>(ty: TypeNode<'a>, f: &mut Formatter<'a>) {
             ts_types::write_ts_literal_type(ty, f);
         }
         TypeKind::Template(_) => print::template::write_ts_template_literal_type(ty, f),
-        TypeKind::Array(element) if f.file().is_flow() => {
-            print::flow::write_array_type(ty, element, f)
-        }
         TypeKind::Array(element) => write!(f, [element, "[]"]),
         TypeKind::Tuple(elements) => print::tuple_type::write_ts_tuple_type(ty, elements, f),
         TypeKind::Union(types) => print::union_type::write_ts_union_type(ty, types, f),
         TypeKind::Intersection(types) => {
-            print::intersection_type::write_ts_intersection_type(ty, types, f)
+            print::intersection_type::write_ts_intersection_type(types, f)
         }
-        TypeKind::Fn(func) => print::function_type::write_ts_function_type(ty, func, f),
+        TypeKind::Fn(func) => print::function_type::write_ts_function_type(func, f),
         TypeKind::Object(members) => ts_types::write_ts_type_literal(ty, members, f),
         TypeKind::Cond { .. } => ts_types::write_ts_conditional_type(ty, f),
         TypeKind::Infer(param) => write!(f, ["infer", space(), param]),
         TypeKind::Mapped(mapped) => print::mapped_type::write_ts_mapped_type(ty, mapped, f),
-        TypeKind::IndexedAccess { obj, index } if f.file().is_flow() => {
-            print::flow::write_indexed_access_type(ty, obj, index, f);
-        }
         TypeKind::IndexedAccess { obj, index } => write!(f, [obj, "[", index, "]"]),
         TypeKind::Keyof(operand) => write!(f, ["keyof", space(), operand]),
         TypeKind::Readonly(operand) => write!(f, ["readonly", space(), operand]),
@@ -1267,9 +1250,6 @@ fn format_type_annotation<'a>(mark: Option<&'static str>, ty: TypeNode<'a>, f: &
             (Some(":"), true) => write!(f, [": ", ty]),
             _ => write(f),
         };
-    }
-    if f.file().is_flow() && print::flow::is_directly_in_function_type(ty) {
-        return write(f);
     }
     let node = AstNodes::TSTypeAnnotation(ty);
     if !f.comments().of_node(node).leading.is_empty()

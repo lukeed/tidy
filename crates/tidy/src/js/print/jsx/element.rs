@@ -5,7 +5,6 @@ use crate::js::attach::Marker;
 use crate::js::format::format_node;
 use crate::js::parentheses::expression::needs_parentheses;
 use crate::js::print::class::dangling_comments_with_marker;
-use crate::js::print::flow::is_match_expression_case;
 use crate::js::utils::jsx::WrapState;
 use crate::js::utils::suppressed::FormatSuppressedNode;
 use crate::js::base::*;
@@ -50,7 +49,6 @@ impl<'a> AnyJsxTagWithChildren<'a> {
             AstNodes::ExpressionStatement(statement) if !statement.is_arrow_function_body() => {
                 WrapState::NoWrap
             }
-            AstNodes::ObjectProperty(case) if is_match_expression_case(case) => WrapState::NoWrap,
             _ => WrapState::WrapOnBreak,
         }
     }

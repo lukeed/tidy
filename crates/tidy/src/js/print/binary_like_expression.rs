@@ -1,6 +1,5 @@
 //! `a + b`, `a && b`. Prettier's `printBinaryishExpression`.
 
-use super::flow::is_match_expression_case;
 use crate::js::utils::typecast::{
     comments_of_expression, has_comments, has_leading_own_line_comment, is_cast_target,
     is_cast_target_that_hides_its_kind, is_chain_expression_without_comments,
@@ -548,7 +547,6 @@ fn would_end_type_arguments<'a>(binary: BinaryLikeExpression<'a>, f: &Formatter<
     binary.operator == BinOp::Gt
         && binary.left.binary_op() == Some(BinOp::Lt)
         && !f.file().is_javascript()
-        && !f.file().is_flow()
         && f.options().experimental_operator_position.is_end()
 }
 
@@ -802,9 +800,8 @@ fn key_of_method_is_indented(f: &Formatter<'_>) -> bool {
 fn should_indent_if_parent_inlines(parent: AstNodes<'_>, f: &Formatter<'_>) -> bool {
     match parent {
         AstNodes::ObjectProperty(property) => {
-            (matches!(property.kind(), PropKind::Init | PropKind::Shorthand)
-                || !key_of_method_is_indented(f))
-                && !is_match_expression_case(property)
+            matches!(property.kind(), PropKind::Init | PropKind::Shorthand)
+                || !key_of_method_is_indented(f)
         }
         AstNodes::AssignmentExpression(_)
         | AstNodes::AssignmentTargetPropertyProperty(_)

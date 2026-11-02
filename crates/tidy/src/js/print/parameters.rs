@@ -33,8 +33,7 @@ fn has_modifier(param: Param<'_>) -> bool {
 /// Prettier's `printFunctionParameters`.
 fn write_formal_parameters<'a>(func: Func<'a>, f: &mut Formatter<'a>) {
     // Comments attached to the parentheses. oxfmt prints `class A { b ⏎// comment⏎ () {} }` as `b () {}⏎// comment`,
-    // and `b /* prettier-ignore */ ( c ) {}` as `b/* prettier-ignore */ ( c ) {}`. Prettier only has such comments in
-    // Flow: `declare function a /* comment */ (): void`
+    // and `b /* prettier-ignore */ ( c ) {}` as `b/* prettier-ignore */ ( c ) {}`.
     if !f.is_quiet() {
         let node = AstNodes::FormalParameters(func);
         let owned = f.comments().of_node(node);
@@ -58,9 +57,6 @@ fn write_formal_parameters<'a>(func: Func<'a>, f: &mut Formatter<'a>) {
         write!(f, "(");
         write_dangling_comments_in_parentheses(func, f);
         return write!(f, ")");
-    }
-    if f.file().is_flow() && super::flow::is_shorthand_function_type(func) {
-        return super::flow::write_shorthand_parameter(func, f);
     }
     let parentheses_not_needed = func.is_arrow() && can_avoid_parentheses(func, f);
     let has_any_decorated_parameter = func
@@ -198,9 +194,6 @@ const MODIFIERS: [(Flags, &str); 6] = [
 
 /// `private a?: T = 1`, `...a: T`, `this: T`
 pub(crate) fn write_formal_parameter<'a>(param: Param<'a>, f: &mut Formatter<'a>) {
-    if f.file().is_flow() && super::flow::write_parameter_start(param, f) {
-        return;
-    }
     if matches!(param.as_ast_nodes(), AstNodes::TSThisParameter(_)) {
         return write!(f, ["this", param.ty().map(FormatTypeAnnotation)]);
     }
@@ -451,10 +444,7 @@ pub(crate) fn should_hug_function_parameters<'a>(
                     }))
         }
     };
-    is_huggable
-        && !has_modifier(only_parameter)
-        && !(f.file().is_flow() && super::flow::is_component(func, f))
-        && !parameter_has_comment(only_parameter, f)
+    is_huggable && !has_modifier(only_parameter) && !parameter_has_comment(only_parameter, f)
 }
 
 /// True if all parameters are plain names without default values. A rest parameter doesn't qualify.

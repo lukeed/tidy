@@ -6,14 +6,7 @@ use crate::js::{format_args, write};
 
 /// `A & B`
 #[inline(never)]
-pub(crate) fn write_ts_intersection_type<'a>(
-    ty: TypeNode<'a>,
-    types: List<'a, TypeNode<'a>>,
-    f: &mut Formatter<'a>,
-) {
-    if f.file().is_flow() && super::flow::is_interface_type(ty) {
-        return super::flow::write_interface_type(types, f);
-    }
+pub(crate) fn write_ts_intersection_type<'a>(types: List<'a, TypeNode<'a>>, f: &mut Formatter<'a>) {
     match types.len() {
         1 if groups_single_type_intersection(f) => write!(f, group(&types.first())),
         1 => write!(f, types.first()),

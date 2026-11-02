@@ -10,7 +10,6 @@ use crate::js::base::*;
 use crate::js::write;
 use crate::js::strings;
 use bun_lint::fix::is_file_level_comment;
-use bun_lint::linter::is_flow_file;
 use std::sync::Arc;
 
 impl SortImports {
@@ -449,9 +448,8 @@ fn transform<'a>(
 fn is_about_the_file(comment: Comment<'_>) -> bool {
     let text = comment.text();
     is_file_level_comment(text, comment.content())
-        // These pragmas decide how Prettier parses the file. It matches them loosely: `// @flow.` counts too.
-        || (strings::contains_char(text, b'@')
-            && (is_flow_file(text, b"") || has_pragma(text) || has_ignore_pragma(text)))
+        // These pragmas decide how Prettier parses the file. It matches them loosely.
+        || (strings::contains_char(text, b'@') && (has_pragma(text) || has_ignore_pragma(text)))
 }
 
 /// Sorts the runs of imports in a list of statements. The caller that prints the list announces each thing it's about

@@ -34,13 +34,6 @@ pub(crate) fn write_function<'a>(
     f: &mut Formatter<'a>,
 ) {
     let node = AstNodes::Function(func);
-    let keyword = match f.file().is_flow() {
-        true => match super::flow::write_component_or_keyword(func, f) {
-            Some(keyword) => keyword,
-            None => return,
-        },
-        false => "function",
-    };
     let is_declared = matches!(func.owner(), Node::Stmt(statement) if statement.modifiers().iter().any(|it| it.flag() == Flags::AMBIENT));
     // A Svelte snippet's head: the plugin strips `function ` and the body afterwards, so skip both.
     let is_only_head = f.options().in_html.root == HtmlRoot::SvelteExpression
@@ -51,7 +44,7 @@ pub(crate) fn write_function<'a>(
             [
                 is_declared.then_some("declare "),
                 func.is_async().then_some("async "),
-                (!is_only_head).then_some(keyword),
+                (!is_only_head).then_some("function"),
                 func.is_generator().then_some("*"),
                 (!is_only_head).then_some(space()),
                 func.name().map(|name| identifier(name)),
@@ -306,12 +299,9 @@ fn can_group_function_parameters(func: Func<'_>) -> bool {
     match type_parameters.len() {
         0 => {}
         1 => {
-            // Prettier doesn't check Flow's `bound`.
-            let has_constraint =
-                |it: TypeParam<'_>| it.constraint().is_some() && !it.file().is_flow();
             if type_parameters
                 .first()
-                .is_some_and(|first| has_constraint(first) || first.default().is_some())
+                .is_some_and(|first| first.constraint().is_some() || first.default().is_some())
             {
                 return false;
             }

@@ -10,7 +10,6 @@
 //! tell which token comes before or after a comment.
 
 mod debug;
-mod flow;
 mod rules;
 mod surrounding_nodes;
 
@@ -40,8 +39,6 @@ pub(crate) enum Marker {
     Implements,
     /// Before the `extends` keyword of a class or an interface.
     Extends,
-    /// Before the `mixins` keyword of Flow's `declare class`.
-    Mixins,
     /// In the `</>` of a fragment, which is a node for Prettier. A comment in the `<>` has no marker.
     ClosingFragment,
     /// The comment is inside an ignored node, so it's copied along with the node's source text. Prettier doesn't attach

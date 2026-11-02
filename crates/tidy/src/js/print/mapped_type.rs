@@ -76,11 +76,7 @@ pub(crate) fn write_ts_mapped_type<'a>(
         if let Some(type_annotation) = mapped.ty() {
             write!(f, [":", space(), type_annotation]);
         }
-        // Types in a JavaScript file are Flow's, where a mapped type is a property of an object type.
-        match f.file().is_javascript() {
-            true => write!(f, FormatTrailingCommas::ES5),
-            false => write!(f, if_group_breaks(&OptionalSemicolon)),
-        }
+        write!(f, if_group_breaks(&OptionalSemicolon));
     });
 
     write!(

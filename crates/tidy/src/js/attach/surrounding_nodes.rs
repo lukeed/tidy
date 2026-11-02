@@ -4,14 +4,13 @@
 //! or are part of one, such as `FunctionBody`, `TSTypeAnnotation` and `Decorator`. To find them, start at the recorded
 //! preceding or following node and walk up through `AstNodes::parent()` until the parent contains the comment.
 
-use super::{Options, Owner, flow};
+use super::{Options, Owner};
 use crate::js::ast_nodes::{
     AsAstNodes, AstNodes as N, ChainElement, ExpressionStatement, inner_of_stmt, is_inner_comma,
     node_as_ast_nodes,
 };
 use crate::js::format::is_in_head_of_for;
 use crate::js::print::expressions::start_of_meta_property_name;
-use crate::js::print::flow::{is_flow_opaque_type, is_interface_type};
 use crate::js::source_text::SourceText;
 use crate::js::ast::comments::{self, NodeOrName};
 use crate::js::ast::{
@@ -107,8 +106,6 @@ impl CommentsBetweenTokens {
 /// Returns the member types of a union or intersection type.
 pub(super) fn union_members(ty: TypeNode<'_>) -> Option<List<'_, TypeNode<'_>>> {
     match ty.kind() {
-        // Flow's `interface { .. }` as a type is an intersection in the tree.
-        TypeKind::Intersection(_) if is_interface_type(ty) => None,
         TypeKind::Union(types) | TypeKind::Intersection(types) => Some(types),
         _ => None,
     }
@@ -181,7 +178,6 @@ fn body_of_whole_namespace(node: N<'_>) -> N<'_> {
 fn body_of(node: N<'_>) -> Option<N<'_>> {
     match node {
         N::Class(class) => Some(N::ClassBody(class)),
-        N::TSInterfaceDeclaration(statement) if is_flow_opaque_type(statement) => None,
         N::TSInterfaceDeclaration(statement) => Some(N::TSInterfaceBody(statement)),
         N::TSEnumDeclaration(statement) => Some(N::TSEnumBody(statement)),
         N::TSModuleDeclaration(statement) | N::TSGlobalDeclaration(statement) => {
@@ -549,7 +545,6 @@ impl<'a, 'c> AttachContext<'a, 'c> {
                     .or_else(|| import_type_of_attributes(node))
                     .or_else(|| opening_element_of_name(node))
                     .or_else(|| type_annotation_of_predicate(node))
-                    .or_else(|| (self.file.is_flow()).then(|| flow::parent_of_type(node))?)
                     .unwrap_or_else(|| node.parent())
             }
         };
@@ -575,10 +570,6 @@ impl<'a, 'c> AttachContext<'a, 'c> {
                     None => e.span(),
                 };
             }
-            Owner::Node(N::TSFunctionType(ty)) if self.file.is_flow() => {
-                let span = ty.span();
-                return Span::new(flow::start_of_hook_type(ty).unwrap_or(span.start), span.end);
-            }
             Owner::Node(node) => node,
         };
         node.span_with_decorators()
@@ -591,7 +582,6 @@ impl<'a, 'c> AttachContext<'a, 'c> {
     /// Prettier's `canAttachComment`. Also false for nodes that exist in `AstNodes` but not in Prettier's tree.
     fn can_attach_comment(&self, node: N<'a>) -> bool {
         match node {
-            _ if self.file.is_flow() && flow::is_not_prettier_node(node) => false,
             N::ChainExpression(_)
             | N::FormalParameters(_)
             | N::Elision(_)
@@ -609,11 +599,6 @@ impl<'a, 'c> AttachContext<'a, 'c> {
             },
             // A plain parameter like `a` is a single `Identifier` in ESTree, but a parameter wrapping an identifier
             // here.
-            N::BindingIdentifier(pat)
-                if self.file.is_flow() && flow::is_name_of_function_type_param(pat) =>
-            {
-                true
-            }
             N::BindingIdentifier(pat) => match pat.parent() {
                 Node::Param(param) => param.default().is_some() || param.is_parameter_property(),
                 _ => true,
@@ -717,9 +702,6 @@ impl<'a, 'c> AttachContext<'a, 'c> {
     /// the enclosing node is a `Program`, a `BlockStatement`, a `ClassBody`, a `TSInterfaceBody`, a `TSTypeLiteral` or
     /// a `TSEnumBody`, for which Prettier has no rule.
     fn list_elements_around(&self, comment: comments::Comment<'a>) -> Option<SurroundingNodes<'a>> {
-        if self.file.is_flow() {
-            return None;
-        }
         let NodeOrName::Node(following_node) = comment.following_node()? else {
             return None;
         };
@@ -806,13 +788,6 @@ impl<'a, 'c> AttachContext<'a, 'c> {
                 following_node = args.first().map(|it| NodeOrName::Node(Node::Expr(it)));
             }
         }
-        if self.file.is_flow() {
-            preceding_node = match preceding_node {
-                Some(node) => flow::preceding_node(node, enclosing_node, comment.start),
-                None => flow::unrecorded_preceding_node(enclosing_node, comment.start),
-            };
-            following_node = following_node.and_then(|it| flow::following_node(it, enclosing_node));
-        }
         let name_parent = match enclosing_node {
             Some(Node::Stmt(statement)) => inner_of_stmt(statement),
             Some(node) => node_as_ast_nodes(node),
@@ -889,9 +864,6 @@ impl<'a, 'c> AttachContext<'a, 'c> {
         account_for_this_of_predicate(&mut nodes, comment);
         self.stay_in_template_substitution(&mut nodes, parsed_comment);
         self.stay_in_jsx_tag(&mut nodes, comment);
-        if self.file.is_flow() {
-            self.account_for_children_of_match(&mut nodes, comment);
-        }
         // With typescript-estree, Prettier doesn't give a top-level comment an enclosing node.
         if !self.is_babel() && nodes.enclosing_node == Some(self.program()) {
             nodes.enclosing_node = None;
@@ -1042,27 +1014,6 @@ impl<'a, 'c> AttachContext<'a, 'c> {
         let is_in_tag = |node: &Owner<'a>| tag.contains_offset(self.start_of(*node));
         nodes.preceding_node = nodes.preceding_node.filter(is_in_tag);
         nodes.following_node = nodes.following_node.filter(is_in_tag);
-    }
-
-    /// The children of Flow's `MatchExpression` and `MatchStatement` are the argument and the cases. Here the argument
-    /// is in a call and the cases of an expression are in an object, so a comment in one of the two doesn't see the
-    /// other.
-    fn account_for_children_of_match(&self, nodes: &mut SurroundingNodes<'a>, comment: Span) {
-        let Some(Owner::Node(enclosing_node)) = nodes.enclosing_node else {
-            return;
-        };
-        let Some((argument, first_case)) = flow::argument_and_first_case_of_match(enclosing_node)
-        else {
-            return;
-        };
-        if nodes.preceding_node.is_none() && argument.outer_span().end <= comment.start {
-            nodes.preceding_node = Some(self.owner_of_expr(argument));
-        }
-        if nodes.following_node.is_none() {
-            nodes.following_node = first_case
-                .filter(|case| comment.end <= case.span().start)
-                .map(Owner::Node);
-        }
     }
 
     /// Indexed by comment id.

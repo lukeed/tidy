@@ -9,17 +9,12 @@
 //! that the lexer recorded next to the comment.
 
 use super::TextPosition::{EndOfLine, OwnLine, Remaining};
-use super::flow::{self, FunctionType};
 use super::surrounding_nodes::{
     AttachContext, SurroundingNodes, function_of, has_parameters, union_members,
 };
 use super::{Attachment, CommentContext, Marker, Owner};
 use crate::js::ast_nodes::{AsAstNodes, AstNodes as N, ExpressionStatement};
 use crate::js::comments::CommentExt;
-use crate::js::print::flow::{
-    as_declared_predicate, is_declared_class, is_flow_declare_export, is_flow_opaque_type,
-    is_flow_record,
-};
 use crate::js::ast::{
     Case, Expr, ExprKind, Flags, FnBody, Func, List, Member, Node, Param, PatKind, PropKind, Stmt,
     StmtKind, StmtTag, TypeKind, TypeNode,
@@ -198,12 +193,6 @@ impl<'a> Rules<'_, 'a, '_> {
 
     fn is_function_like(&self, node: N<'a>) -> bool {
         match node {
-            // Flow's `HookDeclaration` and `ComponentDeclaration` aren't in Prettier's list.
-            N::Function(func)
-                if self.cx.file.is_flow() && flow::is_hook_or_component_declaration(func) =>
-            {
-                false
-            }
             N::Function(func) => func.has_body() || !matches!(func.owner(), Node::Stmt(_)),
             N::MethodDefinition(member) => !self.is_private_member_of_babel(member),
             N::ObjectProperty(_) => self.cx.is_babel() && is_object_method(node),
@@ -381,21 +370,13 @@ impl<'a> Rules<'_, 'a, '_> {
     /// comes after the `export` and not inside the declaration. It's between the `export` and the next statement.
     fn handle_comment_before_semicolon_of_export(&self, node: N<'a>) -> Option<Attachment<'a>> {
         let statement = match node {
-            // Flow's `declare export default A /* comment */;` is a type alias in the tree. The comment trails the `A`.
-            N::TSTypeAliasDeclaration(statement) if statement.is_default_export() => return None,
             N::TSTypeAliasDeclaration(statement)
             | N::TSImportEqualsDeclaration(statement)
             | N::TSModuleDeclaration(statement) => statement,
-            N::TSInterfaceDeclaration(statement) if is_flow_opaque_type(statement) => statement,
             N::Function(func) => func.owner().as_stmt()?,
             _ => return None,
         };
-        // Flow's `declare export function a(): B /* comment */;` is a `DeclareExportDeclaration`, which ends after its
-        // `;`.
-        if !statement.is_exported()
-            || is_flow_declare_export(statement)
-            || !self.is_before_semicolon_of(statement)
-        {
+        if !statement.is_exported() || !self.is_before_semicolon_of(statement) {
             return None;
         }
         let following_statement = match self.context.text_position {
@@ -426,14 +407,6 @@ impl<'a> Rules<'_, 'a, '_> {
             return has_no_arguments.then(|| Attachment::dangling(Owner::Node(node)));
         }
         let func = function_of(node).filter(|func| !has_parameters(*func))?;
-        // Flow's `FunctionTypeAnnotation` isn't in Prettier's list, so the comment leads the next node:
-        // `() => /* comment */ A`.
-        if self.cx.file.is_flow()
-            && flow::function_type(func) == Some(FunctionType::FunctionTypeAnnotation)
-        {
-            let return_type = self.cx.owner_of_type(func.return_type()?);
-            return Some(Attachment::leading(return_type));
-        }
         if self.is_real_function_like(node) {
             return Some(Attachment::dangling(Owner::Node(node)));
         }
@@ -450,23 +423,6 @@ impl<'a> Rules<'_, 'a, '_> {
         let text_position = self.context.text_position;
         let enclosing_node = Owner::Node(node);
         match node {
-            N::BinaryExpression(e) if self.cx.file.is_flow() && flow::is_match_or_pattern(e) => {
-                self.handle_match_or_pattern_comments(ignored_node)
-            }
-            // Prettier has no other rule for Flow's `match`, and none for `opaque type` and `record`.
-            _ if self.cx.file.is_flow() && flow::is_part_of_match(node) => None,
-            N::TSInterfaceDeclaration(statement) if is_flow_opaque_type(statement) => None,
-            N::Class(class) if is_flow_record(class) => None,
-            // Flow's `A</* comment */>`. For Prettier the enclosing node is the empty `TypeParameterInstantiation`.
-            N::TSTypeReference(ty)
-                if self.cx.file.is_flow()
-                    && self.prev_token_ends_with(b'<')
-                    && self.next_token_starts_with(b'>') =>
-            {
-                let type_arguments = N::TSTypeParameterInstantiation(Node::Type(ty));
-                Some(Attachment::dangling(Owner::Node(type_arguments)))
-            }
-
             N::ConditionalExpression(_) | N::TSConditionalType(_) => {
                 self.handle_conditional_expression_comments(node)
             }
@@ -604,12 +560,6 @@ impl<'a> Rules<'_, 'a, '_> {
                 (self.context.comment.has_newline_after()).then(|| Attachment::trailing(specifier))
             }
 
-            // Flow's `DeclareTypeAlias` isn't in Prettier's list.
-            N::TSTypeAliasDeclaration(statement)
-                if self.cx.file.is_flow() && statement.flags().contains(Flags::AMBIENT) =>
-            {
-                None
-            }
             N::VariableDeclarator(_)
             | N::AssignmentExpression(_)
             | N::TSTypeAliasDeclaration(_)
@@ -683,8 +633,6 @@ impl<'a> Rules<'_, 'a, '_> {
             N::TSArrayType(_) if text_position == EndOfLine && self.following_node.is_none() => {
                 self.handle_last_union_element_in_expression()
             }
-            // Flow's `ObjectTypeMappedTypeProperty` has no rule.
-            N::TSMappedType(_) if self.cx.file.is_flow() => None,
             N::TSMappedType(ty) => self.handle_mapped_type_comments(ty, ignored_node),
             N::TSPropertySignature(_) => self.handle_property_signature_comments(),
             // `- /* prettier-ignore */ 1`. The `1` is a node in ESTree, and the comment ignores only that.
@@ -855,24 +803,7 @@ impl<'a> Rules<'_, 'a, '_> {
         };
         let first_type =
             |types: List<'a, TypeNode<'a>>| types.first().map(|it| Owner::Node(it.as_ast_nodes()));
-        let no_clause = (None, Marker::None);
-        let (last_decorator, id, type_parameters, super_class, clauses, body) = match node {
-            // Flow's `DeclareClass` has no `superClass`: `extends` is a list like `implements` and `mixins`.
-            N::Class(class) if is_declared_class(class) => (
-                None,
-                class.name().map(|it| Owner::Name(it.span().start)),
-                type_parameters(Node::Class(class), class.type_params().is_empty()),
-                None,
-                [
-                    (first_type(class.implements()), Marker::Implements),
-                    (
-                        class.extends().map(|e| cx.owner_of_expr(e)),
-                        Marker::Extends,
-                    ),
-                    (first_type(class.flow_mixins()), Marker::Mixins),
-                ],
-                Owner::Node(N::ClassBody(class)),
-            ),
+        let (last_decorator, id, type_parameters, super_class, clause, body) = match node {
             N::Class(class) => (
                 (class.modifiers().iter().rev())
                     .find_map(|it| it.decorator())
@@ -884,11 +815,7 @@ impl<'a> Rules<'_, 'a, '_> {
                 (class.extends())
                     .filter(|e| cx.is_babel() || !e.is_chain_root())
                     .map(|e| cx.owner_of_expr(e)),
-                [
-                    (first_type(class.implements()), Marker::Implements),
-                    no_clause,
-                    no_clause,
-                ],
+                (first_type(class.implements()), Marker::Implements),
                 Owner::Node(N::ClassBody(class)),
             ),
             N::TSInterfaceDeclaration(statement) => {
@@ -898,11 +825,7 @@ impl<'a> Rules<'_, 'a, '_> {
                     Some(Owner::Name(interface.name().span().start)),
                     type_parameters(Node::Stmt(statement), interface.type_params().is_empty()),
                     None,
-                    [
-                        (first_type(interface.extends()), Marker::Extends),
-                        no_clause,
-                        no_clause,
-                    ],
+                    (first_type(interface.extends()), Marker::Extends),
                     Owner::Node(N::TSInterfaceBody(statement)),
                 )
             }
@@ -935,8 +858,10 @@ impl<'a> Rules<'_, 'a, '_> {
         if Some(following_node) == super_class {
             return name.map(Attachment::trailing);
         }
-        let (_, marker) = (clauses.into_iter())
-            .find(|(first_of_clause, _)| *first_of_clause == Some(following_node))?;
+        let (first_of_clause, marker) = clause;
+        if first_of_clause != Some(following_node) {
+            return None;
+        }
         // `class // comment⏎implements A {}` has nothing before the comment.
         match name.or_else(|| self.preceding_node.filter(|it| Some(*it) == super_class)) {
             Some(preceding_node) => Some(Attachment::trailing(preceding_node)),
@@ -944,91 +869,7 @@ impl<'a> Rules<'_, 'a, '_> {
         }
     }
 
-    /// Flow: `| a⏎// comment⏎| b` in a pattern of a `match`.
-    fn handle_match_or_pattern_comments(
-        &self,
-        ignored_node: &mut Option<Owner<'a>>,
-    ) -> Option<Attachment<'a>> {
-        if self.context.text_position != OwnLine {
-            return None;
-        }
-        if self.context.is_ignore_comment {
-            *ignored_node = self.following_node;
-        }
-        self.preceding_node.map(Attachment::trailing)
-    }
-
-    /// Flow: a comment before the `(` of a function type that comes directly after a name or a modifier. After type
-    /// parameters it's between two nodes like any other comment: `f<T> /* comment */(): void`
-    ///
-    /// - `declare function f /* comment */ (): void` and `{ static /* comment */ (): void }`: the comment leads the
-    ///   function type, which starts at the `(`. Prettier prints `f/* comment */ (): void`.
-    /// - `{ m /* comment */ (): void }`: the function type starts at the `m`, so the comment leads the next node in it.
-    ///   Prettier prints `m(): /* comment */ void`.
-    /// - `{ get a /* comment */ (): void }`: the comment trails the `a`.
-    fn handle_comment_before_parenthesis_of_function_type(
-        &self,
-        node: N<'a>,
-    ) -> Option<Attachment<'a>> {
-        let func = function_of(node)?;
-        if func.open_paren() != Some(self.context.comment.next_token_start())
-            || !func.type_params().is_empty()
-            || flow::function_type(func) == Some(FunctionType::ComponentTypeAnnotation)
-        {
-            return None;
-        }
-        match node {
-            N::Function(_) | N::TSCallSignatureDeclaration(_) => Some(Attachment {
-                is_unignored: true,
-                ..Attachment::leading(Owner::Node(N::FormalParameters(func)))
-            }),
-            N::TSMethodSignature(member)
-                if matches!(
-                    member.kind(),
-                    crate::js::ast::MemberKind::Getter | crate::js::ast::MemberKind::Setter
-                ) =>
-            {
-                self.preceding_node.map(Attachment::trailing)
-            }
-            N::TSMethodSignature(_) => {
-                Some(Attachment::leading(match func.params_with_this().next() {
-                    Some(first) => Owner::Node(first.as_ast_nodes()),
-                    None => self.cx.owner_of_type(func.return_type()?),
-                }))
-            }
-            _ => None,
-        }
-    }
-
-    /// Flow: `declare function f(a: A): boolean %checks(a) /* comment */;`. The comment trails the `DeclaredPredicate`,
-    /// which is part of the return type in the tree.
-    fn handle_comment_after_declared_predicate(&self, node: N<'a>) -> Option<Attachment<'a>> {
-        let N::Function(func) = node else {
-            return None;
-        };
-        let return_type = func.return_type()?;
-        (as_declared_predicate(return_type).is_some()
-            && self.preceding_node == Some(self.cx.owner_of_type(return_type))
-            && self.following_node.is_none())
-        .then(|| Attachment {
-            is_unignored: true,
-            ..Attachment::dangling(Owner::Node(node))
-        })
-    }
-
     fn handle_function_comments(&self, node: N<'a>) -> Option<Attachment<'a>> {
-        // The other rules don't apply to Flow's function types.
-        if self.cx.file.is_flow()
-            && function_of(node).is_some_and(|it| flow::function_type(it).is_some())
-        {
-            return self
-                .handle_comment_before_parenthesis_of_function_type(node)
-                .or_else(|| self.handle_comment_after_declared_predicate(node))
-                .or_else(|| match self.context.text_position {
-                    OwnLine | EndOfLine => self.handle_last_function_parameter_comments(node),
-                    Remaining => None,
-                });
-        }
         match self.context.text_position {
             OwnLine => self
                 .handle_last_function_parameter_comments(node)
@@ -1055,23 +896,6 @@ impl<'a> Rules<'_, 'a, '_> {
         let is_parameter = |owner: Owner<'a>| {
             is_parameter(owner) || matches!(owner, Owner::Node(N::TSThisParameter(_)))
         };
-        // `type A = (a: B) // comment⏎ => C`. In `declare component` the comment has to be before the `)`. A hook type
-        // has no rule.
-        if self.cx.file.is_flow()
-            && let Some(function_type) = function_of(node).and_then(flow::function_type)
-        {
-            let preceding_node = self.preceding_node.filter(|it| is_parameter(*it))?;
-            return match function_type {
-                FunctionType::ComponentTypeAnnotation if matches!(node, N::Function(_)) => {
-                    self.next_token_starts_with(b')')
-                }
-                FunctionType::FunctionTypeAnnotation | FunctionType::ComponentTypeAnnotation => {
-                    !self.following_node.is_some_and(is_parameter)
-                }
-                FunctionType::HookTypeAnnotation => false,
-            }
-            .then(|| Attachment::trailing(preceding_node));
-        }
         if let Some(preceding_node) = self.preceding_node
             && is_parameter(preceding_node)
             && (self.is_real_function_like(node) || has_no_body())
@@ -1415,10 +1239,6 @@ impl<'a> Rules<'_, 'a, '_> {
             || matches!(pattern.parent(), Node::Param(param) if param.is_rest())
         {
             return None;
-        }
-        // The rule is for a `TSTypeAnnotation`. Flow has a `TypeAnnotation`, so a comment on its own line leads it.
-        if self.cx.file.is_flow() && self.context.text_position == OwnLine {
-            return self.following_node.map(Attachment::leading);
         }
         let last_child = match pattern.kind() {
             PatKind::Object(properties) => properties.last().map(N::BindingProperty),

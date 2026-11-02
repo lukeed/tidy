@@ -410,7 +410,7 @@ fn should_indent_union_type<'a>(ty: TypeNode<'a>, parent: AstNodes<'a>) -> bool 
         AstNodes::TSConditionalType(conditional) => {
             !matches!(conditional.kind(), TypeKind::Cond { yes, no, .. } if yes.span().contains(ty.span()) || no.span().contains(ty.span()))
         }
-        _ => !(ty.file().is_flow() && super::flow::is_union_indented_by_parameters(ty)),
+        _ => true,
     }
 }
 

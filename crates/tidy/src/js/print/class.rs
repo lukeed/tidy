@@ -120,10 +120,7 @@ fn last_modifier_must_stay_on_name_line(member: Member<'_>) -> bool {
     }
     let modifier_flags =
         (member.modifiers().iter()).fold(Flags::empty(), |all, it| all | it.flag());
-    // Checked from the last modifier printed to the first. `IN` and `OUT` are Flow's `+` and `-`.
-    if modifier_flags.intersects(Flags::IN | Flags::OUT) {
-        return false;
-    }
+    // Checked from the last modifier printed to the first.
     if modifier_flags
         .intersects(Flags::ABSTRACT | Flags::OVERRIDE | Flags::READONLY | Flags::ACCESSOR)
     {
@@ -278,9 +275,6 @@ fn write_static_block<'a>(member: Member<'a>, f: &mut Formatter<'a>) {
 
 /// `[key: string]: T`
 fn write_ts_index_signature<'a>(member: Member<'a>, f: &mut Formatter<'a>) {
-    if f.file().is_flow() {
-        return super::flow::write_object_type_member(member, f);
-    }
     let Some(signature) = member.func() else {
         return;
     };
@@ -410,9 +404,6 @@ struct FormatClass<'a>(Class<'a>);
 impl<'a> Format<'a> for FormatClass<'a> {
     fn fmt(&self, f: &mut Formatter<'a>) {
         let class = self.0;
-        if class.file().is_flow() && super::flow::write_class(class, f) {
-            return;
-        }
         let node = AstNodes::Class(class);
         let parent = node.parent();
         let is_expression = matches!(class.owner(), Node::Expr(_));
@@ -739,13 +730,6 @@ impl FormatClassElementWithSemicolon<'_> {
         if next.key().is_some_and(|key| {
             matches!(key.kind(), KeyKind::Ident(name) if matches!(name.bytes(), b"in" | b"instanceof"))
         }) {
-            return true;
-        }
-        // Flow's `+a`, `-a`
-        if next.kind() == MemberKind::Property
-            && (has_modifier(next, Flags::IN) || has_modifier(next, Flags::OUT))
-            && !has_modifier(next, Flags::AMBIENT)
-        {
             return true;
         }
         match next.as_ast_nodes() {

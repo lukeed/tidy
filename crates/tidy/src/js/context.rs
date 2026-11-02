@@ -11,12 +11,9 @@ use rustc_hash::FxHashMap;
 use std::cell::Cell;
 
 /// True if Prettier parses the code with a parser that has no `ChainExpression` around an optional chain. That's Babel,
-/// which parses JavaScript and every expression in HTML (even TypeScript ones), or `angular-estree-parser`. Prettier's
-/// `flow` parser produces ESTree's tree, with the `ChainExpression`.
+/// which parses JavaScript and every expression in HTML (even TypeScript ones), or `angular-estree-parser`.
 pub(crate) fn has_babel_tree(file: &File<'_>, options: &FormatOptions) -> bool {
-    let is_read_by_flow_parser =
-        file.is_flow() && !super::print::flow::is_parsed_by_babel_flow(options, file.path());
-    (file.is_javascript() && !is_read_by_flow_parser)
+    file.is_javascript()
         || options.in_html.has_babel_tree
         || !matches!(options.in_html.root, HtmlRoot::None | HtmlRoot::Program)
 }

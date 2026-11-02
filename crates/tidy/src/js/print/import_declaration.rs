@@ -58,7 +58,7 @@ pub(crate) fn write_import_declaration<'a>(
     if let Some(phase) = import.phase() {
         write!(f, [phase, space()]);
     } else if import.is_type_only() {
-        write!(f, super::flow::import_kind(import.clause_span().start, f));
+        write!(f, "type ");
     }
     if !import.is_side_effect() {
         write_import_specifiers(import, f);
@@ -185,10 +185,7 @@ impl<'a, T: Handle<'a> + Format<'a> + Spanned> Format<'a> for FormatSpecifiers<'
 
 /// `a`, `a as b`, `type a`
 pub(crate) fn write_import_specifier<'a>(specifier: ImportSpec<'a>, f: &mut Formatter<'a>) {
-    let kind = specifier
-        .is_type_only()
-        .then(|| super::flow::import_kind(specifier.span().start, f));
-    write!(f, kind);
+    write!(f, specifier.is_type_only().then_some("type "));
     let local = identifier(specifier.local());
     match specifier.is_renamed() {
         true => write!(

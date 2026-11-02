@@ -10,10 +10,8 @@ use crate::js::{format_args, write};
 
 /// `const in out T extends C = D`
 pub(crate) fn write_ts_type_parameter<'a>(param: TypeParam<'a>, f: &mut Formatter<'a>) {
-    let (flags, is_flow) = (param.flags(), f.file().is_flow());
-    if is_flow {
-        super::flow::write_type_parameter_modifiers(param, f);
-    } else if !flags.is_empty() {
+    let flags = param.flags();
+    if !flags.is_empty() {
         for (flag, keyword) in [
             (Flags::CONST, "const"),
             (Flags::IN, "in"),
@@ -26,12 +24,8 @@ pub(crate) fn write_ts_type_parameter<'a>(param: TypeParam<'a>, f: &mut Formatte
     }
     write!(f, identifier(param.name()));
 
-    match param.constraint() {
-        Some(constraint) if is_flow => {
-            super::flow::write_type_parameter_bound(param, constraint, f)
-        }
-        Some(constraint) => write_type_parameter_bound("extends", constraint, f),
-        None => {}
+    if let Some(constraint) = param.constraint() {
+        write_type_parameter_bound("extends", constraint, f);
     }
     if let Some(default) = param.default() {
         write_type_parameter_bound("=", default, f);
@@ -68,7 +62,6 @@ fn should_force_trailing_comma_for_arrow_function<'a>(
             .first()
             .is_some_and(|param| param.constraint().is_some())
         && !f.filepath().ends_with(b".ts")
-        && !f.file().is_flow()
 }
 
 #[derive(Default, Copy, Clone)]
@@ -230,15 +223,10 @@ impl<'a> FormatTypeArguments<'a> {
             })
             && !is_arrow_function_variable_type_argument(self);
 
-        // TypeScript doesn't allow a `,` after the last type argument. Flow does, and types in a JavaScript file are
-        // Flow's.
-        let trailing_separator = match f.file().is_javascript() && !should_inline {
-            true => FormatTrailingCommas::ES5.trailing_separator(f.options()),
-            false => TrailingSeparator::Disallowed,
-        };
+        // TypeScript doesn't allow a `,` after the last type argument.
         let format_params = format_with(|f| {
             f.join_with(soft_line_break_or_space())
-                .entries_with_trailing_separator(params.iter(), ",", trailing_separator);
+                .entries_with_trailing_separator(params.iter(), ",", TrailingSeparator::Disallowed);
         });
 
         if should_inline {
@@ -279,8 +267,6 @@ fn should_hug_single_type<'a>(ty: TypeNode<'a>, f: &Formatter<'a>) -> bool {
         || is_object_like_type(ty)
         // `A<B | null | undefined>`
         || matches!(ty.kind(), TypeKind::Union(types) if should_hug_type(types, f))
-        // Flow's `?T`
-        || (ty.tag() == TypeTag::JSDoc && f.file().is_flow())
 }
 
 /// `const foo: A<B, C> = () => {};`

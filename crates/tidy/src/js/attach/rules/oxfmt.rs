@@ -801,11 +801,6 @@ impl<'a> Rules<'_, 'a, '_> {
         else {
             return None;
         };
-        // oxfmt doesn't support Flow, and the printer for a Flow object type member doesn't write a type annotation's
-        // comments.
-        if self.cx.file.is_flow() {
-            return None;
-        }
         let ty = member.ty()?;
         let type_annotation = Owner::Node(N::TSTypeAnnotation(ty));
         let comment = self.context.comment;

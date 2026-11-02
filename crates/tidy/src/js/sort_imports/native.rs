@@ -290,12 +290,7 @@ impl<'a> Tidy<'a> {
 
     /// Same module, same `type` keyword, same import attributes.
     fn is_same_kind(&self, a: &Entry<'a>, b: &Entry<'a>) -> bool {
-        // `type`, or Flow's `typeof`.
-        let kind = |it: &Entry<'a>| {
-            let clause = self.slice(it.import.clause_span());
-            let word = clause.iter().take_while(|it| it.is_ascii_alphabetic());
-            (it.import.is_type_only()).then(|| clause.get(..word.count()).unwrap_or_default())
-        };
+        let kind = |it: &Entry<'a>| it.import.is_type_only();
         let attributes = |it: &Entry<'a>| {
             let attributes = it.import.attributes()?;
             let texts = attributes.entries().iter().map(|entry| {

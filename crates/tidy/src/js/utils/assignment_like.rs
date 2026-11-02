@@ -240,9 +240,6 @@ fn write_property_definition_left<'a>(member: Member<'a>, f: &mut Formatter<'a>)
                 write!(f, keyword);
             }
         }
-        if present_flags.intersects(Flags::IN | Flags::OUT) {
-            crate::js::print::flow::write_variance_sign(modifiers, f);
-        }
     }
     match member.key() {
         Some(key) if key.is_computed() => {

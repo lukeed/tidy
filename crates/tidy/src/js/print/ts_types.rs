@@ -5,7 +5,7 @@ use super::function_type::{
     write_ts_method_signature,
 };
 use super::object_like::ObjectLike;
-use super::type_parameters::{FormatDanglingCommentsForInline, type_arguments};
+use super::type_parameters::type_arguments;
 use super::union_type::union_prints_comments_after_colon;
 use crate::js::cursor::extend_node;
 use crate::js::format::{FormatTypeOfPredicate, format_node, identifier};
@@ -35,11 +35,7 @@ pub(crate) fn write_ts_type_reference<'a>(
     f: &mut Formatter<'a>,
 ) {
     // Fast path: which node this is only matters for a long name and for comments.
-    if f.is_quiet()
-        && name.len() <= 2
-        && !f.file().is_javascript()
-        && !keeps_parentheses_of_intrinsic(f)
-    {
+    if f.is_quiet() && name.len() <= 2 && !keeps_parentheses_of_intrinsic(f) {
         f.join_with(".")
             .entries(name.parts().map(|part| source_text(part.span())));
         return write!(f, type_arguments(args, Node::Type(ty)));
@@ -56,25 +52,6 @@ pub(crate) fn write_ts_type_reference<'a>(
             f,
             [heritage_name(name), type_arguments(args, Node::Type(ty))]
         );
-    }
-    if args.is_empty() && f.file().is_javascript() {
-        // Flow's other name for `boolean`.
-        if name.len() == 1 && ty.text() == b"bool" {
-            return write!(f, "boolean");
-        }
-        // `A<>`
-        if ty.text().ends_with(b">") {
-            let arguments = AstNodes::TSTypeParameterInstantiation(Node::Type(ty));
-            return write!(
-                f,
-                [
-                    entity_name(name),
-                    "<",
-                    FormatDanglingCommentsForInline(arguments),
-                    ">"
-                ]
-            );
-        }
     }
     let wrap =
         keeps_parentheses_of_intrinsic(f) && is_leftmost_intrinsic_in_type_alias(ty, name, args);
@@ -202,9 +179,6 @@ pub(crate) fn write_ts_type_literal<'a>(
     members: List<'a, Member<'a>>,
     f: &mut Formatter<'a>,
 ) {
-    if f.file().is_flow() {
-        return super::flow::write_object_type(ty, members, f);
-    }
     ObjectLike::TSTypeLiteral(ty, members).fmt(f);
 }
 
@@ -236,28 +210,15 @@ fn write_signatures<'a>(members: List<'a, Member<'a>>, is_interface: bool, f: &m
         f.context_mut().push_quote_needed(quote_needed);
     }
 
-    let (is_flow, text) = (f.file().is_flow(), f.source_text().as_bytes());
     let mut joiner = f.join_nodes_with_soft_line();
     let mut iter = members.iter().peekable();
-    let mut previous: Option<Member<'a>> = None;
     while let Some(signature) = iter.next() {
         let content = FormatTSSignature {
             signature,
             next_signature: iter.peek().copied(),
             is_interface,
         };
-        // `a: 1⏎⏎// comment⏎; b: 2`: a Flow member ends before its separator, and Prettier's `isNextLineEmpty` starts
-        // there.
-        let is_after_empty_line = is_flow
-            && previous.replace(signature).is_some_and(|previous| {
-                crate::js::text::is_next_line_empty(text, previous.span().end as usize)
-            });
-        // Prettier has no node for the `...`. A comment before it trails the previous member.
-        match super::flow::is_inexact_mark(signature) {
-            true => joiner.entry_without_empty_line(&content),
-            false if is_after_empty_line => joiner.entry_after_empty_line(&content),
-            false => joiner.entry(signature.span(), &content),
-        }
+        joiner.entry(signature.span(), &content);
     }
 
     if is_consistent {
@@ -283,16 +244,9 @@ impl<'a> Format<'a> for FormatTSSignature<'a> {
         let node = signature.as_ast_nodes();
         if !f.is_quiet() {
             if f.comments().is_ignored(node) {
-                write!(f, signature);
-                // In Flow the separator isn't part of the member. In an interface or a declared class Prettier doesn't
-                // print one after an ignored member, which is a syntax error before another member.
-                if f.file().is_flow() && !(self.is_interface && self.next_signature.is_none()) {
-                    self.write_separator(f);
-                }
-                return;
+                return write!(f, signature);
             }
-            // Flow's `,` goes after the member's trailing comments.
-            if (f.file().is_flow() && !self.is_interface) || separator_goes_after_comments(f) {
+            if separator_goes_after_comments(f) {
                 write!(f, signature);
                 return self.write_separator(f);
             }
@@ -308,15 +262,6 @@ impl<'a> Format<'a> for FormatTSSignature<'a> {
 
 impl<'a> FormatTSSignature<'a> {
     fn write_separator(&self, f: &mut Formatter<'a>) {
-        // Types in a JavaScript file are Flow's.
-        if f.file().is_javascript() {
-            return match (self.is_interface, self.next_signature) {
-                (true, _) => write!(f, ";"),
-                (false, None) if super::flow::is_inexact_mark(self.signature) => {}
-                (false, Some(_)) => write!(f, ","),
-                (false, None) => write!(f, FormatTrailingCommas::ES5),
-            };
-        }
         match (f.options().semicolons, self.next_signature) {
             (Semicolons::Always, Some(_)) => write!(f, ";"),
             (Semicolons::Always, None) => write!(f, if_group_breaks(&";")),
@@ -348,9 +293,6 @@ impl<'a> FormatTSSignature<'a> {
 
 /// A member of an interface or a type literal, other than an index signature.
 pub(crate) fn write_ts_signature<'a>(member: Member<'a>, f: &mut Formatter<'a>) {
-    if f.file().is_flow() {
-        return super::flow::write_object_type_member(member, f);
-    }
     let node = member.as_ast_nodes();
     match (node, member.func()) {
         (AstNodes::TSCallSignatureDeclaration(_), Some(func)) => {
@@ -414,9 +356,6 @@ pub(crate) fn write_ts_type_query<'a>(
     args: List<'a, TypeNode<'a>>,
     f: &mut Formatter<'a>,
 ) {
-    if f.file().is_flow() && super::flow::write_declared_predicate(ty, f) {
-        return;
-    }
     write!(f, "typeof ");
     write_qualified_name(expr, f);
     write!(f, type_arguments(args, Node::Type(ty)));
@@ -890,11 +829,8 @@ pub(crate) fn write_ts_type_predicate<'a>(ty: TypeNode<'a>, f: &mut Formatter<'a
     else {
         return;
     };
-    if f.file().is_flow() && super::flow::write_checks_predicate(ty, f) {
-        return;
-    }
     let parameter = ty.predicate_param().map(|it| identifier(it));
-    write!(f, asserts.then(|| super::flow::predicate_prefix(ty)));
+    write!(f, asserts.then_some("asserts "));
     let Some(type_annotation) = type_annotation else {
         return write!(f, parameter);
     };

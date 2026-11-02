@@ -9,10 +9,7 @@ use crate::js::base::*;
 use crate::js::{format_args, write};
 
 /// `(a: A) => R`, `new (a: A) => R`, `abstract new (a: A) => R`
-pub(crate) fn write_ts_function_type<'a>(ty: TypeNode<'a>, func: Func<'a>, f: &mut Formatter<'a>) {
-    if f.file().is_flow() && super::flow::write_function_type_keyword(ty, func, f) {
-        return;
-    }
+pub(crate) fn write_ts_function_type<'a>(func: Func<'a>, f: &mut Formatter<'a>) {
     let signature = format_with(|f| format_grouped_parameters_with_return_type(func, true, f));
     match func.kind() {
         FnKind::ConstructorType => write!(
