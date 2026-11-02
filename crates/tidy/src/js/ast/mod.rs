@@ -1,5 +1,6 @@
 //! The syntax tree as bun's printer reads it: the handles of bun's `bun_lint::ast`, over oxc's tree. See `../readme.md`.
 
+mod comments;
 mod expr;
 mod hir;
 mod key;
@@ -9,6 +10,7 @@ mod node;
 mod span;
 mod stmt;
 
+pub(crate) use comments::*;
 pub(crate) use expr::*;
 pub(crate) use hir::*;
 pub(crate) use key::*;
