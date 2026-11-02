@@ -4,17 +4,17 @@
 
 | Tool | Time | Against fastest | Same as Prettier |
 | --- | ---: | ---: | --- |
-| tidy | 74 ms | 1.00x | 3308 (100.0%) |
-| bun | 87 ms | 1.18x | 3308 (100.0%) |
-| oxfmt | 114 ms | 1.55x | 3245 (98.1%) |
-| biome | 278 ms | 3.78x | 3150 (95.2%) |
-| tidy (1 thread) | 343 ms | 4.65x | 3308 (100.0%) |
-| oxfmt (1 thread) | 364 ms | 4.94x | 3245 (98.1%) |
-| prettier | 8261 ms | 112.13x | reference |
+| tidy | 65 ms | 1.00x | 3308 (100.0%) |
+| bun | 94 ms | 1.45x | 3308 (100.0%) |
+| oxfmt | 99 ms | 1.53x | 3245 (98.1%) |
+| biome | 261 ms | 4.04x | 3150 (95.2%) |
+| tidy (1 thread) | 323 ms | 5.00x | 3308 (100.0%) |
+| oxfmt (1 thread) | 335 ms | 5.19x | 3245 (98.1%) |
+| prettier | 7663 ms | 118.62x | reference |
 
 ## Setup
 
 - Date: 2026-11-02
-- Commit: 6b62e4a, with changes not committed
+- Commit: a28d34f
 - Machine: Apple M1 Max, 10 cores, macOS 15.7.9
 - Tools: tidy at the commit above, Prettier 3.9.9, oxfmt 0.75.0, Biome 2.6.4, bun fmt 1.4.4
