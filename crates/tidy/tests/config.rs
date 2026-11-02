@@ -265,3 +265,12 @@ fn sets_markdown_from_a_preset_and_its_own_options() {
     "`markdown.wrap`: unknown wrap `sometimes`, expected one of: preserve, always, never"
   );
 }
+
+#[test]
+fn turns_embedded_formatting_off() {
+  let options = options(&Config::json(r#"{ "embedded": false }"#).unwrap());
+  assert!(!options.html.format_embedded);
+  assert!(!options.markdown.format_embedded);
+  #[cfg(feature = "js")]
+  assert!(!options.js.format_embedded);
+}

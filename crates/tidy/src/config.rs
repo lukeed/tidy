@@ -306,6 +306,7 @@ fn shared(shared: &mut Shared, key: &str, value: &Value, section: &str) -> Resul
     "bracketSpacing" => shared.bracket_spacing = Some(flag(value, &name)?),
     "bracketSameLine" => shared.bracket_same_line = Some(flag(value, &name)?),
     "singleAttributePerLine" => shared.single_attribute_per_line = Some(flag(value, &name)?),
+    "embedded" => shared.format_embedded = Some(flag(value, &name)?),
     "ignore" => match text(value, &name)? {
       "" => return Err(format!("`{name}` must not be empty")),
       ignore => shared.ignore = Some(ignore.to_owned()),

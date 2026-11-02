@@ -51,6 +51,7 @@ Options
   --single-attribute-per-line     Put each attribute on its own line
   --bracket-same-line             Keep the > of a multi-line tag on the last line
   --ignore <name>                 The ignore directive (default: prettier-ignore)
+  --no-embedded                   Leave the code of other languages in a file as it is written
   --threads <n>                   How many files to format at once (default: all cores); 1 uses one thread
   -v, --version                   Print the version
   -h, --help                      Print this help
@@ -261,7 +262,7 @@ fn shared(args: &mut pico_args::Arguments) -> Result<Shared, String> {
     bracket_same_line: flag(args, "--bracket-same-line"),
     single_attribute_per_line: flag(args, "--single-attribute-per-line"),
     ignore: args.opt_value_from_str("--ignore").map_err(error)?,
-    format_embedded: None,
+    format_embedded: args.contains("--no-embedded").then_some(false),
   })
 }
 
