@@ -28,17 +28,32 @@ pub(crate) struct Record {
   pub(crate) following: u32,
 }
 
-/// Prettier's `canAttachComment` for ESTree, and the nodes that oxc has and ESTree doesn't, such as an array's holes.
-fn attachable(kind: AstKind) -> bool {
-  !matches!(
-    kind,
-    AstKind::EmptyStatement(_)
-      | AstKind::TemplateElement(_)
-      | AstKind::FormalParameters(_)
-      | AstKind::CatchParameter(_)
-      | AstKind::WithClause(_)
-      | AstKind::Elision(_)
-  )
+/// Prettier's `canAttachComment` for ESTree, and the nodes that oxc has and ESTree doesn't, such as an array's holes. A
+/// `;` is only attachable where a statement is required: `isMeaningfulEmptyStatement`.
+fn attachable(kind: AstKind, parent: Option<AstKind>) -> bool {
+  match kind {
+    AstKind::EmptyStatement(_) => matches!(
+      parent,
+      Some(
+        AstKind::IfStatement(_)
+          | AstKind::ForStatement(_)
+          | AstKind::ForInStatement(_)
+          | AstKind::ForOfStatement(_)
+          | AstKind::WhileStatement(_)
+          | AstKind::DoWhileStatement(_)
+          | AstKind::WithStatement(_)
+          | AstKind::LabeledStatement(_)
+      )
+    ),
+    _ => !matches!(
+      kind,
+      AstKind::TemplateElement(_)
+        | AstKind::FormalParameters(_)
+        | AstKind::CatchParameter(_)
+        | AstKind::WithClause(_)
+        | AstKind::Elision(_)
+    ),
+  }
 }
 
 impl<'a> File<'a> {
@@ -192,9 +207,10 @@ impl<'a> File<'a> {
   }
 
   fn attachable_children(&self, id: u32, out: &mut Vec<u32>) {
+    let parent = self.kind(id);
     for &child in self.children(id) {
       match self.kind(child) {
-        Some(kind) if attachable(kind) => out.push(child),
+        Some(kind) if attachable(kind, parent) => out.push(child),
         Some(_) => self.attachable_children(child, out),
         None => {}
       }
