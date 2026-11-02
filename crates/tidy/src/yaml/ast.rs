@@ -164,9 +164,20 @@ impl Root {
     &mut self.nodes[id as usize]
   }
 
+  /// Adds a node, and makes it the parent of the nodes it holds: `defineParents`, as the tree is built from its leaves.
   pub(crate) fn add(&mut self, node: Node) -> Id {
+    let id = self.nodes.len() as Id;
+    let owned = [&node.children, &node.middle_comments, &node.end_comments, &node.leading_comments];
+    for child in owned.into_iter().flatten() {
+      self.nodes[*child as usize].parent = Some(id);
+    }
+    for child in
+      [node.tag, node.anchor, node.indicator_comment, node.trailing_comment].into_iter().flatten()
+    {
+      self.nodes[child as usize].parent = Some(id);
+    }
     self.nodes.push(node);
-    self.nodes.len() as Id - 1
+    id
   }
 
   pub(crate) fn clear(&mut self) {
@@ -180,23 +191,31 @@ impl Root {
 pub(crate) struct Lines<'l> {
   text: &'l str,
   starts: Vec<u32>,
+  /// Whether each line is ASCII, so its columns are its byte offsets.
+  ascii: Vec<bool>,
 }
 
 impl<'l> Lines<'l> {
   pub(crate) fn new(text: &'l str) -> Lines<'l> {
     let mut starts = vec![0];
     starts.extend(memchr::memchr_iter(b'\n', text.as_bytes()).map(|at| at as u32 + 1));
-    Lines { text, starts }
+    let bytes = text.as_bytes();
+    let ascii = (0..starts.len())
+      .map(|line| {
+        let end = starts.get(line + 1).map_or(bytes.len(), |end| *end as usize);
+        bytes[starts[line] as usize..end].is_ascii()
+      })
+      .collect();
+    Lines { text, starts, ascii }
   }
 
   pub(crate) fn point(&self, offset: u32) -> Point {
     let line = self.starts.partition_point(|start| *start <= offset).max(1);
     let start = self.starts[line - 1] as usize;
     let end = (offset as usize).min(self.text.len());
-    let prefix = self.text.get(start..end).unwrap_or_default();
-    let column = match prefix.is_ascii() {
-      true => prefix.len(),
-      false => prefix.encode_utf16().count(),
+    let column = match self.ascii[line - 1] {
+      true => end.saturating_sub(start),
+      false => self.text.get(start..end).unwrap_or_default().encode_utf16().count(),
     };
     Point { line: line as u32, column: column as u32 + 1, offset }
   }

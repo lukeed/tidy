@@ -13,7 +13,6 @@ struct Line {
 }
 
 pub(crate) fn attach(root: &mut Root) {
-  define_parents(root, root.root, None);
   let lines = node_table(root);
   let documents = root.node(root.root).children.clone();
   let mut rest = 0;
@@ -26,23 +25,6 @@ pub(crate) fn attach(root: &mut Root) {
     }
     attach_comment(root, &lines, comment, documents[rest]);
   }
-}
-
-/// `defineParents`
-fn define_parents(root: &mut Root, id: Id, parent: Option<Id>) {
-  let node = root.node(id);
-  let mut owned: Vec<Id> = node.children.clone();
-  owned.extend(node.anchor);
-  owned.extend(node.tag);
-  owned.extend(node.leading_comments.iter().copied());
-  owned.extend(node.middle_comments.iter().copied());
-  owned.extend(node.indicator_comment);
-  owned.extend(node.trailing_comment);
-  owned.extend(node.end_comments.iter().copied());
-  for child in owned {
-    define_parents(root, child, Some(id));
-  }
-  root.node_mut(id).parent = parent;
 }
 
 fn node_table(root: &Root) -> Vec<Line> {
@@ -201,12 +183,12 @@ fn is_explicit_mapping_key(root: &Root, key: Id) -> bool {
 
 /// `updatePositions`
 pub(crate) fn update_positions(root: &mut Root, id: Id) {
-  let children = root.node(id).children.clone();
-  for &child in &children {
+  for index in 0..root.node(id).children.len() {
+    let child = root.node(id).children[index];
     update_positions(root, child);
   }
   if root.node(id).kind == Kind::Document {
-    let (head, body) = (children[0], children[1]);
+    let (head, body) = (root.node(id).children[0], root.node(id).children[1]);
     let (head_position, body_position) = (root.node(head).position, root.node(body).position);
     if head_position.start.offset == head_position.end.offset {
       let start = body_position.start;
@@ -233,6 +215,7 @@ pub(crate) fn update_positions(root: &mut Root, id: Id) {
     start_at(root.node(*first).position.start, &mut start);
     end_at(root.node(*last).position.end, &mut end);
   }
+  let children = &root.node(id).children;
   if let (Some(first), Some(last)) = (children.first(), children.last()) {
     let (first, last) = (root.node(*first), root.node(*last));
     start_at(first.position.start, &mut start);

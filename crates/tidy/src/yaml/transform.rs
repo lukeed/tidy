@@ -128,6 +128,13 @@ impl<'t> Transformer<'t> {
     id
   }
 
+  /// `extractComments`, where the other tokens aren't needed: registers the comments.
+  fn comments(&mut self, tokens: &[Source]) {
+    for token in tokens.iter().filter(|it| it.kind == cst::Kind::Comment) {
+      self.comment(token);
+    }
+  }
+
   /// `extractComments`: registers the comments, and returns the other tokens that aren't space.
   fn extract_comments(&mut self, tokens: &[Source]) -> Vec<Source> {
     let mut rest = Vec::new();
@@ -175,6 +182,7 @@ impl<'t> Transformer<'t> {
               let node = self.root.node_mut(directive);
               node.trailing_comment = Some(comment);
               node.position.end = end;
+              self.root.node_mut(comment).parent = Some(directive);
             }
             _ => candidates.push(comment),
           }
@@ -330,28 +338,28 @@ impl<'t> Transformer<'t> {
 
   /// `transformNode`
   fn node(&mut self, id: Cid, props: &[Source]) -> Id {
-    let composed = self.composed(id).clone();
+    let composed = self.composed(id);
     match &composed.content {
       Content::Alias { name } => {
         let src = composed.src.expect("an alias has a token");
         self.scalar_end(src);
-        let content = self.content(&composed, props);
+        let content = self.content(composed, props);
         let position = self.position(composed.range[0], composed.range[1]);
         self.content_node(Kind::Alias, position, content, name.clone())
       }
-      Content::Map { flow: true, .. } => self.flow_map(&composed, props),
-      Content::Map { .. } => self.map(&composed, props),
-      Content::Seq { flow: true, .. } => self.flow_seq(&composed, props),
-      Content::Seq { .. } => self.seq(&composed, props),
+      Content::Map { flow: true, .. } => self.flow_map(composed, props),
+      Content::Map { .. } => self.map(composed, props),
+      Content::Seq { flow: true, .. } => self.flow_seq(composed, props),
+      Content::Seq { .. } => self.seq(composed, props),
       Content::Scalar { kind, value } => match kind {
         ScalarType::BlockLiteral | ScalarType::BlockFolded => {
-          self.block_value(&composed, *kind, value, props)
+          self.block_value(composed, *kind, value, props)
         }
-        ScalarType::Plain => self.plain(&composed, value, props),
+        ScalarType::Plain => self.plain(composed, value, props),
         ScalarType::QuoteSingle | ScalarType::QuoteDouble => {
           let src = composed.src.expect("a quoted scalar has a token");
           self.scalar_end(src);
-          let content = self.content(&composed, props);
+          let content = self.content(composed, props);
           let position = self.position(composed.range[0], composed.range[1]);
           let kind =
             if *kind == ScalarType::QuoteSingle { Kind::QuoteSingle } else { Kind::QuoteDouble };
@@ -364,8 +372,7 @@ impl<'t> Transformer<'t> {
   /// The comments at the end of a flow scalar's token.
   fn scalar_end(&mut self, src: cst::Id) {
     if let Token::FlowScalar { end: Some(end), .. } = self.cst(src) {
-      let end = end.clone();
-      self.extract_comments(&end);
+      self.extract_comments(end);
     }
   }
 
@@ -412,10 +419,9 @@ impl<'t> Transformer<'t> {
   ) -> Id {
     let src = composed.src.expect("a block scalar has a token");
     let Token::BlockScalar { props: tokens, .. } = self.cst(src) else { unreachable!() };
-    let tokens = tokens.clone();
     let mut header: Option<Source> = None;
     let mut indicator = None;
-    for prop in &tokens {
+    for prop in tokens {
       let Prop::Source(token) = prop else { continue };
       match token.kind {
         cst::Kind::Comment => indicator = Some(self.comment(token)),
@@ -433,6 +439,9 @@ impl<'t> Transformer<'t> {
     node.chomping = chomping;
     node.indent = indent;
     node.indicator_comment = indicator;
+    if let Some(comment) = indicator {
+      self.root.node_mut(comment).parent = Some(id);
+    }
     id
   }
 
@@ -475,15 +484,6 @@ impl<'t> Transformer<'t> {
     properties
   }
 
-  /// The tag and anchor tokens, and the comments, of a list: the props of a node.
-  fn props_of(&self, tokens: &[Source]) -> Vec<Source> {
-    tokens
-      .iter()
-      .filter(|it| matches!(it.kind, cst::Kind::Comment | cst::Kind::Tag | cst::Kind::Anchor))
-      .copied()
-      .collect()
-  }
-
   /// `transformMap`
   fn map(&mut self, composed: &Composed, props: &[Source]) -> Id {
     let src = composed.src.expect("a block map has a token");
@@ -508,12 +508,12 @@ impl<'t> Transformer<'t> {
     self.add(node)
   }
 
-  fn items_of(&self, src: cst::Id) -> Vec<Item> {
+  fn items_of(&self, src: cst::Id) -> &'t [Item] {
     match self.cst(src) {
       Token::BlockMap { items, .. }
       | Token::BlockSeq { items, .. }
-      | Token::FlowCollection { items, .. } => items.clone(),
-      _ => Vec::new(),
+      | Token::FlowCollection { items, .. } => items,
+      _ => &[],
     }
   }
 
@@ -525,20 +525,14 @@ impl<'t> Transformer<'t> {
     let mut children = Vec::new();
     for (index, node) in nodes.iter().enumerate() {
       let item = &items[index.min(items.len() - 1)];
-      let mut indicator: Option<Source> = None;
-      let mut props: Vec<Source> = Vec::new();
-      for token in item.start.iter().filter(|it| !is_space(it)) {
-        match token.kind {
-          cst::Kind::SeqItemInd => indicator = Some(*token),
-          _ => props.push(*token),
-        }
-      }
-      let value = match self.is_empty(*node, &props) {
+      let props: &[Source] = &item.start;
+      let indicator = props.iter().rfind(|it| it.kind == cst::Kind::SeqItemInd).copied();
+      let value = match self.is_empty(*node, props) {
         true => {
-          self.extract_comments(&props);
+          self.comments(props);
           None
         }
-        false => Some(self.node(*node, &props)),
+        false => Some(self.node(*node, props)),
       };
       let start = match indicator {
         Some(indicator) => self.lines.point(indicator.offset),
@@ -578,7 +572,7 @@ impl<'t> Transformer<'t> {
         self.pair(pair, &items[index.min(items.len() - 1)], Kind::FlowMappingItem)
       })
       .collect();
-    self.flow_collection(composed, props, src, &items, pairs.len(), children, Kind::FlowMapping)
+    self.flow_collection(composed, props, src, items, pairs.len(), children, Kind::FlowMapping)
   }
 
   fn flow_seq(&mut self, composed: &Composed, props: &[Source]) -> Id {
@@ -588,7 +582,7 @@ impl<'t> Transformer<'t> {
     let mut children = Vec::new();
     for (index, node) in nodes.iter().enumerate() {
       let item = &items[index.min(items.len() - 1)];
-      let child = self.composed(*node).clone();
+      let child = self.composed(*node);
       let pair = match &child.content {
         Content::Map { items: pairs, .. } if child.src.is_none() && pairs.len() == 1 => {
           pairs[0].src.filter(|it| it.0 == src && it.1 == index).map(|_| pairs[0].clone())
@@ -599,18 +593,12 @@ impl<'t> Transformer<'t> {
         children.push(self.pair(&pair, item, Kind::FlowMappingItem));
         continue;
       }
-      let props: Vec<Source> = item
-        .start
-        .iter()
-        .filter(|it| matches!(it.kind, cst::Kind::Comment | cst::Kind::Tag | cst::Kind::Anchor))
-        .copied()
-        .collect();
-      let value = self.node(*node, &props);
+      let value = self.node(*node, &item.start);
       let mut seq_item = Node::new(Kind::FlowSequenceItem, self.root.node(value).position);
       seq_item.children = vec![value];
       children.push(self.add(seq_item));
     }
-    self.flow_collection(composed, props, src, &items, nodes.len(), children, Kind::FlowSequence)
+    self.flow_collection(composed, props, src, items, nodes.len(), children, Kind::FlowSequence)
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -628,8 +616,8 @@ impl<'t> Transformer<'t> {
       self.extract_comments(&item.start);
     }
     let Token::FlowCollection { start, end, .. } = self.cst(src) else { unreachable!() };
-    let (start, end) = (*start, end.clone());
-    let rest = self.extract_comments(&end);
+    let start = *start;
+    let rest = self.extract_comments(end);
     let close =
       rest.iter().find(|it| matches!(it.kind, cst::Kind::FlowMapEnd | cst::Kind::FlowSeqEnd));
     let close = close.expect("a flow collection ends");
@@ -644,30 +632,20 @@ impl<'t> Transformer<'t> {
   }
 
   /// `isEmptyNode`
+  /// `isEmptyNode`: the node is empty, and its props have no tag or anchor.
   fn is_empty(&self, node: Cid, props: &[Source]) -> bool {
     let range = self.composed(node).range;
-    range[0] == range[1] && props.iter().all(|it| it.kind == cst::Kind::Comment)
+    range[0] == range[1]
+      && !props.iter().any(|it| matches!(it.kind, cst::Kind::Tag | cst::Kind::Anchor))
   }
 
   /// `transformPair`
   fn pair(&mut self, pair: &Pair, item: &Item, kind: Kind) -> Id {
-    let mut key_props: Vec<Source> = Vec::new();
-    let mut explicit: Option<Source> = None;
-    for token in item.start.iter().filter(|it| !is_space(it)) {
-      match token.kind {
-        cst::Kind::ExplicitKeyInd => explicit = Some(*token),
-        cst::Kind::Comma => {}
-        _ => key_props.push(*token),
-      }
-    }
-    let mut value_props: Vec<Source> = Vec::new();
-    let mut indicator: Option<Source> = None;
-    for token in item.sep.iter().flatten().filter(|it| !is_space(it)) {
-      match token.kind {
-        cst::Kind::MapValueInd => indicator = Some(*token),
-        _ => value_props.push(*token),
-      }
-    }
+    // The props are the tokens themselves: what reads them only reads comments, tags and anchors.
+    let key_props: &[Source] = &item.start;
+    let value_props: &[Source] = item.sep.as_deref().unwrap_or_default();
+    let explicit = key_props.iter().rfind(|it| it.kind == cst::Kind::ExplicitKeyInd).copied();
+    let indicator = value_props.iter().rfind(|it| it.kind == cst::Kind::MapValueInd).copied();
     let key_token = match item.key {
       Key::Token(key) => Some(key),
       _ => None,
@@ -694,19 +672,17 @@ impl<'t> Transformer<'t> {
       };
       (start, end)
     });
-    let key_props = self.props_of(&key_props);
-    let value_props = self.props_of(&value_props);
-    let key_content = match self.is_empty(pair.key, &key_props) {
+    let key_content = match self.is_empty(pair.key, key_props) {
       true => {
-        self.extract_comments(&key_props);
+        self.comments(key_props);
         None
       }
-      false => Some(self.node(pair.key, &key_props)),
+      false => Some(self.node(pair.key, key_props)),
     };
     let value_content = match pair.value {
-      Some(value) if !self.is_empty(value, &value_props) => Some(self.node(value, &value_props)),
+      Some(value) if !self.is_empty(value, value_props) => Some(self.node(value, value_props)),
       _ => {
-        self.extract_comments(&value_props);
+        self.comments(value_props);
         None
       }
     };

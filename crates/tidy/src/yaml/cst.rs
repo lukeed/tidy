@@ -52,6 +52,40 @@ pub(crate) enum Key {
   Token(Id),
 }
 
+/// What the parser reads of an item before it changes it, so it doesn't copy the item's tokens.
+#[derive(Clone, Copy, Debug)]
+struct Last {
+  value: Option<Id>,
+  key: Key,
+  explicit_key: bool,
+  sep: Option<Sep>,
+  start_newline: bool,
+  start_seq_item: bool,
+}
+
+/// What the parser reads of an item's `sep`.
+#[derive(Clone, Copy, Debug)]
+struct Sep {
+  map_value: bool,
+  newline: bool,
+}
+
+impl Last {
+  fn of(item: &Item) -> Last {
+    Last {
+      value: item.value,
+      key: item.key,
+      explicit_key: item.explicit_key,
+      sep: item.sep.as_ref().map(|sep| Sep {
+        map_value: includes(sep, Kind::MapValueInd),
+        newline: includes(sep, Kind::Newline),
+      }),
+      start_newline: includes(&item.start, Kind::Newline),
+      start_seq_item: includes(&item.start, Kind::SeqItemInd),
+    }
+  }
+}
+
 /// An item of a collection.
 #[derive(Clone, Debug, Default)]
 pub(crate) struct Item {
@@ -547,11 +581,11 @@ impl<'p> Parser<'p> {
 
   /// `fixFlowSeqItems`: in a flow sequence, an item with a key but no `:` is a value.
   fn fix_flow_seq_items(&mut self, id: Id) {
-    let Node::FlowCollection { start, items, .. } = &self.tree.nodes[id as usize] else { return };
+    let Node::FlowCollection { start, .. } = &self.tree.nodes[id as usize] else { return };
     if start.kind != Kind::FlowSeqStart {
       return;
     }
-    let mut items = items.clone();
+    let mut items = std::mem::take(self.tree.nodes[id as usize].items_mut().expect("items"));
     for it in &mut items {
       let Some(sep) = it.sep.take() else { continue };
       if it.value.is_some()
@@ -782,7 +816,7 @@ impl<'p> Parser<'p> {
         }
       }
       let items = self.node(map).items().expect("items");
-      let it = items.last().expect("an item").clone();
+      let it = Last::of(items.last().expect("an item"));
       match self.kind {
         Kind::Anchor | Kind::Tag => {
           if at_next_item || it.value.is_some() {
@@ -814,10 +848,9 @@ impl<'p> Parser<'p> {
         }
         Kind::MapValueInd => {
           if it.explicit_key {
-            let empty = Vec::new();
-            let sep = it.sep.as_ref().unwrap_or(&empty);
+            let sep = it.sep;
             if it.sep.is_none() {
-              if includes(&it.start, Kind::Newline) {
+              if it.start_newline {
                 self.with_last(map, |it| {
                   it.key = Key::Null;
                   it.sep = Some(vec![token]);
@@ -834,7 +867,7 @@ impl<'p> Parser<'p> {
             } else if it.value.is_some() {
               self
                 .push_item(map, Item { key: Key::Null, sep: Some(vec![token]), ..Item::default() });
-            } else if includes(sep, Kind::MapValueInd) {
+            } else if sep.is_some_and(|sep| sep.map_value) {
               self.push_block_map(Item {
                 start,
                 key: Key::Null,
@@ -842,7 +875,7 @@ impl<'p> Parser<'p> {
                 ..Item::default()
               });
             } else if matches!(it.key, Key::Token(key) if is_flow_token(self.node(key)))
-              && !includes(sep, Kind::Newline)
+              && !sep.is_some_and(|sep| sep.newline)
             {
               let (start, key, mut sep) = self.with_last(map, |it| {
                 let start = first_key_start_props(&mut it.start);
@@ -870,7 +903,7 @@ impl<'p> Parser<'p> {
               map,
               Item { start, key: Key::Null, sep: Some(vec![token]), ..Item::default() },
             );
-          } else if includes(it.sep.as_ref().expect("sep"), Kind::MapValueInd) {
+          } else if it.sep.is_some_and(|sep| sep.map_value) {
             self.push_block_map(Item { key: Key::Null, sep: Some(vec![token]), ..Item::default() });
           } else {
             self.with_last(map, |it| it.sep.as_mut().expect("sep").push(token));
@@ -903,9 +936,7 @@ impl<'p> Parser<'p> {
         _ => {
           if let Some(value) = self.start_block_value(map) {
             if matches!(value, Node::BlockSeq { .. }) {
-              if !it.explicit_key
-                && it.sep.as_ref().is_some_and(|sep| !includes(sep, Kind::Newline))
-              {
+              if !it.explicit_key && it.sep.is_some_and(|sep| !sep.newline) {
                 let offset = self.offset;
                 let error = self.tree.add(Node::Error { offset });
                 return self.pop(Some(error));
@@ -928,7 +959,7 @@ impl<'p> Parser<'p> {
     let token = self.source_token();
     let seq_indent = self.node(seq).indent().unwrap_or(0);
     let items = self.node(seq).items().expect("items");
-    let it = items.last().expect("an item").clone();
+    let it = Last::of(items.last().expect("an item"));
     match self.kind {
       Kind::Newline => {
         match it.value {
@@ -942,9 +973,10 @@ impl<'p> Parser<'p> {
         if it.value.is_some() {
           self.push_item(seq, Item { start: vec![token], ..Item::default() });
         } else {
-          if self.at_indented_comment(&it.start, seq_indent)
-            && self.absorb_indented_comment(seq, token)
-          {
+          let items = self.node(seq).items().expect("items");
+          let indented =
+            self.at_indented_comment(&items.last().expect("an item").start, seq_indent);
+          if indented && self.absorb_indented_comment(seq, token) {
             return;
           }
           self.with_last(seq, |it| it.start.push(token));
@@ -955,7 +987,7 @@ impl<'p> Parser<'p> {
         return self.with_last(seq, |it| it.start.push(token));
       }
       Kind::SeqItemInd if self.indent == seq_indent => {
-        if it.value.is_some() || includes(&it.start, Kind::SeqItemInd) {
+        if it.value.is_some() || it.start_seq_item {
           self.push_item(seq, Item { start: vec![token], ..Item::default() });
         } else {
           self.with_last(seq, |it| it.start.push(token));
@@ -988,7 +1020,7 @@ impl<'p> Parser<'p> {
     }
     let Node::FlowCollection { end, items, .. } = self.node(fc) else { return };
     if end.is_empty() {
-      let it = items.last().cloned();
+      let it = items.last().map(Last::of);
       match self.kind {
         Kind::Comma | Kind::ExplicitKeyInd => {
           match it {

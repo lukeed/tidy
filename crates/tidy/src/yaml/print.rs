@@ -6,9 +6,10 @@ use crate::Wrap as ProseWrap;
 use crate::doc::{Align, Branch, Docs};
 use crate::stack::Stack;
 use rustc_hash::FxHashSet;
+use std::borrow::Cow;
 
 pub(crate) struct Printer<'p, 'a> {
-  pub(crate) root: &'p Root,
+  pub(crate) root: &'a Root,
   pub(crate) text: &'a str,
   pub(crate) options: &'p Options,
   pub(crate) docs: &'p mut Docs<'a>,
@@ -25,14 +26,15 @@ struct Step {
   last: bool,
 }
 
-impl<'a> Printer<'_, 'a> {
+impl<'p, 'a> Printer<'p, 'a> {
   pub(crate) fn document(&mut self) {
     let root = self.root.root;
     self.print(root, Step { last: true });
   }
 
-  fn node(&self, id: Id) -> &super::ast::Node {
-    self.root.node(id)
+  fn node(&self, id: Id) -> &'a super::ast::Node {
+    let root: &'a Root = self.root;
+    root.node(id)
   }
 
   fn parent(&self) -> Option<Id> {
@@ -61,7 +63,7 @@ impl<'a> Printer<'_, 'a> {
     if !self.stack.has_room() {
       return;
     }
-    let node = self.node(id).clone();
+    let node = self.node(id);
     let kind = node.kind;
     if kind != Kind::MappingValue && !node.leading_comments.is_empty() {
       self.join_comments(id, &node.leading_comments);
@@ -126,7 +128,7 @@ impl<'a> Printer<'_, 'a> {
       self.child(id, comment, Step { last: false });
       self.docs.close(suffix);
     }
-    if should_print_end_comments(&node) {
+    if should_print_end_comments(node) {
       // `alignWithSpaces(0, ...)` leaves the indent as it is.
       let align = (kind == Kind::SequenceItem).then(|| self.docs.align(Align::Text("  ")));
       self.docs.hardline();
@@ -198,7 +200,7 @@ impl<'a> Printer<'_, 'a> {
 
   /// `printNode`
   fn print_node(&mut self, id: Id, step: Step) {
-    let node = self.node(id).clone();
+    let node = self.node(id);
     match node.kind {
       Kind::Root => self.print_root(id),
       Kind::Document => self.print_document(id, step),
@@ -219,23 +221,19 @@ impl<'a> Printer<'_, 'a> {
       Kind::DocumentBody => self.print_body(id, step),
       Kind::Directive => {
         self.docs.text("%");
-        let value = self.docs.keep(&node.value);
-        self.docs.text(value);
+        self.docs.text(&node.value);
         for parameter in &node.parameters {
           self.docs.text(" ");
-          let parameter = self.docs.keep(parameter);
           self.docs.text(parameter);
         }
       }
       Kind::Comment => {
         self.docs.text("#");
-        let value = self.docs.keep(&node.value);
-        self.docs.text(value);
+        self.docs.text(&node.value);
       }
       Kind::Alias | Kind::Anchor => {
         self.docs.text(if node.kind == Kind::Alias { "*" } else { "&" });
-        let value = self.docs.keep(&node.value);
-        self.docs.text(value);
+        self.docs.text(&node.value);
       }
       Kind::Tag => {
         let text = self.slice(node.position.start.offset, node.position.end.offset);
@@ -243,7 +241,7 @@ impl<'a> Printer<'_, 'a> {
       }
       Kind::Plain => {
         let raw = self.slice(node.position.start.offset, node.position.end.offset);
-        self.flow_scalar_content(Kind::Plain, raw.into());
+        self.flow_scalar_content(Kind::Plain, raw);
       }
       Kind::QuoteDouble | Kind::QuoteSingle => self.print_quote(id),
       Kind::BlockFolded | Kind::BlockLiteral => self.print_block(id, step),
@@ -275,7 +273,7 @@ impl<'a> Printer<'_, 'a> {
   }
 
   fn print_root(&mut self, id: Id) {
-    let node = self.node(id).clone();
+    let node = self.node(id);
     let last = last_descendant(self.root, id);
     let keep = matches!(self.node(last).kind, Kind::BlockLiteral | Kind::BlockFolded)
       && self.node(last).chomping == Chomping::Keep;
@@ -316,9 +314,9 @@ impl<'a> Printer<'_, 'a> {
   }
 
   fn print_document(&mut self, id: Id, step: Step) {
-    let node = self.node(id).clone();
+    let node = self.node(id);
     let (head_id, body_id) = (node.children[0], node.children[1]);
-    let head = self.node(head_id).clone();
+    let head = self.node(head_id);
     let body = self.node(body_id);
     let marker = node.directives_end_marker
       || !head.children.is_empty()
@@ -354,7 +352,7 @@ impl<'a> Printer<'_, 'a> {
   }
 
   fn print_body(&mut self, id: Id, step: Step) {
-    let node = self.node(id).clone();
+    let node = self.node(id);
     let steps = self.list(&node.children, step);
     for (index, child) in node.children.iter().enumerate() {
       if index > 0 {
@@ -396,22 +394,22 @@ impl<'a> Printer<'_, 'a> {
       Kind::QuoteSingle => raw.contains('\\'),
       _ => raw.as_bytes().windows(2).any(|pair| pair[0] == b'\\' && pair[1] != b'"'),
     };
-    let (quote, content): (&str, String) = if has_escape {
-      (if kind == Kind::QuoteDouble { "\"" } else { "'" }, raw.into())
+    let (quote, content): (&str, &'a str) = if has_escape {
+      (if kind == Kind::QuoteDouble { "\"" } else { "'" }, raw)
     } else if raw.contains('"') {
       let content = match kind {
-        Kind::QuoteDouble => raw.replace("\\\"", "\"").replace('\'', "''"),
-        _ => raw.into(),
+        Kind::QuoteDouble => self.docs.keep(&raw.replace("\\\"", "\"").replace('\'', "''")),
+        _ => raw,
       };
       ("'", content)
     } else if raw.contains('\'') {
       let content = match kind {
-        Kind::QuoteSingle => raw.replace("''", "'"),
-        _ => raw.into(),
+        Kind::QuoteSingle => self.docs.keep(&raw.replace("''", "'")),
+        _ => raw,
       };
       ("\"", content)
     } else {
-      (if self.options.single_quote { "'" } else { "\"" }, raw.into())
+      (if self.options.single_quote { "'" } else { "\"" }, raw)
     };
     self.docs.text(quote);
     self.flow_scalar_content(kind, content);
@@ -419,8 +417,18 @@ impl<'a> Printer<'_, 'a> {
   }
 
   /// `printFlowScalarContent`
-  fn flow_scalar_content(&mut self, kind: Kind, content: String) {
-    let lines = flow_scalar_line_contents(kind, &content, self.options.wrap);
+  fn flow_scalar_content(&mut self, kind: Kind, content: &'a str) {
+    // One line, as it is written: one word, as `getFlowScalarLineContents` gives it.
+    if self.options.wrap == ProseWrap::Preserve && !content.contains('\n') {
+      let fill = self.docs.fill();
+      if !content.is_empty() {
+        let part = self.docs.part();
+        self.docs.text(content);
+        self.docs.close(part);
+      }
+      return self.docs.close(fill);
+    }
+    let lines = flow_scalar_line_contents(kind, content, self.options.wrap);
     for (index, words) in lines.iter().enumerate() {
       if index > 0 {
         self.docs.hardline();
@@ -430,7 +438,7 @@ impl<'a> Printer<'_, 'a> {
   }
 
   /// `fill(join(line, words))`
-  fn fill(&mut self, words: &[String]) {
+  fn fill(&mut self, words: &[Cow<'a, str>]) {
     let fill = self.docs.fill();
     for (index, word) in words.iter().enumerate() {
       if index > 0 {
@@ -439,7 +447,10 @@ impl<'a> Printer<'_, 'a> {
         self.docs.close(part);
       }
       let part = self.docs.part();
-      self.docs.owned(word);
+      match word {
+        Cow::Borrowed(text) => self.docs.text(text),
+        Cow::Owned(text) => self.docs.owned(text),
+      }
       self.docs.close(part);
     }
     self.docs.close(fill);
@@ -447,7 +458,7 @@ impl<'a> Printer<'_, 'a> {
 
   /// `printBlock`
   fn print_block(&mut self, id: Id, step: Step) {
-    let node = self.node(id).clone();
+    let node = self.node(id);
     let parent_indent = self
       .ancestors
       .iter()
@@ -467,7 +478,7 @@ impl<'a> Printer<'_, 'a> {
       self.docs.text(" ");
       self.child(id, comment, Step { last: false });
     }
-    let lines = self.block_value_line_contents(&node, parent_indent, last);
+    let lines = self.block_value_line_contents(node, parent_indent, last);
     let outer = match node.indent {
       None => {
         let dedent = self.docs.align(Align::Dedent);
@@ -512,7 +523,7 @@ impl<'a> Printer<'_, 'a> {
     node: &super::ast::Node,
     parent_indent: usize,
     last: bool,
-  ) -> Vec<Vec<String>> {
+  ) -> Vec<Vec<Cow<'a, str>>> {
     let content = match node.position.start.line == node.position.end.line {
       true => "",
       false => {
@@ -533,12 +544,12 @@ impl<'a> Printer<'_, 'a> {
         .unwrap_or(usize::MAX),
       Some(indent) => indent as usize - 1 + parent_indent,
     };
-    let raw: Vec<&str> = content.split('\n').map(|line| slice_from(line, leading)).collect();
-    let mut lines: Vec<Vec<String>>;
+    let raw: Vec<&'a str> = content.split('\n').map(|line| slice_from(line, leading)).collect();
+    let mut lines: Vec<Vec<Cow<'a, str>>>;
     if self.options.wrap == ProseWrap::Preserve || node.kind == Kind::BlockLiteral {
       lines = raw
         .iter()
-        .map(|line| if line.is_empty() { Vec::new() } else { vec![(*line).to_owned()] })
+        .map(|line| if line.is_empty() { Vec::new() } else { vec![Cow::Borrowed(*line)] })
         .collect();
     } else {
       lines = Vec::new();
@@ -548,7 +559,7 @@ impl<'a> Printer<'_, 'a> {
           && !words.is_empty()
           && !raw[index - 1].is_empty()
           && !words[0].starts_with(char::is_whitespace)
-          && !lines.last().is_some_and(|last: &Vec<String>| {
+          && !lines.last().is_some_and(|last: &Vec<Cow<'a, str>>| {
             let joined = last.join(",");
             joined.starts_with(char::is_whitespace) || joined.ends_with(char::is_whitespace)
           });
@@ -560,12 +571,13 @@ impl<'a> Printer<'_, 'a> {
       lines = lines
         .into_iter()
         .map(|original| {
-          let mut words: Vec<String> = Vec::new();
+          let mut words: Vec<Cow<'a, str>> = Vec::new();
           for word in original {
             match words.last_mut() {
               Some(last) if last.ends_with(char::is_whitespace) => {
-                last.push(' ');
-                last.push_str(&word);
+                let joined = last.to_mut();
+                joined.push(' ');
+                joined.push_str(&word);
               }
               _ => words.push(word),
             }
@@ -574,7 +586,7 @@ impl<'a> Printer<'_, 'a> {
         })
         .collect();
       if self.options.wrap == ProseWrap::Never {
-        lines = lines.into_iter().map(|words| vec![words.join(" ")]).collect();
+        lines = lines.into_iter().map(|words| vec![Cow::Owned(words.join(" "))]).collect();
       }
     }
     if node.chomping == Chomping::Keep {
@@ -598,20 +610,20 @@ impl<'a> Printer<'_, 'a> {
 
   /// `printMappingItem`
   fn print_mapping_item(&mut self, id: Id, step: Step) {
-    let node = self.node(id).clone();
+    let node = self.node(id);
     let (key, value) = (node.children[0], node.children[1]);
-    let key_node = self.node(key).clone();
-    let value_node = self.node(value).clone();
+    let key_node = self.node(key);
+    let value_node = self.node(value);
     let key_content = key_node.children.first().copied();
     let value_content = value_node.children.first().copied();
-    let empty_key = is_empty_node(&key_node);
-    let empty_value = is_empty_node(&value_node);
+    let empty_key = is_empty_node(key_node);
+    let empty_value = is_empty_node(value_node);
     if empty_key && empty_value {
       return self.docs.text(": ");
     }
     let space =
       if key_content.is_some_and(|it| self.node(it).kind == Kind::Alias) { " " } else { "" };
-    let parent = self.parent().map(|it| self.node(it).clone());
+    let parent = self.parent().map(|it| self.node(it));
     if empty_value {
       if node.kind == Kind::FlowMappingItem
         && parent.as_ref().is_some_and(|it| it.kind == Kind::FlowMapping)
@@ -791,7 +803,7 @@ impl<'a> Printer<'_, 'a> {
 
   /// `printFlowMapping`
   fn print_flow_mapping(&mut self, id: Id, step: Step) {
-    let node = self.node(id).clone();
+    let node = self.node(id);
     let mapping = node.kind == Kind::FlowMapping;
     let (open, close) = if mapping { ("{", "}") } else { ("[", "]") };
     let spaced = mapping && !node.children.is_empty() && self.options.bracket_spacing;
@@ -928,7 +940,7 @@ fn slice_from(line: &str, count: usize) -> &str {
 }
 
 /// `splitWithSingleSpace`: splits at single spaces, keeping runs of spaces in the words.
-fn split_with_single_space(text: &str) -> Vec<String> {
+fn split_with_single_space(text: &str) -> Vec<Cow<'_, str>> {
   if text.is_empty() {
     return Vec::new();
   }
@@ -942,16 +954,16 @@ fn split_with_single_space(text: &str) -> Vec<String> {
       && at + 1 < bytes.len()
       && bytes[at + 1] != b' ';
     if single {
-      words.push(text[start..at].to_owned());
+      words.push(Cow::Borrowed(&text[start..at]));
       start = at + 1;
     }
   }
-  words.push(text[start..].to_owned());
+  words.push(Cow::Borrowed(&text[start..]));
   words
 }
 
 /// `getFlowScalarLineContents`
-fn flow_scalar_line_contents(kind: Kind, content: &str, wrap: ProseWrap) -> Vec<Vec<String>> {
+fn flow_scalar_line_contents(kind: Kind, content: &str, wrap: ProseWrap) -> Vec<Vec<Cow<'_, str>>> {
   let parts: Vec<&str> = content.split('\n').collect();
   let count = parts.len();
   let raw: Vec<&str> = parts
@@ -967,10 +979,10 @@ fn flow_scalar_line_contents(kind: Kind, content: &str, wrap: ProseWrap) -> Vec<
   if wrap == ProseWrap::Preserve {
     return raw
       .iter()
-      .map(|line| if line.is_empty() { Vec::new() } else { vec![(*line).to_owned()] })
+      .map(|line| if line.is_empty() { Vec::new() } else { vec![Cow::Borrowed(*line)] })
       .collect();
   }
-  let mut lines: Vec<Vec<String>> = Vec::new();
+  let mut lines: Vec<Vec<Cow<'_, str>>> = Vec::new();
   for (index, line) in raw.iter().enumerate() {
     let words = split_with_single_space(line);
     let joins = index > 0
@@ -984,7 +996,7 @@ fn flow_scalar_line_contents(kind: Kind, content: &str, wrap: ProseWrap) -> Vec<
     }
   }
   if wrap == ProseWrap::Never {
-    return lines.into_iter().map(|words| vec![words.join(" ")]).collect();
+    return lines.into_iter().map(|words| vec![Cow::Owned(words.join(" "))]).collect();
   }
   lines
 }

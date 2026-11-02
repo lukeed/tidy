@@ -66,7 +66,8 @@ fn cst(path: &str, show: usize) {
 
 /// Compares what Prettier prints with what tidy prints, under the option sets of `format.ts`.
 fn format(path: &str, show: usize, filter: Option<&String>) {
-  use tidy::yaml::{Options, ProseWrap};
+  use tidy::Wrap;
+  use tidy::yaml::Options;
   let cases = read(path);
   let (mut same, mut total, mut shown) = (0, 0, 0);
   let mut per_set: std::collections::BTreeMap<String, usize> = Default::default();
@@ -82,8 +83,8 @@ fn format(path: &str, show: usize, filter: Option<&String>) {
     let default = Options::default();
     let options = match set {
       "single quotes, width 40" => Options { single_quote: true, width: 40, ..default },
-      "prose always, width 40" => Options { prose_wrap: ProseWrap::Always, width: 40, ..default },
-      "prose never" => Options { prose_wrap: ProseWrap::Never, ..default },
+      "prose always, width 40" => Options { wrap: Wrap::Always, width: 40, ..default },
+      "prose never" => Options { wrap: Wrap::Never, ..default },
       "no bracket spacing, no trailing commas, indent 4" => {
         Options { bracket_spacing: false, trailing_comma: false, tab_width: 4, ..default }
       }
