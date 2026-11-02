@@ -4,7 +4,7 @@ use super::comments::{Comments, FileComments};
 use crate::js::ast::{Expr, File};
 use crate::js::ast::{Span, Spanned};
 use crate::js::ir::element::FormatElement;
-use crate::js::options::{FormatOptions, HtmlRoot, JavaScriptParser};
+use crate::js::options::{FormatOptions, HtmlRoot};
 use rustc_hash::FxHashMap;
 use std::cell::Cell;
 
@@ -46,8 +46,6 @@ pub(crate) struct JsFormatContext<'a> {
   pub(crate) line_start: Cell<(u32, u32)>,
   /// True if the `a | b` being written is a Vue value and filter.
   pub(crate) is_vue_filter_sequence: Cell<bool>,
-  /// Parses the code in HTML, overriding `FormatOptions::parse_javascript`.
-  pub(crate) parse_javascript: Option<JavaScriptParser<'a>>,
 }
 
 impl<'a> JsFormatContext<'a> {
@@ -81,7 +79,6 @@ impl<'a> JsFormatContext<'a> {
       line_start: Cell::new((0, 0)),
       long_member_chain: Cell::new(None),
       is_vue_filter_sequence: Cell::new(false),
-      parse_javascript: None,
     }
   }
 

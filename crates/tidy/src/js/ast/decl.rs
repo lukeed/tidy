@@ -246,22 +246,6 @@ impl<'a> Func<'a> {
     }
   }
 
-  /// The `{ .. }` of a block body.
-  pub(crate) fn body_span(self) -> Option<Span> {
-    match self.raw() {
-      K::Function(it) => it.body.as_ref().map(|body| span(body.span)),
-      K::ArrowFunctionExpression(it) => match &it.body {
-        ArrowFunctionBody::FunctionBody(body) => Some(span(body.span)),
-        _ => None,
-      },
-      K::StaticBlock(it) => {
-        let open = skip_trivia(self.file.text.as_bytes(), it.span.start + "static".len() as u32);
-        Some(Span::new(open, it.span.end))
-      }
-      _ => None,
-    }
-  }
-
   /// The position of the parameter list's `(`, or an index signature's `[`. `None` for an arrow function, which may
   /// not have one.
   pub(crate) fn open_paren(self) -> Option<u32> {
@@ -313,61 +297,9 @@ impl<'a> Func<'a> {
     }
   }
 
-  /// bun's `Func::span`: from its first token, which can be a modifier or a decorator, to its end. A method's or an
-  /// accessor's starts where the member starts.
-  pub(crate) fn full_span(self) -> Span {
-    match self.owner() {
-      Node::Member(member) => member.span(),
-      Node::Stmt(statement) => statement.span(),
-      _ => self.span(),
-    }
-  }
-
-  /// Starts at the type parameters or the `(`. For a method or an accessor, this is the range of ESLint's
-  /// `FunctionExpression`, the `value` of the `MethodDefinition` or `Property`.
-  pub(crate) fn span_from_params(self) -> Span {
-    let head = self.head();
-    let start = (head.types.map(|it| it.span.start))
-      .or_else(|| self.open_paren())
-      .or_else(|| head.params.map(|it| it.span.start))
-      .unwrap_or(self.span().start);
-    Span::new(start, self.full_span().end)
-  }
-
-  /// The range of ESLint's node for it, which is oxc's: a declaration without `export`, the expression, the `value` of
-  /// a method, the member or the type.
-  pub(crate) fn estree_span(self) -> Span {
-    self.span()
-  }
-
   /// Everything between the parentheses: the `this` parameter, if any, then the other parameters.
   pub(crate) fn params_with_this(self) -> impl Iterator<Item = Param<'a>> + 'a {
     self.this_param().into_iter().chain(self.params())
-  }
-
-  /// The position of the parameter list's `)`, or an index signature's `]`. `None` for an arrow function without
-  /// parentheses and for a static block.
-  pub(crate) fn close_paren(self) -> Option<u32> {
-    let text = self.file.text.as_bytes();
-    if let K::TSIndexSignature(it) = self.raw() {
-      let mut at = skip_trivia(text, it.parameter.span.end);
-      if text.get(at as usize) == Some(&b',') {
-        at = skip_trivia(text, at + 1);
-      }
-      return (text.get(at as usize) == Some(&b']')).then_some(at);
-    }
-    let params = self.head().params?;
-    let close = params.span.end.checked_sub(1)?;
-    (params.span.start < close && text.get(close as usize) == Some(&b')')).then_some(close)
-  }
-
-  /// The parameter list from `(` to `)`. For an arrow function without parentheses, the parameter. For an index
-  /// signature, the brackets.
-  pub(crate) fn params_span(self) -> Option<Span> {
-    match self.raw() {
-      K::TSIndexSignature(_) => Some(Span::new(self.open_paren()?, self.close_paren()? + 1)),
-      _ => self.head().params.map(|it| span(it.span)),
-    }
   }
 }
 
@@ -448,31 +380,6 @@ impl<'a> Param<'a> {
     self.modifiers().into_iter().filter_map(Modifier::decorator)
   }
 
-  /// The pattern, the `?` and the type annotation. This is the range of ESLint's `Identifier`, `ObjectPattern` or
-  /// `ArrayPattern` for the parameter, because typescript-eslint includes the `?` and the annotation in that node.
-  pub(crate) fn binding_span(self) -> Span {
-    let pat = self.pat().span();
-    let end = match self.ty() {
-      Some(ty) => ty.outer_span().end,
-      None if self.is_optional() => skip_trivia(self.file.text.as_bytes(), pat.end) + 1,
-      None => pat.end,
-    };
-    Span::new(pat.start, end)
-  }
-
-  /// Excludes decorators and modifiers. This is the range of ESLint's node for the parameter, or of the `parameter`
-  /// of a `TSParameterProperty`: the `AssignmentPattern` of `a = 1`, the `RestElement` of `...a`, otherwise
-  /// [`Param::binding_span`].
-  pub(crate) fn span_without_modifiers(self) -> Span {
-    let whole = self.span();
-    let start = match self.raw() {
-      K::FormalParameter(it) => it.pattern.span().start,
-      K::FormalParameterRest(it) => it.rest.span.start,
-      _ => whole.start,
-    };
-    Span::new(start, whole.end)
-  }
-
   pub(crate) fn func(self) -> Option<Func<'a>> {
     let mut id = self.file.parent_id(self.id);
     if let Some(K::FormalParameters(_)) = self.file.kind(id) {
@@ -521,30 +428,6 @@ impl<'a> TypeParam<'a> {
       flags.set(Flags::OUT, it.out);
     }
     flags
-  }
-
-  /// `const`, `in` and `out`, in source order.
-  pub(crate) fn modifiers(self) -> Modifiers<'a> {
-    modifiers(self.file, self.span().start, self.flags(), &[])
-  }
-
-  /// The node that declares it: a `Func`, a `Class`, the `Stmt` of an interface or a type alias, or the `TypeNode` of
-  /// an `infer` or a mapped type.
-  pub(crate) fn parent(self) -> Node<'a> {
-    let file = self.file;
-    let list = file.parent_id(self.id);
-    if let Some(K::TSTypeParameterDeclaration(_)) = file.kind(list) {
-      let owner = file.parent_id(list);
-      match file.kind(owner) {
-        Some(K::Class(_)) => return Node::Class(Class::new(file, owner)),
-        Some(K::TSInterfaceDeclaration(_) | K::TSTypeAliasDeclaration(_)) => {
-          return Node::Stmt(Stmt::new(file, statement(file, owner)));
-        }
-        Some(kind) if is_func(kind) => return Node::Func(Func::new(file, owner)),
-        _ => {}
-      }
-    }
-    Node::TypeParam(self).parent()
   }
 }
 
@@ -628,12 +511,6 @@ impl<'a> Class<'a> {
     self.modifiers().into_iter().filter_map(Modifier::decorator)
   }
 
-  /// Its first token, which can be a decorator before the `export`.
-  pub(crate) fn start(self) -> u32 {
-    let first = self.modifiers().first().map_or(u32::MAX, |it| it.span().start);
-    first.min(self.full_span_without_decorators().start)
-  }
-
   fn full_span_without_decorators(self) -> Span {
     match self.owner() {
       Node::Stmt(statement) => statement.span(),
@@ -651,16 +528,6 @@ impl<'a> Class<'a> {
     }
   }
 
-  /// bun's `Class::span`: from its first token, which can be a decorator or a modifier, to its end.
-  pub(crate) fn full_span(self) -> Span {
-    Span::new(self.start(), self.full_span_without_decorators().end)
-  }
-
-  /// The range of ESLint's `ClassDeclaration` or `ClassExpression`, which excludes `export` and `export default`.
-  pub(crate) fn estree_span(self) -> Span {
-    self.span()
-  }
-
   /// The `class` keyword.
   pub(crate) fn keyword_span(self) -> Span {
     let start = match self.modifiers().last() {
@@ -668,11 +535,6 @@ impl<'a> Class<'a> {
       None => self.span().start,
     };
     Span::new(start, start + "class".len() as u32)
-  }
-
-  /// The `{ .. }` around the members.
-  pub(crate) fn body_span(self) -> Span {
-    self.raw_class().map_or_else(|| self.span(), |it| span(it.body.span))
   }
 }
 
@@ -704,22 +566,6 @@ impl<'a> Member<'a> {
         TSMethodSignatureKind::Set => MemberKind::Setter,
       },
       _ => MemberKind::Property,
-    }
-  }
-
-  /// ESLint's `kind === "constructor"`: a `Constructor` that isn't `static`, or a class method named with the string
-  /// `"constructor"` that isn't parsed as the constructor, like `"constructor"<T>() {}`.
-  pub(crate) fn is_constructor(self) -> bool {
-    if self.is_static() {
-      return false;
-    }
-    match self.kind() {
-      MemberKind::Constructor => true,
-      MemberKind::Method => {
-        !self.is_signature()
-          && matches!(self.raw_key().map(Key::kind), Some(KeyKind::String(name)) if name.is("constructor"))
-      }
-      _ => false,
     }
   }
 
@@ -810,18 +656,6 @@ impl<'a> Member<'a> {
     self.keywords() | name
   }
 
-  pub(crate) fn is_static(self) -> bool {
-    self.flags().contains(Flags::STATIC)
-  }
-
-  /// True if it's in an interface or a type literal rather than a class.
-  pub(crate) fn is_signature(self) -> bool {
-    matches!(
-      self.file.kind(self.file.parent_id(self.id)),
-      Some(K::TSInterfaceBody(_) | K::TSTypeLiteral(_))
-    )
-  }
-
   /// A constructor's `constructor` token, which is its `key` in ESLint. It can be written as a string.
   pub(crate) fn constructor_keyword(self) -> Option<Ident<'a>> {
     if self.kind() != MemberKind::Constructor {
@@ -884,18 +718,6 @@ impl<'a> Member<'a> {
   pub(crate) fn decorators(self) -> impl Iterator<Item = Expr<'a>> + 'a {
     self.modifiers().into_iter().filter_map(Modifier::decorator)
   }
-
-  /// The `Class`, the `Stmt` of the interface, or the `TypeNode` of the type literal.
-  pub(crate) fn parent(self) -> Node<'a> {
-    let body = self.file.parent_id(self.id);
-    match self.file.kind(body) {
-      Some(K::ClassBody(_)) => Node::Class(Class::new(self.file, self.file.parent_id(body))),
-      Some(K::TSInterfaceBody(_)) => {
-        Node::Stmt(Stmt::new(self.file, statement(self.file, self.file.parent_id(body))))
-      }
-      _ => Node::Member(self).parent(),
-    }
-  }
 }
 
 /// A keyword before a declaration, a member or a parameter, or a decorator.
@@ -934,10 +756,6 @@ impl<'a> Modifiers<'a> {
 
   pub(crate) fn is_empty(&self) -> bool {
     self.0.is_empty()
-  }
-
-  pub(crate) fn first(&self) -> Option<Modifier<'a>> {
-    self.0.first().copied()
   }
 
   pub(crate) fn last(&self) -> Option<Modifier<'a>> {
@@ -1060,11 +878,6 @@ impl<'a> Prop<'a> {
     }
   }
 
-  /// Same as [`Key::is_computed`] on its key.
-  pub(crate) fn has_computed_key(self) -> bool {
-    self.key().is_some_and(Key::is_computed)
-  }
-
   /// The `e` of a [`KeyKind::Computed`] key.
   pub(crate) fn computed_key(self) -> Option<Expr<'a>> {
     match self.key()?.kind() {
@@ -1137,15 +950,6 @@ impl<'a> Prop<'a> {
     matches!(self.raw(), K::ImportAttribute(_))
   }
 
-  /// A method's `async`: oxc has no decorators on a property, and parses no other keyword.
-  pub(crate) fn modifiers(self) -> Modifiers<'a> {
-    let flags = match self.func() {
-      Some(func) if self.kind() == PropKind::Method => func.flags() & Flags::ASYNC,
-      _ => Flags::empty(),
-    };
-    modifiers(self.file, self.span().start, flags, &[])
-  }
-
   /// The object literal or the JSX element. For an [import attribute](Prop::is_import_attribute), the `Stmt` of the
   /// import or the export.
   pub(crate) fn parent(self) -> Node<'a> {
@@ -1166,12 +970,8 @@ macro_rules! declarations {
 }
 
 declarations! {
-  Interface,
-  Alias,
-  Enum,
   Module,
   Import,
-  ImportEquals,
   Export,
 }
 
@@ -1185,12 +985,6 @@ impl<'a> Interface<'a> {
 
   pub(crate) fn name(self) -> Ident<'a> {
     self.raw_interface().map_or_else(|| missing(self.span()), |it| binding(&it.id))
-  }
-
-  /// `AMBIENT`, `EXPORT`, `DEFAULT`
-  pub(crate) fn flags(self) -> Flags {
-    let declare = self.raw_interface().is_some_and(|it| it.declare);
-    exports(self.file, self.id) | if declare { Flags::AMBIENT } else { Flags::empty() }
   }
 
   pub(crate) fn type_params(self) -> List<'a, TypeParam<'a>> {
@@ -1216,11 +1010,6 @@ impl<'a> Interface<'a> {
       None => List::empty(self.file),
     }
   }
-
-  /// The `{ .. }` around the members.
-  pub(crate) fn body_span(self) -> Span {
-    self.raw_interface().map_or_else(|| self.span(), |it| span(it.body.span))
-  }
 }
 
 impl<'a> Alias<'a> {
@@ -1233,12 +1022,6 @@ impl<'a> Alias<'a> {
 
   pub(crate) fn name(self) -> Ident<'a> {
     self.raw_alias().map_or_else(|| missing(self.span()), |it| binding(&it.id))
-  }
-
-  /// `AMBIENT`, `EXPORT`
-  pub(crate) fn flags(self) -> Flags {
-    let declare = self.raw_alias().is_some_and(|it| it.declare);
-    exports(self.file, self.id) | if declare { Flags::AMBIENT } else { Flags::empty() }
   }
 
   pub(crate) fn type_params(self) -> List<'a, TypeParam<'a>> {
@@ -1263,16 +1046,6 @@ impl<'a> Enum<'a> {
     self.raw_enum().map_or_else(|| missing(self.span()), |it| binding(&it.id))
   }
 
-  /// `CONST`, `AMBIENT`, `EXPORT`
-  pub(crate) fn flags(self) -> Flags {
-    let mut flags = exports(self.file, self.id);
-    if let Some(it) = self.raw_enum() {
-      flags.set(Flags::CONST, it.r#const);
-      flags.set(Flags::AMBIENT, it.declare);
-    }
-    flags
-  }
-
   pub(crate) fn members(self) -> List<'a, EnumMember<'a>> {
     match self.raw_enum() {
       Some(it) => {
@@ -1281,11 +1054,6 @@ impl<'a> Enum<'a> {
       }
       None => List::empty(self.file),
     }
-  }
-
-  /// The `{ .. }` around the members.
-  pub(crate) fn body_span(self) -> Span {
-    self.raw_enum().map_or_else(|| self.span(), |it| span(it.body.span))
   }
 }
 
@@ -1314,20 +1082,9 @@ impl<'a> EnumMember<'a> {
     Some(Key::new(kind, inner, outer))
   }
 
-  /// The `e` of a [`KeyKind::Computed`] key, which oxc doesn't parse.
-  pub(crate) fn computed_key(self) -> Option<Expr<'a>> {
-    None
-  }
-
   pub(crate) fn init(self) -> Option<Expr<'a>> {
     let K::TSEnumMember(member) = self.raw() else { return None };
     member.initializer.as_ref().map(|it| Expr::new(self.file, expression_id(it)))
-  }
-
-  /// The `Stmt` of the enum.
-  pub(crate) fn parent(self) -> Node<'a> {
-    let body = self.file.parent_id(self.id);
-    Node::Stmt(Stmt::new(self.file, statement(self.file, self.file.parent_id(body))))
   }
 }
 
@@ -1623,6 +1380,7 @@ impl<'a> ImportSpec<'a> {
 }
 
 #[derive(Copy, Clone, Debug)]
+#[allow(dead_code, reason = "bun's tree shape, which the printer matches on")]
 pub(crate) enum ImportEqualsTarget<'a> {
   Require(Option<Name<'a>>),
   Entity(EntityName<'a>),
@@ -1656,7 +1414,7 @@ impl<'a> ImportEquals<'a> {
   }
 
   fn entity(self, name: TSTypeName<'a>) -> ImportEqualsTarget<'a> {
-    ImportEqualsTarget::Entity(EntityName::of(self.file, self.file.allocator.alloc(name)))
+    ImportEqualsTarget::Entity(EntityName::of(self.file.allocator.alloc(name)))
   }
 
   /// `EXPORT`, `TYPE_ONLY`
@@ -1702,21 +1460,6 @@ impl<'a> Export<'a> {
   /// `export type { .. }`
   pub(crate) fn is_type_only(self) -> bool {
     self.parts().2
-  }
-
-  /// The module specifier with its quotes.
-  pub(crate) fn spec_span(self) -> Option<Span> {
-    self.parts().1.map(|it| span(it.span))
-  }
-
-  /// `with { type: "json" }`
-  pub(crate) fn attributes(self) -> Option<ImportAttributes<'a>> {
-    match self.raw() {
-      K::ExportFromDeclaration(it) => {
-        Some(ImportAttributes::clause(self.file, it.source.span.end, it.with_clause.as_deref()?))
-      }
-      _ => None,
-    }
   }
 }
 

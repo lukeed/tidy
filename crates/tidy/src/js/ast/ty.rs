@@ -22,6 +22,7 @@ use oxc_span::GetSpan;
 use smallvec::SmallVec;
 
 #[derive(Copy, Clone, Debug)]
+#[allow(dead_code, reason = "bun's tree shape, which the printer matches on")]
 pub(crate) enum TypeKind<'a> {
   /// Syntax the parser failed on.
   Error,
@@ -164,15 +165,15 @@ impl<'a> TypeNode<'a> {
       K::TSThisType(_) => TypeKind::Keyword(Keyword::This),
       K::TSIntrinsicKeyword(_) => TypeKind::Keyword(Keyword::Intrinsic),
       K::TSTypeReference(it) => TypeKind::Ref {
-        name: EntityName::of(file, &it.type_name),
+        name: EntityName::of(&it.type_name),
         args: self.args(it.type_arguments.as_deref()),
       },
       K::TSClassImplements(it) => TypeKind::Ref {
-        name: EntityName::of(file, &it.expression),
+        name: EntityName::of(&it.expression),
         args: self.args(it.type_arguments.as_deref()),
       },
       K::TSInterfaceHeritage(it) => TypeKind::Ref {
-        name: EntityName::of(file, &it.type_name),
+        name: EntityName::of(&it.type_name),
         args: self.args(it.type_arguments.as_deref()),
       },
       K::TSLiteralType(it) => self.literal(&it.literal),
@@ -260,7 +261,7 @@ impl<'a> TypeNode<'a> {
     let names = import.qualifier.as_ref().map(Names::Qualifier);
     TypeKind::Import {
       spec: import.source.value.as_str().map(Name),
-      name: EntityName { file: self.file, names },
+      name: EntityName { names },
       args: self.args(import.type_arguments.as_deref()),
       is_typeof,
     }
@@ -310,10 +311,6 @@ impl<'a> TypeNode<'a> {
     self.file.parens(self.id).last().map_or_else(|| self.span(), |it| it.1)
   }
 
-  pub(crate) fn is_parenthesized(self) -> bool {
-    !self.file.parens(self.id).is_empty()
-  }
-
   /// The range of ESLint's `TSTypeAnnotation` around it, if it's a return type or the type of a variable, parameter
   /// or property. It runs from the `:`, or the `=>` of a function type, to the end of the type and its parentheses.
   pub(crate) fn annotation_span(self) -> Span {
@@ -325,25 +322,6 @@ impl<'a> TypeNode<'a> {
 
   pub(crate) fn parent(self) -> Node<'a> {
     Node::Type(self).parent()
-  }
-
-  pub(crate) fn is_keyword(self, keyword: Keyword) -> bool {
-    self.as_keyword() == Some(keyword)
-  }
-
-  pub(crate) fn as_keyword(self) -> Option<Keyword> {
-    match self.kind() {
-      TypeKind::Keyword(keyword) => Some(keyword),
-      _ => None,
-    }
-  }
-
-  /// The `name` and `args` of a `Ref`.
-  pub(crate) fn as_ref(self) -> Option<(EntityName<'a>, List<'a, TypeNode<'a>>)> {
-    match self.kind() {
-      TypeKind::Ref { name, args } => Some((name, args)),
-      _ => None,
-    }
   }
 
   /// The pieces of a `Template`.
@@ -363,19 +341,6 @@ impl<'a> TypeNode<'a> {
         Ident { name: Name("this"), span: span(this.span), string: false }
       }
     })
-  }
-
-  /// The `symbol` of `unique symbol`.
-  pub(crate) fn unique_symbol_keyword_span(self) -> Option<Span> {
-    match self.file.kind(self.id)? {
-      AstKind::TSTypeOperator(it) if it.operator == TSTypeOperatorOperator::Unique => {
-        match &it.type_annotation {
-          TSType::TSSymbolKeyword(symbol) => Some(span(symbol.span)),
-          _ => None,
-        }
-      }
-      _ => None,
-    }
   }
 
   fn import_type(self) -> Option<&'a TSImportType<'a>> {
@@ -436,12 +401,6 @@ impl<'a> TypeTemplate<'a> {
   /// The number of text pieces, which is one more than the number of substitutions.
   pub(crate) fn quasi_count(self) -> usize {
     self.template().map_or(1, |it| it.quasis.len())
-  }
-
-  /// The cooked value of text piece `i`.
-  pub(crate) fn cooked(self, i: usize) -> Option<Name<'a>> {
-    let quasi = self.template()?.quasis.get(i)?;
-    quasi.value.cooked.and_then(|cooked| cooked.as_str()).map(Name)
   }
 
   /// Text piece `i` with its delimiters: `` `a${ ``, `}b${`, `` }c` ``.
@@ -550,7 +509,6 @@ impl<'a> ImportAttributes<'a> {
 /// `A`, `A.B.C`: a name in a type, which isn't an expression.
 #[derive(Copy, Clone)]
 pub(crate) struct EntityName<'a> {
-  file: &'a File<'a>,
   names: Option<Names<'a>>,
 }
 
@@ -568,8 +526,8 @@ impl std::fmt::Debug for EntityName<'_> {
 }
 
 impl<'a> EntityName<'a> {
-  pub(crate) fn of(file: &'a File<'a>, name: &'a TSTypeName<'a>) -> Self {
-    EntityName { file, names: Some(Names::Type(name)) }
+  pub(crate) fn of(name: &'a TSTypeName<'a>) -> Self {
+    EntityName { names: Some(Names::Type(name)) }
   }
 
   fn collect(self) -> SmallVec<[Ident<'a>; 4]> {
@@ -587,26 +545,12 @@ impl<'a> EntityName<'a> {
     self.collect().into_iter()
   }
 
-  /// The name at index `i`, counting from the left.
-  pub(crate) fn get(self, i: usize) -> Option<Ident<'a>> {
-    self.collect().get(i).copied()
-  }
-
   pub(crate) fn len(self) -> usize {
     self.collect().len()
   }
 
   pub(crate) fn is_empty(self) -> bool {
     self.names.is_none()
-  }
-
-  /// The `A` of `A.B.C`, which is the part that's looked up in the scope.
-  pub(crate) fn first(self) -> Option<Ident<'a>> {
-    self.parts().next()
-  }
-
-  pub(crate) fn last(self) -> Option<Ident<'a>> {
-    self.parts().next_back()
   }
 
   /// The name, if there are no dots.
@@ -618,13 +562,6 @@ impl<'a> EntityName<'a> {
   /// True if it's the single name `name`.
   pub(crate) fn is(self, name: &str) -> bool {
     self.as_ident().is_some_and(|it| it.name().is(name))
-  }
-
-  pub(crate) fn span(self) -> Span {
-    match (self.first(), self.last()) {
-      (Some(first), Some(last)) => first.span().to(last.span()),
-      _ => Span::default(),
-    }
   }
 }
 
@@ -697,11 +634,6 @@ impl<'a> TupleElem<'a> {
   /// It starts with `...`.
   pub(crate) fn is_rest(self) -> bool {
     matches!(self.file.kind(self.id), Some(AstKind::TSRestType(_)))
-  }
-
-  /// The tuple type.
-  pub(crate) fn parent(self) -> Node<'a> {
-    Node::TupleElem(self).parent()
   }
 }
 

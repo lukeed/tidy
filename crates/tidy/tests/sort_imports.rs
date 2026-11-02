@@ -128,6 +128,7 @@ fn reads_the_config_keys() {
 
 /// Formats the Vue, HTML, Markdown and other files of `fixtures/sort_imports/hosts.json` (bun's tests) with the config
 /// of `name`, except the files in `skips`.
+#[cfg(feature = "config")]
 fn matches_hosts(name: &str, skips: &[&str]) {
   let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sort_imports/hosts.json");
   let all: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
@@ -158,21 +159,25 @@ fn matches_hosts(name: &str, skips: &[&str]) {
 }
 
 #[test]
+#[cfg(feature = "config")]
 fn matches_trivago_in_hosts() {
   matches_hosts("@trivago/prettier-plugin-sort-imports", &[]);
 }
 
 #[test]
+#[cfg(feature = "config")]
 fn matches_ianvs_in_hosts() {
   matches_hosts("@ianvs/prettier-plugin-sort-imports", &[]);
 }
 
 #[test]
+#[cfg(feature = "config")]
 fn matches_oxfmt_in_hosts() {
   matches_hosts("oxfmt, sortImports", &[]);
 }
 
 #[test]
+#[cfg(feature = "config")]
 fn matches_oxfmt_with_jsdoc_in_hosts() {
   // oxfmt leaves HTML to Prettier, without prettier-plugin-jsdoc. tidy formats JSDoc in the scripts of HTML as the
   // plugin does.

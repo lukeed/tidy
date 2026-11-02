@@ -29,14 +29,6 @@ impl Span {
     self.end <= self.start
   }
 
-  /// A sort key that puts nested spans in tree-walk order: by start, then the longer span first, then by `rank`, then
-  /// by `index` (the low 32 bits). Lists of these keys are plain `u128`s, so they all share one sort instantiation.
-  #[inline]
-  pub fn sort_key(self, rank: u16, index: usize) -> u128 {
-    let range = (u128::from(self.start) << 32) | u128::from(u32::MAX - self.end);
-    (range << 64) | (u128::from(rank) << 32) | index as u128
-  }
-
   /// From the start of `self` to the end of `other`.
   #[inline]
   pub const fn to(self, other: Span) -> Span {
@@ -100,11 +92,4 @@ impl<T: Spanned> Spanned for &T {
   fn span(&self) -> Span {
     (**self).span()
   }
-}
-
-/// A line and column as ESLint counts them: 1-based lines, 0-based columns in UTF-16 code units.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
-pub struct Position {
-  pub line: u32,
-  pub column: u32,
 }

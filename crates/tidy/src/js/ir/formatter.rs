@@ -492,26 +492,6 @@ impl<'a> Formatter<'a> {
     result
   }
 
-  /// Same, but discards what `write` wrote unless it returns true.
-  pub(crate) fn try_write_embedded<'b>(
-    &mut self,
-    context: JsFormatContext<'b>,
-    source: &'b [u8],
-    write: impl FnOnce(&mut Formatter<'b>) -> bool,
-  ) -> bool {
-    let first = self.storage.pool.len();
-    let mut inner = self.start_embedded(context, source);
-    let slot = inner.start_capture();
-    let is_written = write(&mut inner);
-    if let Some(content) = inner.end_intern(slot)
-      && is_written
-    {
-      inner.write_element(content);
-    }
-    self.end_embedded(inner, first);
-    is_written
-  }
-
   /// Creates a formatter for `source` that takes over this one's state.
   fn start_embedded<'b>(
     &mut self,

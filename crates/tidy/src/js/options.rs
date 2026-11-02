@@ -46,18 +46,8 @@ pub struct FormatOptions {
   /// For HTML and similar languages.
   pub html_whitespace_sensitivity: HtmlWhitespaceSensitivity,
   pub vue_indent_script_and_style: bool,
-  /// For Svelte.
-  pub svelte: SvelteOptions,
   /// The file name, if it isn't the one the file was parsed under: text from stdin.
   pub filepath: Option<Box<[u8]>>,
-  /// Prettier's `parser`, if it isn't inferred from the file name: `json5`, `babel`, ..
-  pub parser: Option<Box<[u8]>>,
-  /// Puts `@format` in a comment at the top of the file.
-  pub insert_pragma: bool,
-  /// Only format a file with `@format` or `@prettier` in a comment at its top.
-  pub require_pragma: bool,
-  /// Don't format a file with `@noformat` or `@noprettier` in a comment at its top.
-  pub check_ignore_pragma: bool,
   /// The text is code in Markdown: Prettier's `parentParser`. A statement that's only JSX gets no semicolon. A line
   /// break that's part of a text (in a template, in a comment) is written as `\r\n` to tell it apart from the others,
   /// because Markdown indents what follows it differently.
@@ -65,19 +55,10 @@ pub struct FormatOptions {
   /// The text is `<$>`, JSX from MDX, and `</$>`: Prettier's `rootMarker: "mdx"`. Only the part between the two is
   /// printed.
   pub is_mdx_jsx: bool,
-  /// The text is `import` and `export` declarations in MDX. Anything else in it is an error: Prettier's
-  /// `validateImportExport`.
-  pub is_mdx_es_syntax: bool,
   /// How many JavaScript templates that are printed as HTML the text is nested in.
   pub html_template_depth: u32,
   /// The text is in a file whose name ends with `.html` or `.htm`, where the HTML5 doctype is printed in lowercase.
   pub is_in_html_file: bool,
-  /// Formats the JavaScript and TypeScript in Markdown code blocks. Without it they're left as is.
-  pub format_javascript: Option<FormatJavaScript>,
-  /// Parses the JavaScript and TypeScript in HTML. Without it they're left as is.
-  pub parse_javascript: Option<ParseJavaScript>,
-  /// Parses the expressions in a Svelte component. Without it there's no way to find where they end.
-  pub parse_parts: Option<ParseParts>,
   /// The code's context, if it's in HTML.
   pub in_html: InHtml,
   /// Which tool's output to match where the two differ.
@@ -86,8 +67,6 @@ pub struct FormatOptions {
   pub sort_imports: Option<std::sync::Arc<crate::js::sort_imports::SortImports>>,
   /// oxfmt's `jsdoc`: how to format JSDoc comments, if at all.
   pub jsdoc: Option<JsdocOptions>,
-  /// Format TOML even in Prettier's flavor. Only the caller that detects file types reads this.
-  pub toml: bool,
   /// For tests: what to output instead of the formatted text.
   pub debug_comments: DebugComments,
 }
@@ -101,69 +80,6 @@ pub enum DebugComments {
   /// The comments that no printer printed, which is a bug.
   Unprinted,
 }
-
-/// Formats JavaScript or TypeScript, which this crate can't parse by itself. It gets a file name that tells which of
-/// the two it is, the code, the options, and a buffer to append the result to. Returns true if the code could be
-/// formatted.
-pub type FormatJavaScript = fn(&[u8], &[u8], &FormatOptions, &mut Vec<u8>) -> bool;
-
-/// Code to parse.
-#[derive(Copy, Clone)]
-pub struct Code<'c> {
-  /// A file name that tells if it's JavaScript or TypeScript.
-  pub path: &'c [u8],
-  pub text: &'c [u8],
-  pub is_script: bool,
-}
-
-/// The callback that gets the file parsed from [`Code`], with or without errors.
-pub type Then<'t> = &'t mut dyn for<'b> FnMut(&'b crate::js::ast::File<'b>);
-
-/// Parses JavaScript or TypeScript, which this crate can't do by itself, and passes the result to the callback.
-pub type ParseJavaScript = fn(Code<'_>, Then<'_>);
-
-/// The same for a caller that reuses its parser state: a text can contain many pieces of code.
-pub type JavaScriptParser<'p> = &'p dyn Fn(Code<'_>, Then<'_>);
-
-/// The kind of a [`Part`].
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum Goal {
-  /// An expression, including commas.
-  Expression,
-  /// A `let`, `const` or `var`.
-  Declaration,
-  Type,
-}
-
-/// Code in a text, whose end only a parser can find. More text can follow it, in any language.
-#[derive(Debug, Copy, Clone)]
-pub struct Part {
-  pub goal: Goal,
-  /// Its start in the text.
-  pub from: u32,
-  /// The end of the text that the parser sees.
-  pub until: u32,
-  pub is_typescript: bool,
-}
-
-/// The callback that gets the file parsed from a [`Part`], and the part's end in that file, including the parentheses
-/// around it. The file's text starts where the part starts, and the part is its only statement. A type is parsed as the
-/// type of an alias.
-pub type ThenWithEnd<'t> = &'t mut dyn for<'b> FnMut(&'b crate::js::ast::File<'b>, u32);
-
-/// Why a [`Part`] can't be parsed.
-#[derive(Debug, Copy, Clone)]
-pub struct PartError {
-  /// The position of the first error in the text.
-  pub at: u32,
-  pub is_nested_too_deeply: bool,
-}
-
-/// Parses a part of the text that it was created for.
-pub type ParsePart<'p> = &'p mut dyn FnMut(Part, ThenWithEnd<'_>) -> Result<(), PartError>;
-
-/// Passes the callback a parser for a text's parts.
-pub type ParseParts = fn(&[u8], &mut dyn FnMut(ParsePart<'_>));
 
 /// The context Prettier passes to the formatter for code in HTML: the options whose names start with `__`, and the
 /// parsers for less than a whole program.
@@ -201,12 +117,15 @@ pub enum HtmlRoot {
   /// `__vue_event_binding`, `__vue_ts_event_binding`
   VueEventBinding,
   /// `__ng_action`
+  #[expect(dead_code, reason = "tidy formats no Angular bindings yet")]
   NgAction,
   /// `__ng_binding`
+  #[expect(dead_code, reason = "tidy formats no Angular bindings yet")]
   NgBinding,
   /// `__ng_directive`
   NgDirective,
   /// `__ng_interpolation`
+  #[expect(dead_code, reason = "tidy formats no Angular bindings yet")]
   NgInterpolation,
   /// `svelteExpressionParser`, `svelteTSExpressionParser`: the root is a `File` whose `program` is an expression, or a function.
   SvelteExpression,
@@ -222,248 +141,6 @@ impl HtmlRoot {
       self,
       HtmlRoot::NgAction | HtmlRoot::NgBinding | HtmlRoot::NgDirective | HtmlRoot::NgInterpolation
     )
-  }
-}
-
-/// The parts of a Svelte component.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum SveltePart {
-  Options,
-  Scripts,
-  Markup,
-  Styles,
-}
-
-impl SveltePart {
-  /// `options-scripts-markup-styles` and similar: each of the four once.
-  fn order(value: &[u8]) -> Option<[SveltePart; 4]> {
-    let mut order = Vec::with_capacity(4);
-    for name in crate::js::strings::split(value, b"-") {
-      let part = match name {
-        b"options" => SveltePart::Options,
-        b"scripts" => SveltePart::Scripts,
-        b"markup" => SveltePart::Markup,
-        b"styles" => SveltePart::Styles,
-        _ => return None,
-      };
-      if order.contains(&part) {
-        return None;
-      }
-      order.push(part);
-    }
-    <[SveltePart; 4]>::try_from(order).ok()
-  }
-}
-
-/// `prettier-plugin-svelte`'s options. They have shorter names in oxfmt's and `[fmt]`'s `svelte`.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct SvelteOptions {
-  /// `svelteSortOrder`, `svelte.sortOrder`. `None` is `"none"`.
-  pub sort_order: Option<[SveltePart; 4]>,
-  /// `svelteAllowShorthand`, `svelte.allowShorthand`
-  pub allows_shorthand: bool,
-  /// `svelteIndentScriptAndStyle`, `svelte.indentScriptAndStyle`
-  pub indents_script_and_style: bool,
-  /// Format components, and Svelte code blocks in Markdown. For components only the caller that detects file types
-  /// reads this.
-  pub is_on: bool,
-}
-
-impl Default for SvelteOptions {
-  fn default() -> Self {
-    SvelteOptions {
-      sort_order: Some([
-        SveltePart::Options,
-        SveltePart::Scripts,
-        SveltePart::Markup,
-        SveltePart::Styles,
-      ]),
-      allows_shorthand: true,
-      indents_script_and_style: true,
-      is_on: false,
-    }
-  }
-}
-
-/// An option has a value that Prettier doesn't accept, or there's no such option.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct InvalidOption;
-
-impl FormatOptions {
-  /// Sets the option that Prettier calls `name`. `value` is raw JSON, except that a string has no quotes.
-  pub fn set(&mut self, name: &[u8], value: &[u8]) -> Result<(), InvalidOption> {
-    let boolean = || match value {
-      b"true" => Ok(true),
-      b"false" => Ok(false),
-      _ => Err(InvalidOption),
-    };
-    // What Prettier accepts as an integer: `Number(value)` of the command line argument, including `Infinity`.
-    let integer = || match crate::js::strings::js_string_to_number(value) {
-      it if it.is_nan() || (it.is_finite() && it.fract() != 0.0) => Err(InvalidOption),
-      it => Ok(it),
-    };
-    let quotes = |single: bool| {
-      if single { QuoteStyle::Single } else { QuoteStyle::Double }
-    };
-    match name {
-      // The cast clamps a negative width to 0 and a huge one to the maximum.
-      b"printWidth" => self.line_width = LineWidth(integer()? as u32),
-      // Prettier fails when it repeats a space a negative number of times.
-      b"tabWidth" => match integer()? {
-        it if it < 0.0 => return Err(InvalidOption),
-        it => self.indent_width = IndentWidth(it as u32),
-      },
-      b"useTabs" => {
-        self.indent_style = if boolean()? { IndentStyle::Tab } else { IndentStyle::Space };
-      }
-      b"endOfLine" => {
-        self.line_ending = match value {
-          b"lf" => LineEnding::Lf,
-          b"crlf" => LineEnding::Crlf,
-          b"cr" => LineEnding::Cr,
-          b"auto" => LineEnding::Auto,
-          _ => return Err(InvalidOption),
-        };
-      }
-      b"semi" => {
-        self.semicolons = if boolean()? { Semicolons::Always } else { Semicolons::AsNeeded };
-      }
-      b"singleQuote" => self.quote_style = quotes(boolean()?),
-      b"jsxSingleQuote" => self.jsx_quote_style = quotes(boolean()?),
-      b"quoteProps" => {
-        self.quote_properties = match value {
-          b"as-needed" => QuoteProperties::AsNeeded,
-          b"preserve" => QuoteProperties::Preserve,
-          b"consistent" => QuoteProperties::Consistent,
-          _ => return Err(InvalidOption),
-        };
-      }
-      b"trailingComma" => {
-        self.trailing_commas = match value {
-          b"all" => TrailingCommas::All,
-          b"es5" => TrailingCommas::Es5,
-          b"none" => TrailingCommas::None,
-          _ => return Err(InvalidOption),
-        };
-      }
-      b"bracketSpacing" => self.bracket_spacing = BracketSpacing(boolean()?),
-      b"bracketSameLine" => self.bracket_same_line = BracketSameLine(boolean()?),
-      // Its name before 2.4. Setting either of the two is enough.
-      b"jsxBracketSameLine" => {
-        self.bracket_same_line = BracketSameLine(boolean()? || self.bracket_same_line.value());
-      }
-      b"arrowParens" => {
-        self.arrow_parentheses = match value {
-          b"always" => ArrowParentheses::Always,
-          b"avoid" => ArrowParentheses::AsNeeded,
-          _ => return Err(InvalidOption),
-        };
-      }
-      b"objectWrap" => {
-        self.expand = match value {
-          b"preserve" => Expand::Auto,
-          b"collapse" => Expand::Never,
-          _ => return Err(InvalidOption),
-        };
-      }
-      b"singleAttributePerLine" => {
-        self.attribute_position = match boolean()? {
-          true => AttributePosition::Multiline,
-          false => AttributePosition::Auto,
-        };
-      }
-      b"experimentalOperatorPosition" => {
-        self.experimental_operator_position = match value {
-          b"start" => OperatorPosition::Start,
-          b"end" => OperatorPosition::End,
-          _ => return Err(InvalidOption),
-        };
-      }
-      b"experimentalTernaries" => self.experimental_ternaries = boolean()?,
-      b"embeddedLanguageFormatting" => {
-        self.embedded_language_formatting = match value {
-          b"auto" => EmbeddedLanguageFormatting::Auto,
-          b"off" => EmbeddedLanguageFormatting::Off,
-          _ => return Err(InvalidOption),
-        };
-      }
-      b"proseWrap" => {
-        self.prose_wrap = match value {
-          b"always" => ProseWrap::Always,
-          b"never" => ProseWrap::Never,
-          b"preserve" => ProseWrap::Preserve,
-          _ => return Err(InvalidOption),
-        };
-      }
-      b"htmlWhitespaceSensitivity" => {
-        self.html_whitespace_sensitivity = match value {
-          b"css" => HtmlWhitespaceSensitivity::Css,
-          b"strict" => HtmlWhitespaceSensitivity::Strict,
-          b"ignore" => HtmlWhitespaceSensitivity::Ignore,
-          _ => return Err(InvalidOption),
-        };
-      }
-      b"vueIndentScriptAndStyle" => self.vue_indent_script_and_style = boolean()?,
-      b"svelteSortOrder" | b"svelte.sortOrder" => {
-        self.svelte.sort_order = match value {
-          b"none" => None,
-          _ => Some(SveltePart::order(value).ok_or(InvalidOption)?),
-        };
-      }
-      b"svelteAllowShorthand" | b"svelte.allowShorthand" => {
-        self.svelte.allows_shorthand = boolean()?
-      }
-      b"svelteIndentScriptAndStyle" | b"svelte.indentScriptAndStyle" => {
-        self.svelte.indents_script_and_style = boolean()?
-      }
-      b"filepath" => self.filepath = Some(value.into()),
-      b"parser" => self.parser = Some(value.into()),
-      b"insertPragma" => self.insert_pragma = boolean()?,
-      b"requirePragma" => self.require_pragma = boolean()?,
-      b"checkIgnorePragma" => self.check_ignore_pragma = boolean()?,
-      // oxfmt's option: `true`, `false` or an object, whose properties arrive as `jsdoc.<name>`.
-      b"jsdoc" => self.jsdoc = (value == b"{}" || boolean()?).then(Default::default),
-      _ if name.starts_with(b"jsdoc.") => {
-        let jsdoc = self.jsdoc.get_or_insert_default();
-        match &name[b"jsdoc.".len()..] {
-          b"capitalizeDescriptions" => jsdoc.capitalize_descriptions = boolean()?,
-          b"commentLineStrategy" => {
-            jsdoc.comment_line_strategy = match value {
-              b"singleLine" => CommentLineStrategy::SingleLine,
-              b"multiline" => CommentLineStrategy::Multiline,
-              b"keep" => CommentLineStrategy::Keep,
-              _ => return Err(InvalidOption),
-            };
-          }
-          b"separateTagGroups" => jsdoc.separate_tag_groups = boolean()?,
-          b"separateReturnsFromParam" => jsdoc.separate_returns_from_param = boolean()?,
-          b"bracketSpacing" => jsdoc.bracket_spacing = boolean()?,
-          b"descriptionWithDot" => jsdoc.description_with_dot = boolean()?,
-          b"addDefaultToDescription" => jsdoc.add_default_to_description = boolean()?,
-          b"preferCodeFences" => jsdoc.prefer_code_fences = boolean()?,
-          b"lineWrappingStyle" => {
-            jsdoc.line_wrapping_style = match value {
-              b"greedy" => LineWrappingStyle::Greedy,
-              b"balance" => LineWrappingStyle::Balance,
-              _ => return Err(InvalidOption),
-            };
-          }
-          b"descriptionTag" => jsdoc.description_tag = boolean()?,
-          b"keepUnparsableExampleIndent" => jsdoc.keep_unparsable_example_indent = boolean()?,
-          _ => return Err(InvalidOption),
-        }
-      }
-      // Not a Prettier option. The kind of configuration file decides.
-      b"flavor" => {
-        self.flavor = match value {
-          b"prettier" => Flavor::Prettier,
-          b"oxfmt" => Flavor::Oxfmt,
-          _ => return Err(InvalidOption),
-        };
-      }
-      _ => return Err(InvalidOption),
-    }
-    Ok(())
   }
 }
 
@@ -517,8 +194,10 @@ pub enum CommentLineStrategy {
   #[default]
   SingleLine,
   /// Never.
+  #[expect(dead_code, reason = "tidy's jsdoc option has no line strategy")]
   Multiline,
   /// If it already is.
+  #[expect(dead_code, reason = "tidy's jsdoc option has no line strategy")]
   Keep,
 }
 
@@ -539,6 +218,7 @@ pub enum HtmlWhitespaceSensitivity {
   #[default]
   Css,
   /// All of it.
+  #[expect(dead_code, reason = "the HTML in templates takes no whitespace option")]
   Strict,
   /// None of it.
   Ignore,
@@ -548,8 +228,10 @@ pub enum HtmlWhitespaceSensitivity {
 #[derive(Debug, Default, Clone, Copy, Eq, Hash, PartialEq)]
 pub enum ProseWrap {
   /// At the print width.
+  #[expect(dead_code, reason = "the Markdown in templates takes no wrap option")]
   Always,
   /// Not at all.
+  #[expect(dead_code, reason = "the Markdown in templates takes no wrap option")]
   Never,
   /// As in the source.
   #[default]
@@ -562,6 +244,7 @@ pub enum ProseWrap {
 pub enum Flavor {
   #[default]
   Prettier,
+  #[expect(dead_code, reason = "tidy follows Prettier; bun's printer still branches on it")]
   Oxfmt,
 }
 
@@ -695,10 +378,6 @@ impl QuoteStyle {
       Self::Double => Self::Single,
       Self::Single => Self::Double,
     }
-  }
-
-  pub const fn is_double(self) -> bool {
-    matches!(self, Self::Double)
   }
 }
 

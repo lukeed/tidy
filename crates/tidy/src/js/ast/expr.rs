@@ -11,9 +11,9 @@ use oxc_ast::ast::{
   JSXMemberExpressionObject, LogicalOperator, MemberExpression, SimpleAssignmentTarget, TSType,
   UnaryOperator, UpdateOperator,
 };
-use oxc_span::GetSpan;
 
 #[derive(Copy, Clone, Debug)]
+#[allow(dead_code, reason = "bun's tree shape, which the printer matches on")]
 pub(crate) enum ExprKind<'a> {
   /// A hole in an array literal, the empty `{}` of JSX, or the missing argument of `import()`.
   Missing,
@@ -484,25 +484,6 @@ impl<'a> Expr<'a> {
     matches!(self.file.kind(self.id), Some(AstKind::JSXText(_)))
   }
 
-  /// A string that's a JSX attribute's value, without braces.
-  pub(crate) fn is_jsx_attribute_string(self) -> bool {
-    matches!(self.file.kind(self.id), Some(AstKind::StringLiteral(_)))
-      && matches!(self.file.kind(self.file.parent_id(self.id)), Some(AstKind::JSXAttribute(_)))
-  }
-
-  /// The name in a JSX tag, or a part of it: the `a`, `a.b` and `a.b.c` of `<a.b.c>`.
-  pub(crate) fn is_jsx_tag_name(self) -> bool {
-    matches!(
-      self.file.kind(self.id),
-      Some(
-        AstKind::JSXIdentifier(_) | AstKind::JSXMemberExpression(_) | AstKind::JSXNamespacedName(_)
-      )
-    ) || matches!(
-      self.file.kind(self.file.parent_id(self.id)),
-      Some(AstKind::JSXMemberExpression(_))
-    )
-  }
-
   /// The parentheses around it, innermost first.
   pub(crate) fn parens(self) -> impl DoubleEndedIterator<Item = Span> + ExactSizeIterator + 'a {
     self.file.parens(self.id).iter().map(|it| it.1)
@@ -528,17 +509,6 @@ impl<'a> Expr<'a> {
     }
   }
 
-  pub(crate) fn is_ident(self, name: &str) -> bool {
-    self.as_ident().is_some_and(|it| it.is(name))
-  }
-
-  pub(crate) fn as_string(self) -> Option<Name<'a>> {
-    match self.kind() {
-      ExprKind::String(name) => Some(name),
-      _ => None,
-    }
-  }
-
   pub(crate) fn as_call(self) -> Option<Call<'a>> {
     match self.kind() {
       ExprKind::Call(call) => Some(call),
@@ -556,20 +526,6 @@ impl<'a> Expr<'a> {
   pub(crate) fn as_class(self) -> Option<Class<'a>> {
     match self.kind() {
       ExprKind::Class(class) => Some(class),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_new(self) -> Option<Call<'a>> {
-    match self.kind() {
-      ExprKind::New(call) => Some(call),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_tagged_template(self) -> Option<Call<'a>> {
-    match self.kind() {
-      ExprKind::TaggedTemplate(call) => Some(call),
       _ => None,
     }
   }
@@ -609,20 +565,6 @@ impl<'a> Expr<'a> {
     }
   }
 
-  pub(crate) fn as_cond(self) -> Option<(Expr<'a>, Expr<'a>, Expr<'a>)> {
-    match self.kind() {
-      ExprKind::Cond { test, yes, no } => Some((test, yes, no)),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_array(self) -> Option<List<'a, Expr<'a>>> {
-    match self.kind() {
-      ExprKind::Array(elements) => Some(elements),
-      _ => None,
-    }
-  }
-
   pub(crate) fn as_object(self) -> Option<List<'a, Prop<'a>>> {
     match self.kind() {
       ExprKind::Object(props) => Some(props),
@@ -640,76 +582,6 @@ impl<'a> Expr<'a> {
     }
     let ty = TypeNode::new(file, file.parent_id(file.parent_id(parent)));
     ty.import_attributes().filter(|it| it.object() == self).map(|_| Node::Type(ty))
-  }
-
-  pub(crate) fn as_template(self) -> Option<Template<'a>> {
-    match self.kind() {
-      ExprKind::Template(template) => Some(template),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_number(self) -> Option<f64> {
-    match self.kind() {
-      ExprKind::Number(value) => Some(value),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_regex(self) -> Option<Regex<'a>> {
-    match self.kind() {
-      ExprKind::Regex(regex) => Some(regex),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_import_call(self) -> Option<List<'a, Expr<'a>>> {
-    match self.kind() {
-      ExprKind::ImportCall { args } => Some(args),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_private_identifier(self) -> Option<Name<'a>> {
-    match self.kind() {
-      ExprKind::PrivateIdentifier(name) => Some(name),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_spread(self) -> Option<Expr<'a>> {
-    match self.kind() {
-      ExprKind::Spread(operand) => Some(operand),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_satisfies(self) -> Option<(Expr<'a>, TypeNode<'a>)> {
-    match self.kind() {
-      ExprKind::Satisfies { expr, ty } => Some((expr, ty)),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_bigint(self) -> Option<Name<'a>> {
-    match self.kind() {
-      ExprKind::BigInt(name) => Some(name),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_yield(self) -> Option<(Option<Expr<'a>>, bool)> {
-    match self.kind() {
-      ExprKind::Yield { value, star } => Some((value, star)),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_sequence(self) -> Option<List<'a, Expr<'a>>> {
-    match self.kind() {
-      ExprKind::Sequence(expressions) => Some(expressions),
-      _ => None,
-    }
   }
 
   /// The call, if it's a `Call` or a `New`.
@@ -853,29 +725,6 @@ impl<'a> Expr<'a> {
     }
   }
 
-  /// The span of the operator of a `Unary`, a `Binary` or an `Assign`.
-  pub(crate) fn operator_span(self) -> Option<Span> {
-    let text = self.file.text.as_bytes();
-    let after = |left: Expr, len: usize| {
-      let start = skip_trivia(text, left.outer_span().end);
-      Span::new(start, start + len as u32)
-    };
-    match self.kind() {
-      ExprKind::Unary { op: op @ (UnOp::PostInc | UnOp::PostDec), operand } => {
-        Some(after(operand, un_op_text(op).len()))
-      }
-      ExprKind::Unary { op, .. } => {
-        let start = self.span().start;
-        Some(Span::new(start, start + un_op_text(op).len() as u32))
-      }
-      ExprKind::Binary { op, left, .. } => Some(after(left, bin_op_text(op).len())),
-      ExprKind::Assign { op, target, .. } => {
-        Some(after(target, op.map_or(0, |op| bin_op_text(op).len()) + 1))
-      }
-      _ => None,
-    }
-  }
-
   /// The span of the JSX `{e}` that wraps it, or of the `{...e}` that it is.
   pub(crate) fn jsx_container_span(self) -> Option<Span> {
     if let Some(AstKind::JSXSpreadChild(it)) = self.file.kind(self.id) {
@@ -920,16 +769,16 @@ impl<'a> Expr<'a> {
   pub(crate) fn is_assignment_target(self) -> bool {
     let mut at = Node::Expr(self);
     loop {
-      match at.file().kind(at.id()) {
-        Some(
-          AstKind::ArrayAssignmentTarget(_)
-          | AstKind::ObjectAssignmentTarget(_)
-          | AstKind::AssignmentTargetWithDefault(_)
-          | AstKind::AssignmentTargetRest(_)
-          | AstKind::AssignmentTargetPropertyIdentifier(_)
-          | AstKind::AssignmentTargetPropertyProperty(_),
-        ) => return true,
-        _ => {}
+      if let Some(
+        AstKind::ArrayAssignmentTarget(_)
+        | AstKind::ObjectAssignmentTarget(_)
+        | AstKind::AssignmentTargetWithDefault(_)
+        | AstKind::AssignmentTargetRest(_)
+        | AstKind::AssignmentTargetPropertyIdentifier(_)
+        | AstKind::AssignmentTargetPropertyProperty(_),
+      ) = at.file().kind(at.id())
+      {
+        return true;
       }
       if matches!(at, Node::Expr(e) if e.is_parenthesized()) {
         return false;
@@ -962,55 +811,12 @@ impl<'a> Expr<'a> {
     count
   }
 
-  /// Strips type-only wrappers: `e as T`, `<T>e`, `e as const`, `e satisfies T`, `e!`.
-  pub(crate) fn skip_type_wrappers(self) -> Expr<'a> {
-    let mut at = self;
-    while let ExprKind::As { expr, .. }
-    | ExprKind::Satisfies { expr, .. }
-    | ExprKind::AsConst(expr)
-    | ExprKind::NonNull(expr) = at.kind()
-    {
-      at = expr;
-    }
-    at
-  }
-
-  /// The `const` of `e as const` or `<const>e`.
-  pub(crate) fn const_keyword_span(self) -> Option<Span> {
-    let ExprKind::AsConst(_) = self.kind() else { return None };
-    let whole = self.span();
-    Some(match self.is_angle_bracket_assertion() {
-      true => {
-        let start = skip_trivia(self.file.text.as_bytes(), whole.start + 1);
-        Span::new(start, start + 5)
-      }
-      false => Span::new(whole.end.saturating_sub(5), whole.end),
-    })
-  }
-
-  /// The two names of `import.meta` or `new.target`.
-  pub(crate) fn meta_property_spans(self) -> Option<(Span, Span)> {
-    let keyword = match self.tag() {
-      ExprTag::ImportMeta => "import",
-      ExprTag::NewTarget => "new",
-      _ => return None,
-    };
-    let (text, whole) = (self.file.text.as_bytes(), self.span());
-    let meta = Span::new(whole.start, whole.start + keyword.len() as u32);
-    let dot = skip_trivia(text, meta.end);
-    Some((meta, Span::new(skip_trivia(text, dot + 1), whole.end)))
-  }
-
   /// `"defer"` for `import.defer(..)`, `"source"` for `import.source(..)`.
   pub(crate) fn import_call_phase(self) -> Option<&'static str> {
     match self.file.kind(self.id)? {
       AstKind::ImportExpression(it) => it.phase.map(|phase| phase.as_str()),
       _ => None,
     }
-  }
-
-  pub(crate) fn is_deferred_import_call(self) -> bool {
-    self.import_call_phase() == Some("defer")
   }
 
   /// The comma operator's operands: `a`, `b` and `c` for `a, b, c`. Anything else gives just itself.
@@ -1278,11 +1084,6 @@ impl<'a> Template<'a> {
       None => b"",
     }
   }
-
-  /// The value, if there are no substitutions.
-  pub(crate) fn as_static(self) -> Option<Name<'a>> {
-    self.exprs().is_empty().then(|| self.cooked(0)).flatten()
-  }
 }
 
 /// `callee(args)`, `new callee(args)`, `` tag`template` ``
@@ -1292,11 +1093,6 @@ pub(crate) struct Call<'a> {
 }
 
 impl<'a> Call<'a> {
-  /// The call, new or tagged template that it is.
-  pub(crate) fn expr(self) -> Expr<'a> {
-    self.expr
-  }
-
   pub(crate) fn callee(self) -> Expr<'a> {
     let file = self.expr.file;
     let id = match file.kind(self.expr.id) {
@@ -1517,9 +1313,4 @@ impl<'a> Jsx<'a> {
   }
 }
 
-impl<'a> Func<'a> {
-  /// The span of a function, by its oxc node.
-  pub(crate) fn raw_span(self) -> Span {
-    span(self.raw().span())
-  }
-}
+impl<'a> Func<'a> {}

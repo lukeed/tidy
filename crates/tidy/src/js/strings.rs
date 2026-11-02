@@ -55,14 +55,6 @@ pub(crate) fn crlf_as_lf(text: &[u8]) -> std::borrow::Cow<'_, [u8]> {
   std::borrow::Cow::Owned(normalized)
 }
 
-/// `str::trim_start` for bytes.
-pub(crate) fn trim_unicode_whitespace_start(text: &[u8]) -> &[u8] {
-  match std::str::from_utf8(text) {
-    Ok(text) => text.trim_start().as_bytes(),
-    Err(_) => text,
-  }
-}
-
 /// `str::trim_end` for bytes, for `chars`.
 pub(crate) fn trim_right<'t>(text: &'t [u8], chars: &[u8]) -> &'t [u8] {
   let end = text.iter().rposition(|byte| !chars.contains(byte)).map_or(0, |at| at + 1);
@@ -75,24 +67,9 @@ pub(crate) fn split_once_char(text: &[u8], delimiter: u8) -> Option<(&[u8], &[u8
   Some((&text[..at], &text[at + 1..]))
 }
 
-/// The number of non-overlapping `needle`s in `text`.
-pub(crate) fn count(text: &[u8], needle: &[u8]) -> usize {
-  let mut count = 0;
-  let mut rest = text;
-  while let Some(at) = index_of(rest, needle) {
-    count += 1;
-    rest = &rest[at + needle.len()..];
-  }
-  count
-}
-
 /// The index of the first byte that isn't ASCII.
 pub(crate) fn first_non_ascii(text: &[u8]) -> Option<u32> {
   text.iter().position(|byte| !byte.is_ascii()).map(|at| at as u32)
-}
-
-pub(crate) fn without_utf8_bom(text: &[u8]) -> &[u8] {
-  text.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(text)
 }
 
 /// The number of UTF-16 code units of `text`, which is JavaScript's `length`.
@@ -164,17 +141,6 @@ pub(crate) fn name_len(text: &[u8]) -> usize {
         .map_or(text.len() - start, |(at, _)| at);
       (start + len).max(1)
     }
-  }
-}
-
-/// JavaScript's `Number(text)`.
-pub(crate) fn js_string_to_number(text: &[u8]) -> f64 {
-  let text = std::str::from_utf8(trim_js_whitespace(text)).unwrap_or("x");
-  match text {
-    "" => 0.0,
-    "Infinity" | "+Infinity" => f64::INFINITY,
-    "-Infinity" => f64::NEG_INFINITY,
-    _ => text.parse().unwrap_or(f64::NAN),
   }
 }
 

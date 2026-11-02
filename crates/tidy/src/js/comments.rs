@@ -21,10 +21,12 @@ use std::cell::Cell;
 pub(crate) trait CommentExt {
   /// Prettier's `isIndentableBlockComment`: a block comment in which every line after the first starts with `*`. Its
   /// lines are re-indented.
+  #[allow(clippy::wrong_self_convention, reason = "handles and comments are Copy")]
   fn is_indentable_block(self) -> bool;
   /// Prettier's `isTypeCastComment`: a JSDoc comment with `@type` or `@satisfies`.
   fn looks_like_type_cast(self) -> bool;
   /// `prettier-ignore`, or `oxfmt-ignore` in that flavor.
+  #[allow(clippy::wrong_self_convention, reason = "handles and comments are Copy")]
   fn is_ignore_comment(self, flavor: Flavor) -> bool;
 }
 
@@ -522,11 +524,6 @@ impl<'a> Comments<'a> {
   /// True if there's a comment between the token that starts at `token_start` and the token before it.
   pub(crate) fn has_comment_before(&self, token_start: u32) -> bool {
     !self.comments_directly_before(token_start).is_empty()
-  }
-
-  /// True if one of the comments directly before the token at `token_start` ends its line.
-  pub(crate) fn has_leading_own_line_comment(&self, token_start: u32) -> bool {
-    (self.comments_directly_before(token_start).iter()).any(|comment| comment.has_newline_after())
   }
 
   /// True if printing the node at `span` has to deal with comments at all. That's the case if a comment starts inside

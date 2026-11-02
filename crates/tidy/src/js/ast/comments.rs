@@ -385,12 +385,6 @@ impl<'a> Comment<'a> {
     self.record.next
   }
 
-  /// The ids of oxc's nodes around it: enclosing, preceding and following.
-  pub(crate) fn surrounding(self) -> (Option<u32>, Option<u32>, Option<u32>) {
-    let some = |id: u32| (id != NONE).then_some(id);
-    (some(self.record.enclosing), some(self.record.preceding), some(self.record.following))
-  }
-
   /// A decorator and `<..>` aren't bun's nodes. As bun's parser records them, a decorator stands for its expression,
   /// and `<..>` for its last parameter or argument before the comment and its first after it. The key of a mapped
   /// type is a name. The `{ .. }` of a class, an interface, an enum or a module is neither.

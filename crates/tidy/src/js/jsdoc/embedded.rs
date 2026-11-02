@@ -21,10 +21,6 @@ pub(super) fn embedded_options(options: &FormatOptions, print_width: usize) -> F
     jsdoc: None,
     sort_imports: None,
     filepath: None,
-    parser: None,
-    insert_pragma: false,
-    require_pragma: false,
-    check_ignore_pragma: false,
     is_in_markdown: false,
     ..options.clone()
   }

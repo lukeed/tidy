@@ -1017,20 +1017,20 @@ fn write_type_in_parentheses<'a>(ty: TypeNode<'a>, f: &mut Formatter<'a>) {
     return write!(f, source_text(ty.span()));
   }
   // No other kind of type ever needs parentheses.
-  let may_need_parentheses = match tag {
+  let may_need_parentheses = matches!(
+    tag,
     TypeTag::Fn
-    | TypeTag::Infer
-    | TypeTag::Union
-    | TypeTag::Intersection
-    | TypeTag::Cond
-    | TypeTag::Keyof
-    | TypeTag::Readonly
-    | TypeTag::UniqueSymbol
-    | TypeTag::Typeof
-    | TypeTag::Import
-    | TypeTag::Unique => true,
-    _ => false,
-  };
+      | TypeTag::Infer
+      | TypeTag::Union
+      | TypeTag::Intersection
+      | TypeTag::Cond
+      | TypeTag::Keyof
+      | TypeTag::Readonly
+      | TypeTag::UniqueSymbol
+      | TypeTag::Typeof
+      | TypeTag::Import
+      | TypeTag::Unique
+  );
   let needs_parentheses = may_need_parentheses && parentheses::ts_type::needs_parentheses(ty, f);
   if needs_parentheses {
     "(".fmt(f);

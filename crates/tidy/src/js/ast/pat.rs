@@ -7,10 +7,9 @@
 //! [`PatProp`] is a property or the `...rest` of an object pattern, and the `a = 1` of a property or an element isn't a
 //! [`Pat`].
 
-use super::{Expr, Key, KeyKind, List, Name, Node, Pat, PatElem, PatProp, expression_id};
+use super::{Expr, Key, List, Name, Node, Pat, PatElem, PatProp, expression_id};
 use oxc_ast::AstKind;
 use oxc_ast::ast::{BindingPattern, BindingProperty};
-use smallvec::{SmallVec, smallvec};
 
 #[derive(Copy, Clone, Debug)]
 pub(crate) enum PatKind<'a> {
@@ -71,22 +70,6 @@ impl<'a> Pat<'a> {
   pub(crate) fn parent(self) -> Node<'a> {
     Node::Pat(self).parent()
   }
-
-  /// Calls `visit` with every identifier that the pattern binds, in source order.
-  pub(crate) fn for_each_binding(self, visit: &mut dyn FnMut(Pat<'a>)) {
-    if self.tag() == PatTag::Ident {
-      return visit(self);
-    }
-    let mut pending: SmallVec<[Pat<'a>; 8]> = smallvec![self];
-    while let Some(pat) = pending.pop() {
-      match pat.kind() {
-        PatKind::Missing => {}
-        PatKind::Ident(_) => visit(pat),
-        PatKind::Object(props) => pending.extend(props.iter().rev().map(PatProp::value)),
-        PatKind::Array(elems) => pending.extend(elems.iter().rev().filter_map(PatElem::pat)),
-      }
-    }
-  }
 }
 
 impl<'a> PatProp<'a> {
@@ -100,19 +83,6 @@ impl<'a> PatProp<'a> {
   /// `None` for `...rest`. For the shorthand `{ a }` it's the `a`.
   pub(crate) fn key(self) -> Option<Key<'a>> {
     self.property().map(|it| Key::of(self.file, &it.key, it.computed))
-  }
-
-  /// Same as [`Key::is_computed`] on its key.
-  pub(crate) fn has_computed_key(self) -> bool {
-    self.property().is_some_and(|it| it.computed)
-  }
-
-  /// The `e` of a [`KeyKind::Computed`] key.
-  pub(crate) fn computed_key(self) -> Option<Expr<'a>> {
-    match self.key()?.kind() {
-      KeyKind::Computed(e) => Some(e),
-      _ => None,
-    }
   }
 
   /// `{ a }`, `{ a = 1 }`: the name is both the key and the binding.
@@ -166,11 +136,6 @@ impl<'a> PatElem<'a> {
 
   pub(crate) fn is_rest(self) -> bool {
     matches!(self.file.kind(self.id), Some(AstKind::BindingRestElement(_)))
-  }
-
-  /// The array pattern.
-  pub(crate) fn parent(self) -> Node<'a> {
-    Node::PatElem(self).parent()
   }
 }
 

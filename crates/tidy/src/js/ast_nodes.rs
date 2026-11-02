@@ -28,7 +28,6 @@ use oxc_ast::ast::{
   ArrowFunctionBody, Declaration, ExportDefaultDeclarationKind, JSXExpression,
   TSNamespaceDeclarationBody,
 };
-use oxc_span::GetSpan;
 
 /// An expression statement, or an arrow function's expression body, which oxc's formatter represents as an
 /// `ExpressionStatement` in a `FunctionBody`.
@@ -259,6 +258,7 @@ impl<'a> AsAstNodes<'a> for Expr<'a> {
 pub(crate) trait ChainElement<'a> {
   /// The member access, call or `!` itself, even if it's a whole optional chain. In that case its parent is the
   /// `ChainExpression`. For any other expression this is the same as [`AsAstNodes::as_ast_nodes`].
+  #[allow(clippy::wrong_self_convention, reason = "handles and comments are Copy")]
   fn as_chain_element(self) -> AstNodes<'a>;
 }
 
@@ -813,44 +813,4 @@ fn type_parameters_id(owner: Node) -> Option<u32> {
     .iter()
     .copied()
     .find(|&child| matches!(file.kind(child), Some(K::TSTypeParameterDeclaration(_))))
-}
-
-pub(crate) fn type_arguments_of<'a>(
-  owner: Node<'a>,
-) -> Option<crate::js::ast::List<'a, TypeNode<'a>>> {
-  use crate::js::ast::{ExprKind, TypeKind};
-  match owner {
-    Node::Expr(e) => match e.kind() {
-      ExprKind::Call(call) | ExprKind::New(call) | ExprKind::TaggedTemplate(call) => {
-        Some(call.type_args())
-      }
-      ExprKind::Instantiation { type_args, .. } => Some(type_args),
-      ExprKind::Jsx(jsx) => Some(jsx.type_args()),
-      _ => None,
-    },
-    Node::Type(ty) => match ty.kind() {
-      TypeKind::Ref { args, .. }
-      | TypeKind::Heritage { args, .. }
-      | TypeKind::Typeof { args, .. }
-      | TypeKind::Import { args, .. } => Some(args),
-      _ => None,
-    },
-    Node::Class(class) => Some(class.extends_args()),
-    _ => None,
-  }
-}
-
-pub(crate) fn type_parameters_of<'a>(
-  owner: Node<'a>,
-) -> Option<crate::js::ast::List<'a, TypeParam<'a>>> {
-  match owner {
-    Node::Func(func) => Some(func.type_params()),
-    Node::Class(class) => Some(class.type_params()),
-    Node::Stmt(statement) => match statement.kind() {
-      StmtKind::Interface(interface) => Some(interface.type_params()),
-      StmtKind::TypeAlias(alias) => Some(alias.type_params()),
-      _ => None,
-    },
-    _ => None,
-  }
 }

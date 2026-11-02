@@ -73,49 +73,6 @@ pub(crate) struct Tracker {
   saved: Vec<State>,
 }
 
-pub(crate) type PropagateBuffers = Tracker;
-
-/// Prettier's `propagateBreaks`. Marks every group that contains a hard line break, a multiline text or a
-/// [`FormatElement::ExpandParent`] as expanded. The variants of a [`FormatElement::BestFitting`] don't expand the
-/// enclosing groups.
-///
-/// It also measures the remaining groups and interned content. See [`Flat`].
-///
-/// This is a single loop over the elements. Interned content comes before every element that refers to it, so its
-/// [`FormatElement::Skip`] already has its summary by then.
-pub(crate) fn propagate_expand(root: Interned, storage: &mut Storage, tracker: &mut Tracker) {
-  tracker.clear();
-  // The ends of the enclosing skipped contents, innermost last.
-  let mut ends = Vec::new();
-  let mut end = root.start.saturating_add(root.len).min(storage.pool.len() as u32);
-  let mut index = root.start;
-  loop {
-    while index < end {
-      let Some(&element) = storage.pool.get(index as usize) else {
-        return;
-      };
-      match element {
-        FormatElement::Skip(skip) => {
-          tracker.start_skipped(index);
-          ends.push(end);
-          end = index.saturating_add(skip.len).saturating_add(1).min(end);
-        }
-        _ => tracker.note(element, index, storage),
-      }
-      index += 1;
-    }
-    let Some(outer_end) = ends.pop() else {
-      return;
-    };
-    end = outer_end;
-    if let Some((start, flat, will_break)) = tracker.end_skipped()
-      && let Some(FormatElement::Skip(skip)) = storage.pool.get_mut(start as usize)
-    {
-      (skip.flat, skip.will_break) = (flat, will_break);
-    }
-  }
-}
-
 impl Tracker {
   pub(crate) fn clear(&mut self) {
     self.state = State::default();

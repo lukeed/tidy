@@ -17,6 +17,7 @@ macro_rules! handle_structs {
         pub(crate) id: u32,
       }
 
+      #[allow(dead_code, reason = "every handle has the same accessors")]
       impl<'a> $name<'a> {
         #[inline]
         pub(crate) fn new(file: &'a File<'a>, id: u32) -> Self {
@@ -96,8 +97,6 @@ macro_rules! handle_structs {
     )*
   };
 }
-
-pub(crate) use handle_structs;
 
 /// Declares handles, and [`Node`], which is any of them.
 macro_rules! handles {
@@ -535,34 +534,6 @@ impl<'a> Node<'a> {
     }
   }
 
-  /// Its parent, grandparent and so on, ending with the file.
-  pub(crate) fn ancestors(self) -> Ancestors<'a> {
-    Ancestors { at: Some(self) }
-  }
-
-  /// The innermost function that contains it. A function doesn't contain itself.
-  pub(crate) fn enclosing_function(self) -> Option<Func<'a>> {
-    self.ancestors().find_map(Node::as_func)
-  }
-
-  /// The innermost class that contains it.
-  pub(crate) fn enclosing_class(self) -> Option<Class<'a>> {
-    self.ancestors().find_map(|it| match it {
-      Node::Class(class) => Some(class),
-      _ => None,
-    })
-  }
-
-  /// The `Expr` or `Stmt` with the same id as a function or a class, if there's one. Any other node as it is.
-  pub(crate) fn owner_or_self(self) -> Node<'a> {
-    match self {
-      Node::Func(Func { file, id }) | Node::Class(Class { file, id }) => {
-        Node::of(file, id).unwrap_or(self)
-      }
-      _ => self,
-    }
-  }
-
   pub(crate) fn as_expr(self) -> Option<Expr<'a>> {
     match self {
       Node::Expr(it) => Some(it),
@@ -577,31 +548,10 @@ impl<'a> Node<'a> {
     }
   }
 
-  pub(crate) fn as_type(self) -> Option<TypeNode<'a>> {
-    match self {
-      Node::Type(it) => Some(it),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_func(self) -> Option<Func<'a>> {
-    match self {
-      Node::Func(it) => Some(it),
-      _ => None,
-    }
-  }
-
   /// A number below [`File::node_count`] that's unique to oxc's node, to index a per-node table or bit set. A `Func` or
   /// a `Class` shares it with the `Expr` or `Stmt` that owns it.
   pub(crate) fn index(self) -> u32 {
     self.id()
-  }
-
-  /// Calls `visit` with each child, in source order but for a `this` parameter, which comes last. A `Func` or a `Class`
-  /// is the only child of the `Expr` or `Stmt` that owns it. Holes and the empty `{}` of JSX are skipped, and so are
-  /// keys that aren't computed, module specifiers and the names of imports and exports.
-  pub(crate) fn for_each_child(self, mut visit: impl FnMut(Node<'a>)) {
-    self.children_into(None, &mut visit);
   }
 
   /// Calls `visit` with the children that can contain `offset`. In a run of more than 8 siblings of one kind, that's
@@ -635,34 +585,6 @@ impl<'a> Node<'a> {
     match self {
       Node::File(file) => Span::new(file.program.span.start, file.program.span.end),
       _ => self.file().span_of(self.id()),
-    }
-  }
-
-  /// The node's source text.
-  pub(crate) fn text(self) -> &'a [u8] {
-    self.file().slice(self.span())
-  }
-}
-
-#[derive(Copy, Clone)]
-pub(crate) struct Ancestors<'a> {
-  at: Option<Node<'a>>,
-}
-
-impl<'a> Iterator for Ancestors<'a> {
-  type Item = Node<'a>;
-
-  fn next(&mut self) -> Option<Node<'a>> {
-    match self.at? {
-      Node::File(_) => {
-        self.at = None;
-        None
-      }
-      at => {
-        let parent = at.parent();
-        self.at = Some(parent);
-        Some(parent)
-      }
     }
   }
 }

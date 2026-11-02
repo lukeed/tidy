@@ -21,6 +21,7 @@ use oxc_ast::ast::{
 use oxc_span::GetSpan;
 
 #[derive(Copy, Clone, Debug)]
+#[allow(dead_code, reason = "bun's tree shape, which the printer matches on")]
 pub(crate) enum StmtKind<'a> {
   Empty,
   Debugger,
@@ -412,48 +413,6 @@ impl<'a> Stmt<'a> {
     }
   }
 
-  /// From the `export` to the end, for an exported declaration.
-  pub(crate) fn export_span(self) -> Option<Span> {
-    self.is_exported().then(|| self.span())
-  }
-
-  /// The `;` that ends it, if it has one.
-  pub(crate) fn semicolon(self) -> Option<Span> {
-    let end = self.span().end;
-    let terminated = matches!(
-      self.tag(),
-      StmtTag::Empty
-        | StmtTag::Debugger
-        | StmtTag::Expr
-        | StmtTag::Var
-        | StmtTag::Return
-        | StmtTag::DoWhile
-        | StmtTag::Throw
-        | StmtTag::Break
-        | StmtTag::Continue
-        | StmtTag::TypeAlias
-        | StmtTag::Import
-        | StmtTag::ImportEquals
-        | StmtTag::ExportNamed
-        | StmtTag::ExportStar
-        | StmtTag::ExportDefault
-        | StmtTag::ExportAssign
-        | StmtTag::ExportAsNamespace
-        | StmtTag::Fn
-        | StmtTag::Module
-    );
-    (terminated && self.file.text.as_bytes().get(end.wrapping_sub(1) as usize) == Some(&b';'))
-      .then(|| Span::new(end - 1, end))
-  }
-
-  /// For a `Try` with a `catch`: from the `catch` to the end of its block.
-  pub(crate) fn catch_clause_span(self) -> Option<Span> {
-    match self.file.kind(self.id)? {
-      AstKind::TryStatement(it) => it.handler.as_ref().map(|it| span(it.span)),
-      _ => None,
-    }
-  }
-
   /// The module specifier with its quotes.
   pub(crate) fn module_specifier_span(self) -> Option<Span> {
     let source = match self.declaration()? {
@@ -510,17 +469,6 @@ impl<'a> Stmt<'a> {
     !matches!(Node::of(self.file, self.id), Some(Node::Stmt(_)) | None)
   }
 
-  /// The `for` statement it's a wrapper in.
-  pub(crate) fn wrapped_in(self) -> Option<Stmt<'a>> {
-    match self.is_wrapper() {
-      true => match Node::Expr(Expr::new(self.file, self.id)).parent() {
-        Node::Stmt(parent) => Some(parent),
-        _ => None,
-      },
-      false => None,
-    }
-  }
-
   /// The label of a `Labeled`, `Break` or `Continue`, with its position.
   pub(crate) fn label(self) -> Option<Ident<'a>> {
     let label = match self.file.kind(self.id)? {
@@ -539,38 +487,6 @@ impl<'a> Stmt<'a> {
     }
   }
 
-  pub(crate) fn is_with(self) -> bool {
-    self.tag() == StmtTag::With
-  }
-
-  pub(crate) fn as_expr(self) -> Option<Expr<'a>> {
-    match self.kind() {
-      StmtKind::Expr(e) => Some(e),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_var(self) -> Option<List<'a, VarDecl<'a>>> {
-    match self.kind() {
-      StmtKind::Var(decls) => Some(decls),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_fn(self) -> Option<Func<'a>> {
-    match self.kind() {
-      StmtKind::Fn(func) => Some(func),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_class(self) -> Option<Class<'a>> {
-    match self.kind() {
-      StmtKind::Class(class) => Some(class),
-      _ => None,
-    }
-  }
-
   pub(crate) fn as_interface(self) -> Option<Interface<'a>> {
     match self.kind() {
       StmtKind::Interface(it) => Some(it),
@@ -583,91 +499,6 @@ impl<'a> Stmt<'a> {
       StmtKind::Module(it) => Some(it),
       _ => None,
     }
-  }
-
-  pub(crate) fn as_import(self) -> Option<Import<'a>> {
-    match self.kind() {
-      StmtKind::Import(it) => Some(it),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_export_named(self) -> Option<Export<'a>> {
-    match self.kind() {
-      StmtKind::ExportNamed(it) => Some(it),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_return(self) -> Option<Option<Expr<'a>>> {
-    match self.kind() {
-      StmtKind::Return(value) => Some(value),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_if(self) -> Option<(Expr<'a>, Stmt<'a>, Option<Stmt<'a>>)> {
-    match self.kind() {
-      StmtKind::If { test, yes, no } => Some((test, yes, no)),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_switch(self) -> Option<(Expr<'a>, List<'a, Case<'a>>)> {
-    match self.kind() {
-      StmtKind::Switch { expr, cases } => Some((expr, cases)),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_labeled(self) -> Option<(Name<'a>, Stmt<'a>)> {
-    match self.kind() {
-      StmtKind::Labeled { label, body } => Some((label, body)),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_for_of(self) -> Option<(Stmt<'a>, Expr<'a>, Stmt<'a>, bool)> {
-    match self.kind() {
-      StmtKind::ForOf { left, expr, body, is_await } => Some((left, expr, body, is_await)),
-      _ => None,
-    }
-  }
-
-  #[allow(clippy::type_complexity)]
-  pub(crate) fn as_for(
-    self,
-  ) -> Option<(Option<Stmt<'a>>, Option<Expr<'a>>, Option<Expr<'a>>, Stmt<'a>)> {
-    match self.kind() {
-      StmtKind::For { init, test, update, body } => Some((init, test, update, body)),
-      _ => None,
-    }
-  }
-
-  #[allow(clippy::type_complexity)]
-  pub(crate) fn as_try(
-    self,
-  ) -> Option<(Stmt<'a>, Option<VarDecl<'a>>, Option<Stmt<'a>>, Option<Stmt<'a>>)> {
-    match self.kind() {
-      StmtKind::Try { block, param, handler, finalizer } => {
-        Some((block, param, handler, finalizer))
-      }
-      _ => None,
-    }
-  }
-
-  pub(crate) fn as_with(self) -> Option<(Expr<'a>, Stmt<'a>)> {
-    match self.kind() {
-      StmtKind::With { object, body } => Some((object, body)),
-      _ => None,
-    }
-  }
-
-  pub(crate) fn is_loop(self) -> bool {
-    matches!(
-      self.tag(),
-      StmtTag::For | StmtTag::ForIn | StmtTag::ForOf | StmtTag::While | StmtTag::DoWhile
-    )
   }
 
   /// `"use strict"` and the like: the text between the quotes of a directive.
@@ -773,15 +604,6 @@ impl<'a> VarDecl<'a> {
     self.flags().contains(Flags::DEFINITE)
   }
 
-  /// The pattern and its type annotation.
-  pub(crate) fn binding_span(self) -> Span {
-    let pat = self.pat().span();
-    match self.ty() {
-      Some(ty) => Span::new(pat.start, ty.span().end),
-      None => pat,
-    }
-  }
-
   /// The `Var` statement, or the `Try` statement of a `catch` parameter.
   pub(crate) fn parent(self) -> Node<'a> {
     Node::VarDecl(self).parent()
@@ -802,19 +624,10 @@ impl<'a> Case<'a> {
     Some(Expr::new(self.file, expression_id(test)))
   }
 
-  pub(crate) fn is_default(self) -> bool {
-    self.raw_case().is_some_and(|it| it.test.is_none())
-  }
-
   pub(crate) fn body(self) -> List<'a, Stmt<'a>> {
     match self.raw_case() {
       Some(it) => statements(self.file, &it.consequent),
       None => List::empty(self.file),
     }
-  }
-
-  /// The `Switch` statement.
-  pub(crate) fn parent(self) -> Node<'a> {
-    Node::Case(self).parent()
   }
 }

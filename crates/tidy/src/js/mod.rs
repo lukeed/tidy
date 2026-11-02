@@ -47,7 +47,7 @@ pub(crate) mod base {
 pub(crate) mod prelude {
   pub(crate) use super::ast_nodes::{AsAstNodes, AstNodes, ChainElement};
   pub(crate) use super::builders::FormatSeparatedIter;
-  pub(crate) use super::comments::{Comment, CommentExt, CommentList, Comments};
+  pub(crate) use super::comments::{CommentExt, CommentList, Comments};
   pub(crate) use super::fields::{ExprFields, StmtFields};
   pub(crate) use super::source_text::SourceText;
   pub(crate) use super::trivia::{
@@ -61,8 +61,6 @@ pub(crate) mod prelude {
 pub(crate) enum FormatError {
   /// The file has syntax errors and is left as is.
   SyntaxError,
-  /// The same, from one of tidy's parsers.
-  SyntaxErrorAt(crate::syntax::SyntaxError),
   /// The syntax is nested so deeply that formatting it would overflow the stack.
   NestedTooDeeply,
   /// The formatted text is [longer than a string can be](is_too_long).

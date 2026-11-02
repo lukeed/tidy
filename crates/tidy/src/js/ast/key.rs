@@ -11,8 +11,6 @@ pub(crate) struct Key<'a> {
   inner: Span,
   /// With the brackets of a computed name.
   outer: Span,
-  /// True for a JSX attribute name.
-  jsx: bool,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -60,18 +58,18 @@ impl<'a> Key<'a> {
       }
       false => inner,
     };
-    Key { kind, inner, outer, jsx: false }
+    Key { kind, inner, outer }
   }
 
   /// A key that oxc doesn't store as a `PropertyKey`, without and with its brackets.
   pub(crate) fn new(kind: KeyKind<'a>, inner: Span, outer: Span) -> Key<'a> {
-    Key { kind, inner, outer, jsx: false }
+    Key { kind, inner, outer }
   }
 
   /// The name of a JSX attribute.
   pub(crate) fn jsx(file: &'a File<'a>, name: &'a JSXAttributeName<'a>) -> Key<'a> {
     let span = span(name.span());
-    Key { kind: KeyKind::Ident(Name(file.str(span))), inner: span, outer: span, jsx: true }
+    Key { kind: KeyKind::Ident(Name(file.str(span))), inner: span, outer: span }
   }
 
   pub(crate) fn kind(self) -> KeyKind<'a> {
@@ -88,10 +86,6 @@ impl<'a> Key<'a> {
 
   pub(crate) fn is_private(self) -> bool {
     matches!(self.kind, KeyKind::Private(_))
-  }
-
-  pub(crate) fn is_jsx(self) -> bool {
-    self.jsx
   }
 
   /// The property's name, or `None` if finding it would take evaluating an expression.
@@ -119,11 +113,6 @@ impl<'a> Key<'a> {
   /// Includes the brackets or quotes.
   pub(crate) fn span(self, _: &File<'a>) -> Span {
     self.outer
-  }
-
-  /// Where it starts, including a `[`.
-  pub(crate) fn start(self) -> u32 {
-    self.outer.start
   }
 }
 

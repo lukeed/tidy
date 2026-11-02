@@ -111,28 +111,6 @@ impl<'a, T: Handle<'a> + Spanned> List<'a, T> {
     (offset < it.span().end).then_some(it)
   }
 
-  /// [`List::around`], plus the element before it.
-  pub(crate) fn around_with_previous(self, offset: u32) -> Option<(T, Option<T>)> {
-    let at = self.count_until(offset).checked_sub(1)?;
-    let it = self.at(at);
-    if offset >= it.span().end {
-      return None;
-    }
-    Some((it, at.checked_sub(1).map(|before| self.at(before))))
-  }
-
-  /// The index of the element that starts at `start`.
-  pub(crate) fn index_of_start(self, start: u32) -> Option<usize> {
-    let at = self.count_until(start).checked_sub(1)?;
-    (self.at(at).span().start == start).then_some(at as usize)
-  }
-
-  /// The element before the one that starts at `start`.
-  pub(crate) fn before(self, start: u32) -> Option<T> {
-    let at = self.count_until(start).checked_sub(1)?;
-    at.checked_sub(1).map(|before| self.at(before))
-  }
-
   /// The element after the one that starts at `start`.
   pub(crate) fn after(self, start: u32) -> Option<T> {
     let at = self.count_until(start);

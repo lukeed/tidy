@@ -13,19 +13,8 @@ impl<'a> Name<'a> {
   }
 
   #[inline]
-  pub(crate) fn len(self) -> usize {
-    self.0.len()
-  }
-
-  #[inline]
   pub(crate) fn is(self, text: &str) -> bool {
     self.0 == text
-  }
-
-  /// True if it's one of `texts`.
-  #[inline]
-  pub(crate) fn is_any(self, texts: &[&str]) -> bool {
-    texts.contains(&self.0)
   }
 }
 
