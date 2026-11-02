@@ -1,10 +1,10 @@
 //! Expressions: bun's `src/lint/ast/expr.rs` (MIT), over oxc's tree.
 //!
 //! Where bun's tree differs from oxc's: `a, b, c` is one [`ExprKind::Sequence`] rather than nested commas, and
-//! `x!!` is two [`ExprKind::NonNull`]s.
+//! `x!!` is two [`ExprKind::NonNull`]s. The `a.b` of `typeof a.b` is a `Dot`.
 
 use super::{Class, Expr, File, Func, Handle, Ident, List, Name, Node, Prop, Span, TypeNode};
-use super::{argument_id, expression_id};
+use super::{argument_id, expression_id, type_id};
 use oxc_ast::AstKind;
 use oxc_ast::ast::{
   AssignmentOperator, AssignmentTarget, BinaryOperator, Expression, JSXElementName, JSXExpression,
@@ -318,6 +318,11 @@ impl<'a> Expr<'a> {
         };
         ExprKind::Dot { obj: self.at(obj.index() as u32), name, chain: Chain::No }
       }
+      K::TSQualifiedName(it) => {
+        let name =
+          Ident { name: Name(it.right.name.as_str()), span: span(it.right.span), string: false };
+        ExprKind::Dot { obj: self.at(it.left.node_id().index() as u32), name, chain: Chain::No }
+      }
       K::JSXIdentifier(it) if it.name.contains('-') => ExprKind::String(Name(it.name.as_str())),
       K::JSXIdentifier(it) => ExprKind::Ident(Name(it.name.as_str())),
       K::JSXNamespacedName(_) => ExprKind::String(Name(self.text())),
@@ -403,7 +408,7 @@ impl<'a> Expr<'a> {
       K::TSNonNullExpression(it) => ExprKind::NonNull(self.of(&it.expression)),
       K::TSInstantiationExpression(it) => {
         let params = &it.type_arguments.params;
-        let first = params.first().map(|it| it.node_id().index() as u32);
+        let first = params.first().map(type_id);
         ExprKind::Instantiation {
           expr: self.of(&it.expression),
           type_args: self.list(first, params.len()),
@@ -421,7 +426,7 @@ impl<'a> Expr<'a> {
   }
 
   fn ty(self, ty: &TSType) -> TypeNode<'a> {
-    TypeNode::new(self.file, ty.node_id().index() as u32)
+    TypeNode::of(self.file, ty)
   }
 
   pub(crate) fn tag(self) -> ExprTag {
@@ -1003,7 +1008,7 @@ fn is_const(ty: &TSType) -> bool {
 }
 
 /// The id of the expression that an assignment target is.
-fn target_id(target: &AssignmentTarget) -> u32 {
+pub(crate) fn target_id(target: &AssignmentTarget) -> u32 {
   match target.as_simple_assignment_target() {
     Some(simple) => simple_target_id(simple),
     None => target.node_id().index() as u32,
@@ -1305,11 +1310,7 @@ impl<'a> Call<'a> {
       _ => None,
     };
     match args {
-      Some(args) => List::run(
-        file,
-        args.params.first().map(|it| it.node_id().index() as u32),
-        args.params.len(),
-      ),
+      Some(args) => List::run(file, args.params.first().map(type_id), args.params.len()),
       None => List::empty(file),
     }
   }
@@ -1468,11 +1469,7 @@ impl<'a> Jsx<'a> {
   pub(crate) fn type_args(self) -> List<'a, TypeNode<'a>> {
     let file = self.expr.file;
     match self.element().and_then(|it| it.opening_element.type_arguments.as_deref()) {
-      Some(args) => List::run(
-        file,
-        args.params.first().map(|it| it.node_id().index() as u32),
-        args.params.len(),
-      ),
+      Some(args) => List::run(file, args.params.first().map(type_id), args.params.len()),
       None => List::empty(file),
     }
   }

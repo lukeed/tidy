@@ -63,6 +63,11 @@ impl<'a> Key<'a> {
     Key { kind, inner, outer, jsx: false }
   }
 
+  /// A key that oxc doesn't store as a `PropertyKey`, without and with its brackets.
+  pub(crate) fn new(kind: KeyKind<'a>, inner: Span, outer: Span) -> Key<'a> {
+    Key { kind, inner, outer, jsx: false }
+  }
+
   /// The name of a JSX attribute.
   pub(crate) fn jsx(file: &'a File<'a>, name: &'a JSXAttributeName<'a>) -> Key<'a> {
     let span = span(name.span());

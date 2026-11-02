@@ -7,8 +7,10 @@ mod key;
 mod list;
 mod name;
 mod node;
+mod pat;
 mod span;
 mod stmt;
+mod ty;
 
 pub(crate) use comments::*;
 pub(crate) use expr::*;
@@ -17,8 +19,10 @@ pub(crate) use key::*;
 pub(crate) use list::*;
 pub(crate) use name::*;
 pub(crate) use node::*;
+pub(crate) use pat::*;
 pub(crate) use span::{Span, Spanned};
 pub(crate) use stmt::*;
+pub(crate) use ty::*;
 
 use oxc_ast::AstKind;
 use oxc_ast::ast::Program;
@@ -121,7 +125,10 @@ impl<'a> File<'a> {
 
 /// True for the nodes that bun's tree doesn't have: their children belong to their parent.
 fn skipped(kind: AstKind) -> bool {
-  matches!(kind, AstKind::ParenthesizedExpression(_) | AstKind::ChainExpression(_))
+  matches!(
+    kind,
+    AstKind::ParenthesizedExpression(_) | AstKind::ChainExpression(_) | AstKind::TSParenthesizedType(_)
+  )
 }
 
 #[derive(Default)]
@@ -138,8 +145,14 @@ struct Walk<'a> {
 
 impl<'a> Visit<'a> for Walk<'a> {
   fn enter_node(&mut self, kind: AstKind<'a>) {
-    if let AstKind::ParenthesizedExpression(parens) = kind {
-      self.pending.push(Span::new(parens.span.start, parens.span.end));
+    match kind {
+      AstKind::ParenthesizedExpression(parens) => {
+        self.pending.push(Span::new(parens.span.start, parens.span.end));
+      }
+      AstKind::TSParenthesizedType(parens) => {
+        self.pending.push(Span::new(parens.span.start, parens.span.end));
+      }
+      _ => {}
     }
     if skipped(kind) {
       return;

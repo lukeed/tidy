@@ -3,6 +3,7 @@
 
 use super::{File, NONE, Span};
 use oxc_ast::AstKind;
+use oxc_ast::ast::TSTypeOperatorOperator;
 use oxc_span::GetSpan;
 
 /// Declares handles that aren't nodes of their own: a file and the id of a node in it.
@@ -243,6 +244,27 @@ impl<'a> Node<'a> {
         _ => Node::Expr(Expr::new(file, id)),
       },
       K::Class(class) if class.is_declaration() => Node::Stmt(Stmt::new(file, id)),
+      K::IdentifierReference(_) | K::ThisExpression(_) | K::TSQualifiedName(_)
+        if matches!(
+          name_owner(file, id),
+          Some(K::TSTypeReference(_) | K::TSClassImplements(_))
+        ) =>
+      {
+        return None;
+      }
+      K::TSQualifiedName(_) if matches!(name_owner(file, id), Some(K::TSTypeQuery(_))) => {
+        Node::Expr(Expr::new(file, id))
+      }
+      K::BooleanLiteral(_)
+      | K::NumericLiteral(_)
+      | K::StringLiteral(_)
+      | K::BigIntLiteral(_)
+      | K::TemplateLiteral(_)
+      | K::UnaryExpression(_)
+        if in_type(file, id) =>
+      {
+        return None;
+      }
       K::IdentifierReference(_)
       | K::ThisExpression(_)
       | K::ArrayExpression(_)
@@ -360,8 +382,18 @@ impl<'a> Node<'a> {
           | K::ImportDefaultSpecifier(_)
           | K::ImportNamespaceSpecifier(_),
         ) => return None,
+        Some(K::TSMappedType(_)) => Node::TypeParam(TypeParam::new(file, id)),
         _ => Node::Pat(Pat::new(file, id)),
       },
+      K::AssignmentPattern(_) | K::BindingRestElement(_)
+        if matches!(parent(), Some(K::ArrayPattern(_))) =>
+      {
+        Node::PatElem(PatElem::new(file, id))
+      }
+      K::BindingRestElement(_) if matches!(parent(), Some(K::ObjectPattern(_))) => {
+        Node::PatProp(PatProp::new(file, id))
+      }
+      K::AssignmentPattern(_) if matches!(parent(), Some(K::BindingProperty(_))) => return None,
       K::AssignmentPattern(_)
       | K::ObjectPattern(_)
       | K::ArrayPattern(_)
@@ -384,6 +416,10 @@ impl<'a> Node<'a> {
       K::ExportSpecifier(_) => Node::ExportSpec(ExportSpec::new(file, id)),
       K::TSEnumMember(_) => Node::EnumMember(EnumMember::new(file, id)),
       K::TSTypeParameter(_) => Node::TypeParam(TypeParam::new(file, id)),
+      K::TSNamedTupleMember(_) if matches!(parent(), Some(K::TSRestType(_))) => return None,
+      K::TSImportType(_) if matches!(parent(), Some(K::TSTypeQuery(_))) => return None,
+      K::TSThisType(_) if matches!(parent(), Some(K::TSTypePredicate(_))) => return None,
+      K::TSSymbolKeyword(_) if parent().is_some_and(is_unique) => return None,
       K::TSNamedTupleMember(_) | K::TSOptionalType(_) | K::TSRestType(_)
         if matches!(parent(), Some(K::TSTupleType(_))) =>
       {
@@ -393,7 +429,6 @@ impl<'a> Node<'a> {
       | K::TSConditionalType(_)
       | K::TSUnionType(_)
       | K::TSIntersectionType(_)
-      | K::TSParenthesizedType(_)
       | K::TSTypeOperator(_)
       | K::TSArrayType(_)
       | K::TSIndexedAccessType(_)
@@ -425,6 +460,8 @@ impl<'a> Node<'a> {
       | K::TSConstructorType(_)
       | K::TSMappedType(_)
       | K::TSTemplateLiteralType(_)
+      | K::TSInterfaceHeritage(_)
+      | K::TSClassImplements(_)
       | K::JSDocNullableType(_)
       | K::JSDocNonNullableType(_)
       | K::JSDocUnknownType(_) => Node::TypeNode(TypeNode::new(file, id)),
@@ -485,5 +522,33 @@ impl<'a> Iterator for Ancestors<'a> {
         Some(parent)
       }
     }
+  }
+}
+
+/// The node that a type name such as `A.B.C` is part of.
+fn name_owner<'a>(file: &File<'a>, mut id: u32) -> Option<AstKind<'a>> {
+  loop {
+    id = file.parent_id(id);
+    match file.kind(id)? {
+      AstKind::TSQualifiedName(_) => {}
+      owner => return Some(owner),
+    }
+  }
+}
+
+/// `unique T`
+fn is_unique(kind: AstKind) -> bool {
+  matches!(kind, AstKind::TSTypeOperator(it) if it.operator == TSTypeOperatorOperator::Unique)
+}
+
+/// True for a literal in a literal type, such as the `1` of `-1`, and for the specifier of an import type.
+fn in_type(file: &File, id: u32) -> bool {
+  let parent = file.parent_id(id);
+  match file.kind(parent) {
+    Some(AstKind::TSLiteralType(_) | AstKind::TSImportType(_)) => true,
+    Some(AstKind::UnaryExpression(_)) => {
+      matches!(file.kind(file.parent_id(parent)), Some(AstKind::TSLiteralType(_)))
+    }
+    _ => false,
   }
 }

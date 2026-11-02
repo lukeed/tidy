@@ -2,7 +2,7 @@
 //! since the elements of one of oxc's list fields are consecutive children of the node that has the field.
 
 use super::{File, Spanned};
-use oxc_ast::ast::{Argument, ChainElement, Expression};
+use oxc_ast::ast::{Argument, ChainElement, Expression, TSType};
 use std::marker::PhantomData;
 
 /// A handle that a list can hold.
@@ -200,6 +200,14 @@ pub(crate) fn expression_id(mut expression: &Expression) -> u32 {
       _ => return expression.node_id().index() as u32,
     }
   }
+}
+
+/// The id in the tables of a type: parentheses around it are skipped.
+pub(crate) fn type_id(mut ty: &TSType) -> u32 {
+  while let TSType::TSParenthesizedType(parens) = ty {
+    ty = &parens.type_annotation;
+  }
+  ty.node_id().index() as u32
 }
 
 pub(crate) fn chain_id(element: &ChainElement) -> u32 {
