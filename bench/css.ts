@@ -142,10 +142,10 @@ for (let name of Object.keys(sources)) {
 	}
 }
 console.log(rows.join("\n"));
-let tools = [
+let versions = [
 	"tidy at the commit above",
 	...(await crates("bench/css/Cargo.lock", ["oxc_formatter_css", "malva", "lightningcss"])),
 	`bun fmt ${await version(["bun", "--version"])}`,
 	`Prettier ${prettier.version}`,
 ];
-await record("css.md", "CSS formatters", sections, tools);
+await record("css.md", "CSS formatters", sections, versions);
