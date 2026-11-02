@@ -2,6 +2,8 @@
 //! `merge: true`, strict. It turns the syntax tree into documents of nodes, each with its range and its source token.
 //! Prettier throws on the first error of a document, so this stops at the first error. Warnings are ignored.
 
+use std::borrow::Cow;
+
 use super::Abort;
 use super::cst::{self, Item, Key, Kind, Node, Prop, ScalarKind, Source, Tree};
 use super::scalar;
@@ -19,7 +21,7 @@ pub(crate) enum ScalarType {
 }
 
 /// A pair of a map, with the collection item it comes from.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub(crate) struct Pair {
   pub(crate) key: Cid,
   pub(crate) value: Option<Cid>,
@@ -29,11 +31,27 @@ pub(crate) struct Pair {
 
 #[derive(Clone, Debug)]
 pub(crate) enum Content {
-  Scalar { kind: ScalarType, value: String },
-  Alias { name: String },
-  Map { flow: bool, items: Vec<Pair> },
-  Seq { flow: bool, items: Vec<Cid> },
+  Scalar {
+    kind: ScalarType,
+    value: Text,
+  },
+  Alias {
+    name: Text,
+  },
+  /// A range of [`Composition::pairs`].
+  Map {
+    flow: bool,
+    items: (u32, u32),
+  },
+  /// A range of [`Composition::items`].
+  Seq {
+    flow: bool,
+    items: (u32, u32),
+  },
 }
+
+/// A range of [`Composition::strings`].
+pub(crate) type Text = (u32, u32);
 
 /// A node of a document: `yaml`'s `ParsedNode`.
 #[derive(Clone, Debug)]
@@ -41,8 +59,8 @@ pub(crate) struct Composed {
   pub(crate) content: Content,
   /// The start, the end of the value, and the end of the node with its comments.
   pub(crate) range: [u32; 3],
-  pub(crate) tag: Option<String>,
-  pub(crate) anchor: Option<String>,
+  pub(crate) tag: Option<Text>,
+  pub(crate) anchor: Option<Text>,
   pub(crate) src: Option<cst::Id>,
 }
 
@@ -58,16 +76,67 @@ pub(crate) struct Document {
 pub(crate) struct Composition {
   pub(crate) nodes: Vec<Composed>,
   pub(crate) documents: Vec<Document>,
+  /// The values, tags and anchors of every node.
+  strings: String,
+  /// The pairs of every map, and of the maps being composed, innermost last.
+  pairs: Vec<Pair>,
+  open_pairs: Vec<Pair>,
+  /// The items of every sequence, and of the sequences being composed, innermost last.
+  items: Vec<Cid>,
+  open_items: Vec<Cid>,
 }
 
 impl Composition {
   pub(crate) fn clear(&mut self) {
     self.nodes.clear();
     self.documents.clear();
+    self.strings.clear();
+    self.pairs.clear();
+    self.open_pairs.clear();
+    self.items.clear();
+    self.open_items.clear();
   }
 
   pub(crate) fn node(&self, id: Cid) -> &Composed {
     &self.nodes[id as usize]
+  }
+
+  pub(crate) fn text(&self, (start, end): Text) -> &str {
+    &self.strings[start as usize..end as usize]
+  }
+
+  pub(crate) fn pairs(&self, (start, end): (u32, u32)) -> &[Pair] {
+    &self.pairs[start as usize..end as usize]
+  }
+
+  pub(crate) fn items(&self, (start, end): (u32, u32)) -> &[Cid] {
+    &self.items[start as usize..end as usize]
+  }
+
+  fn store(&mut self, text: &str) -> Text {
+    let start = self.strings.len() as u32;
+    self.strings.push_str(text);
+    (start, self.strings.len() as u32)
+  }
+
+  /// Closes the pairs of the map opened at `mark`.
+  fn close_pairs(&mut self, mark: usize) -> (u32, u32) {
+    let start = self.pairs.len() as u32;
+    self.pairs.extend(self.open_pairs.drain(mark..));
+    (start, self.pairs.len() as u32)
+  }
+
+  /// Adds a map of one pair.
+  fn close_pairs_with(&mut self, pair: Pair) -> (u32, u32) {
+    self.pairs.push(pair);
+    (self.pairs.len() as u32 - 1, self.pairs.len() as u32)
+  }
+
+  /// Closes the items of the sequence opened at `mark`.
+  fn close_items(&mut self, mark: usize) -> (u32, u32) {
+    let start = self.items.len() as u32;
+    self.items.extend(self.open_items.drain(mark..));
+    (start, self.items.len() as u32)
   }
 }
 
@@ -421,7 +490,7 @@ impl<'c> Composer<'c> {
     if name.is_empty() {
       return Err(self.error(Message::BadAnchor, anchor.offset));
     }
-    self.out.nodes[id as usize].anchor = Some(name.to_owned());
+    self.out.nodes[id as usize].anchor = Some(self.out.store(name));
     Ok(())
   }
 
@@ -438,8 +507,9 @@ impl<'c> Composer<'c> {
       Some(tag) => Some(self.tag_name(tag)?),
       None => None,
     };
+    let tag = tag.map(|tag| self.out.store(&tag));
     let mut node = Composed {
-      content: Content::Scalar { kind: ScalarType::Plain, value: String::new() },
+      content: Content::Scalar { kind: ScalarType::Plain, value: (0, 0) },
       range: [offset, offset, offset],
       tag,
       anchor: None,
@@ -462,7 +532,7 @@ impl<'c> Composer<'c> {
     }
     let end = self.resolve_end(end.as_deref(), *source_end, true)?;
     let node = Composed {
-      content: Content::Alias { name: name.to_owned() },
+      content: Content::Alias { name: self.out.store(name) },
       range: [*offset, *source_end, end],
       tag: None,
       anchor: None,
@@ -487,6 +557,8 @@ impl<'c> Composer<'c> {
     {
       return Err(self.error(Message::BadTag, range[0]));
     }
+    let value = self.out.store(&value);
+    let tag = tag.map(|tag| self.out.store(&tag));
     let node =
       Composed { content: Content::Scalar { kind, value }, range, tag, anchor: None, src: None };
     Ok(self.push(node))
@@ -497,11 +569,12 @@ impl<'c> Composer<'c> {
   }
 
   /// `resolveFlowScalar`
-  fn flow_scalar(&self, token: cst::Id) -> Result<(ScalarType, String, [u32; 3])> {
+  fn flow_scalar(&self, token: cst::Id) -> Result<(ScalarType, Cow<'c, str>, [u32; 3])> {
     let Node::FlowScalar { kind, offset, source_end, end, .. } = self.node(token) else {
       unreachable!()
     };
-    let source = &self.text[*offset as usize..*source_end as usize];
+    let text: &'c str = self.text;
+    let source = &text[*offset as usize..*source_end as usize];
     let error = |(message, at): (Message, usize)| self.error(message, *offset + at as u32);
     let (kind, value) = match kind {
       ScalarKind::Plain => (ScalarType::Plain, scalar::plain(source).map_err(error)?),
@@ -515,7 +588,7 @@ impl<'c> Composer<'c> {
   }
 
   /// `resolveBlockScalar`
-  fn block_scalar(&self, token: cst::Id) -> Result<(ScalarType, String, [u32; 3])> {
+  fn block_scalar(&self, token: cst::Id) -> Result<(ScalarType, Cow<'c, str>, [u32; 3])> {
     let Node::BlockScalar { offset, indent, props, source } = self.node(token) else {
       unreachable!()
     };
@@ -556,7 +629,7 @@ impl<'c> Composer<'c> {
     )
     .map_err(|(message, at)| self.error(message, at as u32))?;
     let end = *offset + length as u32 + (source.1 - source.0);
-    Ok((result.0, result.1, [*offset, end, end]))
+    Ok((result.0, Cow::Owned(result.1), [*offset, end, end]))
   }
 
   /// `resolveEnd`: the offset after the tokens at the end of a node, which can only be spaces, comments and line
@@ -771,7 +844,7 @@ impl<'c> Composer<'c> {
     if let Some(tag) = &tag {
       self.check_collection_tag(id, tag, map, props)?;
     }
-    self.out.nodes[id as usize].tag = tag;
+    self.out.nodes[id as usize].tag = tag.map(|tag| self.out.store(&tag));
     Ok(id)
   }
 
@@ -783,23 +856,24 @@ impl<'c> Composer<'c> {
       ("tag:yaml.org,2002:omap" | "tag:yaml.org,2002:pairs", Content::Seq { items, .. })
         if !map =>
       {
-        let mut seen: Vec<String> = Vec::new();
-        for item in items {
+        let mut seen: Vec<&str> = Vec::new();
+        for item in self.out.items(*items) {
           let key = match &self.out.node(*item).content {
-            Content::Map { items, .. } if items.len() > 1 => {
+            Content::Map { items, .. } if self.out.pairs(*items).len() > 1 => {
               return Err(self.error(Message::BadTag, at));
             }
-            Content::Map { items, .. } => items.first().map(|pair| pair.key),
+            Content::Map { items, .. } => self.out.pairs(*items).first().map(|pair| pair.key),
             _ => Some(*item),
           };
           if tag.ends_with("omap")
             && let Some(key) = key
             && let Content::Scalar { value, .. } = &self.out.node(key).content
           {
-            if seen.contains(value) {
+            let value = self.out.text(*value);
+            if seen.contains(&value) {
               return Err(self.error(Message::BadTag, at));
             }
-            seen.push(value.clone());
+            seen.push(value);
           }
         }
         Ok(())
@@ -812,11 +886,11 @@ impl<'c> Composer<'c> {
             tag: None,
             ..
           }) => {
-            matches!(value.as_str(), "" | "~" | "null" | "Null" | "NULL")
+            matches!(self.out.text(*value), "" | "~" | "null" | "Null" | "NULL")
           }
           _ => false,
         };
-        match items.iter().all(|pair| null(&pair.value)) {
+        match self.out.pairs(*items).iter().all(|pair| null(&pair.value)) {
           true => Ok(()),
           false => Err(self.error(Message::BadTag, at)),
         }
@@ -834,7 +908,7 @@ impl<'c> Composer<'c> {
     self.at_root = false;
     let mut offset = map_offset;
     let mut comment_end: Option<u32> = None;
-    let mut pairs = Vec::new();
+    let mark = self.out.open_pairs.len();
     for (index, item) in items.iter().enumerate() {
       let Item { start, key, sep, value, .. } = item;
       let next = match (key, sep.as_ref().and_then(|sep| sep.first())) {
@@ -908,12 +982,12 @@ impl<'c> Composer<'c> {
           None => self.compose_empty(offset, Some(sep_tokens), None, &value_props)?,
         };
         offset = self.out.node(value_node).range[2];
-        pairs.push(Pair { key: key_node, value: Some(value_node), src });
+        self.out.open_pairs.push(Pair { key: key_node, value: Some(value_node), src });
       } else {
         if implicit {
           return Err(self.error(Message::ExpectedColon, key_start));
         }
-        pairs.push(Pair { key: key_node, value: None, src });
+        self.out.open_pairs.push(Pair { key: key_node, value: None, src });
       }
     }
     if let Some(end) = comment_end
@@ -923,7 +997,7 @@ impl<'c> Composer<'c> {
       return Err(self.error(Message::UnexpectedToken, end));
     }
     let node = Composed {
-      content: Content::Map { flow: false, items: pairs },
+      content: Content::Map { flow: false, items: self.out.close_pairs(mark) },
       range: [map_offset, offset, comment_end.unwrap_or(offset)],
       tag: None,
       anchor: None,
@@ -941,7 +1015,7 @@ impl<'c> Composer<'c> {
     self.at_root = false;
     let mut offset = seq_offset;
     let mut comment_end: Option<u32> = None;
-    let mut nodes = Vec::new();
+    let mark = self.out.open_items.len();
     for Item { start, value, .. } in items {
       let next = value.map_or(Next::None, Next::Node);
       let props =
@@ -962,10 +1036,10 @@ impl<'c> Composer<'c> {
         None => self.compose_empty(props.end, Some(start), None, &props)?,
       };
       offset = self.out.node(node).range[2];
-      nodes.push(node);
+      self.out.open_items.push(node);
     }
     let node = Composed {
-      content: Content::Seq { flow: false, items: nodes },
+      content: Content::Seq { flow: false, items: self.out.close_items(mark) },
       range: [seq_offset, offset, comment_end.unwrap_or(offset)],
       tag: None,
       anchor: None,
@@ -985,8 +1059,7 @@ impl<'c> Composer<'c> {
     let map = open.kind == Kind::FlowMapStart;
     let at_root = std::mem::replace(&mut self.at_root, false);
     let mut offset = fc_offset + (open.end - open.offset);
-    let mut pairs: Vec<Pair> = Vec::new();
-    let mut nodes: Vec<Cid> = Vec::new();
+    let (pairs, nodes) = (self.out.open_pairs.len(), self.out.open_items.len());
     for (index, item) in items.iter().enumerate() {
       let Item { start, key, sep, value, .. } = item;
       let key_token = match key {
@@ -1041,7 +1114,7 @@ impl<'c> Composer<'c> {
           return Err(self.error(Message::BlockInFlow, self.out.node(node).range[0]));
         }
         offset = self.out.node(node).range[2];
-        nodes.push(node);
+        self.out.open_items.push(node);
         continue;
       }
       let key_start = props.end;
@@ -1099,18 +1172,19 @@ impl<'c> Composer<'c> {
         None => value_props.end,
       };
       if map {
-        pairs.push(pair);
+        self.out.open_pairs.push(pair);
       } else {
         let last = self.out.node(value_node.unwrap_or(key_node)).range;
         let first = self.out.node(key_node).range[0];
         let node = Composed {
-          content: Content::Map { flow: true, items: vec![pair] },
+          content: Content::Map { flow: true, items: self.out.close_pairs_with(pair) },
           range: [first, last[1], last[2]],
           tag: None,
           anchor: None,
           src: None,
         };
-        nodes.push(self.push(node));
+        let node = self.push(node);
+        self.out.open_items.push(node);
       }
     }
     let expected = if map { Kind::FlowMapEnd } else { Kind::FlowSeqEnd };
@@ -1128,8 +1202,8 @@ impl<'c> Composer<'c> {
       false => [fc_offset, close_end, self.resolve_end(Some(&rest), close_end, true)?],
     };
     let content = match map {
-      true => Content::Map { flow: true, items: pairs },
-      false => Content::Seq { flow: true, items: nodes },
+      true => Content::Map { flow: true, items: self.out.close_pairs(pairs) },
+      false => Content::Seq { flow: true, items: self.out.close_items(nodes) },
     };
     let node = Composed { content, range, tag: None, anchor: None, src: None };
     Ok(self.push(node))

@@ -2,7 +2,7 @@
 //! and the tokens of the syntax tree they come from.
 
 use super::ast::{Chomping, Entry, Extra, Id, Kind, Lines, Position, Root};
-use super::compose::{Cid, Composed, Composition, Content, Pair, ScalarType};
+use super::compose::{Cid, Composed, Composition, Content, Pair, ScalarType, Text};
 use super::cst::{self, Item, Key, Node as Token, Prop, Source, Tree};
 
 pub(crate) struct Transformer<'t> {
@@ -43,6 +43,21 @@ impl<'t> Transformer<'t> {
   fn composed(&self, id: Cid) -> &'t Composed {
     let composition: &'t Composition = self.composition;
     composition.node(id)
+  }
+
+  fn text(&self, text: Text) -> &'t str {
+    let composition: &'t Composition = self.composition;
+    composition.text(text)
+  }
+
+  fn pairs(&self, pairs: (u32, u32)) -> &'t [Pair] {
+    let composition: &'t Composition = self.composition;
+    composition.pairs(pairs)
+  }
+
+  fn items(&self, items: (u32, u32)) -> &'t [Cid] {
+    let composition: &'t Composition = self.composition;
+    composition.items(items)
   }
 
   fn position(&self, start: u32, end: u32) -> Position {
@@ -360,18 +375,18 @@ impl<'t> Transformer<'t> {
         self.scalar_end(src);
         let content = self.content(composed, props);
         let position = self.position(composed.range[0], composed.range[1]);
-        self.content_node(Kind::Alias, position, content, name)
+        self.content_node(Kind::Alias, position, content, self.text(*name))
       }
       Content::Map { flow: true, .. } => self.flow_map(composed, props),
       Content::Map { .. } => self.map(composed, props),
       Content::Seq { flow: true, .. } => self.flow_seq(composed, props),
       Content::Seq { .. } => self.seq(composed, props),
-      Content::Scalar { kind, value } => match kind {
-        ScalarType::BlockLiteral | ScalarType::BlockFolded => {
+      Content::Scalar { kind, value } => match (kind, self.text(*value)) {
+        (ScalarType::BlockLiteral | ScalarType::BlockFolded, value) => {
           self.block_value(composed, *kind, value, props)
         }
-        ScalarType::Plain => self.plain(composed, value, props),
-        ScalarType::QuoteSingle | ScalarType::QuoteDouble => {
+        (ScalarType::Plain, value) => self.plain(composed, value, props),
+        (ScalarType::QuoteSingle | ScalarType::QuoteDouble, value) => {
           let src = composed.src.expect("a quoted scalar has a token");
           self.scalar_end(src);
           let content = self.content(composed, props);
@@ -477,7 +492,7 @@ impl<'t> Transformer<'t> {
           first.get_or_insert(range);
           let source = self.src(token);
           let skip = if source.starts_with("!!") { 2 } else { 1 };
-          let value = match composed.tag.as_deref().unwrap_or(&source[skip..]) {
+          let value = match composed.tag.map_or(&source[skip..], |tag| self.text(tag)) {
             "!" => "tag:yaml.org,2002:str",
             value => value,
           };
@@ -488,7 +503,7 @@ impl<'t> Transformer<'t> {
         cst::Kind::Anchor => {
           first.get_or_insert(range);
           let id = self.add(Entry::new(Kind::Anchor, self.position(range.0, range.1)), &[]);
-          self.root.set_value(id, composed.anchor.as_deref().unwrap_or_default());
+          self.root.set_value(id, composed.anchor.map_or("", |anchor| self.text(anchor)));
           properties.anchor = Some(id);
         }
         cst::Kind::Comment => {
@@ -507,7 +522,8 @@ impl<'t> Transformer<'t> {
   fn map(&mut self, composed: &Composed, props: &[Source]) -> Id {
     let src = composed.src.expect("a block map has a token");
     let items = self.items_of(src);
-    let Content::Map { items: pairs, .. } = &composed.content else { unreachable!() };
+    let Content::Map { items: pairs, .. } = composed.content else { unreachable!() };
+    let pairs = self.pairs(pairs);
     let mark = self.pending.len();
     for (index, pair) in pairs.iter().enumerate() {
       let child = self.pair(pair, &items[index.min(items.len() - 1)], Kind::MappingItem);
@@ -540,7 +556,8 @@ impl<'t> Transformer<'t> {
   fn seq(&mut self, composed: &Composed, props: &[Source]) -> Id {
     let src = composed.src.expect("a block sequence has a token");
     let items = self.items_of(src);
-    let Content::Seq { items: nodes, .. } = &composed.content else { unreachable!() };
+    let Content::Seq { items: nodes, .. } = composed.content else { unreachable!() };
+    let nodes = self.items(nodes);
     let mark = self.pending.len();
     for (index, node) in nodes.iter().enumerate() {
       let item = &items[index.min(items.len() - 1)];
@@ -573,7 +590,8 @@ impl<'t> Transformer<'t> {
 
   /// `transformFlowMap` and `transformFlowSeq`
   fn flow_map(&mut self, composed: &Composed, props: &[Source]) -> Id {
-    let Content::Map { items: pairs, .. } = &composed.content else { unreachable!() };
+    let Content::Map { items: pairs, .. } = composed.content else { unreachable!() };
+    let pairs = self.pairs(pairs);
     let src = composed.src.expect("a flow map has a token");
     let items = self.items_of(src);
     let mark = self.pending.len();
@@ -585,7 +603,8 @@ impl<'t> Transformer<'t> {
   }
 
   fn flow_seq(&mut self, composed: &Composed, props: &[Source]) -> Id {
-    let Content::Seq { items: nodes, .. } = &composed.content else { unreachable!() };
+    let Content::Seq { items: nodes, .. } = composed.content else { unreachable!() };
+    let nodes = self.items(nodes);
     let src = composed.src.expect("a flow sequence has a token");
     let items = self.items_of(src);
     let mark = self.pending.len();
@@ -593,8 +612,11 @@ impl<'t> Transformer<'t> {
       let item = &items[index.min(items.len() - 1)];
       let child = self.composed(*node);
       let pair = match &child.content {
-        Content::Map { items: pairs, .. } if child.src.is_none() && pairs.len() == 1 => {
-          pairs[0].src.filter(|it| it.0 == src && it.1 == index).map(|_| pairs[0].clone())
+        Content::Map { items: pairs, .. }
+          if child.src.is_none() && self.pairs(*pairs).len() == 1 =>
+        {
+          let pair = self.pairs(*pairs)[0];
+          pair.src.filter(|it| it.0 == src && it.1 == index).map(|_| pair)
         }
         _ => None,
       };

@@ -1,13 +1,15 @@
 //! The values of scalars, and their errors: `yaml`'s `resolve-flow-scalar.ts` and `resolve-block-scalar.ts`. An error
 //! is a message and an offset in the scalar's source.
 
+use std::borrow::Cow;
+
 use super::compose::ScalarType;
 use crate::syntax::Message;
 
 type Result<T> = std::result::Result<T, (Message, usize)>;
 
 /// `plainValue`
-pub(crate) fn plain(source: &str) -> Result<String> {
+pub(crate) fn plain(source: &str) -> Result<Cow<'_, str>> {
   if matches!(source.as_bytes().first(), Some(b'\t' | b',' | b'%' | b'|' | b'>' | b'@' | b'`')) {
     return Err((Message::BadScalarStart, 0));
   }
@@ -15,16 +17,20 @@ pub(crate) fn plain(source: &str) -> Result<String> {
 }
 
 /// `singleQuotedValue`
-pub(crate) fn single_quoted(source: &str) -> Result<String> {
+pub(crate) fn single_quoted(source: &str) -> Result<Cow<'_, str>> {
   if !source.ends_with('\'') || source.len() == 1 {
     return Err((Message::UnclosedString, source.len()));
   }
-  Ok(fold_lines(&source[1..source.len() - 1]).replace("''", "'"))
+  let value = fold_lines(&source[1..source.len() - 1]);
+  match value.contains("''") {
+    true => Ok(Cow::Owned(value.replace("''", "'"))),
+    false => Ok(value),
+  }
 }
 
 /// `foldLines`: the lines of a flow scalar, joined by a space, or by line breaks where there are empty lines.
-fn fold_lines(source: &str) -> String {
-  let Some(first) = source.find('\n') else { return source.to_owned() };
+fn fold_lines(source: &str) -> Cow<'_, str> {
+  let Some(first) = source.find('\n') else { return Cow::Borrowed(source) };
   let mut out = trim_line_end(&source[..first]).to_owned();
   let mut sep = " ";
   let mut rest = &source[first + 1..];
@@ -45,7 +51,7 @@ fn fold_lines(source: &str) -> String {
   }
   out.push_str(sep);
   out.push_str(rest.trim_start_matches([' ', '\t']));
-  out
+  Cow::Owned(out)
 }
 
 /// A line without the `\r` before its line break, and without spaces and tabs before that.
@@ -54,7 +60,11 @@ fn trim_line_end(line: &str) -> &str {
 }
 
 /// `doubleQuotedValue`
-pub(crate) fn double_quoted(source: &str) -> Result<String> {
+pub(crate) fn double_quoted(source: &str) -> Result<Cow<'_, str>> {
+  let closed = source.ends_with('"') && source.len() > 1;
+  if closed && memchr::memchr3(b'\\', b'\n', b'\r', source.as_bytes()).is_none() {
+    return Ok(Cow::Borrowed(&source[1..source.len() - 1]));
+  }
   let bytes = source.as_bytes();
   let mut out = String::with_capacity(source.len());
   let mut i = 1;
@@ -139,10 +149,10 @@ pub(crate) fn double_quoted(source: &str) -> Result<String> {
     }
     i += 1;
   }
-  if !source.ends_with('"') || source.len() == 1 {
+  if !closed {
     return Err((Message::UnclosedString, source.len()));
   }
-  Ok(out)
+  Ok(Cow::Owned(out))
 }
 
 /// `escapeCodes`
