@@ -2,7 +2,7 @@
 
 use crate::js::ast::jsdoc::JSDocTag;
 use crate::js::ast::{
-    Expr, ExprKind, File, Flags, FnKind, Func, Key, KeyKind, List, MemberKind, Modifier, Name,
+    Expr, ExprKind, File, Flags, FnKind, Func, Key, KeyKind, List, MemberKind, Modifiers, Name,
     Node, PropKind, StmtKind,
 };
 
@@ -130,7 +130,7 @@ fn function_with_known_head<'a>(node: Node<'a>) -> Option<Func<'a>> {
 }
 
 /// True if the only modifiers are `export`, `default` and `async`, which oxfmt skips.
-fn are_skipped_modifiers<'a>(modifiers: List<'a, Modifier<'a>>) -> bool {
+fn are_skipped_modifiers(modifiers: Modifiers<'_>) -> bool {
     modifiers.iter().all(|it| {
         it.flag()
             .intersects(Flags::EXPORT | Flags::DEFAULT | Flags::ASYNC)

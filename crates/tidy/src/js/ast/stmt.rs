@@ -10,8 +10,8 @@
 
 use super::{
   Alias, Case, Class, Enum, Export, Expr, Flags, Func, Ident, Import, ImportAttributes,
-  ImportEquals, Interface, List, Modifier, Module, Name, Node, Span, Stmt, VarDecl, VarKind,
-  expression_id, skip_trivia,
+  ImportEquals, Interface, List, Modifiers, Module, Name, Node, Span, Stmt, VarDecl, VarKind,
+  expression_id, modifiers, skip_trivia,
 };
 use oxc_ast::AstKind;
 use oxc_ast::ast::{
@@ -343,11 +343,11 @@ impl<'a> Stmt<'a> {
     Node::Stmt(self).parent()
   }
 
-  /// The decorators of a class, in source order. Its keywords are in [`Stmt::flags`].
-  pub(crate) fn modifiers(self) -> List<'a, Modifier<'a>> {
+  /// `export`, `default`, `declare`, `async`, `abstract`, `const`, and a class's decorators, in source order.
+  pub(crate) fn modifiers(self) -> Modifiers<'a> {
     match self.kind() {
       StmtKind::Class(class) => class.modifiers(),
-      _ => List::empty(self.file),
+      _ => modifiers(self.file, self.span().start, self.flags(), &[]),
     }
   }
 

@@ -198,8 +198,6 @@ handle_structs! {
   ImportEquals,
   /// `export { .. }`, with or without `from`, by its statement.
   Export,
-  /// A decorator.
-  Modifier,
 }
 
 impl super::Spanned for Node<'_> {

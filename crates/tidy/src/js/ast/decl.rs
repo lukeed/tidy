@@ -2,7 +2,8 @@
 //!
 //! Where bun's tree differs from oxc's:
 //! - Keywords such as `export`, `async`, `static` and `private` aren't nodes in oxc's tree but fields of the node they
-//!   modify. A [`Modifier`] is a decorator, `modifiers()` lists only decorators, and `flags()` has the keywords.
+//!   modify. A [`Modifier`] is a value, not a handle: a decorator, or a keyword found in the text from the node's
+//!   start and the flags oxc has for it.
 //! - `span()` is oxc's span of the node. bun's `Func::span` and `Class::span`, which start at the first decorator or
 //!   modifier and include an `export`, are [`Func::full_span`] and [`Class::full_span`]. The `Func` of a method is
 //!   oxc's `Function`, whose span starts at the type parameters or the `(`, as [`Func::span_from_params`] does.
@@ -22,8 +23,8 @@
 use super::{
   Alias, Class, EntityName, Enum, EnumMember, Export, ExportSpec, Expr, File, Flags, FnKind, Func,
   Handle, Ident, Import, ImportAttributes, ImportEquals, ImportSpec, Interface, Key, KeyKind, List,
-  Member, MemberKind, Modifier, Module, Name, Node, Param, Pat, Prop, PropKind, Span, Stmt,
-  TypeNode, TypeParam, expression_id, skip_trivia, target_id, type_id,
+  Member, MemberKind, Module, Name, Node, Param, Pat, Prop, PropKind, Span, Stmt, TypeNode,
+  TypeParam, expression_id, skip_trivia, target_id, type_id,
 };
 use oxc_allocator::CloneIn;
 use oxc_ast::AstKind;
@@ -36,6 +37,7 @@ use oxc_ast::ast::{
   TSTypeParameterDeclaration,
 };
 use oxc_span::GetSpan;
+use smallvec::SmallVec;
 
 use AstKind as K;
 
@@ -431,17 +433,19 @@ impl<'a> Param<'a> {
     self.flags().contains(Flags::PARAMETER_PROPERTY)
   }
 
-  /// The decorators, in source order.
-  pub(crate) fn modifiers(self) -> List<'a, Modifier<'a>> {
+  /// Keywords and decorators, in source order.
+  pub(crate) fn modifiers(self) -> Modifiers<'a> {
     match self.raw() {
-      K::FormalParameter(it) => decorators(self.file, &it.decorators),
-      K::FormalParameterRest(it) => decorators(self.file, &it.decorators),
-      _ => List::empty(self.file),
+      K::FormalParameter(it) => modifiers(self.file, it.span.start, self.flags(), &it.decorators),
+      K::FormalParameterRest(it) => {
+        modifiers(self.file, it.span.start, Flags::empty(), &it.decorators)
+      }
+      _ => Modifiers::default(),
     }
   }
 
   pub(crate) fn decorators(self) -> impl Iterator<Item = Expr<'a>> + 'a {
-    self.modifiers().iter().filter_map(Modifier::decorator)
+    self.modifiers().into_iter().filter_map(Modifier::decorator)
   }
 
   /// The pattern, the `?` and the type annotation. This is the range of ESLint's `Identifier`, `ObjectPattern` or
@@ -517,6 +521,11 @@ impl<'a> TypeParam<'a> {
       flags.set(Flags::OUT, it.out);
     }
     flags
+  }
+
+  /// `const`, `in` and `out`, in source order.
+  pub(crate) fn modifiers(self) -> Modifiers<'a> {
+    modifiers(self.file, self.span().start, self.flags(), &[])
   }
 
   /// The node that declares it: a `Func`, a `Class`, the `Stmt` of an interface or a type alias, or the `TypeNode` of
@@ -602,16 +611,21 @@ impl<'a> Class<'a> {
     }
   }
 
-  /// The decorators, in source order.
-  pub(crate) fn modifiers(self) -> List<'a, Modifier<'a>> {
+  /// Keywords and decorators, in source order. A declaration's are its statement's, `export` included.
+  pub(crate) fn modifiers(self) -> Modifiers<'a> {
     match self.raw_class() {
-      Some(it) => decorators(self.file, &it.decorators),
-      None => List::empty(self.file),
+      Some(it) => modifiers(
+        self.file,
+        self.full_span_without_decorators().start,
+        self.flags(),
+        &it.decorators,
+      ),
+      None => Modifiers::default(),
     }
   }
 
   pub(crate) fn decorators(self) -> impl Iterator<Item = Expr<'a>> + 'a {
-    self.modifiers().iter().filter_map(Modifier::decorator)
+    self.modifiers().into_iter().filter_map(Modifier::decorator)
   }
 
   /// Its first token, which can be a decorator before the `export`.
@@ -649,20 +663,11 @@ impl<'a> Class<'a> {
 
   /// The `class` keyword.
   pub(crate) fn keyword_span(self) -> Span {
-    let text = self.file.text.as_bytes();
-    let whole = self.span();
-    let decorated = self.modifiers().iter().map(|it| it.span().end).filter(|&end| end <= whole.end);
-    let mut at = skip_trivia(text, decorated.max().unwrap_or(whole.start).max(whole.start));
-    while let Some(word) = ["export", "default", "declare", "abstract"].iter().find(|word| {
-      let rest = text.get(at as usize..).unwrap_or_default();
-      rest.starts_with(word.as_bytes())
-        && !rest
-          .get(word.len())
-          .is_some_and(|&byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'$')
-    }) {
-      at = skip_trivia(text, at + word.len() as u32);
-    }
-    Span::new(at, at + "class".len() as u32)
+    let start = match self.modifiers().last() {
+      Some(last) => skip_trivia(self.file.text.as_bytes(), last.span().end),
+      None => self.span().start,
+    };
+    Span::new(start, start + "class".len() as u32)
   }
 
   /// The `{ .. }` around the members.
@@ -861,18 +866,23 @@ impl<'a> Member<'a> {
     }
   }
 
-  /// The decorators, in source order.
-  pub(crate) fn modifiers(self) -> List<'a, Modifier<'a>> {
-    match self.raw() {
-      K::MethodDefinition(it) => decorators(self.file, &it.decorators),
-      K::PropertyDefinition(it) => decorators(self.file, &it.decorators),
-      K::AccessorProperty(it) => decorators(self.file, &it.decorators),
-      _ => List::empty(self.file),
-    }
+  /// Keywords and decorators, in source order. A static block's `static` isn't one.
+  pub(crate) fn modifiers(self) -> Modifiers<'a> {
+    let (flags, decorators) = match self.raw() {
+      K::MethodDefinition(it) if it.value.r#async => {
+        (self.keywords() | Flags::ASYNC, &it.decorators[..])
+      }
+      K::MethodDefinition(it) => (self.keywords(), &it.decorators[..]),
+      K::PropertyDefinition(it) => (self.keywords(), &it.decorators[..]),
+      K::AccessorProperty(it) => (self.keywords(), &it.decorators[..]),
+      K::StaticBlock(_) => return Modifiers::default(),
+      _ => (self.keywords(), &[][..]),
+    };
+    modifiers(self.file, self.span().start, flags, decorators)
   }
 
   pub(crate) fn decorators(self) -> impl Iterator<Item = Expr<'a>> + 'a {
-    self.modifiers().iter().filter_map(Modifier::decorator)
+    self.modifiers().into_iter().filter_map(Modifier::decorator)
   }
 
   /// The `Class`, the `Stmt` of the interface, or the `TypeNode` of the type literal.
@@ -888,25 +898,123 @@ impl<'a> Member<'a> {
   }
 }
 
-impl<'a> Handle<'a> for Modifier<'a> {
-  fn from_raw(file: &'a File<'a>, id: u32) -> Self {
-    Modifier::new(file, id)
-  }
+/// A keyword before a declaration, a member or a parameter, or a decorator.
+#[derive(Copy, Clone, Debug)]
+pub(crate) struct Modifier<'a> {
+  flag: Flags,
+  span: Span,
+  decorator: Option<Expr<'a>>,
 }
 
 impl<'a> Modifier<'a> {
-  /// A keyword's flag, which is always empty: keywords aren't modifiers here.
+  /// A keyword's flag. Empty for a decorator.
   pub(crate) fn flag(self) -> Flags {
-    Flags::empty()
+    self.flag
   }
 
   /// The `e` of `@e`.
   pub(crate) fn decorator(self) -> Option<Expr<'a>> {
-    match self.raw() {
-      K::Decorator(it) => Some(Expr::new(self.file, expression_id(&it.expression))),
-      _ => None,
-    }
+    self.decorator
   }
+
+  /// The keyword, or the decorator from its `@`.
+  pub(crate) fn span(self) -> Span {
+    self.span
+  }
+}
+
+/// The modifiers of a node, in source order.
+#[derive(Clone, Default, Debug)]
+pub(crate) struct Modifiers<'a>(SmallVec<[Modifier<'a>; 2]>);
+
+impl<'a> Modifiers<'a> {
+  pub(crate) fn iter(&self) -> impl DoubleEndedIterator<Item = Modifier<'a>> + '_ {
+    self.0.iter().copied()
+  }
+
+  pub(crate) fn is_empty(&self) -> bool {
+    self.0.is_empty()
+  }
+
+  pub(crate) fn first(&self) -> Option<Modifier<'a>> {
+    self.0.first().copied()
+  }
+
+  pub(crate) fn last(&self) -> Option<Modifier<'a>> {
+    self.0.last().copied()
+  }
+}
+
+impl<'a> IntoIterator for Modifiers<'a> {
+  type Item = Modifier<'a>;
+  type IntoIter = smallvec::IntoIter<[Modifier<'a>; 2]>;
+
+  fn into_iter(self) -> Self::IntoIter {
+    self.0.into_iter()
+  }
+}
+
+/// The keywords that are modifiers: bun's `modifier_text`.
+const KEYWORDS: [(Flags, &str); 15] = [
+  (Flags::ABSTRACT, "abstract"),
+  (Flags::ACCESSOR, "accessor"),
+  (Flags::ASYNC, "async"),
+  (Flags::CONST, "const"),
+  (Flags::AMBIENT, "declare"),
+  (Flags::DEFAULT, "default"),
+  (Flags::EXPORT, "export"),
+  (Flags::IN, "in"),
+  (Flags::OUT, "out"),
+  (Flags::OVERRIDE, "override"),
+  (Flags::PRIVATE, "private"),
+  (Flags::PROTECTED, "protected"),
+  (Flags::PUBLIC, "public"),
+  (Flags::READONLY, "readonly"),
+  (Flags::STATIC, "static"),
+];
+
+/// The modifiers of a node that starts at `start`: its `decorators`, and the keywords of `flags` in the text, each read
+/// once, up to the first word that isn't one.
+pub(super) fn modifiers<'a>(
+  file: &'a File<'a>,
+  start: u32,
+  flags: Flags,
+  decorators: &[Decorator<'a>],
+) -> Modifiers<'a> {
+  let text = file.text.as_bytes();
+  let decorator = |it: &Decorator<'a>| Modifier {
+    flag: Flags::empty(),
+    span: span(it.span),
+    decorator: Some(Expr::new(file, expression_id(&it.expression))),
+  };
+  let mut decorators = decorators.iter().peekable();
+  let first = decorators.peek().map_or(start, |it| it.span.start.min(start));
+  let (mut list, mut left, mut at) = (SmallVec::new(), flags, skip_trivia(text, first));
+  loop {
+    if let Some(it) = decorators.next_if(|it| it.span.start <= at) {
+      list.push(decorator(it));
+      at = skip_trivia(text, it.span.end.max(at));
+      continue;
+    }
+    let found =
+      KEYWORDS.iter().find(|&&(flag, word)| left.contains(flag) && is_word(text, at, word));
+    let Some(&(flag, word)) = found else { break };
+    let end = at + word.len() as u32;
+    list.push(Modifier { flag, span: Span::new(at, end), decorator: None });
+    left -= flag;
+    at = skip_trivia(text, end);
+  }
+  list.extend(decorators.map(decorator));
+  Modifiers(list)
+}
+
+/// True if `word` is at `at`, and not the start of a longer name.
+fn is_word(text: &[u8], at: u32, word: &str) -> bool {
+  let rest = text.get(at as usize..).unwrap_or_default();
+  rest.starts_with(word.as_bytes())
+    && !rest.get(word.len()).is_some_and(|&byte| {
+      byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'$' | b'\\') || byte >= 0x80
+    })
 }
 
 impl<'a> Prop<'a> {
@@ -1029,9 +1137,13 @@ impl<'a> Prop<'a> {
     matches!(self.raw(), K::ImportAttribute(_))
   }
 
-  /// Always empty: oxc has no decorators on a property, and its keywords are its kind.
-  pub(crate) fn modifiers(self) -> List<'a, Modifier<'a>> {
-    List::empty(self.file)
+  /// A method's `async`: oxc has no decorators on a property, and parses no other keyword.
+  pub(crate) fn modifiers(self) -> Modifiers<'a> {
+    let flags = match self.func() {
+      Some(func) if self.kind() == PropKind::Method => func.flags() & Flags::ASYNC,
+      _ => Flags::empty(),
+    };
+    modifiers(self.file, self.span().start, flags, &[])
   }
 
   /// The object literal or the JSX element. For an [import attribute](Prop::is_import_attribute), the `Stmt` of the
@@ -1691,10 +1803,6 @@ fn type_params<'a>(
 
 fn annotation<'a>(file: &'a File<'a>, ty: Option<&TSTypeAnnotation>) -> Option<TypeNode<'a>> {
   ty.map(|ty| TypeNode::new(file, type_id(&ty.type_annotation)))
-}
-
-fn decorators<'a>(file: &'a File<'a>, list: &[Decorator]) -> List<'a, Modifier<'a>> {
-  List::run(file, list.first().map(|it| it.node_id().index() as u32), list.len())
 }
 
 /// The statements of a body, with its directives first.
