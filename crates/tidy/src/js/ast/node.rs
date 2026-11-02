@@ -42,8 +42,15 @@ macro_rules! handle_structs {
         /// From its first token to the end of its last, without parentheses around it.
         #[inline]
         pub(crate) fn span(self) -> Span {
-          let span = self.raw().span();
-          Span::new(span.start, span.end)
+          let raw = self.raw();
+          let span = raw.span();
+          match raw {
+            AstKind::TSIndexSignatureName(it) if stringify!($name) == "Pat" => {
+              Span::new(span.start, span.start + it.name.len() as u32)
+            }
+            AstKind::TSThisParameter(_) if stringify!($name) == "Pat" => Span::new(span.start, span.start + 4),
+            _ => Span::new(span.start, span.end),
+          }
         }
 
         /// The node's source text.
