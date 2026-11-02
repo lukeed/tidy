@@ -80,6 +80,11 @@ description = "Compare JS and TS with Prettier: mise run oracle:js -- [dir...] [
 run = "bun tests/oracle/js.ts"
 depends = ["build:napi"]
 
+[tasks."oracle:js:meaning"]
+description = "Check that tidy's JS and TS output means what its input means: mise run oracle:js:meaning -- [dir...] [--show=n]"
+dir = "tests/oracle/meaning"
+run = "cargo run --release --"
+
 [tasks."oracle:graphql"]
 description = "Compare GraphQL with Prettier: mise run oracle:graphql -- [dir...] [--show=n]"
 run = "bun tests/oracle/graphql.ts"
