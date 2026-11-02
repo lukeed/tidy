@@ -52,10 +52,10 @@ impl<'p, 'a> Printer<'p, 'a> {
     self.ancestors.pop();
   }
 
-  /// The steps to the items of a list: each is last if it is the list's last, and the list is reached by last steps.
-  fn list(&self, items: &[Id], step: Step) -> Vec<Step> {
-    let count = items.len();
-    (0..count).map(|index| Step { last: step.last && index + 1 == count }).collect()
+  /// The step to the item at `index` of a list of `count`: last if it is the list's last, and the list is reached by
+  /// last steps.
+  fn item(step: Step, index: usize, count: usize) -> Step {
+    Step { last: step.last && index + 1 == count }
   }
 
   /// `genericPrint`
@@ -205,11 +205,12 @@ impl<'p, 'a> Printer<'p, 'a> {
       Kind::Root => self.print_root(id),
       Kind::Document => self.print_document(id, step),
       Kind::DocumentHead => {
-        let steps = self.list(node.children(), step);
+        let count = node.children().len();
         let items = node
           .children()
           .iter()
-          .zip(steps)
+          .enumerate()
+          .map(|(index, child)| (child, Self::item(step, index, count)))
           .chain(node.end_comments().iter().map(|it| (it, Step { last: false })));
         for (index, (item, step)) in items.enumerate() {
           if index > 0 {
@@ -246,12 +247,12 @@ impl<'p, 'a> Printer<'p, 'a> {
       Kind::QuoteDouble | Kind::QuoteSingle => self.print_quote(id),
       Kind::BlockFolded | Kind::BlockLiteral => self.print_block(id, step),
       Kind::Mapping | Kind::Sequence => {
-        let steps = self.list(node.children(), step);
+        let count = node.children().len();
         for (index, child) in node.children().iter().enumerate() {
           if index > 0 {
             self.docs.hardline();
           }
-          self.child(id, *child, steps[index]);
+          self.child(id, *child, Self::item(step, index, count));
         }
       }
       Kind::SequenceItem => {
@@ -353,12 +354,12 @@ impl<'p, 'a> Printer<'p, 'a> {
 
   fn print_body(&mut self, id: Id, step: Step) {
     let node = self.node(id);
-    let steps = self.list(node.children(), step);
+    let count = node.children().len();
     for (index, child) in node.children().iter().enumerate() {
       if index > 0 {
         self.docs.hardline();
       }
-      self.child(id, *child, steps[index]);
+      self.child(id, *child, Self::item(step, index, count));
     }
     if !node.children().is_empty() && !node.end_comments().is_empty() {
       let last = last_descendant(self.root, id);
@@ -817,9 +818,9 @@ impl<'p, 'a> Printer<'p, 'a> {
     let tab = SPACES[..self.options.tab_width.min(SPACES.len())].as_ref();
     let align = self.docs.align(Align::Text(tab));
     self.spacing(spaced);
-    let steps = self.list(node.children(), step);
+    let count = node.children().len();
     for (index, child) in node.children().iter().enumerate() {
-      self.child(id, *child, steps[index]);
+      self.child(id, *child, Self::item(step, index, count));
       if let Some(next) = node.children().get(index + 1) {
         self.docs.text(",");
         self.docs.line();
