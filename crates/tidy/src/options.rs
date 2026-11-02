@@ -3,6 +3,8 @@
 
 use crate::embed::Embed;
 use crate::embed::{Kind, Request};
+#[cfg(feature = "js")]
+use crate::js;
 use crate::{
   Error, Whitespace, css, doc, dockerfile, graphql, handlebars, html, ini, json, markdown, toml,
   xml, yaml,
@@ -23,6 +25,8 @@ pub enum Language {
   Dockerfile,
   Ini(ini::Dialect),
   Graphql,
+  #[cfg(feature = "js")]
+  Js(js::Dialect),
 }
 
 impl Language {
@@ -42,6 +46,10 @@ impl Language {
     }
     if graphql::is_graphql_path(path) {
       return Some(Language::Graphql);
+    }
+    #[cfg(feature = "js")]
+    if let Some(dialect) = js::Dialect::of_path(path) {
+      return Some(Language::Js(dialect));
     }
     if let Some(dialect) = ini::Dialect::of_path(path) {
       return Some(Language::Ini(dialect));
@@ -83,6 +91,9 @@ pub struct Options {
   /// For every dialect of INI.
   pub ini: ini::Options,
   pub graphql: graphql::Options,
+  /// For JavaScript and TypeScript.
+  #[cfg(feature = "js")]
+  pub js: js::Options,
 }
 
 impl Default for Options {
@@ -100,6 +111,8 @@ impl Default for Options {
       dockerfile: dockerfile::Options::default(),
       ini: ini::Options::default(),
       graphql: graphql::Options::default(),
+      #[cfg(feature = "js")]
+      js: js::Options::default(),
     }
   }
 }
@@ -119,6 +132,8 @@ impl Options {
     shared.dockerfile(&mut self.dockerfile);
     shared.ini(&mut self.ini);
     shared.graphql(&mut self.graphql);
+    #[cfg(feature = "js")]
+    shared.js(&mut self.js);
   }
 }
 
@@ -133,13 +148,13 @@ pub struct Shared {
   pub eol: Option<doc::Eol>,
   /// HTML, Vue, Handlebars and XML.
   pub whitespace: Option<Whitespace>,
-  /// Prefer single quotes: Handlebars, style sheets and JSON5.
+  /// Prefer single quotes: Handlebars, style sheets, JSON5 and scripts.
   pub single_quote: Option<bool>,
-  /// Prettier's `trailingComma` is not `"none"`: SCSS, JSONC, JSON5, and TOML arrays.
+  /// Prettier's `trailingComma` is not `"none"`: SCSS, JSONC, JSON5, TOML arrays and scripts.
   pub trailing_comma: Option<bool>,
-  /// Spaces inside the braces of an object on one line: JSON, and YAML's flow mappings.
+  /// Spaces inside the braces of an object on one line: JSON, YAML's flow mappings and scripts.
   pub bracket_spacing: Option<bool>,
-  /// HTML, Vue and XML.
+  /// HTML, Vue, XML and JSX.
   pub bracket_same_line: Option<bool>,
   /// HTML, Vue and XML.
   pub single_attribute_per_line: Option<bool>,
@@ -255,6 +270,26 @@ impl Shared {
     set(&mut options.ignore, self.ignore.clone());
   }
 
+  /// `trailing_comma` turns trailing commas on or off, and keeps `es5` when on.
+  #[cfg(feature = "js")]
+  pub fn js(&self, options: &mut js::Options) {
+    set(&mut options.width, self.width);
+    set(&mut options.tab_width, self.indent);
+    set(&mut options.tabs, self.tabs);
+    set(&mut options.eol, self.eol);
+    set(&mut options.single_quote, self.single_quote);
+    set(&mut options.bracket_spacing, self.bracket_spacing);
+    set(&mut options.bracket_same_line, self.bracket_same_line);
+    set(&mut options.format_embedded, self.format_embedded);
+    match self.trailing_comma {
+      Some(false) => options.trailing_comma = js::TrailingComma::None,
+      Some(true) if options.trailing_comma == js::TrailingComma::None => {
+        options.trailing_comma = js::TrailingComma::All
+      }
+      _ => {}
+    }
+  }
+
   pub fn xml(&self, options: &mut xml::Options) {
     set(&mut options.width, self.width);
     set(&mut options.tab_width, self.indent);
@@ -305,6 +340,8 @@ pub struct Formatter {
   dockerfile: dockerfile::Formatter,
   ini: ini::Formatter,
   graphql: graphql::Formatter,
+  #[cfg(feature = "js")]
+  js: js::Formatter,
   markdown: String,
 }
 
@@ -344,6 +381,11 @@ impl Formatter {
         self.ini.format(text, &options)
       }
       Language::Graphql => self.graphql.format(text, &options.graphql),
+      #[cfg(feature = "js")]
+      Language::Js(dialect) => {
+        let options = js::Options { dialect, ..options.js };
+        self.js.format(text, path.unwrap_or_default(), &options)
+      }
       Language::Xml => self.xml.format(text, &options.xml, embed),
       Language::Yaml => {
         let options = yaml::Options { filepath, ..options.yaml.clone() };

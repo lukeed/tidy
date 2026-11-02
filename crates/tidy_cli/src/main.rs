@@ -5,12 +5,12 @@ use std::process::ExitCode;
 use tidy::config::{Config, Resolver};
 use tidy::embed::Verbatim;
 use tidy::{
-  Error, Formatter, Language, Options, Shared, Whitespace, css, doc, handlebars, ini, json,
+  Error, Formatter, Language, Options, Shared, Whitespace, css, doc, handlebars, ini, js, json,
 };
 use tidy_walk::Output;
 
 const HELP: &str = "\
-tidy: a fast formatter for markup, style sheets and data
+tidy: a fast formatter for markup, scripts, style sheets and data
 
 Usage
   $ tidy [paths...] [options]
@@ -18,13 +18,14 @@ Usage
   Without paths, reads stdin and prints the result.
   With one file, prints the result unless --check or --write is set.
   Folders are searched for .html, .htm, .vue, .hbs, .handlebars, .css, .scss, .less, .md, and .markdown
-  files, for JSON files: .json, .jsonc, .json5, package.json, and the others that Prettier formats, for .yml,
-  .yaml, .toml, .graphql, .gql and .graphqls files, for Dockerfile, Containerfile, Dockerfile.dev and
-  .dockerfile files, for INI files: .ini, .cfg, .editorconfig, .npmrc, .gitconfig, .gitmodules, and the
-  others that prettier-plugin-ini formats, and for XML files: .xml, .svg, .plist, .csproj, pom.xml, and the
-  others that @prettier/plugin-xml formats. Style sheets in <style> and style=\"\", JSON in scripts and code
-  blocks, YAML and TOML in code blocks and front matter, and Dockerfiles, INI and GraphQL in code blocks are
-  formatted. Other scripts and code blocks are left as written.
+  files, for JavaScript and TypeScript files: .js, .jsx, .mjs, .cjs, .ts, .tsx, .mts, .cts, and the others
+  that Prettier formats, for JSON files: .json, .jsonc, .json5, package.json, and the others that Prettier
+  formats, for .yml, .yaml, .toml, .graphql, .gql and .graphqls files, for Dockerfile, Containerfile,
+  Dockerfile.dev and .dockerfile files, for INI files: .ini, .cfg, .editorconfig, .npmrc, .gitconfig,
+  .gitmodules, and the others that prettier-plugin-ini formats, and for XML files: .xml, .svg, .plist,
+  .csproj, pom.xml, and the others that @prettier/plugin-xml formats. Style sheets in <style> and style=\"\",
+  JSON in scripts and code blocks, YAML and TOML in code blocks and front matter, and Dockerfiles, INI and
+  GraphQL in code blocks are formatted. Scripts in markup and other code blocks are left as written.
 
   Each file takes its options from the nearest tidy.json, tidy.jsonc or tidy.toml, and from .editorconfig.
   Options given here override them.
@@ -33,8 +34,8 @@ Options
   --check                         List files that aren't formatted, and exit 1 if any
   -w, --write                     Rewrite files in place
   --parser <name>                 html, vue, handlebars, tempura, css, scss, less, json, jsonc, json5,
-                                  json-stringify, yaml, toml, dockerfile, ini, gitconfig, graphql, xml, or
-                                  markdown (default: by file name)
+                                  json-stringify, yaml, toml, dockerfile, ini, gitconfig, graphql, babel,
+                                  typescript, babel-ts, xml, or markdown (default: by file name)
   --stdin-filepath <path>         The path of the text on stdin, for its language and its config files
   --config <path>                 Use this config for every file instead of the nearest one
   --no-config                     Read no config files and no .editorconfig
@@ -43,9 +44,9 @@ Options
   --tabs                          Indent with tabs
   --eol <eol>                     lf (default), crlf, or cr
   --whitespace <how>              strict, auto, or ignore (default: auto, and strict for XML)
-  --quote <quote>                 double (default) or single, in Handlebars, style sheets, JSON5 and YAML
-  --no-trailing-comma             No trailing commas in SCSS, JSONC, JSON5, YAML and TOML
-  --no-bracket-spacing            No spaces inside the braces of JSON objects and YAML flow mappings
+  --quote <quote>                 double (default) or single, in Handlebars, style sheets, JSON5, YAML and JS
+  --no-trailing-comma             No trailing commas in SCSS, JSONC, JSON5, YAML, TOML and JS
+  --no-bracket-spacing            No spaces inside the braces of JSON and JS objects and YAML flow mappings
   --single-attribute-per-line     Put each attribute on its own line
   --bracket-same-line             Keep the > of a multi-line tag on the last line
   --ignore <name>                 The ignore directive (default: prettier-ignore)
@@ -105,6 +106,8 @@ fn run() -> Result<ExitCode, String> {
         "ini" => (Language::Ini(ini::Dialect::Ini), None),
         "gitconfig" => (Language::Ini(ini::Dialect::Git), None),
         "graphql" => (Language::Graphql, None),
+        "babel" => (Language::Js(js::Dialect::Js), None),
+        "typescript" | "babel-ts" => (Language::Js(js::Dialect::Ts), None),
         "yaml" => (Language::Yaml, None),
         "xml" => (Language::Xml, None),
         "markdown" => (Language::Markdown, None),

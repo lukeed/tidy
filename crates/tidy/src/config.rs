@@ -43,6 +43,8 @@ pub struct Config {
   pub dockerfile: Dockerfile,
   pub ini: Ini,
   pub graphql: Shared,
+  #[cfg(feature = "js")]
+  pub js: Js,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -105,6 +107,29 @@ pub struct Ini {
   pub shared: Shared,
   /// `spaceAroundEquals`: the plugin's `iniSpaceAroundEquals`.
   pub space_around_equals: Option<bool>,
+}
+
+/// Prettier's options for JavaScript and TypeScript. `trailingComma` is `"all"`, `"es5"` or `"none"` here, or the
+/// shared true or false.
+#[cfg(feature = "js")]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Js {
+  pub shared: Shared,
+  pub semi: Option<bool>,
+  /// `jsxSingleQuote`
+  pub jsx_single_quote: Option<bool>,
+  /// `quoteProps`
+  pub quote_props: Option<json::QuoteProps>,
+  /// `trailingComma`, as a string.
+  pub trailing_comma: Option<crate::js::TrailingComma>,
+  /// `arrowParens`
+  pub arrow_parens: Option<crate::js::ArrowParens>,
+  /// `objectWrap`
+  pub object_wrap: Option<json::ObjectWrap>,
+  /// `experimentalTernaries`
+  pub experimental_ternaries: Option<bool>,
+  /// `experimentalOperatorPosition`
+  pub experimental_operator_position: Option<crate::js::OperatorPosition>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -180,6 +205,8 @@ impl Config {
         "dockerfile" => config.dockerfile = dockerfile(section("dockerfile")?)?,
         "ini" => config.ini = ini(section("ini")?)?,
         "graphql" => config.graphql = shared_only(section("graphql")?, "graphql")?,
+        #[cfg(feature = "js")]
+        "js" => config.js = js(section("js")?)?,
         "yaml" => config.yaml = yaml(section("yaml")?)?,
         "xml" => config.xml = xml(section("xml")?)?,
         "markdown" => config.markdown = markdown(section("markdown")?)?,
@@ -215,6 +242,8 @@ impl Config {
     self.ini.shared.ini(&mut options.ini);
     set(&mut options.ini.spaces, self.ini.space_around_equals);
     self.graphql.graphql(&mut options.graphql);
+    #[cfg(feature = "js")]
+    self.js.apply(&mut options.js);
     self.yaml.shared.yaml(&mut options.yaml);
     set(&mut options.yaml.wrap, self.yaml.wrap);
     self.xml.shared.xml(&mut options.xml);
@@ -330,30 +359,86 @@ fn json(map: &Map<String, Value>) -> Result<Json, String> {
   let mut options = Json::default();
   for (key, value) in map {
     match key.as_str() {
-      "quoteProps" => {
-        options.quote_props = Some(match text(value, "json.quoteProps")? {
-          "as-needed" => json::QuoteProps::AsNeeded,
-          "consistent" => json::QuoteProps::Consistent,
-          "preserve" => json::QuoteProps::Preserve,
-          _ => {
-            return Err(
-              "`json.quoteProps` must be \"as-needed\", \"consistent\" or \"preserve\"".into(),
-            );
-          }
-        })
-      }
-      "objectWrap" => {
-        options.object_wrap = Some(match text(value, "json.objectWrap")? {
-          "preserve" => json::ObjectWrap::Preserve,
-          "collapse" => json::ObjectWrap::Collapse,
-          _ => return Err("`json.objectWrap` must be \"preserve\" or \"collapse\"".into()),
-        })
-      }
+      "quoteProps" => options.quote_props = Some(quote_props(value, "json.quoteProps")?),
+      "objectWrap" => options.object_wrap = Some(object_wrap(value, "json.objectWrap")?),
       _ if shared(&mut options.shared, key, value, "json")? => {}
       _ => return Err(format!("unknown option `json.{key}`")),
     }
   }
   Ok(options)
+}
+
+fn quote_props(value: &Value, name: &str) -> Result<json::QuoteProps, String> {
+  Ok(match text(value, name)? {
+    "as-needed" => json::QuoteProps::AsNeeded,
+    "consistent" => json::QuoteProps::Consistent,
+    "preserve" => json::QuoteProps::Preserve,
+    _ => return Err(format!("`{name}` must be \"as-needed\", \"consistent\" or \"preserve\"")),
+  })
+}
+
+fn object_wrap(value: &Value, name: &str) -> Result<json::ObjectWrap, String> {
+  Ok(match text(value, name)? {
+    "preserve" => json::ObjectWrap::Preserve,
+    "collapse" => json::ObjectWrap::Collapse,
+    _ => return Err(format!("`{name}` must be \"preserve\" or \"collapse\"")),
+  })
+}
+
+#[cfg(feature = "js")]
+fn js(map: &Map<String, Value>) -> Result<Js, String> {
+  use crate::js::{ArrowParens, OperatorPosition, TrailingComma};
+  let mut options = Js::default();
+  for (key, value) in map {
+    let name = format!("js.{key}");
+    match key.as_str() {
+      "semi" => options.semi = Some(flag(value, &name)?),
+      "jsxSingleQuote" => options.jsx_single_quote = Some(flag(value, &name)?),
+      "quoteProps" => options.quote_props = Some(quote_props(value, &name)?),
+      "trailingComma" if value.is_string() => {
+        options.trailing_comma = Some(match text(value, &name)? {
+          "all" => TrailingComma::All,
+          "es5" => TrailingComma::Es5,
+          "none" => TrailingComma::None,
+          _ => return Err(format!("`{name}` must be \"all\", \"es5\", \"none\", true or false")),
+        })
+      }
+      "arrowParens" => {
+        options.arrow_parens = Some(match text(value, &name)? {
+          "always" => ArrowParens::Always,
+          "avoid" => ArrowParens::Avoid,
+          _ => return Err(format!("`{name}` must be \"always\" or \"avoid\"")),
+        })
+      }
+      "objectWrap" => options.object_wrap = Some(object_wrap(value, &name)?),
+      "experimentalTernaries" => options.experimental_ternaries = Some(flag(value, &name)?),
+      "experimentalOperatorPosition" => {
+        options.experimental_operator_position = Some(match text(value, &name)? {
+          "start" => OperatorPosition::Start,
+          "end" => OperatorPosition::End,
+          _ => return Err(format!("`{name}` must be \"start\" or \"end\"")),
+        })
+      }
+      _ if shared(&mut options.shared, key, value, "js")? => {}
+      _ => return Err(format!("unknown option `{name}`")),
+    }
+  }
+  Ok(options)
+}
+
+#[cfg(feature = "js")]
+impl Js {
+  fn apply(&self, options: &mut crate::js::Options) {
+    self.shared.js(options);
+    set(&mut options.semi, self.semi);
+    set(&mut options.jsx_single_quote, self.jsx_single_quote);
+    set(&mut options.quote_props, self.quote_props);
+    set(&mut options.trailing_comma, self.trailing_comma);
+    set(&mut options.arrow_parens, self.arrow_parens);
+    set(&mut options.object_wrap, self.object_wrap);
+    set(&mut options.experimental_ternaries, self.experimental_ternaries);
+    set(&mut options.experimental_operator_position, self.experimental_operator_position);
+  }
 }
 
 impl Toml {

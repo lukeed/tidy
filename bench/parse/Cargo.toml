@@ -35,7 +35,7 @@ serde_json = "=1.0.154"
 serde_yaml = "=0.9.34"
 sonic-rs = "=0.5.10"
 taplo = { version = "=0.14.0", default-features = false }
-tidy = { path = "../../crates/tidy", features = ["config"] }
+tidy = { path = "../../crates/tidy", features = ["config", "js"] }
 tl = "=0.7.8"
 toml = "=1.1.8"
 toml_edit = "=0.25.17"

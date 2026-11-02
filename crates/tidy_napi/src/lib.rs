@@ -3,7 +3,7 @@ use napi_derive::napi;
 use serde_json::{Map, Value};
 use tidy::config::Config;
 use tidy::embed::{Kind, Request};
-use tidy::{Formatter, Language, Options, css, ini, json};
+use tidy::{Formatter, Language, Options, css, ini, js, json};
 
 /// A piece of embedded code for the host to format.
 #[napi(object)]
@@ -29,7 +29,7 @@ type Callback<'a> = Function<'a, EmbedRequest, Option<String>>;
 pub struct FormatOptions {
   /// The language. Default: by `filepath`, and HTML without one.
   #[napi(
-    ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'json' | 'jsonc' | 'json5' | 'json-stringify' | 'yaml' | 'toml' | 'dockerfile' | 'ini' | 'gitconfig' | 'graphql' | 'xml' | 'markdown'"
+    ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'json' | 'jsonc' | 'json5' | 'json-stringify' | 'yaml' | 'toml' | 'dockerfile' | 'ini' | 'gitconfig' | 'graphql' | 'babel' | 'typescript' | 'babel-ts' | 'xml' | 'markdown'"
   )]
   pub parser: Option<String>,
   /// The file's path, which decides the language and some details.
@@ -47,12 +47,12 @@ pub struct FormatOptions {
   /// Default: `auto`, and `strict` for XML.
   #[napi(ts_type = "'strict' | 'auto' | 'ignore'")]
   pub whitespace: Option<String>,
-  /// Quotes in Handlebars, style sheets, JSON5 and YAML. Default: `double`.
+  /// Quotes in Handlebars, style sheets, JSON5, YAML and JS. Default: `double`.
   #[napi(ts_type = "'double' | 'single'")]
   pub quote: Option<String>,
-  /// Trailing commas in SCSS, JSONC, JSON5, YAML flow collections and TOML arrays. Default: true.
+  /// Trailing commas in SCSS, JSONC, JSON5, YAML flow collections, TOML arrays and JS. Default: true.
   pub trailing_comma: Option<bool>,
-  /// Spaces inside the braces of JSON objects and YAML flow mappings. Default: true.
+  /// Spaces inside the braces of JSON and JS objects and YAML flow mappings. Default: true.
   pub bracket_spacing: Option<bool>,
   pub bracket_same_line: Option<bool>,
   pub single_attribute_per_line: Option<bool>,
@@ -89,6 +89,11 @@ pub struct FormatOptions {
   /// Options for GraphQL only: the shared ones.
   #[napi(ts_type = "Record<string, unknown>")]
   pub graphql: Option<Value>,
+  /// Options for JavaScript and TypeScript only: the shared ones, `trailingComma` as `all`, `es5` or `none`, and
+  /// `semi`, `jsxSingleQuote`, `quoteProps`, `arrowParens`, `objectWrap`, `experimentalTernaries` and
+  /// `experimentalOperatorPosition`.
+  #[napi(ts_type = "Record<string, unknown>")]
+  pub js: Option<Value>,
   /// Options for XML only: the shared ones, and `selfClosingSpace`, `sortAttributes` and `attributeQuotes`.
   #[napi(ts_type = "Record<string, unknown>")]
   pub xml: Option<Value>,
@@ -190,6 +195,8 @@ fn language(input: &FormatOptions) -> napi::Result<(Language, Option<tidy::handl
     Some("ini") => (Language::Ini(ini::Dialect::Ini), None),
     Some("gitconfig") => (Language::Ini(ini::Dialect::Git), None),
     Some("graphql") => (Language::Graphql, None),
+    Some("babel") => (Language::Js(js::Dialect::Js), None),
+    Some("typescript" | "babel-ts") => (Language::Js(js::Dialect::Ts), None),
     Some("yaml") => (Language::Yaml, None),
     Some("xml") => (Language::Xml, None),
     Some("markdown") => (Language::Markdown, None),
@@ -229,6 +236,7 @@ fn config(input: &FormatOptions) -> Value {
   put("dockerfile", input.dockerfile.clone());
   put("ini", input.ini.clone());
   put("graphql", input.graphql.clone());
+  put("js", input.js.clone());
   put("yaml", input.yaml.clone());
   put("xml", input.xml.clone());
   put("markdown", input.markdown.clone());

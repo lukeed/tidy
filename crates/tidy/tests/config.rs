@@ -78,6 +78,40 @@ fn sets_graphql() {
   assert_eq!((options.width, options.bracket_spacing), (100, false));
 }
 
+#[cfg(feature = "js")]
+#[test]
+fn sets_js() {
+  use tidy::js::{ArrowParens, OperatorPosition, TrailingComma};
+  let config = Config::json(
+    r#"{
+      "quote": "single",
+      "trailingComma": false,
+      "js": {
+        "width": 100,
+        "semi": false,
+        "jsxSingleQuote": true,
+        "quoteProps": "consistent",
+        "arrowParens": "avoid",
+        "objectWrap": "collapse",
+        "experimentalTernaries": true,
+        "experimentalOperatorPosition": "start"
+      }
+    }"#,
+  )
+  .unwrap();
+  let js = options(&config).js;
+  assert_eq!((js.width, js.semi), (100, false));
+  assert!(js.single_quote && js.jsx_single_quote && js.experimental_ternaries);
+  assert_eq!(js.quote_props, tidy::json::QuoteProps::Consistent);
+  assert_eq!(js.trailing_comma, TrailingComma::None);
+  assert_eq!(js.arrow_parens, ArrowParens::Avoid);
+  assert_eq!(js.object_wrap, tidy::json::ObjectWrap::Collapse);
+  assert_eq!(js.experimental_operator_position, OperatorPosition::Start);
+  let config = Config::json(r#"{ "js": { "trailingComma": "es5" } }"#).unwrap();
+  assert_eq!(options(&config).js.trailing_comma, TrailingComma::Es5);
+  assert!(Config::json(r#"{ "js": { "trailingComma": "some" } }"#).is_err());
+}
+
 #[test]
 fn sets_ini() {
   let config =
