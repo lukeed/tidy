@@ -23,29 +23,28 @@ use crate::js::base::*;
 /// `connect(a, b, c)(d)`: `call` is the callee of a call that has fewer arguments, but at least one.
 #[inline]
 pub(crate) fn is_long_curried_call(call: Expr<'_>, f: &Formatter<'_>) -> bool {
-    call.as_call_like()
-        .is_some_and(|call| call.args().len() > 1)
-        && may_be_followed_by_arguments(call)
-        && matches!(call.parent(), Node::Expr(parent) if parent.tag() == ExprTag::Call && is_long_curried_callee(call, parent, f))
+  call.as_call_like().is_some_and(|call| call.args().len() > 1)
+    && may_be_followed_by_arguments(call)
+    && matches!(call.parent(), Node::Expr(parent) if parent.tag() == ExprTag::Call && is_long_curried_callee(call, parent, f))
 }
 
 /// True if the character after `callee` can come between a callee and its arguments: whitespace, a comment, a `)`, or
 /// the start of `(`, `<T>(` or `?.(`.
 #[inline]
 fn may_be_followed_by_arguments(callee: Expr<'_>) -> bool {
-    (callee.file().text().get(callee.span().end as usize)).is_some_and(|&next| {
-        next <= b' ' || !next.is_ascii() || matches!(next, b'(' | b')' | b'<' | b'?' | b'/')
-    })
+  (callee.file().text().get(callee.span().end as usize)).is_some_and(|&next| {
+    next <= b' ' || !next.is_ascii() || matches!(next, b'(' | b')' | b'<' | b'?' | b'/')
+  })
 }
 
 /// `parent` is the call that contains `call`. A whole optional chain is in a `ChainExpression`, unless the tree is
 /// Babel's.
 fn is_long_curried_callee<'a>(call: Expr<'a>, parent: Expr<'a>, f: &Formatter<'_>) -> bool {
-    let (Some(this), Some(parent)) = (call.as_call_like(), parent.as_call_like()) else {
-        return false;
-    };
-    parent.callee() == call
-        && (f.context().has_babel_tree() || !call.is_chain_root())
-        && this.args().len() > parent.args().len()
-        && !parent.args().is_empty()
+  let (Some(this), Some(parent)) = (call.as_call_like(), parent.as_call_like()) else {
+    return false;
+  };
+  parent.callee() == call
+    && (f.context().has_babel_tree() || !call.is_chain_root())
+    && this.args().len() > parent.args().len()
+    && !parent.args().is_empty()
 }

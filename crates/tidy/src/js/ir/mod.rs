@@ -11,7 +11,7 @@ pub(crate) mod width;
 mod width_tables;
 
 pub(crate) mod prelude {
-    pub(crate) use super::builders::*;
-    pub(crate) use super::element::{Fallback, FormatElement, GroupId, JsLabels, LabelId, Tag};
-    pub(crate) use super::formatter::{Format, Formatter, MemoizeFormat, Memoized};
+  pub(crate) use super::builders::*;
+  pub(crate) use super::element::{Fallback, FormatElement, GroupId, JsLabels, LabelId, Tag};
+  pub(crate) use super::formatter::{Format, Formatter, MemoizeFormat, Memoized};
 }

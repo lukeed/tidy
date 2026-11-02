@@ -9,8 +9,8 @@ use std::cmp::Ordering;
 /// 26) sorts as one run, the same items are compared here. Takes `n - 1` comparisons if 8 or more `items` are already
 /// sorted.
 pub(super) fn stable_sort_by<T: Copy>(
-    items: &mut [T],
-    mut compare: impl FnMut(&T, &T) -> Ordering,
+  items: &mut [T],
+  mut compare: impl FnMut(&T, &T) -> Ordering,
 ) {
-    bun_lint::utils::array_sort_by(items, |a, b| compare(&a, &b) == Ordering::Less);
+  bun_lint::utils::array_sort_by(items, |a, b| compare(&a, &b) == Ordering::Less);
 }

@@ -158,7 +158,9 @@ pub(crate) fn name_len(text: &[u8]) -> usize {
       let len = std::str::from_utf8(&text[start..])
         .unwrap_or_default()
         .char_indices()
-        .find(|&(_, c)| !(c.is_ascii_alphanumeric() || c == '.' || is_type_script_identifier_part(c as i32)))
+        .find(|&(_, c)| {
+          !(c.is_ascii_alphanumeric() || c == '.' || is_type_script_identifier_part(c as i32))
+        })
         .map_or(text.len() - start, |(at, _)| at);
       (start + len).max(1)
     }
@@ -193,8 +195,9 @@ pub(crate) fn without_unicode_escapes(name: &[u8]) -> Vec<u8> {
       }
       None => escape.split_at(escape.len().min(4)),
     };
-    let code_point =
-      digits.iter().try_fold(0u32, |all, &digit| Some(all.checked_mul(16)? + char::from(digit).to_digit(16)?));
+    let code_point = digits
+      .iter()
+      .try_fold(0u32, |all, &digit| Some(all.checked_mul(16)? + char::from(digit).to_digit(16)?));
     let c = code_point.and_then(char::from_u32).unwrap_or(char::REPLACEMENT_CHARACTER);
     out.extend_from_slice(c.encode_utf8(&mut [0; 4]).as_bytes());
     rest = after;

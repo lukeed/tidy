@@ -17,7 +17,11 @@ pub(crate) fn sort_by<T: Clone>(items: &mut [T], mut compare: impl FnMut(&T, &T)
   merge(items, &mut buffer, &mut compare);
 }
 
-fn merge<T: Clone>(items: &mut [T], buffer: &mut [T], compare: &mut impl FnMut(&T, &T) -> Ordering) {
+fn merge<T: Clone>(
+  items: &mut [T],
+  buffer: &mut [T],
+  compare: &mut impl FnMut(&T, &T) -> Ordering,
+) {
   let len = items.len();
   if len < 2 {
     return;
@@ -28,7 +32,8 @@ fn merge<T: Clone>(items: &mut [T], buffer: &mut [T], compare: &mut impl FnMut(&
   buffer[..len].clone_from_slice(items);
   let (mut left, mut right) = (0, middle);
   for slot in items.iter_mut() {
-    let take_right = right < len && (left >= middle || compare(&buffer[right], &buffer[left]) == Ordering::Less);
+    let take_right =
+      right < len && (left >= middle || compare(&buffer[right], &buffer[left]) == Ordering::Less);
     if take_right {
       *slot = buffer[right].clone();
       right += 1;
