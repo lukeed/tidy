@@ -364,3 +364,19 @@ fn print_front_matter(raw: &[u8], sink: &mut Sink<'_>, options: &Options, embed:
   }
   sink.text(matter.end.as_bytes());
 }
+
+/// Parses `text` into PostCSS's tree, whose selectors and values stay text until they print. For `bench/parse` only.
+#[cfg(tidy_bench)]
+pub fn bench_parse(text: &str, dialect: Dialect) -> bool {
+  let mut text = crate::strings::lf(crate::without_bom(text).1.as_bytes());
+  if dialect == Dialect::Less {
+    for (start, end) in inline_comments_with_quotes(&text) {
+      for byte in &mut text.to_mut()[start..end] {
+        if matches!(byte, b'"' | b'\'' | b'*') {
+          *byte = b' ';
+        }
+      }
+    }
+  }
+  std::hint::black_box(postcss::parse(&text, dialect)).is_ok()
+}

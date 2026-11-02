@@ -42,9 +42,8 @@ description = "Compare against other formatters: mise run bench -- <dir>"
 run = "bun bench/run.ts"
 
 [tasks."bench:parse"]
-description = "Compare tidy's parsers with Rust crates: mise run bench:parse -- [--runs <n>] [--only <language,...>] [<corpus>]"
-dir = "bench/parse"
-run = "cargo run --release -q --"
+description = "Compare tidy's parsers with Rust crates: mise run bench:parse -- [--runs <n>] [--only <language,...>] [--rejects] [<corpus>]"
+run = "bun bench/parse.ts"
 
 [tasks."bench:ab"]
 description = "Time the working tree against a git revision: mise run bench:ab -- [--rev <rev>] <dir>..."

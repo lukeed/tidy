@@ -309,3 +309,12 @@ impl Formatter {
     Ok(())
   }
 }
+
+/// Parses `text` into the tree of Glimmer that prints. For `bench/parse` only.
+#[cfg(tidy_bench)]
+pub fn bench_parse(text: &str) -> bool {
+  let text = crate::strings::lf(crate::without_bom(text).1.as_bytes());
+  let mut scratch = Scratch::default();
+  let result = parse(&text, 0, Dialect::Auto, &mut scratch, &Rejection::default());
+  std::hint::black_box((result.is_ok(), scratch)).0
+}

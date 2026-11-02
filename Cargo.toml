@@ -17,6 +17,8 @@ bumpalo = "3.19"
 
 [workspace.lints.rust]
 unsafe_code = "deny"
+# Builds the parsers that aren't public for bench/parse.
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tidy_bench)"] }
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }

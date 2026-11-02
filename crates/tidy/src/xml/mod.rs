@@ -342,3 +342,16 @@ impl Formatter {
     parser.document()
   }
 }
+
+/// Parses `text` into the tree that prints. For `bench/parse` only.
+#[cfg(tidy_bench)]
+pub fn bench_parse(text: &str) -> bool {
+  let text = crate::strings::lf(crate::without_bom(text).1.as_bytes());
+  if crate::strings::trim_js_whitespace(&text).is_empty() {
+    return true;
+  }
+  let mut formatter = Formatter::default();
+  let result =
+    formatter.parse(&String::from_utf8_lossy(&text), &Rejection::default(), &Stack::new());
+  std::hint::black_box((result.is_ok(), formatter)).0
+}

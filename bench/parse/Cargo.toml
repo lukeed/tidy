@@ -5,14 +5,21 @@ edition = "2024"
 publish = false
 
 [dependencies]
+handlebars = "=6.4.4"
 jsonc-parser = { version = "=0.34.0", features = ["serde"] }
+lightningcss = "=1.0.0-alpha.72"
+quick-xml = "=0.42.0"
+raffia = "=0.13.0"
+roxmltree = "=0.21.2"
 saphyr = "=0.3.3"
+scraper = "=0.29.0"
 serde = "=1.0.229"
 serde_json = "=1.0.154"
 serde_yaml = "=0.9.34"
 sonic-rs = "=0.5.10"
 taplo = { version = "=0.14.0", default-features = false }
 tidy = { path = "../../crates/tidy", features = ["config"] }
+tl = "=0.7.8"
 toml = "=1.1.8"
 toml_edit = "=0.25.17"
 yaml-rust2 = "=0.13.0"

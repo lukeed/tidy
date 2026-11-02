@@ -3,7 +3,9 @@
 //! A pass is all those files once; the result is the median pass. The tools build different things, which each row
 //! names: a tree for a formatter keeps comments and positions, and a value only keeps the data.
 //!
-//!   mise run bench:parse -- [--runs <n>] [--only <language,...>] [<corpus>]
+//!   mise run bench:parse -- [--runs <n>] [--only <language,...>] [--rejects] [<corpus>]
+//!
+//! `--rejects` lists the files that each tool rejects, and `--json` prints a line of JSON for each language.
 //!
 //! The corpus is `bench/run.ts`'s, in the temporary folder, by default: run `mise run bench` once to make it.
 
@@ -17,9 +19,9 @@ struct Tool {
   parse: fn(&str) -> bool,
 }
 
-fn languages() -> [(&'static str, Vec<Tool>); 3] {
+fn languages() -> Vec<(&'static str, Vec<Tool>)> {
   let tool = |name, builds, parse| Tool { name, builds, parse };
-  [
+  vec![
     (
       "json",
       vec![
@@ -63,6 +65,63 @@ fn languages() -> [(&'static str, Vec<Tool>); 3] {
         tool("serde_yaml", "value, libyaml", serde_yaml),
       ],
     ),
+    (
+      "css",
+      vec![
+        tool("tidy", "tree, values as text", |text| {
+          tidy::bench::css(text, tidy::css::Dialect::Css)
+        }),
+        tool("raffia", "tree, comments", |text| raffia(text, raffia::Syntax::Css)),
+        tool("lightningcss", "typed rules", |text| {
+          let options = lightningcss::stylesheet::ParserOptions::default();
+          keep(lightningcss::stylesheet::StyleSheet::parse(text, options))
+        }),
+      ],
+    ),
+    (
+      "scss",
+      vec![
+        tool("tidy", "tree, values as text", |text| {
+          tidy::bench::css(text, tidy::css::Dialect::Scss)
+        }),
+        tool("raffia", "tree, comments", |text| raffia(text, raffia::Syntax::Scss)),
+      ],
+    ),
+    (
+      "less",
+      vec![
+        tool("tidy", "tree, values as text", |text| {
+          tidy::bench::css(text, tidy::css::Dialect::Less)
+        }),
+        tool("raffia", "tree, comments", |text| raffia(text, raffia::Syntax::Less)),
+      ],
+    ),
+    (
+      "html",
+      vec![
+        tool("tidy", "tree, strict", tidy::bench::html),
+        tool("scraper", "spec DOM", |text| keep::<_, ()>(Ok(scraper::Html::parse_document(text)))),
+        tool("tl", "tree, lenient", |text| keep(tl::parse(text, tl::ParserOptions::default()))),
+      ],
+    ),
+    (
+      "xml",
+      vec![
+        tool("tidy", "tree, comments", tidy::bench::xml),
+        tool("roxmltree", "tree", |text| {
+          let options = roxmltree::ParsingOptions { allow_dtd: true, ..Default::default() };
+          keep(roxmltree::Document::parse_with_options(text, options))
+        }),
+        tool("quick-xml", "events", quick_xml),
+      ],
+    ),
+    (
+      "handlebars",
+      vec![
+        tool("tidy", "HTML and tags", tidy::bench::handlebars),
+        tool("handlebars", "tags only", |text| keep(handlebars::Template::compile(text))),
+      ],
+    ),
   ]
 }
 
@@ -78,6 +137,23 @@ fn jsonc_ast(text: &str) -> bool {
   keep(jsonc_parser::parse_to_ast(text, &collect, &Default::default()))
 }
 
+fn raffia(text: &str, syntax: raffia::Syntax) -> bool {
+  let mut comments = Vec::new();
+  let mut parser = raffia::ParserBuilder::new(text).syntax(syntax).comments(&mut comments).build();
+  keep(parser.parse::<raffia::ast::Stylesheet>())
+}
+
+fn quick_xml(text: &str) -> bool {
+  let mut reader = quick_xml::Reader::from_str(text);
+  loop {
+    match black_box(reader.read_event()) {
+      Ok(quick_xml::events::Event::Eof) => return true,
+      Ok(_) => {}
+      Err(_) => return false,
+    }
+  }
+}
+
 fn serde_yaml(text: &str) -> bool {
   serde_yaml::Deserializer::from_str(text).all(|document| {
     use serde::Deserialize;
@@ -86,12 +162,16 @@ fn serde_yaml(text: &str) -> bool {
 }
 
 fn main() {
-  let args: Vec<String> = std::env::args().skip(1).collect();
-  let option = |name: &str| args.iter().position(|it| it == name).map(|at| args[at + 1].as_str());
+  let all: Vec<String> = std::env::args().skip(1).collect();
+  let flag = |name: &str| all.iter().any(|it| it == name);
+  let (rejects, json) = (flag("--rejects"), flag("--json"));
+  let args: Vec<&str> =
+    all.iter().map(String::as_str).filter(|it| !matches!(*it, "--rejects" | "--json")).collect();
+  let option = |name: &str| args.iter().position(|it| *it == name).map(|at| args[at + 1]);
   let runs = option("--runs").map_or(20, |runs| runs.parse().expect("--runs takes a number"));
   let only = option("--only").map(|only| only.split(',').collect::<Vec<_>>());
   let corpus = match args.len() % 2 {
-    1 => PathBuf::from(&args[args.len() - 1]),
+    1 => PathBuf::from(args[args.len() - 1]),
     _ => std::env::temp_dir().join("tidy-bench"),
   };
   assert!(
@@ -105,21 +185,24 @@ fn main() {
     }
     let mut paths = Vec::new();
     walk(&corpus.join(language), &mut paths);
-    let texts: Vec<String> =
-      paths.iter().filter_map(|it| std::fs::read_to_string(it).ok()).collect();
+    let files: Vec<(&PathBuf, String)> =
+      paths.iter().filter_map(|path| Some((path, std::fs::read_to_string(path).ok()?))).collect();
     let mut rejected = vec![0; tools.len()];
-    let texts: Vec<&str> = texts
-      .iter()
-      .map(String::as_str)
-      .filter(|text| {
-        let accepted: Vec<bool> = tools.iter().map(|tool| (tool.parse)(text)).collect();
-        accepted
-          .iter()
-          .zip(&mut rejected)
-          .for_each(|(accepted, count)| *count += !accepted as usize);
-        accepted.iter().all(|it| *it)
-      })
-      .collect();
+    let mut texts = Vec::new();
+    for (path, text) in &files {
+      let accepted: Vec<bool> = tools.iter().map(|tool| (tool.parse)(text)).collect();
+      for ((tool, accepted), count) in tools.iter().zip(&accepted).zip(&mut rejected) {
+        if !accepted {
+          *count += 1;
+          if rejects {
+            eprintln!("{language}: {} rejects {}", tool.name, path.display());
+          }
+        }
+      }
+      if accepted.iter().all(|it| *it) {
+        texts.push(text.as_str());
+      }
+    }
     let bytes: usize = texts.iter().map(|it| it.len()).sum();
     let mut passes = vec![Vec::with_capacity(runs); tools.len()];
     for _ in 0..runs {
@@ -133,6 +216,21 @@ fn main() {
     }
     let medians: Vec<f64> = passes.iter_mut().map(|times| median(times)).collect();
     let fastest = medians.iter().copied().fold(f64::INFINITY, f64::min);
+    if json {
+      let rows = tools.iter().zip(&medians).zip(&rejected).map(|((tool, time), rejected)| {
+        serde_json::json!({ "name": tool.name, "builds": tool.builds, "ms": time * 1000.0, "rejects": rejected })
+      });
+      let line = serde_json::json!({
+        "language": language,
+        "files": texts.len(),
+        "total": paths.len(),
+        "bytes": bytes,
+        "runs": runs,
+        "tools": rows.collect::<Vec<_>>(),
+      });
+      println!("{line}");
+      continue;
+    }
     println!(
       "\n{language}: {} of {} files, {:.2} MB",
       texts.len(),

@@ -257,3 +257,12 @@ fn has_typescript_script(tree: &ast::Tree<'_>) -> bool {
         .is_some_and(|lang| lang == b"ts" || lang == b"typescript")
   })
 }
+
+/// Parses `text` into the tree that Prettier's `print-preprocess` then changes. For `bench/parse` only.
+#[cfg(tidy_bench)]
+pub fn bench_parse(text: &str) -> bool {
+  let text = crate::strings::lf(crate::without_bom(text).1.as_bytes());
+  let mut tree = ast::Tree::default();
+  let result = parse::parse(&text, None, Parser::Html, &mut tree);
+  std::hint::black_box((result.is_ok(), tree)).0
+}
