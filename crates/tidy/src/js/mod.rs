@@ -473,6 +473,14 @@ fn is_recoverable(error: &oxc_diagnostics::OxcDiagnostic, typescript: bool) -> b
   if typescript && code.is_some_and(|code| CHECKER_ONLY.contains(&code)) {
     return true;
   }
+  // TypeScript's checker reports these, as 1206 and 1308, where oxc has no code for them.
+  if typescript
+    && (message == "Decorators are not valid here."
+      || message
+        == "`await` is only allowed within async functions and at the top levels of modules")
+  {
+    return true;
+  }
   // `VarRedeclaration`, `DuplicateExport`, `DeclarationMissingInitializer`, `allowNewTargetOutsideFunction` and,
   // where TypeScript's scanner rejects it, `InvalidEscapeSequenceTemplate`.
   matches!(
