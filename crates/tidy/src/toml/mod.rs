@@ -9,9 +9,13 @@ mod format;
 mod lexer;
 mod parse;
 mod tree;
+#[cfg(feature = "config")]
+mod value;
 
 pub use lexer::Token;
 pub use tree::{Id, Kind, Tree};
+#[cfg(feature = "config")]
+pub use value::value;
 
 use crate::Error;
 use crate::doc;
@@ -110,8 +114,8 @@ pub fn format(text: &str, options: &Options) -> Result<String, Error> {
 
 /// Parses `text` into taplo's syntax tree.
 pub fn parse(text: &str) -> Result<Tree, Error> {
-  let mut tree = Tree::default();
-  parse_into(text, &mut tree, &mut Vec::new(), &mut Vec::new())?;
+  let mut tree = Tree::sized(text.len());
+  parse_into(text, &mut tree, &mut Vec::with_capacity(text.len() / 8), &mut Vec::new())?;
   Ok(tree)
 }
 

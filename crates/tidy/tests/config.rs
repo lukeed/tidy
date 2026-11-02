@@ -110,6 +110,11 @@ fn names_what_is_wrong() {
   );
   assert_eq!(error(r#"{ "ignore": "" }"#), "`ignore` must not be empty");
   assert_eq!(error("[]"), "the config must be an object");
+  assert_eq!(error("{\n  \"width\": }"), "2:12: Unexpected token");
+  assert_eq!(
+    Config::toml("width = 80\nwidth = 90").unwrap_err(),
+    "2:1: `width` is already defined"
+  );
 }
 
 #[test]

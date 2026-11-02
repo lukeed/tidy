@@ -119,3 +119,19 @@ fn formats_json_in_other_languages() {
     assert_eq!(printed, expected, "{language:?}");
   }
 }
+
+#[cfg(feature = "config")]
+#[test]
+fn reads_values_as_json5_does() {
+  let text = "// c\n{ a: [0x1F, .5, 5., +1, -0, 1_000, 017, 08, 1e3], 'b': \"x\\u0041\", c: `t`, 1e3: Infinity, d: -NaN, }";
+  let expected = serde_json::json!({
+    "a": [31, 0.5, 5.0, 1, -0.0, 1000, 15, 8, 1000.0],
+    "b": "xA",
+    "c": "t",
+    "1000": null,
+    "d": null,
+  });
+  assert_eq!(tidy::json::value(text).unwrap(), expected);
+  assert_eq!(tidy::json::value("// only\n").unwrap(), serde_json::Value::Null);
+  assert!(tidy::json::value("[1, , 2]").is_err());
+}

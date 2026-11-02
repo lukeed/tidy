@@ -99,3 +99,32 @@ fn formats_toml_in_other_languages() {
     assert_eq!(printed, expected, "{language:?}");
   }
 }
+
+#[cfg(feature = "config")]
+#[test]
+fn reads_values_by_toml_rules() {
+  let text = r#"
+a.b = 1
+s = """
+x \
+  y"""
+t = { c.d = 'lit', e = [0x1F, 1_000, inf] }
+[[list]]
+f = 1979-05-27 07:32:00Z
+[[list]]
+[list.g]
+h = true
+"#;
+  let expected = serde_json::json!({
+    "a": { "b": 1 },
+    "s": "x y",
+    "t": { "c": { "d": "lit" }, "e": [31, 1000, null] },
+    "list": [{ "f": "1979-05-27T07:32:00Z" }, { "g": { "h": true } }],
+  });
+  assert_eq!(tidy::toml::value(text).unwrap(), expected);
+  for text in
+    ["a = 1\na = 2", "[a]\n[a]", "a.b = 1\n[a.b]", "[a.b]\n[a]\nb.c = 1", "a = [1]\n[[a]]"]
+  {
+    assert!(tidy::toml::value(text).is_err(), "{text:?}");
+  }
+}

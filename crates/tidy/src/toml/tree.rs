@@ -44,6 +44,12 @@ pub type Id = u32;
 pub(crate) const NONE: Id = u32::MAX;
 
 impl Tree {
+  /// A tree with room for a text of `bytes`, which has an element in about each 4.
+  pub(crate) fn sized(bytes: usize) -> Tree {
+    let elements = bytes / 4;
+    Tree { elements: Vec::with_capacity(elements), children: Vec::with_capacity(elements) }
+  }
+
   pub(crate) fn clear(&mut self) {
     self.elements.clear();
     self.children.clear();
@@ -66,6 +72,11 @@ impl Tree {
   pub fn text<'t>(&self, id: Id, text: &'t str) -> &'t str {
     let element = self.elements[id as usize];
     &text[element.start as usize..element.end as usize]
+  }
+
+  /// Where the element starts in the text.
+  pub(crate) fn start(&self, id: Id) -> u32 {
+    self.elements[id as usize].start
   }
 
   /// The nodes and tokens in a node, in order. A token has none.

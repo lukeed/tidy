@@ -14,8 +14,12 @@ mod identifier;
 mod number;
 mod parse;
 mod print;
+#[cfg(feature = "config")]
+mod value;
 
 pub use ast::{Comment, Items, Kind, Node, NodeId, Span, Tree};
+#[cfg(feature = "config")]
+pub use value::value;
 
 use crate::Error;
 use crate::doc::{self, Docs};
@@ -199,8 +203,8 @@ pub fn format(text: &str, options: &Options) -> Result<String, Error> {
 
 /// Parses `text` as any dialect does: comments, and an empty text, are allowed.
 pub fn parse(text: &str) -> Result<Tree, Error> {
-  let mut tree = Tree::default();
-  parse_into(text, &mut tree, &mut Vec::new())?;
+  let mut tree = Tree::sized(text.len());
+  parse_into(text, &mut tree, &mut Vec::with_capacity(text.len() / 16))?;
   Ok(tree)
 }
 

@@ -113,6 +113,16 @@ impl Tree {
     &self.comments
   }
 
+  /// A tree with room for a text of `bytes`, which has a node in about each 8.
+  pub(crate) fn sized(bytes: usize) -> Tree {
+    let nodes = bytes / 8;
+    Tree {
+      nodes: Vec::with_capacity(nodes),
+      items: Vec::with_capacity(nodes / 2),
+      ..Tree::default()
+    }
+  }
+
   pub(crate) fn clear(&mut self) {
     self.nodes.clear();
     self.items.clear();

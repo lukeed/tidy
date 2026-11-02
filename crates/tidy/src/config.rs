@@ -125,27 +125,22 @@ impl Config {
   pub fn read(path: &Path) -> Result<Config, String> {
     let text =
       std::fs::read_to_string(path).map_err(|error| format!("{}: {error}", path.display()))?;
-    let config = match path.extension().is_some_and(|extension| extension == "toml") {
-      true => Config::toml(&text),
-      false => Config::json(&text),
-    };
-    config.map_err(|error| format!("{}: {error}", path.display()))
+    let toml = path.extension().is_some_and(|extension| extension == "toml");
+    let value = value(&text, toml).map_err(|error| {
+      let separator = if matches!(error, crate::Error::Syntax { .. }) { ":" } else { ": " };
+      format!("{}{separator}{}", path.display(), describe(&text, error))
+    })?;
+    Config::from_value(&value).map_err(|error| format!("{}: {error}", path.display()))
   }
 
   /// Reads a config from the text of a JSON file, which may have comments and trailing commas.
   pub fn json(text: &str) -> Result<Config, String> {
-    let options = jsonc_parser::ParseOptions::default();
-    let value: Option<Value> =
-      jsonc_parser::parse_to_serde_value(text, &options).map_err(|error| error.to_string())?;
-    Config::from_value(&value.unwrap_or_default())
+    Config::from_value(&value(text, false).map_err(|error| describe(text, error))?)
   }
 
   /// Reads a config from the text of a TOML file.
   pub fn toml(text: &str) -> Result<Config, String> {
-    let table: ::toml::Table =
-      ::toml::from_str(text).map_err(|error| error.message().to_owned())?;
-    let value = serde_json::to_value(table).map_err(|error| error.to_string())?;
-    Config::from_value(&value)
+    Config::from_value(&value(text, true).map_err(|error| describe(text, error))?)
   }
 
   /// Reads a config from a JSON value, as the Node binding receives its options.
@@ -458,6 +453,26 @@ fn xml(map: &Map<String, Value>) -> Result<Xml, String> {
 fn set<T>(field: &mut T, value: Option<T>) {
   if let Some(value) = value {
     *field = value;
+  }
+}
+
+fn value(text: &str, toml: bool) -> Result<Value, crate::Error> {
+  match toml {
+    true => toml::value(text),
+    false => json::value(text),
+  }
+}
+
+/// An error of a config file's text, with `line:column: ` before a syntax error.
+fn describe(text: &str, error: crate::Error) -> String {
+  match error {
+    crate::Error::Syntax { message, at } => {
+      let before = &text[..at.min(text.len())];
+      let line = before.matches('\n').count() + 1;
+      let column = before.rsplit('\n').next().unwrap_or_default().chars().count() + 1;
+      format!("{line}:{column}: {message}")
+    }
+    crate::Error::TooDeep => error.to_string(),
   }
 }
 
