@@ -41,6 +41,8 @@ let sources: Record<string, string> = {
 	"dprint-plugin-dockerfile": "dprint-plugin-dockerfile",
 	"dockerfile-parser": "dockerfile-parser",
 	"parse-dockerfile": "parse-dockerfile",
+	"rust-ini": "rust-ini",
+	configparser: "configparser",
 };
 
 let output = await $`${join(target, "release/parse-bench")} --json ${Bun.argv.slice(2)}`.text();

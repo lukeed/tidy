@@ -118,3 +118,10 @@ impl Formatter {
     Ok(crate::with_bom(bom, &mut self.output))
   }
 }
+
+/// Parses `text` into the tree that prints. For `bench/parse` only.
+#[cfg(tidy_bench)]
+pub fn bench_parse(text: &str) -> bool {
+  std::hint::black_box(parse::parse(text, Dialect::Ini));
+  true
+}

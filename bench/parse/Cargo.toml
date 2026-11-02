@@ -5,6 +5,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
+configparser = "=3.3.0"
 dockerfile-parser = "=0.9.0"
 dprint-plugin-dockerfile = "=0.7.0"
 handlebars = "=6.4.4"
@@ -14,6 +15,7 @@ parse-dockerfile = "=0.1.9"
 quick-xml = "=0.42.0"
 raffia = "=0.13.0"
 roxmltree = "=0.21.2"
+rust-ini = "=0.21.3"
 saphyr = "=0.3.3"
 scraper = "=0.29.0"
 serde = "=1.0.229"

@@ -77,6 +77,16 @@ fn languages() -> Vec<(&'static str, Vec<Tool>)> {
       ],
     ),
     (
+      "ini",
+      vec![
+        tool("tidy", "lines, comments", tidy::bench::ini),
+        tool("rust-ini", "map", |text| keep(ini::Ini::load_from_str(text))),
+        tool("configparser", "map, lowercase names", |text| {
+          keep(configparser::ini::Ini::new().read(text.to_owned()))
+        }),
+      ],
+    ),
+    (
       "css",
       vec![
         tool("tidy", "tree, values as text", |text| {

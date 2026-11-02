@@ -114,5 +114,6 @@ pub mod bench {
   pub use crate::dockerfile::bench_parse as dockerfile;
   pub use crate::handlebars::bench_parse as handlebars;
   pub use crate::html::bench_parse as html;
+  pub use crate::ini::bench_parse as ini;
   pub use crate::xml::bench_parse as xml;
 }
