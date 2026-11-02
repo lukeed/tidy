@@ -415,12 +415,11 @@ fn run(
             {
               flat
             } else if states {
-              let all = states_of(docs, pos, end);
-              let (last_start, last_stop) = all[all.len() - 1];
+              let (last_start, last_stop) = states_of(docs, pos, end).last().unwrap();
               let mut chosen = Command::new(indent, Mode::Break, last_start, last_stop);
               if !broken {
                 // Prettier tries each state after the first flat, the last one too, and else breaks the last.
-                for &(state_start, state_stop) in &all[1..] {
+                for (state_start, state_stop) in states_of(docs, pos, end).skip(1) {
                   let flat = Command::new(indent, Mode::Flat, state_start, state_stop);
                   if fits(docs, &mut scratch, &[flat], &commands, remaining, pending, &modes, false)
                   {
@@ -547,19 +546,21 @@ fn line_of(docs: &Docs<'_>, start: u32, stop: u32) -> Option<Line> {
 
 /// The contents of a conditional group's first state.
 fn first_state(docs: &Docs<'_>, at: u32, end: u32) -> (u32, u32) {
-  states_of(docs, at, end)[0]
+  states_of(docs, at, end).next().unwrap()
 }
 
 /// The contents of each state of the conditional group at `at`.
-fn states_of(docs: &Docs<'_>, at: u32, end: u32) -> Vec<(u32, u32)> {
-  let mut states = Vec::new();
+fn states_of<'d>(docs: &'d Docs<'_>, at: u32, end: u32) -> impl Iterator<Item = (u32, u32)> + 'd {
   let mut pos = at + 1;
-  while pos < end {
+  std::iter::from_fn(move || {
+    if pos >= end {
+      return None;
+    }
     let Element::Part { end: stop } = docs.element(pos) else { unreachable!() };
-    states.push((pos + 1, stop));
+    let state = (pos + 1, stop);
     pos = stop;
-  }
-  states
+    Some(state)
+  })
 }
 
 /// A command of `fits`: its mode, and the range of elements left.
@@ -645,7 +646,7 @@ fn fits(
         let (start, stop) = if !states {
           inside(pos, end)
         } else if mode == Mode::Break {
-          *states_of(docs, pos, end).last().unwrap()
+          states_of(docs, pos, end).last().unwrap()
         } else {
           first_state(docs, pos, end)
         };
