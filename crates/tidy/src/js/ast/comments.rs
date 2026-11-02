@@ -90,10 +90,11 @@ impl<'a> File<'a> {
     let spans: Vec<Span> =
       self.program.comments.iter().map(|it| Span::new(it.span.start, it.span.end)).collect();
     let mut records = Vec::with_capacity(spans.len());
+    let mut sorted = rustc_hash::FxHashMap::default();
     for (index, comment) in self.program.comments.iter().enumerate() {
       let span = spans[index];
-      let prev = self.token_before(&spans, span.start);
-      let next = self.token_after(&spans, span.end);
+      let prev = self.token_before(span.start);
+      let next = self.token_after(span.end);
       let gap = |from: u32, to: u32| text.get(from as usize..to as usize).unwrap_or_default();
       let newline_before = prev == 0 && gap(0, span.start).iter().all(u8::is_ascii_whitespace)
         || breaks(gap(
@@ -102,7 +103,7 @@ impl<'a> File<'a> {
         ));
       let after = spans.get(index + 1).map_or(next, |it| it.start.min(next));
       let newline_after = comment.is_line() || breaks(gap(span.end, after));
-      let (enclosing, preceding, following) = self.surrounding(span, typescript);
+      let (enclosing, preceding, following) = self.surrounding(span, typescript, &mut sorted);
       records.push(Record {
         span,
         block: comment.is_block(),
@@ -120,30 +121,30 @@ impl<'a> File<'a> {
   }
 
   /// The end of the token before `at`: white space and comments are skipped.
-  fn token_before(&self, comments: &[Span], mut at: u32) -> u32 {
-    let text = self.text.as_bytes();
+  fn token_before(&self, mut at: u32) -> u32 {
+    let (text, comments) = (self.text.as_bytes(), &self.program.comments);
     loop {
       while at > 0 && is_space(text, at - 1) {
         at -= 1;
       }
-      let index = comments.partition_point(|it| it.end < at);
+      let index = comments.partition_point(|it| it.span.end < at);
       match comments.get(index) {
-        Some(comment) if comment.end == at => at = comment.start,
+        Some(comment) if comment.span.end == at => at = comment.span.start,
         _ => return at,
       }
     }
   }
 
   /// The start of the token after `at`.
-  fn token_after(&self, comments: &[Span], mut at: u32) -> u32 {
-    let text = self.text.as_bytes();
+  fn token_after(&self, mut at: u32) -> u32 {
+    let (text, comments) = (self.text.as_bytes(), &self.program.comments);
     loop {
       while (at as usize) < text.len() && is_space(text, at) {
         at += 1;
       }
-      let index = comments.partition_point(|it| it.start < at);
+      let index = comments.partition_point(|it| it.span.start < at);
       match comments.get(index) {
-        Some(comment) if comment.start == at => at = comment.end,
+        Some(comment) if comment.span.start == at => at = comment.span.end,
         _ => return at,
       }
     }
@@ -151,12 +152,20 @@ impl<'a> File<'a> {
 
   /// Prettier's `decorateComment`: the innermost node that contains `comment`, and that node's children right before and
   /// after it.
-  fn surrounding(&self, comment: Span, typescript: bool) -> (u32, u32, u32) {
+  /// `sorted` keeps the sorted children of each node that a comment was in, for the comments after it.
+  fn surrounding(
+    &self,
+    comment: Span,
+    typescript: bool,
+    sorted: &mut rustc_hash::FxHashMap<u32, Vec<u32>>,
+  ) -> (u32, u32, u32) {
     let mut enclosing = 0;
-    let mut children = Vec::new();
     'descend: loop {
-      children.clear();
-      self.sorted_children(enclosing, typescript, &mut children);
+      let children = sorted.entry(enclosing).or_insert_with(|| {
+        let mut children = Vec::new();
+        self.sorted_children(enclosing, typescript, &mut children);
+        children
+      });
       let (mut preceding, mut following) = (NONE, NONE);
       let (mut left, mut right) = (0, children.len());
       while left < right {
@@ -333,9 +342,7 @@ impl<'a> File<'a> {
     if span.is_empty() || self.text.as_bytes().get(span.end as usize - 1) != Some(&b';') {
       return span;
     }
-    let comments: Vec<Span> =
-      self.program.comments.iter().map(|it| Span::new(it.span.start, it.span.end)).collect();
-    Span::new(span.start, self.token_before(&comments, span.end - 1).max(span.start))
+    Span::new(span.start, self.token_before(span.end - 1).max(span.start))
   }
 }
 
