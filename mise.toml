@@ -68,6 +68,30 @@ description = "Compare Dockerfiles with dprint-plugin-dockerfile 0.7.0: mise run
 dir = "tests/oracle/dockerfile"
 run = "cargo run --release --"
 
+[tasks."oracle:graphql"]
+description = "Compare GraphQL with Prettier: mise run oracle:graphql -- [dir...] [--show=n]"
+run = "bun tests/oracle/graphql.ts"
+depends = ["build:napi"]
+
+[tasks."corpus:graphql"]
+description = "Build target/corpus/graphql: GitLab's GraphQL files and five public schemas, after removing it"
+run = """
+set -e
+rm -rf target/corpus/graphql target/corpus/graphql-gitlab
+git clone -q --depth 1 --filter=blob:none --no-checkout https://gitlab.com/gitlab-org/gitlab.git target/corpus/graphql-gitlab
+git -C target/corpus/graphql-gitlab sparse-checkout set --no-cone '*.graphql' '*.gql'
+git -C target/corpus/graphql-gitlab checkout -q
+mkdir -p target/corpus/graphql
+cd target/corpus/graphql-gitlab
+git ls-files -- '*.graphql' '*.gql' | while read -r file; do cp "$file" "../graphql/gitlab__$(echo "$file" | tr / _)"; done
+cd ../graphql
+curl -sfLo github.graphql https://docs.github.com/public/fpt/schema.docs.graphql
+curl -sfLo saleor.graphql https://raw.githubusercontent.com/saleor/saleor/main/saleor/graphql/schema.graphql
+curl -sfLo artsy.graphql https://raw.githubusercontent.com/artsy/metaphysics/main/_schemaV2.graphql
+curl -sfLo swapi.graphql https://raw.githubusercontent.com/graphql/swapi-graphql/master/schema.graphql
+curl -sfLo sourcegraph.graphql https://raw.githubusercontent.com/sourcegraph/sourcegraph-public-snapshot/main/cmd/frontend/graphqlbackend/schema.graphql
+"""
+
 [tasks."oracle:ini"]
 description = "Compare INI with prettier-plugin-ini 1.3.0: mise run oracle:ini -- files [dir] | fuzz [count] [--seed=n]"
 run = "bun tests/oracle/ini.ts"
