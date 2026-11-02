@@ -2385,5 +2385,130 @@
         "tidy": "+++\na = 1\n+++\n\n<div></div>\n"
       }
     ]
+  },
+  {
+    "id": "dockerfile-bare-continuation",
+    "rows": [
+      {
+        "parsers": [
+          "dockerfile"
+        ],
+        "input": "RUN a \\\n\\\n  b\n",
+        "prettier": "RUN a\n\nb\n",
+        "tidy": "RUN a \\\n\\\n  b\n"
+      }
+    ]
+  },
+  {
+    "id": "dockerfile-empty-continuation-lines",
+    "rows": [
+      {
+        "parsers": [
+          "dockerfile"
+        ],
+        "input": "RUN a \\\n\n  b\n",
+        "prettier": "RUN a\n\nb\n",
+        "tidy": "RUN a \\\n  b\n"
+      }
+    ]
+  },
+  {
+    "id": "dockerfile-quoted-env-value",
+    "rows": [
+      {
+        "parsers": [
+          "dockerfile"
+        ],
+        "input": "ENV A='a $HOME b' B=\"say \\\"hi\\\" now\"\n",
+        "prettier": "ENV A=\"a $HOME b\" B=\"say \"hi\" now\"\n",
+        "tidy": "ENV A='a $HOME b' B=\"say \\\"hi\\\" now\"\n"
+      },
+      {
+        "parsers": [
+          "dockerfile"
+        ],
+        "input": "ENV A=\"a \\\n  b\"\n",
+        "prettier": "ENV A=\"a   b\"\n",
+        "tidy": "ENV A=\"a \\\n  b\"\n"
+      }
+    ]
+  },
+  {
+    "id": "dockerfile-env-value-with-tab",
+    "rows": [
+      {
+        "parsers": [
+          "dockerfile"
+        ],
+        "input": "ENV A a\tb\n",
+        "prettier": "ENV A=a\tb\n",
+        "tidy": "ENV A=\"a\tb\"\n"
+      }
+    ]
+  },
+  {
+    "id": "dockerfile-glued-keyword",
+    "rows": [
+      {
+        "parsers": [
+          "dockerfile"
+        ],
+        "input": "RUN-script is not one\n",
+        "prettier": "RUN -script is not one\n",
+        "tidy": "RUN-script is not one\n"
+      }
+    ]
+  },
+  {
+    "id": "dockerfile-unparsed-continuation",
+    "rows": [
+      {
+        "parsers": [
+          "dockerfile"
+        ],
+        "input": "COPY --from=build \\\n  only-one\n",
+        "prettier": "COPY --from=build \\\nonly -one\n",
+        "tidy": "COPY --from=build \\\n  only-one\n"
+      }
+    ]
+  },
+  {
+    "id": "dockerfile-read-back",
+    "rows": [
+      {
+        "parsers": [
+          "dockerfile"
+        ],
+        "input": "RUN set -x \\\n            && tempDir=1 \\\n            # (note)\n \\\n            # next\n            && b\n",
+        "prettier": "RUN set -x \\\n            && tempDir=1 \\\n # (note)\n \\\n            # next\n            && b\n",
+        "tidy": "RUN set -x \\\n            && tempDir=1 \\\n            # (note)\n \\\n            # next\n            && b\n"
+      }
+    ]
+  },
+  {
+    "id": "dockerfile-byte-order-mark",
+    "rows": [
+      {
+        "parsers": [
+          "dockerfile"
+        ],
+        "input": "﻿FROM a\n",
+        "prettier": "FROM a\n",
+        "tidy": "﻿FROM a\n"
+      }
+    ]
+  },
+  {
+    "id": "dockerfile-embedded",
+    "rows": [
+      {
+        "parsers": [
+          "markdown"
+        ],
+        "input": "```dockerfile\nfrom   node\n```\n",
+        "prettier": "```dockerfile\nfrom   node\n```\n",
+        "tidy": "```dockerfile\nFROM node\n```\n"
+      }
+    ]
   }
 ]

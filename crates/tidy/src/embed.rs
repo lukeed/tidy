@@ -49,16 +49,23 @@ impl Embed for Verbatim {
   }
 }
 
-/// The parser name of a language that tidy formats and Prettier doesn't, so that it is never one of Prettier's: TOML.
+/// The parser name of a language that tidy formats and Prettier doesn't, so that it is never one of Prettier's: TOML and
+/// Dockerfile.
 pub(crate) fn own(language: &str) -> Option<&'static str> {
-  (language == "toml").then_some("toml")
+  match language {
+    "toml" => Some("toml"),
+    "dockerfile" | "Dockerfile" | "docker" | "containerfile" | "Containerfile" => {
+      Some("dockerfile")
+    }
+    _ => None,
+  }
 }
 
 /// Formats `request` with tidy's own formatter for its language, as a hook would, for the languages that tidy formats as
-/// text: JSON, YAML and TOML. `None` if it has none, or the code doesn't parse. TOML prints at the start of a line only,
-/// since indenting its lines would change its multi-line strings.
+/// text: JSON, YAML, TOML and Dockerfile. `None` if it has none, or the code doesn't parse. TOML and Dockerfile print at
+/// the start of a line only, since indenting their lines would change multi-line strings and heredocs.
 pub(crate) fn builtin(request: &Request<'_>, tab_width: usize, tabs: bool) -> Option<String> {
-  use crate::{json, toml, yaml};
+  use crate::{dockerfile, json, toml, yaml};
   let dialect = match request.language {
     "json" => json::Dialect::Json,
     "jsonc" => json::Dialect::Jsonc,
@@ -74,6 +81,11 @@ pub(crate) fn builtin(request: &Request<'_>, tab_width: usize, tabs: bool) -> Op
       let options =
         toml::Options { column_width: request.width, tab_width, tabs, ..toml::Options::default() };
       let formatted = toml::format(request.code, &options).ok()?;
+      return Some(formatted.trim_end().to_owned());
+    }
+    "dockerfile" if request.indent == 0 => {
+      let options = dockerfile::Options { width: request.width, ..dockerfile::Options::default() };
+      let formatted = dockerfile::format(request.code, &options).ok()?;
       return Some(formatted.trim_end().to_owned());
     }
     _ => return None,

@@ -17,10 +17,10 @@ Usage
   With one file, prints the result unless --check or --write is set.
   Folders are searched for .html, .htm, .vue, .hbs, .handlebars, .css, .scss, .less, .md, and .markdown
   files, for JSON files: .json, .jsonc, .json5, package.json, and the others that Prettier formats, for .yml,
-  .yaml and .toml files, and for XML files: .xml, .svg, .plist, .csproj, pom.xml, and the others that
-  @prettier/plugin-xml formats. Style sheets in <style> and style=\"\", JSON in scripts and code blocks, and
-  YAML and TOML in code blocks and front matter are formatted. Other scripts and code blocks are left as
-  written.
+  .yaml and .toml files, for Dockerfile, Containerfile, Dockerfile.dev and .dockerfile files, and for XML
+  files: .xml, .svg, .plist, .csproj, pom.xml, and the others that @prettier/plugin-xml formats. Style
+  sheets in <style> and style=\"\", JSON in scripts and code blocks, YAML and TOML in code blocks and front
+  matter, and Dockerfiles in code blocks are formatted. Other scripts and code blocks are left as written.
 
   Each file takes its options from the nearest tidy.json, tidy.jsonc or tidy.toml, and from .editorconfig.
   Options given here override them.
@@ -29,11 +29,12 @@ Options
   --check                         List files that aren't formatted, and exit 1 if any
   -w, --write                     Rewrite files in place
   --parser <name>                 html, vue, handlebars, tempura, css, scss, less, json, jsonc, json5,
-                                  json-stringify, yaml, toml, xml, or markdown (default: by file name)
+                                  json-stringify, yaml, toml, dockerfile, xml, or markdown (default: by file
+                                  name)
   --stdin-filepath <path>         The path of the text on stdin, for its language and its config files
   --config <path>                 Use this config for every file instead of the nearest one
   --no-config                     Read no config files and no .editorconfig
-  --width <n>                     Line width (default: 80)
+  --width <n>                     Line width (default: 80, and 120 for Dockerfiles)
   --indent <n>                    Indent width (default: 2)
   --tabs                          Indent with tabs
   --eol <eol>                     lf (default), crlf, or cr
@@ -96,6 +97,7 @@ fn run() -> Result<ExitCode, String> {
         "json5" => (Language::Json(json::Dialect::Json5), None),
         "json-stringify" => (Language::Json(json::Dialect::Stringify), None),
         "toml" => (Language::Toml, None),
+        "dockerfile" => (Language::Dockerfile, None),
         "yaml" => (Language::Yaml, None),
         "xml" => (Language::Xml, None),
         "markdown" => (Language::Markdown, None),

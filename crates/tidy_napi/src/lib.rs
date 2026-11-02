@@ -29,7 +29,7 @@ type Callback<'a> = Function<'a, EmbedRequest, Option<String>>;
 pub struct FormatOptions {
   /// The language. Default: by `filepath`, and HTML without one.
   #[napi(
-    ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'json' | 'jsonc' | 'json5' | 'json-stringify' | 'yaml' | 'toml' | 'xml' | 'markdown'"
+    ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'json' | 'jsonc' | 'json5' | 'json-stringify' | 'yaml' | 'toml' | 'dockerfile' | 'xml' | 'markdown'"
   )]
   pub parser: Option<String>,
   /// The file's path, which decides the language and some details.
@@ -79,6 +79,10 @@ pub struct FormatOptions {
   /// Options for TOML only: the shared ones, and taplo's, in camel case: `alignEntries`, `reorderKeys`, ...
   #[napi(ts_type = "Record<string, unknown>")]
   pub toml: Option<Value>,
+  /// Options for Dockerfiles only: the shared ones, and dprint-plugin-dockerfile's `indentStages` and
+  /// `healthcheckCmdNewLine`.
+  #[napi(ts_type = "Record<string, unknown>")]
+  pub dockerfile: Option<Value>,
   /// Options for XML only: the shared ones, and `selfClosingSpace`, `sortAttributes` and `attributeQuotes`.
   #[napi(ts_type = "Record<string, unknown>")]
   pub xml: Option<Value>,
@@ -176,6 +180,7 @@ fn language(input: &FormatOptions) -> napi::Result<(Language, Option<tidy::handl
     Some("json5") => (Language::Json(json::Dialect::Json5), None),
     Some("json-stringify") => (Language::Json(json::Dialect::Stringify), None),
     Some("toml") => (Language::Toml, None),
+    Some("dockerfile") => (Language::Dockerfile, None),
     Some("yaml") => (Language::Yaml, None),
     Some("xml") => (Language::Xml, None),
     Some("markdown") => (Language::Markdown, None),
@@ -212,6 +217,7 @@ fn config(input: &FormatOptions) -> Value {
   put("css", input.css.clone());
   put("json", input.json.clone());
   put("toml", input.toml.clone());
+  put("dockerfile", input.dockerfile.clone());
   put("yaml", input.yaml.clone());
   put("xml", input.xml.clone());
   put("markdown", input.markdown.clone());

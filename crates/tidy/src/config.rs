@@ -40,6 +40,7 @@ pub struct Config {
   pub xml: Xml,
   pub yaml: Yaml,
   pub markdown: Markdown,
+  pub dockerfile: Dockerfile,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -85,6 +86,15 @@ pub struct Toml {
   pub reorder_arrays: Option<bool>,
   pub reorder_inline_tables: Option<bool>,
   pub allowed_blank_lines: Option<usize>,
+}
+
+/// dprint-plugin-dockerfile's options, by their names. The shared `width` is its `lineWidth`, and `indent` its
+/// `indentWidth`.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Dockerfile {
+  pub shared: Shared,
+  pub indent_stages: Option<bool>,
+  pub healthcheck_cmd_new_line: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -157,6 +167,7 @@ impl Config {
         "css" => config.css = shared_only(section("css")?, "css")?,
         "json" => config.json = json(section("json")?)?,
         "toml" => config.toml = toml(section("toml")?)?,
+        "dockerfile" => config.dockerfile = dockerfile(section("dockerfile")?)?,
         "yaml" => config.yaml = yaml(section("yaml")?)?,
         "xml" => config.xml = xml(section("xml")?)?,
         "markdown" => config.markdown = markdown(section("markdown")?)?,
@@ -186,6 +197,9 @@ impl Config {
     set(&mut options.json.quote_props, self.json.quote_props);
     set(&mut options.json.object_wrap, self.json.object_wrap);
     self.toml.apply(&mut options.toml);
+    self.dockerfile.shared.dockerfile(&mut options.dockerfile);
+    set(&mut options.dockerfile.indent_stages, self.dockerfile.indent_stages);
+    set(&mut options.dockerfile.healthcheck_cmd_new_line, self.dockerfile.healthcheck_cmd_new_line);
     self.yaml.shared.yaml(&mut options.yaml);
     set(&mut options.yaml.wrap, self.yaml.wrap);
     self.xml.shared.xml(&mut options.xml);
@@ -347,6 +361,21 @@ impl Toml {
     set(&mut options.reorder_inline_tables, self.reorder_inline_tables);
     set(&mut options.allowed_blank_lines, self.allowed_blank_lines);
   }
+}
+
+fn dockerfile(map: &Map<String, Value>) -> Result<Dockerfile, String> {
+  let mut options = Dockerfile::default();
+  for (key, value) in map {
+    let name = format!("dockerfile.{key}");
+    let field = match key.as_str() {
+      "indentStages" => &mut options.indent_stages,
+      "healthcheckCmdNewLine" => &mut options.healthcheck_cmd_new_line,
+      _ if shared(&mut options.shared, key, value, "dockerfile")? => continue,
+      _ => return Err(format!("unknown option `{name}`")),
+    };
+    *field = Some(flag(value, &name)?);
+  }
+  Ok(options)
 }
 
 fn toml(map: &Map<String, Value>) -> Result<Toml, String> {

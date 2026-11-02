@@ -1,6 +1,6 @@
 # Deviations from Prettier
 
-tidy prints what Prettier 3.9.9 prints, XML what `@prettier/plugin-xml` 3.4.2 prints, and TOML, which Prettier doesn't format, what taplo 0.14.0 prints by default, except where this file says otherwise. Markdown follows Prettier 3.9.10, and its deviations are in [`markdown-divergences.md`](markdown-divergences.md), which is generated from its cases. Each entry below says what tidy prints instead, why, where the rule is, and whether Luke has signed it off. `crates/tidy/tests/deviations.json` holds every input that was checked against both tools, and `cargo test --test deviations` fails if tidy stops printing what an entry says.
+tidy prints what Prettier 3.9.9 prints, XML what `@prettier/plugin-xml` 3.4.2 prints, TOML, which Prettier doesn't format, what taplo 0.14.0 prints by default, and Dockerfiles what dprint-plugin-dockerfile 0.7.0 prints on its first pass, except where this file says otherwise. Markdown follows Prettier 3.9.10, and its deviations are in [`markdown-divergences.md`](markdown-divergences.md), which is generated from its cases. Each entry below says what tidy prints instead, why, where the rule is, and whether Luke has signed it off. `crates/tidy/tests/deviations.json` holds every input that was checked against both tools, and `cargo test --test deviations` fails if tidy stops printing what an entry says.
 
 ## Process
 
@@ -67,6 +67,15 @@ Most entries come from bun's ports, which correct the places where Prettier's ou
 | [html-borrowed-markers-once](#html-borrowed-markers-once) | html | approved 2026-11-01 |
 | [toml-byte-order-mark](#toml-byte-order-mark) | toml | approved 2026-11-01 |
 | [toml-embedded](#toml-embedded) | markdown/css/html/handlebars | approved 2026-11-01 |
+| [dockerfile-bare-continuation](#dockerfile-bare-continuation) | dockerfile | proposed |
+| [dockerfile-empty-continuation-lines](#dockerfile-empty-continuation-lines) | dockerfile | proposed |
+| [dockerfile-quoted-env-value](#dockerfile-quoted-env-value) | dockerfile | proposed |
+| [dockerfile-env-value-with-tab](#dockerfile-env-value-with-tab) | dockerfile | proposed |
+| [dockerfile-glued-keyword](#dockerfile-glued-keyword) | dockerfile | proposed |
+| [dockerfile-unparsed-continuation](#dockerfile-unparsed-continuation) | dockerfile | proposed |
+| [dockerfile-read-back](#dockerfile-read-back) | dockerfile | proposed |
+| [dockerfile-byte-order-mark](#dockerfile-byte-order-mark) | dockerfile | proposed |
+| [dockerfile-embedded](#dockerfile-embedded) | markdown | proposed |
 | [the rule in step 2](#process) | all | proposed |
 | [tempura and text mode](#beyond-prettier) | handlebars | approved 2026-10-31 |
 
@@ -799,6 +808,135 @@ Found in `vlang/v`, `vlib/toml/tests/testdata/toml_with_utf8_bom.toml`, the only
 input:    "+++\ntitle=\"x\"\n+++\n\n```toml\na=1\n```\n"
 Prettier: "+++\ntitle=\"x\"\n+++\n\n```toml\na=1\n```\n"
 tidy:     "+++\ntitle = \"x\"\n+++\n\n```toml\na = 1\n```\n"
+```
+
+## Dockerfile
+
+dprint-plugin-dockerfile's output often reads back differently: on 202 of 342 corpus files, formatting it again changes it, and the later passes can break a file. tidy prints dprint's first pass, except where that pass changes what Docker reads, or where dprint would read it back differently. tidy's output then doesn't change when it is formatted again, on the plugin's specs and the corpus.
+
+### dockerfile-bare-continuation
+
+- Status: proposed
+- Why: dprint's parser ends an instruction at a line with only a line continuation, so the lines after it become instructions of their own. Docker continues the instruction. dprint's first pass writes such lines itself, from lines of only whitespace, so its second pass breaks official images such as `httpd` and `buildpack-deps`.
+- Where: crates/tidy/src/dockerfile/parse.rs (`breakable`)
+- Parser: dockerfile
+
+```
+input:  "RUN a \\\n\\\n  b\n"
+dprint: "RUN a\n\nb\n"
+tidy:   "RUN a \\\n\\\n  b\n"
+```
+
+### dockerfile-empty-continuation-lines
+
+- Status: proposed
+- Why: Docker skips the empty lines after a line continuation, so the instruction goes on. dprint ends it there, drops the continuation, and the next lines become instructions of their own. tidy keeps one instruction, without the empty lines that Docker ignores. A continuation at the end of the file still drops, as dprint drops it.
+- Where: crates/tidy/src/dockerfile/parse.rs (`breakable`)
+- Parser: dockerfile
+
+```
+input:  "RUN a \\\n\n  b\n"
+dprint: "RUN a\n\nb\n"
+tidy:   "RUN a \\\n  b\n"
+```
+
+### dockerfile-quoted-env-value
+
+- Status: proposed
+- Why: dprint quotes an `ENV` value that has a space again, from its content without escapes: `'a $HOME b'` becomes `"a $HOME b"`, which expands `$HOME`, and `"say \"hi\" now"` loses its escapes, so its quotes no longer match. A quoted value over lines is joined into one line, and a comment line in it becomes part of the value. tidy keeps a quoted value as it is written.
+- Where: crates/tidy/src/dockerfile/print.rs (`breakable`)
+- Parser: dockerfile
+
+```
+input:  "ENV A='a $HOME b' B=\"say \\\"hi\\\" now\"\n"
+dprint: "ENV A=\"a $HOME b\" B=\"say \"hi\" now\"\n"
+tidy:   "ENV A='a $HOME b' B=\"say \\\"hi\\\" now\"\n"
+```
+
+```
+input:  "ENV A=\"a \\\n  b\"\n"
+dprint: "ENV A=\"a   b\"\n"
+tidy:   "ENV A=\"a \\\n  b\"\n"
+```
+
+### dockerfile-env-value-with-tab
+
+- Status: proposed
+- Why: dprint quotes the value of `ENV name value` when it has a space, but not when it has a tab only. Without quotes, the tab separates two variables.
+- Where: crates/tidy/src/dockerfile/print.rs (`breakable`)
+- Parser: dockerfile
+
+```
+input:  "ENV A a\tb\n"
+dprint: "ENV A=a\tb\n"
+tidy:   "ENV A=\"a\tb\"\n"
+```
+
+### dockerfile-glued-keyword
+
+- Status: proposed
+- Why: dprint reads a keyword glued to its text, as in `RUN-script` or `bzip2`, as an instruction without a grammar, and puts a space after the keyword. That turns an invalid line into a different instruction, `RUN -script`, and splits words such as `bzip2` in template lines. tidy keeps the line as it is written.
+- Where: crates/tidy/src/dockerfile/parse.rs (`misc`)
+- Parser: dockerfile
+
+```
+input:  "RUN-script is not one\n"
+dprint: "RUN -script is not one\n"
+tidy:   "RUN-script is not one\n"
+```
+
+### dockerfile-unparsed-continuation
+
+- Status: proposed
+- Why: dprint keeps a line that doesn't parse as it is written, but parses the lines it continues to on their own, so they lose their indent and can become instructions. tidy keeps the line with the lines it continues to.
+- Where: crates/tidy/src/dockerfile/parse.rs (`unknown_line`), crates/tidy/src/dockerfile/print.rs (`instruction`)
+- Parser: dockerfile
+
+```
+input:  "COPY --from=build \\\n  only-one\n"
+dprint: "COPY --from=build \\\nonly -one\n"
+tidy:   "COPY --from=build \\\n  only-one\n"
+```
+
+### dockerfile-read-back
+
+- Status: proposed
+- Why: Some of dprint's choices depend on whitespace that its own output changes, so formatting again moves the text. tidy makes each choice from what reads back the same: a comment takes its indent from the nearest line with text, but not from the first line, whose whitespace is the gap after the keyword; a first line of only whitespace prints as a bare continuation; a comment inside a quote keeps its indent; and with `indentStages`, the indent that a stage adds isn't read back as content. These change dprint's first pass only where dprint would change its own output.
+- Where: crates/tidy/src/dockerfile/print.rs (`breakable`, `indent_around`)
+- Parser: dockerfile
+
+The input is dprint's first pass of a line from the official nginx image:
+
+```
+input:  "RUN set -x \\\n            && tempDir=1 \\\n            # (note)\n \\\n            # next\n            && b\n"
+dprint: "RUN set -x \\\n            && tempDir=1 \\\n # (note)\n \\\n            # next\n            && b\n"
+tidy:   "RUN set -x \\\n            && tempDir=1 \\\n            # (note)\n \\\n            # next\n            && b\n"
+```
+
+### dockerfile-byte-order-mark
+
+- Status: proposed
+- Why: dprint drops a byte order mark. tidy keeps it, as it does in every other language.
+- Where: crates/tidy/src/dockerfile/mod.rs (`Formatter::format`)
+- Parser: dockerfile
+
+```
+input:  "﻿FROM a\n"
+dprint: "FROM a\n"
+tidy:   "﻿FROM a\n"
+```
+
+### dockerfile-embedded
+
+- Status: proposed
+- Why: Prettier has no Dockerfile formatter, so it leaves ```` ```dockerfile ```` code blocks as they are written. tidy formats them as it formats a Dockerfile, at the start of a line only, since indenting a heredoc would change it.
+- Where: crates/tidy/src/embed.rs (`own`, `builtin`)
+- Parser: markdown
+
+```
+input:    "```dockerfile\nfrom   node\n```\n"
+Prettier: "```dockerfile\nfrom   node\n```\n"
+tidy:     "```dockerfile\nFROM node\n```\n"
 ```
 
 ## Beyond Prettier

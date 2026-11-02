@@ -3,7 +3,9 @@
 
 use crate::embed::Embed;
 use crate::embed::{Kind, Request};
-use crate::{Error, Whitespace, css, doc, handlebars, html, json, markdown, toml, xml, yaml};
+use crate::{
+  Error, Whitespace, css, doc, dockerfile, handlebars, html, json, markdown, toml, xml, yaml,
+};
 
 /// A language that tidy formats.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -17,6 +19,7 @@ pub enum Language {
   Xml,
   Yaml,
   Markdown,
+  Dockerfile,
 }
 
 impl Language {
@@ -30,6 +33,9 @@ impl Language {
     }
     if toml::is_toml_path(path) {
       return Some(Language::Toml);
+    }
+    if dockerfile::is_dockerfile_path(path) {
+      return Some(Language::Dockerfile);
     }
     if yaml::is_yaml_path(path) {
       return Some(Language::Yaml);
@@ -64,6 +70,7 @@ pub struct Options {
   pub xml: xml::Options,
   pub yaml: yaml::Options,
   pub markdown: markdown::Options,
+  pub dockerfile: dockerfile::Options,
 }
 
 impl Default for Options {
@@ -78,6 +85,7 @@ impl Default for Options {
       xml: xml::Options::default(),
       yaml: yaml::Options::default(),
       markdown: markdown::Options::default(),
+      dockerfile: dockerfile::Options::default(),
     }
   }
 }
@@ -94,6 +102,7 @@ impl Options {
     shared.xml(&mut self.xml);
     shared.yaml(&mut self.yaml);
     shared.markdown(&mut self.markdown);
+    shared.dockerfile(&mut self.dockerfile);
   }
 }
 
@@ -207,6 +216,13 @@ impl Shared {
     set(&mut options.array_trailing_comma, self.trailing_comma);
   }
 
+  /// The indent is the indent of a stage, with `indentStages`: dprint-plugin-dockerfile's `indentWidth`.
+  pub fn dockerfile(&self, options: &mut dockerfile::Options) {
+    set(&mut options.width, self.width);
+    set(&mut options.indent_width, self.indent);
+    set(&mut options.eol, self.eol);
+  }
+
   pub fn xml(&self, options: &mut xml::Options) {
     set(&mut options.width, self.width);
     set(&mut options.tab_width, self.indent);
@@ -254,6 +270,7 @@ pub struct Formatter {
   toml: toml::Formatter,
   xml: xml::Formatter,
   yaml: yaml::Formatter,
+  dockerfile: dockerfile::Formatter,
   markdown: String,
 }
 
@@ -287,6 +304,7 @@ impl Formatter {
         self.json.format(text, &options)
       }
       Language::Toml => self.toml.format(text, &options.toml),
+      Language::Dockerfile => self.dockerfile.format(text, &options.dockerfile),
       Language::Xml => self.xml.format(text, &options.xml, embed),
       Language::Yaml => {
         let options = yaml::Options { filepath, ..options.yaml.clone() };

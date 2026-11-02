@@ -61,6 +61,17 @@ fn sets_each_language_on_its_own() {
 }
 
 #[test]
+fn sets_dockerfile() {
+  let config = Config::json(
+    r#"{ "width": 100, "dockerfile": { "indentStages": true, "healthcheckCmdNewLine": true, "indent": 4 } }"#,
+  )
+  .unwrap();
+  let options = options(&config).dockerfile;
+  assert_eq!((options.width, options.indent_width), (100, 4));
+  assert!(options.indent_stages && options.healthcheck_cmd_new_line);
+}
+
+#[test]
 fn sets_json_yaml_and_toml() {
   let config = Config::toml(
     r#"
@@ -103,6 +114,10 @@ fn names_what_is_wrong() {
   let error = |text: &str| Config::json(text).unwrap_err();
   assert_eq!(error(r#"{ "colour": 1 }"#), "unknown option `colour`");
   assert_eq!(error(r#"{ "xml": { "dialect": "x" } }"#), "unknown option `xml.dialect`");
+  assert_eq!(
+    error(r#"{ "dockerfile": { "lineWidth": 9 } }"#),
+    "unknown option `dockerfile.lineWidth`"
+  );
   assert_eq!(error(r#"{ "width": "80" }"#), "`width` must be a whole number");
   assert_eq!(
     error(r#"{ "css": { "whitespace": "css" } }"#),
