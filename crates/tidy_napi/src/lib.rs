@@ -96,7 +96,10 @@ pub struct FormatOptions {
   pub graphql: Option<Value>,
   /// Options for JavaScript and TypeScript, also where tidy formats them in other languages: the shared ones,
   /// `trailingComma` as `all`, `es5` or `none`, and `semi`, `jsxSingleQuote`, `quoteProps`, `arrowParens`,
-  /// `objectWrap`, `experimentalTernaries`, `experimentalOperatorPosition` and `jsdoc`.
+  /// `objectWrap`, `experimentalTernaries`, `experimentalOperatorPosition` and `jsdoc`. Imports are sorted with oxfmt's
+  /// `sortImports`, or with `plugins` that lists `@trivago/prettier-plugin-sort-imports`,
+  /// `@ianvs/prettier-plugin-sort-imports` or `prettier-plugin-organize-imports` and that plugin's options
+  /// (`importOrder`, `importOrderSeparation`, `organizeImportsTypeOrder`, ...). Off by default.
   #[napi(ts_type = "Record<string, unknown>")]
   pub js: Option<Value>,
   /// Options for XML only: the shared ones, and `selfClosingSpace`, `sortAttributes` and `attributeQuotes`.

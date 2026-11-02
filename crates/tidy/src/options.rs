@@ -373,7 +373,7 @@ impl Formatter {
         let options = html::Options {
           filepath,
           #[cfg(feature = "js")]
-          js: options.js,
+          js: options.js.clone(),
           ..base.clone()
         };
         self.html.format(text, &options, embed)
@@ -382,7 +382,7 @@ impl Formatter {
         let options = handlebars::Options {
           filepath,
           #[cfg(feature = "js")]
-          js: options.js,
+          js: options.js.clone(),
           ..options.handlebars.clone()
         };
         self.handlebars.format(text, &options, embed)
@@ -404,12 +404,12 @@ impl Formatter {
       Language::Graphql => self.graphql.format(text, &options.graphql),
       #[cfg(feature = "js")]
       Language::Js(dialect) => {
-        let options = js::Options { dialect, ..options.js };
+        let options = js::Options { dialect, ..options.js.clone() };
         self.js.format(text, path.unwrap_or_default(), &options)
       }
       Language::Xml => {
         #[cfg(feature = "js")]
-        let options = &xml::Options { js: options.js, ..options.xml.clone() };
+        let options = &xml::Options { js: options.js.clone(), ..options.xml.clone() };
         #[cfg(not(feature = "js"))]
         let options = &options.xml;
         self.xml.format(text, options, embed)

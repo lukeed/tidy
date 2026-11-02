@@ -1,0 +1,633 @@
+[
+ {
+  "name": "ambient_modules/1",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {}
+  },
+  "input": "declare module \"foo\" {\n  import C from \"c\";\n  import A from \"a\";\n  import B from \"b\";\n  export const x: number;\n}\n",
+  "output": "declare module \"foo\" {\n  import A from \"a\";\n  import B from \"b\";\n  import C from \"c\";\n  export const x: number;\n}\n"
+ },
+ {
+  "name": "basic/10",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {},
+   "singleQuote": true
+  },
+  "input": "import b from \"b\";\nimport a from \"a\";\n",
+  "output": "import a from 'a';\nimport b from 'b';\n"
+ },
+ {
+  "name": "basic/28",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "partitionByComment": true
+   },
+   "singleQuote": true,
+   "semi": false
+  },
+  "input": "/* Partition Comment */\n// Part: A\nimport d from './d'\n// Part: B\nimport aaa from './aaa'\nimport c from './c'\nimport bb from './bb'\n/* Other */\nimport e from './e'\n",
+  "output": "/* Partition Comment */\n// Part: A\nimport d from './d'\n// Part: B\nimport aaa from './aaa'\nimport bb from './bb'\nimport c from './c'\n/* Other */\nimport e from './e'\n"
+ },
+ {
+  "name": "basic/40",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "order": "desc"
+   }
+  },
+  "input": "import { log } from \"./log\";\nimport { log10 } from \"./log10\";\nimport { log1p } from \"./log1p\";\nimport { log2 } from \"./log2\";\n",
+  "output": "import { log10 } from \"./log10\";\nimport { log2 } from \"./log2\";\nimport { log1p } from \"./log1p\";\nimport { log } from \"./log\";\n"
+ },
+ {
+  "name": "basic/49",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "sortSideEffects": true
+   }
+  },
+  "input": "import y from \"y\";\nimport a from \"a\";\nimport \"z\";\nimport \"x\";\n",
+  "output": "import a from \"a\";\nimport \"x\";\nimport y from \"y\";\nimport \"z\";\n"
+ },
+ {
+  "name": "basic/59",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "internalPattern": [
+     "#"
+    ]
+   }
+  },
+  "input": "import type { T } from \"a\";\nimport { a } from \"a\";\nimport type { S } from \"#b\";\nimport c from \"#c\";\nimport { b1, b2 } from \"#b\";\nimport { d } from \"../d\";\n",
+  "output": "import type { T } from \"a\";\nimport { a } from \"a\";\n\nimport type { S } from \"#b\";\nimport { b1, b2 } from \"#b\";\nimport c from \"#c\";\n\nimport { d } from \"../d\";\n"
+ },
+ {
+  "name": "custom_groups/2",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "customGroups": [
+     {
+      "elementNamePattern": [
+       "~/validators/**"
+      ],
+      "groupName": "validators"
+     },
+     {
+      "elementNamePattern": [
+       "~/composable/**"
+      ],
+      "groupName": "composable"
+     },
+     {
+      "elementNamePattern": [
+       "~/components/**"
+      ],
+      "groupName": "components"
+     },
+     {
+      "elementNamePattern": [
+       "~/services/**"
+      ],
+      "groupName": "services"
+     },
+     {
+      "elementNamePattern": [
+       "~/widgets/**"
+      ],
+      "groupName": "widgets"
+     },
+     {
+      "elementNamePattern": [
+       "~/stores/**"
+      ],
+      "groupName": "stores"
+     },
+     {
+      "elementNamePattern": [
+       "~/logics/**"
+      ],
+      "groupName": "logics"
+     },
+     {
+      "elementNamePattern": [
+       "~/assets/**"
+      ],
+      "groupName": "assets"
+     },
+     {
+      "elementNamePattern": [
+       "~/utils/**"
+      ],
+      "groupName": "utils"
+     },
+     {
+      "elementNamePattern": [
+       "~/pages/**"
+      ],
+      "groupName": "pages"
+     },
+     {
+      "elementNamePattern": [
+       "~/ui/**"
+      ],
+      "groupName": "ui"
+     }
+    ],
+    "groups": [
+     [
+      "builtin",
+      "external"
+     ],
+     "internal",
+     "stores",
+     "services",
+     "validators",
+     "utils",
+     "logics",
+     "composable",
+     "ui",
+     "components",
+     "pages",
+     "widgets",
+     "assets",
+     "parent",
+     "sibling",
+     "side_effect",
+     "index",
+     "style",
+     "unknown"
+    ]
+   }
+  },
+  "input": "import { useCartStore } from \"~/stores/cartStore.ts\";\nimport { useUserStore } from \"~/stores/userStore.ts\";\n\nimport { getCart } from \"~/services/cartService.ts\";\n\nimport { connect } from \"~/utils/ws.ts\";\nimport { formattingDate } from \"~/utils/dateTime.ts\";\n\nimport { useFetch } from \"~/composable/useFetch.ts\";\nimport { useDebounce } from \"~/composable/useDebounce.ts\";\nimport { useMouseMove } from \"~/composable/useMouseMove.ts\";\n\nimport ComponentA from \"~/components/ComponentA.vue\";\nimport ComponentB from \"~/components/ComponentB.vue\";\nimport ComponentC from \"~/components/ComponentC.vue\";\n\nimport CartComponentA from \"./cart/CartComponentA.vue\";\nimport CartComponentB from \"./cart/CartComponentB.vue\";\n",
+  "output": "import { useCartStore } from \"~/stores/cartStore.ts\";\nimport { useUserStore } from \"~/stores/userStore.ts\";\n\nimport { getCart } from \"~/services/cartService.ts\";\n\nimport { formattingDate } from \"~/utils/dateTime.ts\";\nimport { connect } from \"~/utils/ws.ts\";\n\nimport { useDebounce } from \"~/composable/useDebounce.ts\";\nimport { useFetch } from \"~/composable/useFetch.ts\";\nimport { useMouseMove } from \"~/composable/useMouseMove.ts\";\n\nimport ComponentA from \"~/components/ComponentA.vue\";\nimport ComponentB from \"~/components/ComponentB.vue\";\nimport ComponentC from \"~/components/ComponentC.vue\";\n\nimport CartComponentA from \"./cart/CartComponentA.vue\";\nimport CartComponentB from \"./cart/CartComponentB.vue\";\n"
+ },
+ {
+  "name": "custom_groups/6",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "customGroups": [
+     {
+      "groupName": "vue-core",
+      "elementNamePattern": [
+       "vue"
+      ]
+     }
+    ],
+    "groups": [
+     "vue-core",
+     "unknown"
+    ]
+   }
+  },
+  "input": "import { createApp } from \"vue\";\nimport Vuetify from \"vuetify\";\n",
+  "output": "import { createApp } from \"vue\";\n\nimport Vuetify from \"vuetify\";\n"
+ },
+ {
+  "name": "custom_groups/9",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "customGroups": [
+     {
+      "groupName": "internal-types",
+      "selector": "internal",
+      "elementNamePattern": [
+       "~/**"
+      ]
+     }
+    ],
+    "groups": [
+     "internal-types",
+     "unknown"
+    ],
+    "internalPattern": [
+     "~/"
+    ]
+   }
+  },
+  "input": "import type { InternalType } from \"~/types\";\nimport type { ExternalType } from \"ext-lib\";\nimport { internalUtil } from \"~/utils\";\nimport { externalUtil } from \"ext-lib\";\n",
+  "output": "import type { InternalType } from \"~/types\";\nimport { internalUtil } from \"~/utils\";\n\nimport type { ExternalType } from \"ext-lib\";\nimport { externalUtil } from \"ext-lib\";\n"
+ },
+ {
+  "name": "custom_groups/12",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "customGroups": [
+     {
+      "groupName": "type-named",
+      "modifiers": [
+       "type",
+       "named"
+      ]
+     }
+    ],
+    "groups": [
+     "type-named",
+     "unknown"
+    ]
+   }
+  },
+  "input": "import type Bar from \"bar\";\nimport type { Foo } from \"foo\";\nimport { regular } from \"regular\";\n",
+  "output": "import type { Foo } from \"foo\";\n\nimport type Bar from \"bar\";\nimport { regular } from \"regular\";\n"
+ },
+ {
+  "name": "custom_groups/15",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "internalPattern": [
+     "~/"
+    ],
+    "customGroups": [
+     {
+      "groupName": "builtins",
+      "selector": "builtin"
+     },
+     {
+      "groupName": "externals",
+      "selector": "external"
+     },
+     {
+      "groupName": "internals",
+      "selector": "internal"
+     }
+    ],
+    "groups": [
+     "builtins",
+     "externals",
+     "internals",
+     "unknown"
+    ]
+   }
+  },
+  "input": "import fs from \"node:fs\";\nimport { foo } from \"external-lib\";\nimport { bar } from \"~/internal\";\nimport { baz } from \"./sibling\";\n",
+  "output": "import fs from \"node:fs\";\n\nimport { foo } from \"external-lib\";\n\nimport { bar } from \"~/internal\";\n\nimport { baz } from \"./sibling\";\n"
+ },
+ {
+  "name": "custom_groups/19",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "groups": [
+     "side-effect-style",
+     "external",
+     "unknown"
+    ],
+    "customGroups": [
+     {
+      "groupName": "side-effect-style",
+      "selector": "side_effect_style"
+     }
+    ]
+   }
+  },
+  "input": "import { a } from \"a\";\nimport \"./styles.css\";\n",
+  "output": "import \"./styles.css\";\n\nimport { a } from \"a\";\n"
+ },
+ {
+  "name": "custom_groups/22",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "sortSideEffects": true,
+    "groups": [
+     "named-only",
+     "unknown"
+    ],
+    "customGroups": [
+     {
+      "groupName": "named-only",
+      "modifiers": [
+       "named"
+      ]
+     }
+    ]
+   }
+  },
+  "input": "import \"@warp-drive/ember/install\";\nimport { bar } from \"@warp-drive/core\";\n",
+  "output": "import { bar } from \"@warp-drive/core\";\n\nimport \"@warp-drive/ember/install\";\n"
+ },
+ {
+  "name": "custom_groups/27",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "groups": [
+     "defaults",
+     "unknown"
+    ],
+    "customGroups": [
+     {
+      "groupName": "defaults",
+      "modifiers": [
+       "default"
+      ]
+     }
+    ]
+   }
+  },
+  "input": "import { b } from \"b\";\nimport * as ns from \"n\";\nimport d from \"d\";\n",
+  "output": "import d from \"d\";\n\nimport { b } from \"b\";\nimport * as ns from \"n\";\n"
+ },
+ {
+  "name": "custom_groups/30",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "customGroups": [
+     {
+      "groupName": "typeSiblings",
+      "selector": "sibling",
+      "modifiers": [
+       "type"
+      ]
+     }
+    ],
+    "groups": [
+     "typeSiblings",
+     "unknown"
+    ]
+   }
+  },
+  "input": "import a from \"a\";\nimport b from \"./b\";\nimport type c from \"./c\";\nimport type d from \"./d\";\nimport e from \"e\";\n",
+  "output": "import type c from \"./c\";\nimport type d from \"./d\";\n\nimport b from \"./b\";\nimport a from \"a\";\nimport e from \"e\";\n"
+ },
+ {
+  "name": "groups/5",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "groups": [
+     "external",
+     "side_effect",
+     "unknown"
+    ],
+    "sortSideEffects": false
+   }
+  },
+  "input": "import a from \"aaaa\";\n\nimport \"bbb\";\nimport \"./cc\";\nimport \"../d\";\n",
+  "output": "import a from \"aaaa\";\n\nimport \"bbb\";\nimport \"./cc\";\nimport \"../d\";\n"
+ },
+ {
+  "name": "groups/9",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "groups": [
+     "side_effect",
+     "unknown"
+    ]
+   }
+  },
+  "input": "import \"./z-side-effect.scss\";\nimport b from \"./b\";\nimport \"./b-side-effect\";\nimport \"./g-side-effect.css\";\nimport \"./a-side-effect\";\nimport a from \"./a\";\n",
+  "output": "import \"./z-side-effect.scss\";\nimport \"./b-side-effect\";\nimport \"./g-side-effect.css\";\nimport \"./a-side-effect\";\n\nimport a from \"./a\";\nimport b from \"./b\";\n"
+ },
+ {
+  "name": "groups/12",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "groups": [
+     "side_effect_style",
+     "unknown"
+    ]
+   }
+  },
+  "input": "import \"./z-side-effect\";\nimport b from \"./b\";\nimport \"./b-side-effect.scss\";\nimport \"./g-side-effect\";\nimport \"./a-side-effect.css\";\nimport a from \"./a\";\n",
+  "output": "import \"./z-side-effect\";\nimport \"./b-side-effect.scss\";\nimport \"./a-side-effect.css\";\n\nimport \"./g-side-effect\";\nimport a from \"./a\";\nimport b from \"./b\";\n"
+ },
+ {
+  "name": "groups/15",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "groups": [
+     "side_effect_style",
+     "side_effect"
+    ]
+   }
+  },
+  "input": "import \"something\";\n\nimport \"style.css\";\n",
+  "output": "import \"style.css\";\n\nimport \"something\";\n"
+ },
+ {
+  "name": "groups/18",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "groups": [
+     "side_effect-import",
+     "external",
+     "value-import"
+    ],
+    "sortSideEffects": true
+   }
+  },
+  "input": "import f from \"f\";\n\nimport \"./z\";\n",
+  "output": "import \"./z\";\n\nimport f from \"f\";\n"
+ },
+ {
+  "name": "groups/21",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "groups": [
+     "external",
+     "internal"
+    ],
+    "newlinesBetween": true
+   }
+  },
+  "input": "import { b } from \"b\";\nimport { a } from \"@/a\";\n",
+  "output": "import { b } from \"b\";\n\nimport { a } from \"@/a\";\n"
+ },
+ {
+  "name": "groups/24",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "groups": [
+     [],
+     []
+    ]
+   }
+  },
+  "input": "import d from \"d\";\nimport a from \"a\";\nimport * as c from \"c\";\nimport { b1, type b2, b3 as b33 } from \"b\";\n",
+  "output": "import a from \"a\";\nimport { b1, type b2, b3 as b33 } from \"b\";\nimport * as c from \"c\";\nimport d from \"d\";\n"
+ },
+ {
+  "name": "groups/27",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "groups": [
+     "builtin",
+     "external",
+     "side_effect"
+    ]
+   }
+  },
+  "input": "import {} from \"node:os\";\nimport sqlite from \"node:sqlite\";\nimport { describe, test } from \"node:test\";\nimport { c } from \"c\";\nimport \"node:os\";\n",
+  "output": "import {} from \"node:os\";\nimport sqlite from \"node:sqlite\";\nimport { describe, test } from \"node:test\";\n\nimport { c } from \"c\";\n\nimport \"node:os\";\n"
+ },
+ {
+  "name": "newlines_between_override/2",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "newlinesBetween": false,
+    "groups": [
+     [
+      "value-builtin",
+      "value-external"
+     ],
+     {
+      "newlinesBetween": true
+     },
+     "value-parent",
+     "value-sibling"
+    ]
+   }
+  },
+  "input": "import path from \"path\";\nimport { foo } from \"../foo\";\nimport { bar } from \"./bar\";\nimport { baz } from \"baz\";\n",
+  "output": "import { baz } from \"baz\";\nimport path from \"path\";\n\nimport { foo } from \"../foo\";\nimport { bar } from \"./bar\";\n"
+ },
+ {
+  "name": "newlines_between_override/5",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "newlinesBetween": true,
+    "groups": [
+     [
+      "value-builtin",
+      "value-external"
+     ],
+     {
+      "newlinesBetween": false
+     },
+     "value-parent",
+     {
+      "newlinesBetween": false
+     },
+     "value-sibling"
+    ]
+   }
+  },
+  "input": "import path from \"path\";\nimport { foo } from \"../foo\";\nimport { bar } from \"./bar\";\nimport { baz } from \"baz\";\n",
+  "output": "import { baz } from \"baz\";\nimport path from \"path\";\nimport { foo } from \"../foo\";\nimport { bar } from \"./bar\";\n"
+ },
+ {
+  "name": "newlines_between_override/8",
+  "filename": "a.ts",
+  "options": {
+   "printWidth": 80,
+   "sortImports": {
+    "newlinesBetween": false,
+    "groups": [
+     "type-import",
+     "value-builtin",
+     {
+      "newlinesBetween": true
+     },
+     "value-internal",
+     "value-parent"
+    ]
+   }
+  },
+  "input": "import path from \"path\";\nimport { foo } from \"../foo\";\nimport type { T } from \"t\";\n",
+  "output": "import type { T } from \"t\";\nimport path from \"path\";\n\nimport { foo } from \"../foo\";\n"
+ },
+ {
+  "name": "oxfmt-lines/53/3",
+  "filename": "fuzz.ts",
+  "options": {
+   "printWidth": 100,
+   "sortImports": {
+    "partitionByComment": true
+   }
+  },
+  "input": "import A2 from \"a2\";\nimport \"side\";\n/* c */\nimport d, { e as f } from \"@core/d\"; // prettier-ignore\n\n\nimport css from \"./a.module.scss\";\nimport s from \"#sub\"; // t\n/* a\n   b */\nimport q from \"./q?raw\"; /* t */\n\nfoo();\n",
+  "output": "import A2 from \"a2\";\nimport \"side\";\n/* c */\nimport d, { e as f } from \"@core/d\"; // prettier-ignore\n\nimport s from \"#sub\"; // t\n\nimport css from \"./a.module.scss\";\n/* a\n   b */\nimport q from \"./q?raw\"; /* t */\n\nfoo();\n"
+ },
+ {
+  "name": "oxfmt-lines/131/1",
+  "filename": "fuzz.ts",
+  "options": {
+   "printWidth": 100,
+   "sortImports": {
+    "order": "desc",
+    "ignoreCase": false
+   }
+  },
+  "input": "\"use strict\";\n\n// after\n/**\n * doc\n */\nimport bun from \"bun:test\"; // t\nimport \"./style.css\"; // t\nimport q from \"./q?raw\";\nimport { g } from \"../x\"; /* t */\n// c\n// d\nimport dom from \"react-dom\";\n// c\n\nimport bun from \"bun:test\"; /* t\n  u */\nfoo();\n",
+  "output": "\"use strict\";\n\n// after\n/**\n * doc\n */\nimport bun from \"bun:test\"; // t\n\nimport \"./style.css\"; // t\nimport bun from \"bun:test\"; /* t\n  u */\n\n// c\n// d\nimport dom from \"react-dom\";\n\nimport q from \"./q?raw\";\n// c\nimport { g } from \"../x\"; /* t */\nfoo();\n"
+ },
+ {
+  "name": "oxfmt-lines/288/8",
+  "filename": "fuzz.ts",
+  "options": {
+   "printWidth": 100,
+   "sortImports": {
+    "groups": [
+     "unknown",
+     "external"
+    ],
+    "newlinesBetween": true,
+    "sortSideEffects": true,
+    "order": "desc"
+   }
+  },
+  "input": "\"use strict\";\n/* c */\nimport { type U, v } from \"@ui/u\";\nimport q from \"./q?raw\";\nimport s from \"#sub\";\n// c\n\nimport type { T } from \"t\";\n// c\n// d\nimport { b, a, type C } from \"./x\"; /* t */\n/* c */ import {\n  long1,\n  long2,\n} from \"~/long\";\n// c\n// d\nimport i from \"./index\";\n\n\n\nexport default 1;\n",
+  "output": "\"use strict\";\n/* c */ import { long1, long2 } from \"~/long\";\n// c\n// d\nimport { b, a, type C } from \"./x\"; /* t */\nimport q from \"./q?raw\";\n// c\n// c\n// d\nimport i from \"./index\";\nimport s from \"#sub\";\n\nimport type { T } from \"t\";\n/* c */\nimport { type U, v } from \"@ui/u\";\n\nexport default 1;\n"
+ },
+ {
+  "name": "oxfmt-tokens/8/9",
+  "filename": "fuzz.ts",
+  "options": {
+   "printWidth": 100,
+   "sortImports": {
+    "partitionByComment": true,
+    "partitionByNewline": true,
+    "newlinesBetween": false,
+    "ignoreCase": false
+   }
+  },
+  "input": "// c\n// d\nimport z from \"z\";\nimport { b, a as c, type C } from \"./x\";\nimport * as ns from \"ns\";\n\nfoo();\n",
+  "output": "// c\n// d\nimport * as ns from \"ns\";\nimport z from \"z\";\nimport { b, a as c, type C } from \"./x\";\n\nfoo();\n"
+ }
+]

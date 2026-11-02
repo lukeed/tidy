@@ -1,0 +1,173 @@
+[
+ {
+  "name": "organize-fuzz/0",
+  "filename": "fuzz.ts",
+  "options": {},
+  "input": "\n// c\nimport path from \"path\";\n\nimport A10 from \"a10\";\nimport type { T } from \"t\";\n\nexport * as nn from \"nn\"; // t\nexport * from \"star\";\nexport * as nn from \"nn\";\n\nuse(path, A10);\ntype All = [T];\n",
+  "output": "// c\nimport path from \"path\";\n\nimport A10 from \"a10\";\nimport type { T } from \"t\";\n\nexport * as nn from \"nn\"; // t\nexport * from \"star\";\n\nuse(path, A10);\ntype All = [T];\n"
+ },
+ {
+  "name": "organize-fuzz/10",
+  "filename": "fuzz.ts",
+  "options": {
+   "organizeImportsTypeOrder": "inline"
+  },
+  "input": "\"use strict\";\n\nimport Bb from \"B\"; /* t */\nimport path from \"path\"; /* t */\nimport { x as x } from \"../up\";\nimport * as ns from \"ns\"; // t\nimport type { T } from \"t\"; // t\n\n\nexport * from \"./aa\";\n\nuse(Bb, ns);\ntype All = [T];\n",
+  "output": "\"use strict\";\n\nimport Bb from \"B\"; /* t */\nimport * as ns from \"ns\"; // t\nimport type { T } from \"t\"; // t\n\nexport * from \"./aa\";\n\nuse(Bb, ns);\ntype All = [T];\n"
+ },
+ {
+  "name": "organize-fuzz/20",
+  "filename": "fuzz.ts",
+  "options": {
+   "organizeImportsSkipDestructiveCodeActions": true
+  },
+  "input": "#!/usr/bin/env node\nimport {\n  long2,\n  long1,\n} from \"@server/long\"; // t\nimport z from \"z\";\nfoo();\n\nexport * from \"./aa\";\nexport { s } from \"q\"; // t\n\nexport { q2, q1 } from \"q\";\n\nuse(long2, z);\n",
+  "output": "#!/usr/bin/env node\nimport { long1, long2 } from \"@server/long\"; // t\nimport z from \"z\";\nfoo();\n\nexport { s } from \"q\"; // t\nexport * from \"./aa\";\n\nexport { q1, q2 } from \"q\";\n\nuse(long2, z);\n"
+ },
+ {
+  "name": "organize-between/0",
+  "filename": "fuzz.ts",
+  "options": {},
+  "input": "/**\n * doc\n */\nimport type { W } from \"@ui/u\";\nimport { g } from \"./x\";\n\nimport k2 from \"k\";\n\n// c\nimport A10 from \"a10\";\nimport { x as x } from \"../up\";\n(x as any).y(); // c\nimport Bb from \"B\";\nexport { q2, q1 } from \"q\";\n\nuse(k2, A10, Bb);\ntype All = [W];\n",
+  "output": "/**\n * doc\n */\nimport type { W } from \"@ui/u\";\n\nimport k2 from \"k\";\n\n// c\nimport A10 from \"a10\";\nimport Bb from \"B\";\nimport { x } from \"../up\";\n(x as any).y(); // c\nexport { q1, q2 } from \"q\";\n\nuse(k2, A10, Bb);\ntype All = [W];\n"
+ },
+ {
+  "name": "organize-between/10",
+  "filename": "fuzz.ts",
+  "options": {
+   "organizeImportsTypeOrder": "inline"
+  },
+  "input": "import { b, a, type C } from \"./x\";\nimport z from \"z\"; /* t */\n\nimport h from \"./x\"; /* t */\n// b\nfoo();\n\nexport { q2, q1 } from \"q\"; /* t\n  u */\n\nexport { q2, q1 } from \"q\";\n\nuse(b, z, h);\n",
+  "output": "import z from \"z\"; /* t */\nimport { b } from \"./x\";\n\nimport h from \"./x\"; /* t */\n// b\nfoo();\n\nexport { q1, q2 } from \"q\"; /* t\n  u */\n\nexport { q1, q2 } from \"q\";\n\nuse(b, z, h);\n"
+ },
+ {
+  "name": "organize-between/20",
+  "filename": "fuzz.ts",
+  "options": {
+   "organizeImportsSkipDestructiveCodeActions": true
+  },
+  "input": "import k2 from \"k\";\nimport \"./style.css\"; /* t\n  u */\n// b\nfoo();\n/* c */ import h from \"./x\";\n;(x as any).y() // c\n/**\n * doc\n */\nimport z from \"z\";\n// b\nfoo();\nimport React, { useState } from \"react\";\nimport type { T } from \"t\";\nimport { type U, v } from \"@ui/u\";\nexport const c1 = 1;\nexport { s } from \"q\";\nexport { r } from \"./y\";\nexport { q2, q1 } from \"q\";\n\nuse(k2, h, z, React, v);\ntype All = [U];\n",
+  "output": "import k2 from \"k\";\nimport \"./style.css\"; /* t\n  u */\n/* c */ import h from \"./x\";\n// b\nfoo();\n/* c */ (x as any).y(); // c\n/**\n * doc\n */\nimport { type U, v } from \"@ui/u\";\nimport React, { useState } from \"react\";\nimport type { T } from \"t\";\nimport z from \"z\";\n// b\nfoo();\nexport const c1 = 1;\nexport { q1, q2, s } from \"q\";\nexport { r } from \"./y\";\n\nuse(k2, h, z, React, v);\ntype All = [U];\n"
+ },
+ {
+  "name": "organize-inner/10",
+  "filename": "fuzz.ts",
+  "options": {
+   "organizeImportsTypeOrder": "inline"
+  },
+  "input": "\"use strict\";\nimport Bb from \"B\"; /* t */\n\nimport type { T } from \"t\";\n/**\n * doc\n */\nimport k2 from \"k\";\nimport path from \"path\";\nimport {\n  n2,\n  // eslint-disable-next-line x\n  n1,\n} from \"./inner2\";\nimport A10 from \"a10\"; // t\nexport * from \"./aa\"; /* t */\n\nuse(Bb, k2, path, n2, n1, A10);\ntype All = [T];\n",
+  "output": "\"use strict\";\nimport Bb from \"B\"; /* t */\n\nimport type { T } from \"t\";\n/**\n * doc\n */\nimport A10 from \"a10\"; // t\nimport k2 from \"k\";\nimport path from \"path\";\nimport {\n  // eslint-disable-next-line x\n  n1,\n  n2,\n} from \"./inner2\";\nexport * from \"./aa\"; /* t */\n\nuse(Bb, k2, path, n2, n1, A10);\ntype All = [T];\n"
+ },
+ {
+  "name": "organize-inner/20",
+  "filename": "fuzz.ts",
+  "options": {
+   "organizeImportsSkipDestructiveCodeActions": true
+  },
+  "input": "/**\n * @license\n */\n\nimport {} from \"empty\";\nimport { x as x } from \"../up\"; // t\n\nimport { p2, /* mid */ p1 } from \"./inner3\";\n\n// c\nimport { type U, v } from \"@ui/u\";\n\nexport * from \"./aa\"; /* t\n  u */\n\nuse(x, p1, v);\ntype All = [U];\n",
+  "output": "/**\n * @license\n */\n\nimport {} from \"empty\";\nimport { x } from \"../up\"; // t\n\nimport { /* mid */ p1, p2 } from \"./inner3\";\n\n// c\nimport { type U, v } from \"@ui/u\";\n\nexport * from \"./aa\"; /* t\n  u */\n\nuse(x, p1, v);\ntype All = [U];\n"
+ },
+ {
+  "name": "organize-inner2/0",
+  "filename": "fuzz.ts",
+  "options": {},
+  "input": "import type { T } from \"t\";\n/* c */ import path from \"path\";\n\nuse();\ntype All = [T];\n",
+  "output": "import type { T } from \"t\";\n\nuse();\ntype All = [T];\n"
+ },
+ {
+  "name": "organize-inner2/26",
+  "filename": "fuzz.ts",
+  "options": {
+   "organizeImportsSkipDestructiveCodeActions": true
+  },
+  "input": "// top\n\n/* c */ import Bb from \"B\";\nfoo();\n\nexport {\n  w2, // a\n  w1, // b\n} from \"ww\";\n\nexport {\n  // one\n  l3,\n  // two\n  l1,\n  l2\n}; /* t */\nexport { q2, q1 } from \"q\";\n\nuse(Bb);\n",
+  "output": "// top\n\n/* c */ import Bb from \"B\";\nfoo();\n\nexport { w1, w2 } from \"ww\";\n\nexport { q1, q2 } from \"q\";\nexport {\n  // two\n  l1,\n  l2,\n  // one\n  l3,\n}; /* t */\n\nuse(Bb);\n"
+ },
+ {
+  "name": "organize-inner2/39",
+  "filename": "fuzz.ts",
+  "options": {
+   "organizeImportsTypeOrder": "first"
+  },
+  "input": "// top\n\n// c\nimport A10 from \"a10\"; // t\n\n// c\nimport React, { useState } from \"react\"; // t\nimport type { W } from \"@ui/u\"; // t\n// c\nimport path from \"path\";\n\nexport { s } from \"q\";\nexport {\n  /** doc */\n  u2,\n  u1,\n  /* end */\n} from \"qq\";\nexport { /* x */ v2, v1 /* y */ } from \"vv\"; // t\n\nuse(A10, useState, path);\ntype All = [W];\n",
+  "output": "// top\n\n// c\nimport A10 from \"a10\"; // t\n\n// c\nimport type { W } from \"@ui/u\"; // t\nimport { useState } from \"react\"; // t\n// c\nimport path from \"path\";\n\nexport { s } from \"q\";\nexport {\n  u1,\n  /** doc */\n  u2,\n} from \"qq\";\nexport { v1 /* y */, /* x */ v2 } from \"vv\"; // t\n\nuse(A10, useState, path);\ntype All = [W];\n"
+ },
+ {
+  "name": "organize-inner2/52",
+  "filename": "fuzz.ts",
+  "options": {
+   "organizeImportsTypeOrder": "inline"
+  },
+  "input": "/**\n * @license\n */\n\n/* c */ import Bb from \"B\"; // t\nexport const c1 = 1;\n\n// c\nimport d, { e as f } from \"@core/d\"; // t\nexport { /* x */ v2, v1 /* y */ } from \"vv\"; /* t\n  u */\n\nexport type { Y } from \"./y\"; /* t */\n\nuse(Bb, d, f);\n",
+  "output": "/**\n * @license\n */\n\n/* c */ import Bb from \"B\"; // t\nexport const c1 = 1;\n\n// c\nimport d, { e as f } from \"@core/d\"; // t\nexport { v1 /* y */, /* x */ v2 } from \"vv\"; /* t\n  u */\n\nexport type { Y } from \"./y\"; /* t */\n\nuse(Bb, d, f);\n"
+ },
+ {
+  "name": "organize-inner2/65",
+  "filename": "fuzz.ts",
+  "options": {
+   "organizeImportsTypeOrder": "last"
+  },
+  "input": "\"use strict\";\nimport k2 from \"k\"; // t\nimport * as ns from \"ns\";\n// c\nimport { p2, /* mid */ p1 } from \"./inner3\"; /* t */\nexport {\n  // one\n  l3,\n  // two\n  l1,\n  l2\n};\nexport {\n  // one\n  l3,\n  // two\n  l1,\n  l2\n};\nexport { s } from \"q\"; /* t\n  u */\n\nuse(k2, ns, p2, p1);\n",
+  "output": "\"use strict\";\nimport k2 from \"k\"; // t\nimport * as ns from \"ns\";\n// c\nimport { /* mid */ p1, p2 } from \"./inner3\"; /* t */\nexport { s } from \"q\"; /* t\n  u */\nexport {\n  // two\n  l1,\n  // two\n  l1,\n  l2,\n  l2,\n  // one\n  l3,\n  // one\n  l3,\n};\n\nuse(k2, ns, p2, p1);\n"
+ },
+ {
+  "name": "organize-inner3/0",
+  "filename": "fuzz.ts",
+  "options": {},
+  "input": "/* c */ import type { W } from \"@ui/u\";\n/* c */ import Bb from \"B\";\n\n\nexport { r } from \"./y\";\n\nuse();\n",
+  "output": "/* c */ /* c */\n\nexport { r } from \"./y\";\n\nuse();\n"
+ },
+ {
+  "name": "organize-inner3/20",
+  "filename": "fuzz.ts",
+  "options": {
+   "organizeImportsSkipDestructiveCodeActions": true
+  },
+  "input": "// top\n\nimport { /* x */ h1, h2 /* y */ } from \"./sorted4\";\nimport nosemi from \"./nosemi\"\nimport { r2 /* a */, r1 /* b */ } from \"./inner3\"; /* t */\nimport { p2, /* mid */ p1 } from \"./inner3\";\nexport {\n\n  // Factory\n  q9,\n\n  // Basic\n  q7,\n  q8,\n  q5 // t\n} from \"qq\";\nexport { s } from \"q\"; /* t */\nexport {\n  e1, // a\n  e2,\n  // last\n} from \"ee\";\n\nuse(h1, h2, r2, p2);\n",
+  "output": "// top\n\nimport { /* mid */ p1, p2, r1 /* b */, r2 /* a */ } from \"./inner3\"; /* t */\nimport nosemi from \"./nosemi\";\nimport { /* x */ h1, h2 /* y */ } from \"./sorted4\";\nexport {\n  e1, // a\n  e2,\n} from \"ee\";\nexport { s } from \"q\"; /* t */\nexport {\n  q5, // t\n  // Basic\n  q7,\n  q8,\n  // Factory\n  q9,\n} from \"qq\";\n\nuse(h1, h2, r2, p2);\n"
+ },
+ {
+  "name": "organize-inner3/40",
+  "filename": "fuzz.ts",
+  "options": {
+   "organizeImportsTypeOrder": "inline"
+  },
+  "input": "/**\n * @license\n */\n\nimport {\n  // lead\n  g1,\n  g2 /* in */\n} from \"./sorted3\";\n// c\nimport { /* x */ h1, h2 /* y */ } from \"./sorted4\"; // t\n\n\nexport * from \"star\";\nexport { r } from \"./y\"; /* t\n  u */\n\nuse(g2, h1, h2);\n",
+  "output": "/**\n * @license\n */\n\nimport { g2 /* in */ } from \"./sorted3\";\n// c\nimport { /* x */ h1, h2 /* y */ } from \"./sorted4\"; // t\n\nexport * from \"star\";\nexport { r } from \"./y\"; /* t\n  u */\n\nuse(g2, h1, h2);\n"
+ },
+ {
+  "name": "uses/0/0",
+  "filename": "a.ts",
+  "options": {},
+  "input": "import A from \"m\";\nA;\n",
+  "output": "import A from \"m\";\nA;\n"
+ },
+ {
+  "name": "uses-js/0/0",
+  "filename": "a.js",
+  "options": {},
+  "input": "import A from \"m\";\nA;\n",
+  "output": "import A from \"m\";\nA;\n"
+ },
+ {
+  "name": "jsx/0/0",
+  "filename": "a.tsx",
+  "options": {},
+  "input": "import A from \"m\";\n<A />;\n",
+  "output": "import A from \"m\";\n<A />;\n"
+ },
+ {
+  "name": "react/React/0",
+  "filename": "a.tsx",
+  "options": {},
+  "input": "import React from \"m\";\n<A />;\n",
+  "output": "<A />;\n"
+ },
+ {
+  "name": "pragma/0",
+  "filename": "a.tsx",
+  "options": {},
+  "input": "/** @jsx h */\n/** @jsxFrag Fragment */\nimport { h, Fragment } from \"m\";\n<A />;\n",
+  "output": "/** @jsx h */\n/** @jsxFrag Fragment */\n<A />;\n"
+ }
+]

@@ -1,7 +1,7 @@
 //! The value of `sortImports`: oxfmt's `to_sort_imports`, `SortImportsOptions::validate` and
 //! `GroupMatcher::new`.
 
-use bun_lint::options::Json;
+use serde_json::Value as Json;
 
 /// The kind of import, or where it comes from. In priority order.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -80,7 +80,7 @@ fn bits(modifiers: &[Modifier]) -> u8 {
 }
 
 /// `type-external`: modifiers, sorted, and a selector.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 struct GroupName {
   selector: Selector,
   modifiers: Vec<Modifier>,
@@ -131,9 +131,9 @@ pub(crate) struct Options {
   pub(super) stops_at_side_effects: bool,
 }
 
-/// `fast_glob::glob_match`. `bun_glob` is a port of the same `glob-match`.
+/// `fast_glob::glob_match`
 fn glob_match(pattern: &[u8], source: &[u8]) -> bool {
-  bun_glob::pattern::fast_glob_match(pattern, source)
+  fast_glob::glob_match(pattern, source)
 }
 
 impl Options {
@@ -156,19 +156,19 @@ impl Options {
   }
 }
 
-fn invalid(what: &str) -> Vec<u8> {
-  format!("Invalid `sortImports` configuration: {what}").into_bytes()
+fn invalid(what: &str) -> String {
+  format!("Invalid `sortImports` configuration: {what}")
 }
 
-fn boolean(config: &Json, name: &str, default: bool) -> Result<bool, Vec<u8>> {
-  match config.get(name.as_bytes()) {
+fn boolean(config: &Json, name: &str, default: bool) -> Result<bool, String> {
+  match config.get(name) {
     None | Some(Json::Null) => Ok(default),
     Some(Json::Bool(value)) => Ok(*value),
     Some(_) => Err(invalid(&format!("`{name}` must be a boolean"))),
   }
 }
 
-fn strings(value: &Json, name: &str) -> Result<Vec<Vec<u8>>, Vec<u8>> {
+fn strings(value: &Json, name: &str) -> Result<Vec<Vec<u8>>, String> {
   let items =
     value.as_array().ok_or_else(|| invalid(&format!("`{name}` must be an array of strings")))?;
   items
@@ -176,29 +176,28 @@ fn strings(value: &Json, name: &str) -> Result<Vec<Vec<u8>>, Vec<u8>> {
     .map(|item| {
       item
         .as_str()
-        .map(<[u8]>::to_vec)
+        .map(|it| it.as_bytes().to_vec())
         .ok_or_else(|| invalid(&format!("`{name}` must be an array of strings")))
     })
     .collect()
 }
 
-fn printable(name: &[u8]) -> &bstr::BStr {
-  bstr::BStr::new(name)
+fn printable(name: &[u8]) -> std::borrow::Cow<'_, str> {
+  String::from_utf8_lossy(name)
 }
 
-/// `value` is the raw JSON. Returns `None` if imports are left as they are.
+/// Returns `None` if imports are left as they are.
 pub(crate) fn compile(
-  value: &[u8],
+  value: &Json,
   stops_at_side_effects: bool,
-) -> Result<Option<Options>, Vec<u8>> {
-  let config = match bun_lint::json::parse(value) {
-    Some(Json::Bool(false)) => return Ok(None),
-    Some(Json::Bool(true)) => Json::Object(Vec::new()),
-    Some(config @ Json::Object(_)) => config,
+) -> Result<Option<Options>, String> {
+  let config = match value {
+    Json::Bool(false) => return Ok(None),
+    Json::Bool(true) => Json::Object(serde_json::Map::new()),
+    config @ Json::Object(_) => config.clone(),
     _ => return Err(invalid("it must be a boolean or an object")),
   };
-  let present =
-    |name: &str| config.get(name.as_bytes()).filter(|value| !matches!(value, Json::Null));
+  let present = |name: &str| config.get(name).filter(|value| !matches!(value, Json::Null));
 
   // The names in `groups`, and the markers between them.
   let mut groups: Vec<Vec<Vec<u8>>> = Vec::new();
@@ -239,13 +238,13 @@ pub(crate) fn compile(
       for item in items {
         let names = match item {
           Json::Object(_) => {
-            let marker = item.get(b"newlinesBetween").and_then(Json::as_bool);
+            let marker = item.get("newlinesBetween").and_then(Json::as_bool);
             pending_override = Some(marker.ok_or_else(|| {
               invalid("a marker in `groups` must be `{ \"newlinesBetween\": boolean }`")
             })?);
             continue;
           }
-          Json::String(name) => vec![name.clone()],
+          Json::String(name) => vec![name.as_bytes().to_vec()],
           other => strings(other, "groups")?,
         };
         if !groups.is_empty() {
@@ -266,11 +265,12 @@ pub(crate) fn compile(
   for item in present("customGroups")
     .map(|value| value.as_array().ok_or_else(|| invalid("`customGroups` must be an array")))
     .transpose()?
-    .unwrap_or_default()
+    .into_iter()
+    .flatten()
   {
-    let field = |name: &str| item.get(name.as_bytes()).filter(|value| !matches!(value, Json::Null));
+    let field = |name: &str| item.get(name).filter(|value| !matches!(value, Json::Null));
     definitions.push(Definition {
-      name: field("groupName").and_then(Json::as_str).unwrap_or_default().to_vec(),
+      name: field("groupName").and_then(Json::as_str).unwrap_or_default().as_bytes().to_vec(),
       element_name_pattern: field("elementNamePattern")
         .map(|value| strings(value, "elementNamePattern"))
         .transpose()?
@@ -280,7 +280,7 @@ pub(crate) fn compile(
         Some(value) => Some(
           value
             .as_str()
-            .and_then(Selector::parse)
+            .and_then(|it| Selector::parse(it.as_bytes()))
             .ok_or_else(|| invalid("unknown `selector` in `customGroups`"))?,
         ),
       },
@@ -365,8 +365,8 @@ pub(crate) fn compile(
     partition_by_comment: boolean(&config, "partitionByComment", false)?,
     sort_side_effects,
     is_descending: match present("order").map(|value| value.as_str()) {
-      None | Some(Some(b"asc")) => false,
-      Some(Some(b"desc")) => true,
+      None | Some(Some("asc")) => false,
+      Some(Some("desc")) => true,
       Some(_) => return Err(invalid("`order` must be \"asc\" or \"desc\"")),
     },
     ignore_case: boolean(&config, "ignoreCase", true)?,

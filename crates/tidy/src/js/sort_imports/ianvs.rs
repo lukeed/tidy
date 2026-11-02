@@ -6,10 +6,10 @@ use super::babel::{
 use super::compare::natural_sort_case_sensitive;
 use super::generator::{Piece, PieceKind, Printer, Prologue};
 use super::layout::is_unchanged;
+use super::node::is_builtin_module;
+use super::regex::Regex;
 use super::sort::stable_sort_by;
 use crate::js::ast::Span;
-use bun_lint::regex::Regex;
-use bun_lint::utils::node::is_builtin_module;
 use std::cmp::Ordering;
 
 pub(super) const THIRD_PARTY_MODULES: &[u8] = b"<THIRD_PARTY_MODULES>";
@@ -62,7 +62,7 @@ impl Options {
   fn compare(&self, a: &[u8], b: &[u8]) -> Ordering {
     match self.is_case_sensitive {
       true => natural_sort_case_sensitive(a, b),
-      false => crate::js::strings::locale_compare_numeric_base(a, b),
+      false => super::collate::locale_compare_numeric_base(a, b),
     }
   }
 

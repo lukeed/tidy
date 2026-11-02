@@ -2,15 +2,16 @@
 
 use super::ianvs::{self, Matcher};
 use super::organize::{self, TypeOrder};
+use super::regex::Regex;
 use super::trivago::{self, ByLength, Exclude, Group};
 use super::{How, SortImports};
 use crate::js::strings;
-use bun_lint::glob::{Minimatch, MinimatchOptions};
-use bun_lint::options::Json;
-use bun_lint::regex::Regex;
+use serde_json::Value;
 use std::sync::Arc;
 
-/// The import-related options, by name. Values are raw JSON, except that a string has no quotes.
+/// The import-related options, by name, with their JSON values. The last of `sortImports` and `bun.sortImports` that is
+/// set wins. Without either, `plugins` picks the plugin, and the options of a plugin it doesn't list are ignored, as
+/// Prettier does.
 ///
 /// | owner | options |
 /// | --- | --- |
@@ -19,119 +20,102 @@ use std::sync::Arc;
 /// | `@ianvs/prettier-plugin-sort-imports` | `importOrderTypeScriptVersion`, `importOrderCaseSensitive`, `importOrderSafeSideEffects` |
 /// | `prettier-plugin-organize-imports` | `organizeImportsSkipDestructiveCodeActions`, `organizeImportsTypeOrder` |
 /// | the `compilerOptions` in the file's `tsconfig.json`, which that plugin reads | `tsconfig.jsx`, `tsconfig.jsxFactory`, `tsconfig.jsxFragmentFactory`, `tsconfig.reactNamespace` |
-/// | oxfmt | `sortImports`, which used to be `experimentalSortImports` |
-/// | Bun | `bun.sortImports`, set by `sortImports` under `[fmt]` in bunfig.toml or by `--sort-imports` |
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+/// | oxfmt | `sortImports`: true, false, or an object of `groups`, `customGroups`, `order`, `ignoreCase`, `newlinesBetween`, `internalPattern`, `sortSideEffects`, `partitionByNewline` and `partitionByComment` |
+/// | Bun | `bun.sortImports`, `sortImports` under `[fmt]` in bunfig.toml: oxfmt's, which then sorts the names in braces and merges the imports of a module |
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Settings {
-  entries: Vec<(Box<[u8]>, Box<[u8]>)>,
+  entries: Vec<(String, Value)>,
 }
 
-const TRIVAGO_OPTIONS: [&[u8]; 8] = [
-  b"importOrderSeparation",
-  b"importOrderSortSpecifiers",
-  b"importOrderGroupNamespaceSpecifiers",
-  b"importOrderCaseInsensitive",
-  b"importOrderSideEffects",
-  b"importOrderSortByLength",
-  b"importOrderImportAttributesKeyword",
-  b"importOrderExclude",
+const TRIVAGO_OPTIONS: [&str; 8] = [
+  "importOrderSeparation",
+  "importOrderSortSpecifiers",
+  "importOrderGroupNamespaceSpecifiers",
+  "importOrderCaseInsensitive",
+  "importOrderSideEffects",
+  "importOrderSortByLength",
+  "importOrderImportAttributesKeyword",
+  "importOrderExclude",
 ];
 
-const IANVS_OPTIONS: [&[u8]; 3] =
-  [b"importOrderTypeScriptVersion", b"importOrderCaseSensitive", b"importOrderSafeSideEffects"];
+const IANVS_OPTIONS: [&str; 3] =
+  ["importOrderTypeScriptVersion", "importOrderCaseSensitive", "importOrderSafeSideEffects"];
 
 /// The suffix shared by the names of `@trivago/prettier-plugin-sort-imports`, `@ianvs/prettier-plugin-sort-imports` and
 /// their forks.
-const SORT_IMPORTS: &[u8] = b"/prettier-plugin-sort-imports";
-const ORGANIZE_IMPORTS: &[u8] = b"prettier-plugin-organize-imports";
-const BUN_OPTION: &[u8] = b"bun.sortImports";
+const SORT_IMPORTS: &str = "/prettier-plugin-sort-imports";
+const ORGANIZE_IMPORTS: &str = "prettier-plugin-organize-imports";
+const BUN_OPTION: &str = "bun.sortImports";
 
-fn invalid(name: &[u8], value: &[u8]) -> Vec<u8> {
-  [b"Invalid ", name, b" value: ", value, b"."].concat()
+fn invalid(name: &str, value: &Value) -> String {
+  format!("Invalid {name} value: {value}.")
 }
 
 impl Settings {
   /// Stores the option `name` if it's import-related. A later value replaces an earlier one.
-  pub fn set(&mut self, name: &[u8], value: &[u8]) -> bool {
+  pub fn set(&mut self, name: &str, value: Value) -> bool {
     let is_known = matches!(
       name,
-      b"plugins"
-        | b"importOrder"
-        | b"importOrderParserPlugins"
-        | b"sortImports"
-        | b"experimentalSortImports"
-        | BUN_OPTION
-    ) || name.starts_with(b"organizeImports")
+      "plugins" | "importOrder" | "importOrderParserPlugins" | "sortImports" | BUN_OPTION
+    ) || name.starts_with("organizeImports")
       || matches!(
         name,
-        b"tsconfig.jsx"
-          | b"tsconfig.jsxFactory"
-          | b"tsconfig.jsxFragmentFactory"
-          | b"tsconfig.reactNamespace"
+        "tsconfig.jsx"
+          | "tsconfig.jsxFactory"
+          | "tsconfig.jsxFragmentFactory"
+          | "tsconfig.reactNamespace"
       )
       || TRIVAGO_OPTIONS.contains(&name)
       || IANVS_OPTIONS.contains(&name);
     if is_known {
-      self.entries.retain(|entry| &*entry.0 != name);
-      self.entries.push((name.into(), value.into()));
+      self.entries.retain(|entry| entry.0 != name);
+      self.entries.push((name.to_owned(), value));
     }
     is_known
   }
 
-  /// Also counts `name` as one of the `plugins`, for `--plugin`.
-  pub fn add_plugin(&mut self, name: &[u8]) {
-    let named = [self.get(b"plugins").unwrap_or_default(), b" ", name].concat();
-    self.set(b"plugins", &named);
+  /// The `plugins`: a string or an array of strings.
+  fn plugins(&self) -> impl Iterator<Item = &str> {
+    let plugins = self.get("plugins");
+    let one = plugins.and_then(Value::as_str);
+    let many = plugins.and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str);
+    one.into_iter().chain(many)
   }
 
   /// True if one of the `plugins` is `name`, or ends with it.
-  fn lists_plugin(&self, name: &[u8]) -> bool {
-    strings::contains(self.get(b"plugins").unwrap_or_default(), name)
+  fn lists_plugin(&self, name: &str) -> bool {
+    self.plugins().any(|plugin| plugin.contains(name))
   }
 
-  /// True if `prettier-plugin-organize-imports` is listed. It reads the `tsconfig.json`.
-  pub fn organizes_imports(&self) -> bool {
-    self.lists_plugin(ORGANIZE_IMPORTS)
+  fn get(&self, name: &str) -> Option<&Value> {
+    self.entries.iter().find(|entry| entry.0 == name).map(|entry| &entry.1)
   }
 
-  /// The options, with their values, of plugins that aren't listed. Prettier doesn't know them.
-  pub fn options_of_unlisted_plugins(&self) -> impl Iterator<Item = (&[u8], &[u8])> {
-    let is_known = |name: &[u8]| match name {
-      name if name.starts_with(b"importOrder") => self.lists_plugin(SORT_IMPORTS),
-      name if name.starts_with(b"organizeImports") => self.lists_plugin(ORGANIZE_IMPORTS),
-      _ => true,
-    };
-    (self.entries.iter())
-      .filter(move |entry| !is_known(&entry.0))
-      .map(|entry| (&*entry.0, &*entry.1))
+  fn text(&self, name: &str) -> Option<&str> {
+    self.get(name).and_then(Value::as_str)
   }
 
-  fn get(&self, name: &[u8]) -> Option<&[u8]> {
-    self.entries.iter().find(|entry| &*entry.0 == name).map(|entry| &*entry.1)
-  }
-
-  fn boolean(&self, name: &[u8], default: bool) -> Result<bool, Vec<u8>> {
+  fn boolean(&self, name: &str, default: bool) -> Result<bool, String> {
     match self.get(name) {
       None => Ok(default),
-      Some(b"true") => Ok(true),
-      Some(b"false") => Ok(false),
+      Some(Value::Bool(value)) => Ok(*value),
       Some(value) => Err(invalid(name, value)),
     }
   }
 
   /// An array of strings. A single string counts as an array of one.
-  fn strings(&self, name: &[u8]) -> Result<Option<Vec<Vec<u8>>>, Vec<u8>> {
+  fn strings(&self, name: &str) -> Result<Option<Vec<Vec<u8>>>, String> {
     let Some(value) = self.get(name) else {
       return Ok(None);
     };
-    if !value.trim_ascii_start().starts_with(b"[") {
-      return Ok(Some(vec![value.to_vec()]));
+    if let Value::String(text) = value {
+      return Ok(Some(vec![text.as_bytes().to_vec()]));
     }
-    let Some(items) = bun_lint::json::parse(value).and_then(Json::into_array) else {
+    let Some(items) = value.as_array() else {
       return Err(invalid(name, value));
     };
     let strings: Option<Vec<Vec<u8>>> =
-      items.iter().map(|item| item.as_str().map(<[u8]>::to_vec)).collect();
+      items.iter().map(|item| item.as_str().map(|it| it.as_bytes().to_vec())).collect();
     strings.map(Some).ok_or_else(|| invalid(name, value))
   }
 
@@ -140,14 +124,13 @@ impl Settings {
   /// listed, then an option or a special word that only one of them has. Otherwise it falls back to trivago's, the
   /// more popular one.
   fn is_ianvs(&self, order: Option<&[Vec<u8>]>) -> bool {
-    let plugins = self.get(b"plugins").unwrap_or_default();
-    let names = |name: &[u8]| strings::contains(plugins, name);
-    if names(b"@ianvs/prettier-plugin-sort-imports")
-      || names(b"@trivago/prettier-plugin-sort-imports")
+    let names = |name: &str| self.plugins().any(|plugin| plugin.contains(name));
+    if names("@ianvs/prettier-plugin-sort-imports")
+      || names("@trivago/prettier-plugin-sort-imports")
     {
-      return names(b"@ianvs/prettier-plugin-sort-imports");
+      return names("@ianvs/prettier-plugin-sort-imports");
     }
-    let has_any = |names: &[&[u8]]| self.entries.iter().any(|entry| names.contains(&&*entry.0));
+    let has_any = |names: &[&str]| self.entries.iter().any(|entry| names.contains(&&*entry.0));
     if has_any(&IANVS_OPTIONS) || has_any(&TRIVAGO_OPTIONS) {
       return has_any(&IANVS_OPTIONS);
     }
@@ -157,12 +140,12 @@ impl Settings {
       .any(|group| group.trim_ascii().is_empty() || strings::contains(group, b"<TYPES>"))
   }
 
-  fn trivago(&self, order: Option<Vec<Vec<u8>>>) -> Result<trivago::Options, Vec<u8>> {
+  fn trivago(&self, order: Option<Vec<Vec<u8>>>) -> Result<trivago::Options, String> {
     let mut order = order.unwrap_or_default();
     if !order.iter().any(|group| group == trivago::THIRD_PARTY_MODULES) {
       order.insert(0, trivago::THIRD_PARTY_MODULES.to_vec());
     }
-    let groups: Result<Vec<Group>, Vec<u8>> = (order.iter().enumerate())
+    let groups: Result<Vec<Group>, String> = (order.iter().enumerate())
       .map(|(index, text)| {
         Ok(Group {
           regex: regex(text.strip_prefix(trivago::TYPES).unwrap_or(text))?,
@@ -173,26 +156,29 @@ impl Settings {
       .collect();
     Ok(trivago::Options {
       order: groups?,
-      is_case_insensitive: self.boolean(b"importOrderCaseInsensitive", false)?,
-      separation: self.boolean(b"importOrderSeparation", false)?,
-      group_namespace_specifiers: self.boolean(b"importOrderGroupNamespaceSpecifiers", false)?,
-      sort_specifiers: self.boolean(b"importOrderSortSpecifiers", false)?,
-      sort_by_length: match self.get(b"importOrderSortByLength") {
-        None | Some(b"null") => None,
-        Some(b"asc") => Some(ByLength::Ascending),
-        Some(b"desc") => Some(ByLength::Descending),
-        Some(value) => return Err(invalid(b"importOrderSortByLength", value)),
+      is_case_insensitive: self.boolean("importOrderCaseInsensitive", false)?,
+      separation: self.boolean("importOrderSeparation", false)?,
+      group_namespace_specifiers: self.boolean("importOrderGroupNamespaceSpecifiers", false)?,
+      sort_specifiers: self.boolean("importOrderSortSpecifiers", false)?,
+      sort_by_length: match self.get("importOrderSortByLength") {
+        None | Some(Value::Null) => None,
+        Some(Value::String(value)) if value == "asc" => Some(ByLength::Ascending),
+        Some(Value::String(value)) if value == "desc" => Some(ByLength::Descending),
+        Some(value) => return Err(invalid("importOrderSortByLength", value)),
       },
-      side_effects: self.boolean(b"importOrderSideEffects", true)?,
-      attributes_keyword: match self.get(b"importOrderImportAttributesKeyword") {
-        None | Some(b"with") => b"with",
-        Some(b"assert") => b"assert",
-        Some(b"with-legacy") => b"with-legacy",
-        Some(value) => return Err(invalid(b"importOrderImportAttributesKeyword", value)),
+      side_effects: self.boolean("importOrderSideEffects", true)?,
+      attributes_keyword: match self.get("importOrderImportAttributesKeyword") {
+        None => b"with",
+        Some(value) => match value.as_str() {
+          Some("with") => b"with",
+          Some("assert") => b"assert",
+          Some("with-legacy") => b"with-legacy",
+          _ => return Err(invalid("importOrderImportAttributesKeyword", value)),
+        },
       },
-      exclude: (self.strings(b"importOrderExclude")?.unwrap_or_default().iter())
+      exclude: (self.strings("importOrderExclude")?.unwrap_or_default().iter())
         .map(|pattern| Exclude {
-          glob: Minimatch::with(pattern, MinimatchOptions::default()),
+          glob: pattern.clone().into_boxed_slice(),
           has_slash: strings::contains_char(pattern, b'/'),
         })
         .collect(),
@@ -200,7 +186,7 @@ impl Settings {
   }
 
   /// `examineAndNormalizePluginOptions`. Returns `None` if `importOrder` is empty, which turns the plugin off.
-  fn ianvs(&self, order: Option<Vec<Vec<u8>>>) -> Result<Option<ianvs::Options>, Vec<u8>> {
+  fn ianvs(&self, order: Option<Vec<Vec<u8>>>) -> Result<Option<ianvs::Options>, String> {
     let is_separator = |group: &[u8]| group.trim_ascii().is_empty();
     let mut order = order.unwrap_or_else(|| {
       vec![ianvs::BUILTIN_MODULES.to_vec(), ianvs::THIRD_PARTY_MODULES.to_vec(), b"^[.]".to_vec()]
@@ -214,7 +200,7 @@ impl Settings {
         order.insert(at, word.to_vec());
       }
     }
-    let groups: Result<Vec<ianvs::Group>, Vec<u8>> = (order.iter().enumerate())
+    let groups: Result<Vec<ianvs::Group>, String> = (order.iter().enumerate())
       .map(|(index, text)| {
         Ok(ianvs::Group {
           matcher: match &text[..] {
@@ -236,12 +222,14 @@ impl Settings {
       .collect();
     let has_types = order.iter().any(|group| strings::contains(group, ianvs::TYPES));
     let has_typescript = self
-      .strings(b"importOrderParserPlugins")?
+      .strings("importOrderParserPlugins")?
       .is_none_or(|plugins| plugins.iter().any(|it| it == b"typescript"));
-    let version =
-      self.get(b"importOrderTypeScriptVersion").and_then(semver).unwrap_or(((1, 0, 0), false));
-    let safe_side_effects: Result<Vec<Regex>, Vec<u8>> = self
-      .strings(b"importOrderSafeSideEffects")?
+    let version = self
+      .text("importOrderTypeScriptVersion")
+      .and_then(|it| semver(it.as_bytes()))
+      .unwrap_or(((1, 0, 0), false));
+    let safe_side_effects: Result<Vec<Regex>, String> = self
+      .strings("importOrderSafeSideEffects")?
       .unwrap_or_default()
       .iter()
       .map(|it| regex(it))
@@ -250,26 +238,27 @@ impl Settings {
       order: groups?,
       combine_type_and_value_imports: !has_types
         && !(has_typescript && version < ((4, 5, 0), true)),
-      is_case_sensitive: self.boolean(b"importOrderCaseSensitive", false)?,
+      is_case_sensitive: self.boolean("importOrderCaseSensitive", false)?,
       safe_side_effects: safe_side_effects?,
     }))
   }
 
   /// Returns `None` if imports are left as they are, and `Err` with a message for the user if the settings are
   /// invalid.
-  pub fn compile(&self) -> Result<Option<Arc<SortImports>>, Vec<u8>> {
+  pub fn compile(&self) -> Result<Option<Arc<SortImports>>, String> {
+    let settings = self.clone();
     // The last one set wins.
-    let is_sort_imports_option = |it: &&(Box<[u8]>, Box<[u8]>)| {
-      matches!(&*it.0, b"sortImports" | b"experimentalSortImports" | BUN_OPTION)
-    };
+    let is_sort_imports_option =
+      |it: &&(String, Value)| matches!(&*it.0, "sortImports" | BUN_OPTION);
     if let Some((name, value)) = self.entries.iter().rfind(is_sort_imports_option) {
-      let is_native = **name == *BUN_OPTION;
+      let is_native = name == BUN_OPTION;
       return Ok(super::oxfmt::compile(value, is_native)?.map(|options| {
         Arc::new(SortImports {
           how: match is_native {
             true => How::Native(options),
             false => How::Oxfmt(options),
           },
+          settings,
         })
       }));
     }
@@ -280,26 +269,29 @@ impl Settings {
       }
       let options = organize::Options {
         skips_destructive_code_actions: self
-          .boolean(b"organizeImportsSkipDestructiveCodeActions", false)?,
-        type_order: match self.get(b"organizeImportsTypeOrder") {
+          .boolean("organizeImportsSkipDestructiveCodeActions", false)?,
+        type_order: match self.get("organizeImportsTypeOrder") {
           None => None,
-          Some(b"last") => Some(TypeOrder::Last),
-          Some(b"first") => Some(TypeOrder::First),
-          Some(b"inline") => Some(TypeOrder::Inline),
-          Some(value) => return Err(invalid(b"organizeImportsTypeOrder", value)),
+          Some(value) => match value.as_str() {
+            Some("last") => Some(TypeOrder::Last),
+            Some("first") => Some(TypeOrder::First),
+            Some("inline") => Some(TypeOrder::Inline),
+            _ => return Err(invalid("organizeImportsTypeOrder", value)),
+          },
         },
-        jsx_needs_import: matches!(self.get(b"tsconfig.jsx"), Some(b"react" | b"react-native")),
-        jsx_namespace: (self.get(b"tsconfig.jsxFactory").map(first_name))
-          .or_else(|| self.get(b"tsconfig.reactNamespace"))
-          .unwrap_or(b"React")
+        jsx_needs_import: matches!(self.text("tsconfig.jsx"), Some("react" | "react-native")),
+        jsx_namespace: (self.text("tsconfig.jsxFactory").map(first_name))
+          .or_else(|| self.text("tsconfig.reactNamespace"))
+          .unwrap_or("React")
+          .as_bytes()
           .into(),
         jsx_fragment_factory: self
-          .get(b"tsconfig.jsxFragmentFactory")
-          .map(|it| first_name(it).into()),
+          .text("tsconfig.jsxFragmentFactory")
+          .map(|it| first_name(it).as_bytes().into()),
       };
-      return Ok(Some(Arc::new(SortImports { how: How::Organize(options) })));
+      return Ok(Some(Arc::new(SortImports { how: How::Organize(options), settings })));
     }
-    let order = self.strings(b"importOrder")?;
+    let order = self.strings("importOrder")?;
     let how = match self.is_ianvs(order.as_deref()) {
       true => match self.ianvs(order)? {
         Some(options) => How::Ianvs(options),
@@ -307,7 +299,7 @@ impl Settings {
       },
       false => How::Trivago(self.trivago(order)?),
     };
-    Ok(Some(Arc::new(SortImports { how })))
+    Ok(Some(Arc::new(SortImports { how, settings })))
   }
 }
 
@@ -333,12 +325,11 @@ fn semver(version: &[u8]) -> Option<((u64, u64, u64), bool)> {
 }
 
 /// The `a` in `a.b.c`.
-fn first_name(entity: &[u8]) -> &[u8] {
-  strings::index_of_char_usize(entity, b'.').map_or(entity, |dot| &entity[..dot])
+fn first_name(entity: &str) -> &str {
+  entity.split('.').next().unwrap_or(entity)
 }
 
 /// `new RegExp(pattern)`
-fn regex(pattern: &[u8]) -> Result<Regex, Vec<u8>> {
-  Regex::from_bytes(pattern, b"")
-    .map_err(|error| format!("Invalid regular expression in importOrder: {error}").into_bytes())
+fn regex(pattern: &[u8]) -> Result<Regex, String> {
+  Regex::new(pattern).map_err(|error| format!("Invalid regular expression in importOrder: {error}"))
 }

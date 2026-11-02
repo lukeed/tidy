@@ -13,14 +13,17 @@ categories = ["text-processing", "development-tools"]
 bitflags = "2"
 bumpalo = { workspace = true }
 ec4rs = { version = "1.2.0", optional = true }
+fast-glob = { version = "1.1.2", optional = true }
 memchr = "2"
 oxc_allocator = { version = "=0.156.0", optional = true }
 oxc_ast = { version = "=0.156.0", optional = true }
 oxc_ast_visit = { version = "=0.156.0", optional = true }
 oxc_parser = { version = "=0.156.0", optional = true }
+oxc_semantic = { version = "=0.156.0", optional = true }
 oxc_span = { version = "=0.156.0", optional = true }
 oxc_syntax = { version = "=0.156.0", optional = true }
 pulldown-cmark = { version = "=0.13.6", default-features = false }
+regress = { version = "0.12.0", optional = true }
 rustc-hash = "2"
 smallvec = { version = "1.16.4", features = ["union"] }
 unicode-ident = "1"
@@ -37,6 +40,17 @@ serde_json = "1"
 default = []
 # Formats JavaScript and TypeScript, and the scripts in markup and Markdown, with oxc's parser. Without it, they go to
 # the embed hook.
-js = ["dep:oxc_allocator", "dep:oxc_ast", "dep:oxc_ast_visit", "dep:oxc_parser", "dep:oxc_span", "dep:oxc_syntax"]
+js = [
+  "dep:oxc_allocator",
+  "dep:oxc_ast",
+  "dep:oxc_ast_visit",
+  "dep:oxc_parser",
+  "dep:oxc_semantic",
+  "dep:oxc_span",
+  "dep:oxc_syntax",
+  "dep:fast-glob",
+  "dep:regress",
+  "dep:serde_json",
+]
 # Reads tidy.json, tidy.jsonc, tidy.toml and .editorconfig files, and adds json::value and toml::value.
 config = ["dep:serde_json", "dep:ec4rs"]

@@ -132,6 +132,9 @@ pub struct Js {
   pub experimental_operator_position: Option<crate::js::OperatorPosition>,
   /// Format JSDoc comments as prettier-plugin-jsdoc does.
   pub jsdoc: Option<bool>,
+  /// How to sort imports: from `sortImports`, or from `plugins` and the options of the plugins it lists. See
+  /// [`crate::js::SortSettings`].
+  pub sort_imports: Option<Option<Arc<crate::js::SortImports>>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -389,11 +392,13 @@ fn object_wrap(value: &Value, name: &str) -> Result<json::ObjectWrap, String> {
 
 #[cfg(feature = "js")]
 fn js(map: &Map<String, Value>) -> Result<Js, String> {
-  use crate::js::{ArrowParens, OperatorPosition, TrailingComma};
+  use crate::js::{ArrowParens, OperatorPosition, SortSettings, TrailingComma};
   let mut options = Js::default();
+  let (mut sort, mut sorts) = (SortSettings::default(), false);
   for (key, value) in map {
     let name = format!("js.{key}");
     match key.as_str() {
+      _ if !key.starts_with("tsconfig.") && sort.set(key, value.clone()) => sorts = true,
       "semi" => options.semi = Some(flag(value, &name)?),
       "jsxSingleQuote" => options.jsx_single_quote = Some(flag(value, &name)?),
       "quoteProps" => options.quote_props = Some(quote_props(value, &name)?),
@@ -426,6 +431,9 @@ fn js(map: &Map<String, Value>) -> Result<Js, String> {
       _ => return Err(format!("unknown option `{name}`")),
     }
   }
+  if sorts {
+    options.sort_imports = Some(sort.compile().map_err(|error| format!("`js`: {error}"))?);
+  }
   Ok(options)
 }
 
@@ -442,6 +450,7 @@ impl Js {
     set(&mut options.experimental_ternaries, self.experimental_ternaries);
     set(&mut options.experimental_operator_position, self.experimental_operator_position);
     set(&mut options.jsdoc, self.jsdoc);
+    set(&mut options.sort_imports, self.sort_imports.clone());
   }
 }
 

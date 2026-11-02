@@ -3,7 +3,6 @@
 //! JavaScript compares strings by UTF-16 code units. Nearly all text here is ASCII and is compared as bytes, so
 //! everything is generic over [`Unit`], and non-ASCII text is converted first.
 
-use bstr::ByteSlice;
 use smallvec::SmallVec;
 use std::cmp::Ordering;
 
@@ -30,7 +29,7 @@ impl Unit for u16 {
 /// maps a sigma at the end of a word to a different letter.
 pub(super) fn lowercase(text: &[u8]) -> Vec<u8> {
   let mut out = Vec::with_capacity(text.len());
-  for lower in text.chars().flat_map(char::to_lowercase) {
+  for lower in String::from_utf8_lossy(text).chars().flat_map(char::to_lowercase) {
     out.extend_from_slice(lower.encode_utf8(&mut [0; 4]).as_bytes());
   }
   out
@@ -234,9 +233,25 @@ fn value_of<T: Unit>(chunk: Option<&[T]>) -> Value<'_, T> {
 }
 
 fn compare_number_with_text<T: Unit>(number: f64, text: &[T]) -> Ordering {
-  let mut buffer = [0; 124];
-  let number = bun_core::fmt::FormatDouble::dtoa(&mut buffer, number);
-  number.iter().map(|byte| u32::from(*byte)).cmp(text.iter().map(|unit| unit.code()))
+  let number = number_to_string(number);
+  number.bytes().map(u32::from).cmp(text.iter().map(|unit| unit.code()))
+}
+
+/// `String(number)`
+fn number_to_string(number: f64) -> String {
+  match number {
+    _ if number.is_nan() => "NaN".to_owned(),
+    _ if number.is_infinite() => (if number > 0.0 { "Infinity" } else { "-Infinity" }).to_owned(),
+    0.0 => "0".to_owned(),
+    _ if (1e-6..1e21).contains(&number.abs()) => number.to_string(),
+    _ => {
+      let text = format!("{number:e}");
+      match text.split_once('e') {
+        Some((digits, exponent)) if !exponent.starts_with('-') => format!("{digits}e+{exponent}"),
+        _ => text,
+      }
+    }
+  }
 }
 
 fn natural_sort_units<T: Unit>(x: &[T], y: &[T]) -> Ordering {
@@ -434,8 +449,12 @@ pub(super) fn natord(left: &[u8], right: &[u8], ignores_case: bool) -> Ordering 
       |byte: &u8| char::from(if ignores_case { byte.to_ascii_lowercase() } else { *byte });
     return natord_chars(left.iter().map(char_of), right.iter().map(char_of));
   }
+  let (left, right) = (String::from_utf8_lossy(left), String::from_utf8_lossy(right));
   match ignores_case {
-    true => natord_chars(lowercase(left).chars(), lowercase(right).chars()),
+    true => natord_chars(
+      left.chars().flat_map(char::to_lowercase),
+      right.chars().flat_map(char::to_lowercase),
+    ),
     false => natord_chars(left.chars(), right.chars()),
   }
 }

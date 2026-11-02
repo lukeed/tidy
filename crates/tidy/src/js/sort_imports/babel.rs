@@ -7,7 +7,6 @@
 
 use crate::js::ast::Span;
 use crate::js::ast::{File, Ident, Import, KeyKind, Prop, Stmt, StmtKind, StmtTag};
-use bun_lint::tokens::TokenKind;
 
 /// An index into [`Model::comments`].
 pub(super) type CommentId = u32;
@@ -249,13 +248,14 @@ impl<'a> Model<'a> {
 
   /// The start of the text, after a byte order mark.
   pub(super) fn text_start(&self) -> u32 {
-    if self.file.has_bom() { 3 } else { 0 }
+    if self.text.starts_with(crate::js::text::BOM) { 3 } else { 0 }
   }
 
   /// Collects the comments up to the first token after `end`, where the last import ends.
   fn collect_comments(&mut self, end: u32) {
     let mut rest_start = skip_whitespace(self.text, end as usize) as u32;
-    for token in self.file.comments() {
+    self.interpreter = self.file.hashbang().map(|span| (span, Attached::default()));
+    for token in self.file.comments_by_id() {
       let span = token.span();
       if span.start > rest_start {
         break;
@@ -263,17 +263,14 @@ impl<'a> Model<'a> {
       if span.start == rest_start {
         rest_start = skip_whitespace(self.text, span.end as usize) as u32;
       }
-      match token.kind() {
-        TokenKind::Shebang => self.interpreter = Some((span, Attached::default())),
-        kind => self.comments.push(Comment {
-          span,
-          is_block: kind == TokenKind::Block,
-          has_loc: true,
-          start_line: 0,
-          end_line: 0,
-          start_column: 0,
-        }),
-      }
+      self.comments.push(Comment {
+        span,
+        is_block: token.is_block(),
+        has_loc: true,
+        start_line: 0,
+        end_line: 0,
+        start_column: 0,
+      });
     }
     self.rest_start = rest_start;
     if self.comments.is_empty() {
@@ -658,7 +655,7 @@ impl<'a> Model<'a> {
       Node::Imported(index) => self.specifiers[index as usize].imported.span(),
       Node::Local(index) => self.specifiers[index as usize].local.span(),
       Node::Source(start) => {
-        let len = bun_lint::tokens::token_len(self.text.get(start as usize..).unwrap_or_default());
+        let len = string_len(self.text.get(start as usize..).unwrap_or_default());
         Span::new(start, start + len as u32)
       }
       Node::Attribute(start) => self.attribute_at(start)?.span(),
@@ -689,4 +686,19 @@ impl<'a> Model<'a> {
 pub(super) fn attribute_key_span<'a>(file: &'a File<'a>, attribute: Prop<'a>) -> Option<Span> {
   let key = attribute.key()?;
   matches!(key.kind(), KeyKind::String(_) | KeyKind::Ident(_)).then(|| key.span(file))
+}
+
+/// The length of the string literal at the start of `text`, with its quotes.
+pub(super) fn string_len(text: &[u8]) -> usize {
+  let Some(&quote) = text.first() else { return 0 };
+  let mut at = 1;
+  while let Some(&byte) = text.get(at) {
+    at += 1;
+    match byte {
+      b'\\' => at += 1,
+      _ if byte == quote => return at,
+      _ => {}
+    }
+  }
+  text.len()
 }

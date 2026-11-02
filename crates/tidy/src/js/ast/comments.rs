@@ -55,6 +55,18 @@ impl<'a> File<'a> {
     (0..self.records.len() as u32).map(move |id| self.comment(id))
   }
 
+  /// The comments inside `span`, in source order.
+  pub(crate) fn comments_in(&'a self, span: Span) -> impl DoubleEndedIterator<Item = Comment<'a>> {
+    let start = self.records.partition_point(|it| it.span.start < span.start);
+    let end = self.records.partition_point(|it| it.span.end <= span.end).max(start);
+    (start as u32..end as u32).map(move |id| self.comment(id))
+  }
+
+  /// The `#!` line, without its line break.
+  pub(crate) fn hashbang(&self) -> Option<Span> {
+    self.program.hashbang.as_ref().map(|it| Span::new(it.span.start, it.span.end))
+  }
+
   /// The records of the comments, in source order.
   pub(crate) fn decorate(&self, typescript: bool) -> Vec<Record> {
     let text = self.text.as_bytes();

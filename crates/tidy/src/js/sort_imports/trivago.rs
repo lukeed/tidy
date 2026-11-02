@@ -1,14 +1,14 @@
 //! `@trivago/prettier-plugin-sort-imports` 6.0: its `preprocessor`.
 
 use super::babel::{Attached, Declaration, Model, Node, SpecifierKind};
+use super::collate::locale_compare;
 use super::compare::natural_sort;
 use super::generator::{Piece, PieceKind, Printer, Prologue};
 use super::layout::is_unchanged;
+use super::node::is_builtin_module;
+use super::regex::Regex;
 use super::sort::stable_sort_by;
 use crate::js::ast::Span;
-use crate::js::strings::locale_compare;
-use bun_lint::regex::Regex;
-use bun_lint::utils::node::is_builtin_module;
 use std::cmp::Ordering;
 
 pub(super) const THIRD_PARTY_MODULES: &[u8] = b"<THIRD_PARTY_MODULES>";
@@ -38,15 +38,11 @@ pub(super) enum ByLength {
   Descending,
 }
 
+/// An element of `importOrderExclude`: a glob, which the plugin matches with minimatch.
+#[derive(Debug)]
 pub(super) struct Exclude {
-  pub(super) glob: bun_lint::glob::Minimatch,
+  pub(super) glob: Box<[u8]>,
   pub(super) has_slash: bool,
-}
-
-impl std::fmt::Debug for Exclude {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("Exclude").field("has_slash", &self.has_slash).finish_non_exhaustive()
-  }
 }
 
 #[derive(Debug)]
@@ -70,8 +66,11 @@ impl Options {
 
   /// `shouldSkipFile`
   fn skips(&self, path: &[u8]) -> bool {
-    let name = bun_lint::paths::file_name(path);
-    self.exclude.iter().any(|it| it.glob.matches(if it.has_slash { path } else { name }))
+    let name =
+      crate::js::strings::last_index_of_char(path, b'/').map_or(path, |at| &path[at + 1..]);
+    let matches =
+      |it: &Exclude| fast_glob::glob_match(&*it.glob, if it.has_slash { path } else { name });
+    self.exclude.iter().any(matches)
   }
 
   /// `getImportNodesMatchedGroup`

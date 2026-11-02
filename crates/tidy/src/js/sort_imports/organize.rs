@@ -9,11 +9,12 @@ use super::compare::lowercase;
 use super::sort::stable_sort_by;
 use crate::js::ast::Span;
 use crate::js::ast::{
-  Export, ExportSpec, ExprKind, ExprTag, File, Ident, Import, ImportSpec, List, ModuleName, Node,
-  Stmt, StmtKind,
+  Export, ExportSpec, File, Ident, Import, ImportSpec, List, ModuleName, Stmt, StmtKind,
 };
 use crate::js::strings;
-use bun_lint::tokens::TokenKind;
+use oxc_ast::AstKind;
+use oxc_semantic::{Scoping, SemanticBuilder, SymbolId};
+use rustc_hash::FxHashMap;
 use std::cmp::Ordering;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -317,6 +318,26 @@ struct Organizer<'a, 'o> {
   jsx_names: Vec<Vec<u8>>,
   /// Replacements: a span of the text and its new content.
   changes: Vec<(Span, Vec<u8>)>,
+  /// The file's symbols, to find unused imports.
+  symbols: Option<Symbols>,
+}
+
+/// oxc's symbols, by where their names start.
+struct Symbols {
+  scoping: Scoping,
+  at: FxHashMap<u32, SymbolId>,
+}
+
+impl Symbols {
+  /// Binds a tree of its own: oxc's binder numbers the nodes again, and `file`'s tables go by the parser's numbers.
+  fn new(file: &File<'_>) -> Symbols {
+    let allocator = oxc_allocator::Allocator::default();
+    let source_type = file.program.source_type;
+    let parsed = oxc_parser::Parser::new(&allocator, file.text, source_type).parse();
+    let scoping = SemanticBuilder::new().build(&parsed.program).semantic.into_scoping();
+    let at = scoping.symbol_ids().map(|id| (scoping.symbol_span(id).start, id)).collect();
+    Symbols { scoping, at }
+  }
 }
 
 impl<'a> Organizer<'a, '_> {
@@ -542,17 +563,17 @@ impl<'a> Organizer<'a, '_> {
     })
   }
 
-  /// `isDeclarationUsed`
-  fn is_used(&self, name: Ident<'a>, statement: Stmt<'a>) -> bool {
-    let Some(symbol) = Node::Stmt(statement).scope().get_name(name.name()) else {
+  /// `isDeclarationUsed`. A type-only import used as a value counts, as TypeScript resolves it.
+  fn is_used(&self, name: Ident<'a>) -> bool {
+    let Some((symbols, &symbol)) =
+      self.symbols.as_ref().and_then(|it| Some((it, it.at.get(&name.start())?)))
+    else {
       return true;
     };
-    // TypeScript doesn't treat either part of the tag `<a:b>` as a name.
-    let is_in_namespaced_tag =
-      |node: Node| matches!(node, Node::Expr(tag) if matches!(tag.kind(), ExprKind::String(_)));
     self.jsx_names.iter().any(|it| it == name.bytes())
-      || symbol.declarations().len() > 1
-      || symbol.references().any(|it| !it.is_jsx_pragma() && !is_in_namespaced_tag(it.node()))
+      || !symbols.scoping.symbol_redeclarations(symbol).is_empty()
+      || !symbols.scoping.get_resolved_reference_ids(symbol).is_empty()
+      || symbols.scoping.root_unresolved_references().contains_key(name.name().0)
       || self.is_referenced_in_jsdoc(name.bytes())
   }
 
@@ -564,14 +585,11 @@ impl<'a> Organizer<'a, '_> {
         used.push(import);
         continue;
       }
-      let statement = import.base.statement;
-      import.name = import.name.filter(|name| self.is_used(*name, statement));
-      import.namespace = import.namespace.filter(|name| self.is_used(*name, statement));
+      import.name = import.name.filter(|name| self.is_used(*name));
+      import.namespace = import.namespace.filter(|name| self.is_used(*name));
       if let Some(named) = &mut import.named {
         let count = named.len();
-        named.retain(
-          |it| matches!(it, Specifier::Existing(it) if self.is_used(it.local(), statement)),
-        );
+        named.retain(|it| matches!(it, Specifier::Existing(it) if self.is_used(it.local())));
         import.braces = import.braces.map(|it| (it.0, named.len() == count));
         if named.is_empty() && count > 0 {
           import.named = None;
@@ -581,7 +599,7 @@ impl<'a> Organizer<'a, '_> {
         used.push(import);
       } else if self.has_module_declaration_matching(import.base.module()) {
         // `declare module "m"` is only an augmentation if the file imports `"m"`.
-        match (self.file.is_declaration_file(), import.base.import()) {
+        match (self.file.program.source_type.is_typescript_definition(), import.base.import()) {
           (false, Some(original)) => used.push(NewImport::of(import.base, original)),
           _ => used.push(import),
         }
@@ -1264,20 +1282,15 @@ pub(super) fn preprocess<'a>(
     text,
     options,
     end_of_line,
-    comments: (file.comments().filter(|it| it.kind() != TokenKind::Shebang))
-      .map(|it| (it.span(), it.kind() == TokenKind::Block))
-      .collect(),
+    comments: file.comments_by_id().map(|it| (it.span(), it.is_block())).collect(),
     module_comparer: Comparer::IgnoringCase,
     named_comparer: None,
     type_order: TypeOrder::Last,
     jsx_names: Vec::new(),
     changes: Vec::new(),
+    symbols: (!options.skips_destructive_code_actions).then(|| Symbols::new(file)),
   };
-  let start = file
-    .comments()
-    .next()
-    .filter(|it| it.kind() == TokenKind::Shebang)
-    .map_or(0, |it| it.span().end);
+  let start = file.hashbang().map_or(0, |it| it.end);
   let (imports, exports) = organizer.declarations_in(file.body(), start);
   let groups = organizer.group_by_newline_contiguous(&imports);
 
@@ -1295,10 +1308,16 @@ pub(super) fn preprocess<'a>(
   organizer.type_order =
     options.type_order.or_else(|| detected.and_then(|it| it.1)).unwrap_or(TypeOrder::Last);
 
-  if options.jsx_needs_import && file.has_exprs([ExprTag::Jsx]) {
+  let has_jsx = || {
+    (0..file.node_count())
+      .any(|id| matches!(file.kind(id), Some(AstKind::JSXElement(_) | AstKind::JSXFragment(_))))
+  };
+  if options.jsx_needs_import && has_jsx() {
     // `/** @jsx h */`
     let pragma = |name: &[u8]| {
-      let first_token = file.program_span().start;
+      let first_token = (file.program.directives.first().map(|it| it.span.start))
+        .or_else(|| file.body().iter().next().map(|it| it.span().start))
+        .unwrap_or(text.len() as u32);
       organizer.comments.iter().take_while(|it| it.0.end <= first_token).filter(|it| it.1).find_map(
         |it| {
           let text = file.slice(it.0);

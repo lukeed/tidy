@@ -1,0 +1,375 @@
+[
+ {
+  "name": "tests/Babel/imports-with-comments.js",
+  "filename": "imports-with-comments.js",
+  "options": {
+   "tabWidth": 4,
+   "importOrder": [
+    "^@core/(.*)$",
+    "^@server/(.*)",
+    "^@ui/(.*)$",
+    "^[./]"
+   ],
+   "importOrderSeparation": true
+  },
+  "input": "// I am top level comment in this file.\nimport z from 'z';\nimport threeLevelRelativePath from \"../../../threeLevelRelativePath\";\nimport sameLevelRelativePath from \"./sameLevelRelativePath\";\nimport thirdParty from \"third-party\";\nimport oneLevelRelativePath from \"../oneLevelRelativePath\";\nimport otherthing from \"@core/otherthing\";\nimport abc from \"@core/abc\";\nimport twoLevelRelativePath from \"../../twoLevelRelativePath\";\nimport component from \"@ui/hello\";\nimport fourLevelRelativePath from \"../../../../fourLevelRelativePath\";\nimport something from \"@server/something\";\nimport xyz from \"@ui/xyz\";\n\nfunction add(a,b) {\n  return a + b;\n}\n",
+  "output": "// I am top level comment in this file.\nimport thirdParty from \"third-party\";\nimport z from \"z\";\n\nimport abc from \"@core/abc\";\nimport otherthing from \"@core/otherthing\";\n\nimport something from \"@server/something\";\n\nimport component from \"@ui/hello\";\nimport xyz from \"@ui/xyz\";\n\nimport fourLevelRelativePath from \"../../../../fourLevelRelativePath\";\nimport threeLevelRelativePath from \"../../../threeLevelRelativePath\";\nimport twoLevelRelativePath from \"../../twoLevelRelativePath\";\nimport oneLevelRelativePath from \"../oneLevelRelativePath\";\nimport sameLevelRelativePath from \"./sameLevelRelativePath\";\n\nfunction add(a, b) {\n    return a + b;\n}\n"
+ },
+ {
+  "name": "tests/BuiltinModules/builtin-modules.ts",
+  "filename": "builtin-modules.ts",
+  "options": {
+   "tabWidth": 4,
+   "importOrder": [
+    "<BUILTIN_MODULES>",
+    "<THIRD_PARTY_MODULES>",
+    "^[./]"
+   ],
+   "importOrderParserPlugins": [
+    "typescript"
+   ]
+  },
+  "input": "import express from 'express';\nimport lodash from 'lodash';\nimport fs from 'fs';\nimport path from 'path';\nimport http from 'http';\nimport { readFile } from 'node:fs';\nimport { join } from 'node:path';\nimport crypto from 'node:crypto';\nimport util from 'util';\n\nimport { myFunction } from './my-module';\nimport { anotherFunction } from '../other-module';",
+  "output": "import fs from \"fs\";\nimport http from \"http\";\nimport crypto from \"node:crypto\";\nimport { readFile } from \"node:fs\";\nimport { join } from \"node:path\";\nimport path from \"path\";\nimport util from \"util\";\nimport express from \"express\";\nimport lodash from \"lodash\";\nimport { anotherFunction } from \"../other-module\";\nimport { myFunction } from \"./my-module\";\n"
+ },
+ {
+  "name": "tests/BuiltinModulesDisabled/builtin-modules.ts",
+  "filename": "builtin-modules.ts",
+  "options": {
+   "tabWidth": 4,
+   "importOrder": [
+    "^[./]"
+   ],
+   "importOrderParserPlugins": [
+    "typescript"
+   ]
+  },
+  "input": "import express from 'express';\nimport lodash from 'lodash';\nimport fs from 'fs';\nimport path from 'path';\nimport http from 'http';\nimport { readFile } from 'node:fs';\nimport { join } from 'node:path';\nimport crypto from 'node:crypto';\nimport util from 'util';\n\nimport { myFunction } from './my-module';\nimport { anotherFunction } from '../other-module';",
+  "output": "import express from \"express\";\nimport fs from \"fs\";\nimport http from \"http\";\nimport lodash from \"lodash\";\nimport crypto from \"node:crypto\";\nimport { readFile } from \"node:fs\";\nimport { join } from \"node:path\";\nimport path from \"path\";\nimport util from \"util\";\nimport { anotherFunction } from \"../other-module\";\nimport { myFunction } from \"./my-module\";\n"
+ },
+ {
+  "name": "tests/ImportPreventSortingSideEffects/imports-with-side-effect-imports.js",
+  "filename": "imports-with-side-effect-imports.js",
+  "options": {
+   "tabWidth": 4,
+   "importOrder": [
+    "^@core/(.*)$",
+    "^@server/(.*)",
+    "^@ui/(.*)$",
+    "^[./]"
+   ],
+   "importOrderSeparation": true,
+   "importOrderSideEffects": false,
+   "importOrderParserPlugins": [
+    "typescript"
+   ]
+  },
+  "input": "// I am top level comment in this file.\nimport thirdParty0 from \"third-party0\";\nimport something3 from \"@core/something3\";\nimport thirdDisco0 from \"third-disco0\";\nimport otherthing3 from \"@core/otherthing3\";\n\nimport \"side-effect-z\";\n\nimport anotherSameLevelRelativePath3 from \"./anotherSameLevelRelativePath3\";\nimport something0 from \"@core/something0\";\nimport thirdDisco1 from \"third-disco1\";\nimport otherthing0 from \"@core/otherthing0\";\nimport sameLevelRelativePath3 from \"./sameLevelRelativePath3\";\nimport thirdParty1 from \"third-party1\";\nimport oneLevelRelativePath1 from \"../oneLevelRelativePath1\";\nimport anotherOneLevelRelativePath1 from \"../anotherOneLevelRelativePath1\";\n\nimport \"side-effect-y3\";\nimport \"side-effect-y1\";\nimport \"side-effect-y2\";\n\nimport oneLevelRelativePath2 from \"../oneLevelRelativePath2\";\nimport anotherOneLevelRelativePath2 from \"../anotherOneLevelRelativePath2\";\nimport something2 from \"@core/something2\";\nimport thirdParty3 from \"third-party3\";\nimport anotherSameLevelRelativePath1 from \"./anotherSameLevelRelativePath1\";\nimport sameLevelRelativePath1 from \"./sameLevelRelativePath1\";\nimport otherthing2 from \"@core/otherthing2\";\nimport thirdDisco3 from \"third-disco3\";\n\nimport \"side-effect-x\";\nimport anotherSameLevelRelativePath2 from \"./anotherSameLevelRelativePath2\";\nimport sameLevelRelativePath2 from \"./sameLevelRelativePath2\";\nimport something1 from \"@core/something1\";\nimport oneLevelRelativePath3 from \"../oneLevelRelativePath3\";\nimport anotherOneLevelRelativePath3 from \"../anotherOneLevelRelativePath3\";\nimport otherthing1 from \"@core/otherthing1\";\nimport thirdDisco2 from \"third-disco2\";\nimport thirdParty2 from \"third-party2\";\n\nimport { Component } from \"@angular/core\";\n\nfunction add(a,b) {\n  return a + b;\n}",
+  "output": "// I am top level comment in this file.\nimport thirdDisco0 from \"third-disco0\";\nimport thirdParty0 from \"third-party0\";\n\nimport otherthing3 from \"@core/otherthing3\";\nimport something3 from \"@core/something3\";\n\nimport \"side-effect-z\";\n\nimport thirdDisco1 from \"third-disco1\";\nimport thirdParty1 from \"third-party1\";\n\nimport otherthing0 from \"@core/otherthing0\";\nimport something0 from \"@core/something0\";\n\nimport anotherOneLevelRelativePath1 from \"../anotherOneLevelRelativePath1\";\nimport oneLevelRelativePath1 from \"../oneLevelRelativePath1\";\nimport anotherSameLevelRelativePath3 from \"./anotherSameLevelRelativePath3\";\nimport sameLevelRelativePath3 from \"./sameLevelRelativePath3\";\n\nimport \"side-effect-y3\";\nimport \"side-effect-y1\";\nimport \"side-effect-y2\";\n\nimport thirdDisco3 from \"third-disco3\";\nimport thirdParty3 from \"third-party3\";\n\nimport otherthing2 from \"@core/otherthing2\";\nimport something2 from \"@core/something2\";\n\nimport anotherOneLevelRelativePath2 from \"../anotherOneLevelRelativePath2\";\nimport oneLevelRelativePath2 from \"../oneLevelRelativePath2\";\nimport anotherSameLevelRelativePath1 from \"./anotherSameLevelRelativePath1\";\nimport sameLevelRelativePath1 from \"./sameLevelRelativePath1\";\n\nimport \"side-effect-x\";\n\nimport { Component } from \"@angular/core\";\nimport thirdDisco2 from \"third-disco2\";\nimport thirdParty2 from \"third-party2\";\n\nimport otherthing1 from \"@core/otherthing1\";\nimport something1 from \"@core/something1\";\n\nimport anotherOneLevelRelativePath3 from \"../anotherOneLevelRelativePath3\";\nimport oneLevelRelativePath3 from \"../oneLevelRelativePath3\";\nimport anotherSameLevelRelativePath2 from \"./anotherSameLevelRelativePath2\";\nimport sameLevelRelativePath2 from \"./sameLevelRelativePath2\";\n\nfunction add(a, b) {\n    return a + b;\n}\n"
+ },
+ {
+  "name": "tests/ImportsNotSeparated/import-export-in-between.ts",
+  "filename": "import-export-in-between.ts",
+  "options": {
+   "tabWidth": 4,
+   "importOrder": [
+    "^@core/(.*)$",
+    "^@server/(.*)",
+    "^@ui/(.*)$",
+    "^[./]"
+   ],
+   "importOrderParserPlugins": [
+    "typescript"
+   ]
+  },
+  "input": "import threeLevelRelativePath from \"../../../threeLevelRelativePath\";\nimport sameLevelRelativePath from \"./sameLevelRelativePath\";\nimport thirdParty from \"third-party\";\nexport { random } from './random';\nimport c from 'c';\nimport oneLevelRelativePath from \"../oneLevelRelativePath\";\nimport otherthing from \"@core/otherthing\";\nimport a from 'a';\nimport twoLevelRelativePath from \"../../twoLevelRelativePath\";\nimport component from \"@ui/hello\";\nexport default {\n    title: 'hello',\n};\nimport fourLevelRelativePath from \"../../../../fourLevelRelativePath\";\nimport something from \"@server/something\";\nimport x from 'x';\n\nfunction add(a:number,b:number) {\n  return a + b;\n}\n",
+  "output": "import a from \"a\";\nimport c from \"c\";\nimport thirdParty from \"third-party\";\nimport x from \"x\";\nimport otherthing from \"@core/otherthing\";\nimport something from \"@server/something\";\nimport component from \"@ui/hello\";\nimport fourLevelRelativePath from \"../../../../fourLevelRelativePath\";\nimport threeLevelRelativePath from \"../../../threeLevelRelativePath\";\nimport twoLevelRelativePath from \"../../twoLevelRelativePath\";\nimport oneLevelRelativePath from \"../oneLevelRelativePath\";\nimport sameLevelRelativePath from \"./sameLevelRelativePath\";\n\nexport { random } from \"./random\";\n\nexport default {\n    title: \"hello\",\n};\n\nfunction add(a: number, b: number) {\n    return a + b;\n}\n"
+ },
+ {
+  "name": "tests/ImportsNotSeparatedRest/import-export-in-between.ts",
+  "filename": "import-export-in-between.ts",
+  "options": {
+   "tabWidth": 4,
+   "importOrder": [
+    "^@core/(.*)$",
+    "^@server/(.*)$",
+    "^@ui/(.*)$",
+    "<THIRD_PARTY_MODULES>",
+    "^[./]"
+   ],
+   "importOrderParserPlugins": [
+    "typescript"
+   ]
+  },
+  "input": "import threeLevelRelativePath from \"../../../threeLevelRelativePath\";\nimport sameLevelRelativePath from \"./sameLevelRelativePath\";\nimport thirdParty from \"third-party\";\nexport { random } from './random';\nimport c from 'c';\nimport oneLevelRelativePath from \"../oneLevelRelativePath\";\nimport otherthing from \"@core/otherthing\";\nimport a from 'a';\nimport twoLevelRelativePath from \"../../twoLevelRelativePath\";\nimport component from \"@ui/hello\";\nexport default {\n    title: 'hello',\n};\nimport fourLevelRelativePath from \"../../../../fourLevelRelativePath\";\nimport something from \"@server/something\";\nimport x from 'x';\n\nfunction add(a:number,b:number) {\n  return a + b;\n}\n",
+  "output": "import otherthing from \"@core/otherthing\";\nimport something from \"@server/something\";\nimport component from \"@ui/hello\";\nimport a from \"a\";\nimport c from \"c\";\nimport thirdParty from \"third-party\";\nimport x from \"x\";\nimport fourLevelRelativePath from \"../../../../fourLevelRelativePath\";\nimport threeLevelRelativePath from \"../../../threeLevelRelativePath\";\nimport twoLevelRelativePath from \"../../twoLevelRelativePath\";\nimport oneLevelRelativePath from \"../oneLevelRelativePath\";\nimport sameLevelRelativePath from \"./sameLevelRelativePath\";\n\nexport { random } from \"./random\";\n\nexport default {\n    title: \"hello\",\n};\n\nfunction add(a: number, b: number) {\n    return a + b;\n}\n"
+ },
+ {
+  "name": "tests/ImportsSeparated/import-export-in-between.ts",
+  "filename": "import-export-in-between.ts",
+  "options": {
+   "tabWidth": 4,
+   "importOrder": [
+    "^@core/(.*)$",
+    "^@server/(.*)",
+    "^@ui/(.*)$",
+    "^[./]"
+   ],
+   "importOrderSeparation": true,
+   "importOrderParserPlugins": [
+    "typescript"
+   ]
+  },
+  "input": "import threeLevelRelativePath from \"../../../threeLevelRelativePath\";\nimport sameLevelRelativePath from \"./sameLevelRelativePath\";\nimport thirdParty from \"third-party\";\nexport { random } from './random';\nimport c from 'c';\nimport oneLevelRelativePath from \"../oneLevelRelativePath\";\nimport otherthing from \"@core/otherthing\";\nimport a from 'a';\nimport twoLevelRelativePath from \"../../twoLevelRelativePath\";\nimport component from \"@ui/hello\";\nexport default {\n    title: 'hello',\n};\nimport fourLevelRelativePath from \"../../../../fourLevelRelativePath\";\nimport something from \"@server/something\";\nimport x from 'x';\n\nfunction add(a:number,b:number) {\n  return a + b;\n}\n",
+  "output": "import a from \"a\";\nimport c from \"c\";\nimport thirdParty from \"third-party\";\nimport x from \"x\";\n\nimport otherthing from \"@core/otherthing\";\n\nimport something from \"@server/something\";\n\nimport component from \"@ui/hello\";\n\nimport fourLevelRelativePath from \"../../../../fourLevelRelativePath\";\nimport threeLevelRelativePath from \"../../../threeLevelRelativePath\";\nimport twoLevelRelativePath from \"../../twoLevelRelativePath\";\nimport oneLevelRelativePath from \"../oneLevelRelativePath\";\nimport sameLevelRelativePath from \"./sameLevelRelativePath\";\n\nexport { random } from \"./random\";\n\nexport default {\n    title: \"hello\",\n};\n\nfunction add(a: number, b: number) {\n    return a + b;\n}\n"
+ },
+ {
+  "name": "tests/ImportsSeparatedByUser/import-export-in-between.ts",
+  "filename": "import-export-in-between.ts",
+  "options": {
+   "tabWidth": 4,
+   "importOrder": [
+    "^@core/(.*)$",
+    "^@server/(.*)",
+    "<SEPARATOR>",
+    "^@ui/(.*)$",
+    "^[./]"
+   ],
+   "importOrderSeparation": true,
+   "importOrderParserPlugins": [
+    "typescript"
+   ]
+  },
+  "input": "import threeLevelRelativePath from \"../../../threeLevelRelativePath\";\nimport sameLevelRelativePath from \"./sameLevelRelativePath\";\nimport thirdParty from \"third-party\";\nexport { random } from './random';\nimport c from 'c';\nimport oneLevelRelativePath from \"../oneLevelRelativePath\";\nimport otherthing from \"@core/otherthing\";\nimport a from 'a';\nimport twoLevelRelativePath from \"../../twoLevelRelativePath\";\nimport component from \"@ui/hello\";\nexport default {\n    title: 'hello',\n};\nimport fourLevelRelativePath from \"../../../../fourLevelRelativePath\";\nimport something from \"@server/something\";\nimport x from 'x';\n\nfunction add(a:number,b:number) {\n  return a + b;\n}\n",
+  "output": "import a from \"a\";\nimport c from \"c\";\nimport thirdParty from \"third-party\";\nimport x from \"x\";\nimport otherthing from \"@core/otherthing\";\nimport something from \"@server/something\";\n\nimport component from \"@ui/hello\";\nimport fourLevelRelativePath from \"../../../../fourLevelRelativePath\";\nimport threeLevelRelativePath from \"../../../threeLevelRelativePath\";\nimport twoLevelRelativePath from \"../../twoLevelRelativePath\";\nimport oneLevelRelativePath from \"../oneLevelRelativePath\";\nimport sameLevelRelativePath from \"./sameLevelRelativePath\";\n\nexport { random } from \"./random\";\n\nexport default {\n    title: \"hello\",\n};\n\nfunction add(a: number, b: number) {\n    return a + b;\n}\n"
+ },
+ {
+  "name": "tests/ImportsSeparatedRest/import-export-in-between.ts",
+  "filename": "import-export-in-between.ts",
+  "options": {
+   "tabWidth": 4,
+   "importOrder": [
+    "^@core/(.*)$",
+    "^@server/(.*)",
+    "^@ui/(.*)$",
+    "<THIRD_PARTY_MODULES>",
+    "^[./]"
+   ],
+   "importOrderSeparation": true,
+   "importOrderParserPlugins": [
+    "typescript"
+   ]
+  },
+  "input": "import threeLevelRelativePath from \"../../../threeLevelRelativePath\";\nimport sameLevelRelativePath from \"./sameLevelRelativePath\";\nimport thirdParty from \"third-party\";\nexport { random } from './random';\nimport c from 'c';\nimport oneLevelRelativePath from \"../oneLevelRelativePath\";\nimport otherthing from \"@core/otherthing\";\nimport a from 'a';\nimport twoLevelRelativePath from \"../../twoLevelRelativePath\";\nimport component from \"@ui/hello\";\nexport default {\n    title: 'hello',\n};\nimport fourLevelRelativePath from \"../../../../fourLevelRelativePath\";\nimport something from \"@server/something\";\nimport x from 'x';\n\nfunction add(a:number,b:number) {\n  return a + b;\n}\n",
+  "output": "import otherthing from \"@core/otherthing\";\n\nimport something from \"@server/something\";\n\nimport component from \"@ui/hello\";\n\nimport a from \"a\";\nimport c from \"c\";\nimport thirdParty from \"third-party\";\nimport x from \"x\";\n\nimport fourLevelRelativePath from \"../../../../fourLevelRelativePath\";\nimport threeLevelRelativePath from \"../../../threeLevelRelativePath\";\nimport twoLevelRelativePath from \"../../twoLevelRelativePath\";\nimport oneLevelRelativePath from \"../oneLevelRelativePath\";\nimport sameLevelRelativePath from \"./sameLevelRelativePath\";\n\nexport { random } from \"./random\";\n\nexport default {\n    title: \"hello\",\n};\n\nfunction add(a: number, b: number) {\n    return a + b;\n}\n"
+ },
+ {
+  "name": "tests/ImportsWithAttributesKeyword/imports-with-attributes-keyword.ts",
+  "filename": "imports-with-attributes-keyword.ts",
+  "options": {
+   "tabWidth": 4,
+   "importOrder": [
+    "^@core/(.*)$",
+    "^@server/(.*)",
+    "^@ui/(.*)$",
+    "^[./]"
+   ],
+   "importOrderSeparation": false,
+   "importOrderSideEffects": false,
+   "importOrderParserPlugins": [
+    "typescript"
+   ],
+   "importOrderImportAttributesKeyword": "with"
+  },
+  "input": "// I am top level comment in this file.\nimport thirdParty0 from \"third-party0\";\nimport something3 from \"@core/something3\";\nimport thirdDisco0 from \"third-disco0\";\nimport otherthing3 from \"@core/otherthing3\";\nimport { a } from \"b\" with { type: \"json\" };\n\nimport anotherSameLevelRelativePath3 from \"./anotherSameLevelRelativePath3\";\nimport something0 from \"@core/something0\";\n\nimport { b } from \"r\" with { type: \"json\" };\n\n\nfunction add(a,b) {\n  return a + b;\n}",
+  "output": "// I am top level comment in this file.\nimport { a } from \"b\" with { type: \"json\" };\nimport { b } from \"r\" with { type: \"json\" };\nimport thirdDisco0 from \"third-disco0\";\nimport thirdParty0 from \"third-party0\";\nimport otherthing3 from \"@core/otherthing3\";\nimport something0 from \"@core/something0\";\nimport something3 from \"@core/something3\";\nimport anotherSameLevelRelativePath3 from \"./anotherSameLevelRelativePath3\";\n\nfunction add(a, b) {\n    return a + b;\n}\n"
+ },
+ {
+  "name": "tests/Typescript/imports-with-comments.ts",
+  "filename": "imports-with-comments.ts",
+  "options": {
+   "tabWidth": 4,
+   "importOrder": [
+    "^@core/(.*)$",
+    "^@server/(.*)",
+    "^@ui/(.*)$",
+    "^[./]"
+   ],
+   "importOrderSeparation": true,
+   "importOrderParserPlugins": [
+    "typescript",
+    "decorators-legacy",
+    "classProperties"
+   ]
+  },
+  "input": "import z from 'z';\nimport { isEmpty } from \"lodash-es\";\nimport threeLevelRelativePath from \"../../../threeLevelRelativePath\";\nimport sameLevelRelativePath from \"./sameLevelRelativePath\";\nimport thirdParty from \"third-party\";\nimport oneLevelRelativePath from \"../oneLevelRelativePath\";\nimport otherthing from \"@core/otherthing\";\nimport abc from \"@core/abc\";\nimport twoLevelRelativePath from \"../../twoLevelRelativePath\";\nimport component from \"@ui/hello\";\nimport fourLevelRelativePath from \"../../../../fourLevelRelativePath\";\nimport something from \"@server/something\";\nimport xyz from \"@ui/xyz\";\n\nimport { Component } from \"@angular/core\";\n\n@Component({\n  selector: \"app-root\",\n  templateUrl: \"./app.component.html\",\n  styleUrls: [\"./app.component.css\"]\n})\nexport class AppComponent extends BaseComponent {\n  title = \"ng-prettier\";\n\n  override get text(): string {\n    return isEmpty(this.title) ? \"\" : this.title;\n  }\n}\n",
+  "output": "import { Component } from \"@angular/core\";\nimport { isEmpty } from \"lodash-es\";\nimport thirdParty from \"third-party\";\nimport z from \"z\";\n\nimport abc from \"@core/abc\";\nimport otherthing from \"@core/otherthing\";\n\nimport something from \"@server/something\";\n\nimport component from \"@ui/hello\";\nimport xyz from \"@ui/xyz\";\n\nimport fourLevelRelativePath from \"../../../../fourLevelRelativePath\";\nimport threeLevelRelativePath from \"../../../threeLevelRelativePath\";\nimport twoLevelRelativePath from \"../../twoLevelRelativePath\";\nimport oneLevelRelativePath from \"../oneLevelRelativePath\";\nimport sameLevelRelativePath from \"./sameLevelRelativePath\";\n\n@Component({\n    selector: \"app-root\",\n    templateUrl: \"./app.component.html\",\n    styleUrls: [\"./app.component.css\"],\n})\nexport class AppComponent extends BaseComponent {\n    title = \"ng-prettier\";\n\n    override get text(): string {\n        return isEmpty(this.title) ? \"\" : this.title;\n    }\n}\n"
+ },
+ {
+  "name": "snippets/1/0",
+  "filename": "1.ts",
+  "options": {},
+  "input": "\n    import {x} from \"c\";\n    // comment b\n    import {y} from \"b\";\n    // comment a\n    import {z} from \"a\";\n    ",
+  "output": "// comment a\nimport { z } from \"a\";\n// comment b\nimport { y } from \"b\";\nimport { x } from \"c\";\n"
+ },
+ {
+  "name": "snippets/1/1",
+  "filename": "1.ts",
+  "options": {
+   "importOrder": [
+    "^@core/(.*)$",
+    "^@server/(.*)$",
+    "^@ui/(.*)$",
+    "^[./]"
+   ],
+   "importOrderSeparation": true,
+   "importOrderSortSpecifiers": true
+  },
+  "input": "\n    import {x} from \"c\";\n    // comment b\n    import {y} from \"b\";\n    // comment a\n    import {z} from \"a\";\n    ",
+  "output": "// comment a\nimport { z } from \"a\";\n// comment b\nimport { y } from \"b\";\nimport { x } from \"c\";\n"
+ },
+ {
+  "name": "snippets/1/2",
+  "filename": "1.ts",
+  "options": {
+   "importOrder": [
+    "<BUILTIN_MODULES>",
+    "<THIRD_PARTY_MODULES>",
+    "^[./]"
+   ],
+   "importOrderSideEffects": false,
+   "importOrderCaseInsensitive": true
+  },
+  "input": "\n    import {x} from \"c\";\n    // comment b\n    import {y} from \"b\";\n    // comment a\n    import {z} from \"a\";\n    ",
+  "output": "// comment a\nimport { z } from \"a\";\n// comment b\nimport { y } from \"b\";\nimport { x } from \"c\";\n"
+ },
+ {
+  "name": "snippets/1/3",
+  "filename": "1.ts",
+  "options": {
+   "importOrder": [
+    "<THIRD_PARTY_TS_TYPES>",
+    "<TS_TYPES>^[./]",
+    "^[./]"
+   ],
+   "importOrderGroupNamespaceSpecifiers": true,
+   "importOrderSeparation": true
+  },
+  "input": "\n    import {x} from \"c\";\n    // comment b\n    import {y} from \"b\";\n    // comment a\n    import {z} from \"a\";\n    ",
+  "output": "// comment a\nimport { z } from \"a\";\n// comment b\nimport { y } from \"b\";\nimport { x } from \"c\";\n"
+ },
+ {
+  "name": "snippets/1/4",
+  "filename": "1.ts",
+  "options": {
+   "importOrder": [
+    "^react",
+    "<SEPARATOR>",
+    "<THIRD_PARTY_MODULES>",
+    "^[./]"
+   ],
+   "importOrderSeparation": true,
+   "importOrderSortByLength": "asc"
+  },
+  "input": "\n    import {x} from \"c\";\n    // comment b\n    import {y} from \"b\";\n    // comment a\n    import {z} from \"a\";\n    ",
+  "output": "// comment a\nimport { z } from \"a\";\n// comment b\nimport { y } from \"b\";\nimport { x } from \"c\";\n"
+ },
+ {
+  "name": "fuzz-lines/0/0",
+  "filename": "fuzz.ts",
+  "options": {},
+  "input": "\n// c\nimport {\n  long1,\n  long2,\n} from \"@server/long\";\n// c\n// d\nimport json from \"./a.json\" with { type: \"json\" };\nimport { g } from \"./x\"; // t\n\n",
+  "output": "// c\n// c\n// d\nimport json from \"./a.json\" with { type: \"json\" };\nimport { g } from \"./x\";\nimport { long1, long2 } from \"@server/long\";\n\n// t\n"
+ },
+ {
+  "name": "fuzz-lines/47/2",
+  "filename": "fuzz.ts",
+  "options": {
+   "importOrder": [
+    "<BUILTIN_MODULES>",
+    "<THIRD_PARTY_MODULES>",
+    "^[./]"
+   ],
+   "importOrderSideEffects": false,
+   "importOrderCaseInsensitive": true
+  },
+  "input": "// top\n\n/* c */ import z from \"z\";\n// c\n\nimport * as ns from \"ns\"; // prettier-ignore\n// prettier-ignore\nimport { x as x } from \"../up\";\n// c\n\nimport type D from \"./x\"; /* t */\n// c\nimport type { T } from \"t\";\n\n// c\nimport { type U, v } from \"@ui/u\";\n\n",
+  "output": "// top\n/* c */\n// c\nimport { type U, v } from \"@ui/u\";\n// c\n\nimport * as ns from \"ns\";\n/* t */\n// c\nimport type { T } from \"t\";\nimport z from \"z\";\n// prettier-ignore\n// prettier-ignore\nimport { x } from \"../up\";\n// c\n\nimport type D from \"./x\";\n"
+ },
+ {
+  "name": "fuzz-lines/136/1",
+  "filename": "fuzz.ts",
+  "options": {
+   "importOrder": [
+    "^@core/(.*)$",
+    "^@server/(.*)$",
+    "^@ui/(.*)$",
+    "^[./]"
+   ],
+   "importOrderSeparation": true,
+   "importOrderSortSpecifiers": true
+  },
+  "input": "\"use strict\";\n\n// after\n/**\n * doc\n */\nimport type D from \"./x\"; // t\n\nimport { g } from \"./x\";\n\nfoo();\n",
+  "output": "\"use strict\";\n\n// after\n/**\n * doc\n */\nimport type D from \"./x\";\n// t\n\nimport { g } from \"./x\";\n\nfoo();\n"
+ },
+ {
+  "name": "fuzz-lines/184/4",
+  "filename": "fuzz.ts",
+  "options": {
+   "importOrder": [
+    "^react",
+    "<SEPARATOR>",
+    "<THIRD_PARTY_MODULES>",
+    "^[./]"
+   ],
+   "importOrderSeparation": true,
+   "importOrderSortByLength": "asc"
+  },
+  "input": "#!/usr/bin/env node\n// c\n\nimport { g } from \"./x\";\nconst a = 1; // x\n",
+  "output": "#!/usr/bin/env node\n// c\nimport { g } from \"./x\";\n\nconst a = 1; // x\n"
+ },
+ {
+  "name": "fuzz-lines/508/3",
+  "filename": "fuzz.ts",
+  "options": {
+   "importOrder": [
+    "<THIRD_PARTY_TS_TYPES>",
+    "<TS_TYPES>^[./]",
+    "^[./]"
+   ],
+   "importOrderGroupNamespaceSpecifiers": true,
+   "importOrderSeparation": true
+  },
+  "input": "\"use strict\";\n\n// after\n/* a\n   b */\nimport type { T } from \"t\";\n\n\nimport * as ns from \"ns\";\n\n// c\nimport json from \"./a.json\" with { type: \"json\" }; /* t\n  u */\n\n",
+  "output": "\"use strict\";\n\n// after\n/* a\n   b */\nimport * as ns from \"ns\";\n\nimport type { T } from \"t\";\n\n// c\nimport json from \"./a.json\" with { type: \"json\" };\n\n/* t\n  u */\n"
+ },
+ {
+  "name": "fuzz-tokens/0/0",
+  "filename": "fuzz.ts",
+  "options": {},
+  "input": "/* c */import z from \"z\";\nimport { b, a as c, type C } from \"./x\";\nimport * as ns from \"ns\";\n\nfoo();\n",
+  "output": "/* c */\nimport { b, a as c, type C } from \"./x\";\nimport * as ns from \"ns\";\nimport z from \"z\";\n\nfoo();\n"
+ },
+ {
+  "name": "fuzz-names/0/0",
+  "filename": "fuzz.ts",
+  "options": {},
+  "input": "import { $, B1a } from \".\";\nimport { éZ10 } from \"É \";\nimport { a2_, B日A } from \"10ZA\";\nimport { _日é, éAZ } from \"1.5/\";\nimport { B, é } from \"1É\";\nimport { aß } from \"z😀\";\nimport { _10, é$_, aé10, _a } from \"1.5\";\nimport { é__ } from \"!0x1f\";\n",
+  "output": "import { _日é, éAZ } from \"1.5/\";\nimport { B, é } from \"1É\";\nimport { _10, é$_, aé10, _a } from \"1.5\";\nimport { a2_, B日A } from \"10ZA\";\nimport { é__ } from \"!0x1f\";\nimport { $, B1a } from \".\";\nimport { aß } from \"z😀\";\nimport { éZ10 } from \"É \";\n"
+ },
+ {
+  "name": "fuzz-sigma/27/2",
+  "filename": "fuzz.ts",
+  "options": {
+   "importOrder": [
+    "<BUILTIN_MODULES>",
+    "<THIRD_PARTY_MODULES>",
+    "^[./]"
+   ],
+   "importOrderSideEffects": false,
+   "importOrderCaseInsensitive": true
+  },
+  "input": "import { B, $, é_ς } from \"ασοδος\";\nimport { $A, _1z, é2 } from \"οδοσ\";\nimport { é } from \"οδοσ~1e3οδοσ\";\nimport { _, $é, $σ } from \"ςοδος\";\nimport { a } from \"x10\";\nimport { $2, a$$ } from \"οδοσß~\";\nimport { éa } from \"ñ-ø\";\nimport { _ΣB } from \"ΟΔΟΣ$@οδοσ\";\n",
+  "output": "import { a } from \"x10\";\nimport { éa } from \"ñ-ø\";\nimport { B, $, é_ς } from \"ασοδος\";\nimport { _ΣB } from \"ΟΔΟΣ$@οδοσ\";\nimport { $A, _1z, é2 } from \"οδοσ\";\nimport { é } from \"οδοσ~1e3οδοσ\";\nimport { $2, a$$ } from \"οδοσß~\";\nimport { _, $é, $σ } from \"ςοδος\";\n"
+ }
+]

@@ -31,7 +31,7 @@ fn has_same_tokens(source: &[u8], printed: &[u8]) -> bool {
     match (source, printed) {
       ([], []) | ([], [b';']) => return true,
       ([quote @ (b'"' | b'\''), ..], [other, ..]) if quote == other => {
-        let len = bun_lint::tokens::token_len(source);
+        let len = super::babel::string_len(source);
         if source.get(..len) != printed.get(..len) {
           return false;
         }

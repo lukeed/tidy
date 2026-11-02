@@ -5,6 +5,7 @@
 //! but it's captured ([`ImportRun`]) instead of going into the document. The document gets a reference to each captured
 //! line, in sorted order. Nothing is parsed again and no element is copied.
 
+mod directives;
 mod options;
 mod run;
 

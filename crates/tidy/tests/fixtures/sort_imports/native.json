@@ -1,0 +1,884 @@
+[
+ {
+  "name": "keeps // @ts-nocheck above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// @ts-nocheck\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "// @ts-nocheck\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps // @ts-check above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// @ts-check\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "// @ts-check\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps /// <reference types=\"node\" /> above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "/// <reference types=\"node\" />\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "/// <reference types=\"node\" />\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps /// <reference path=\"./x.d.ts\" /> above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "/// <reference path=\"./x.d.ts\" />\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "/// <reference path=\"./x.d.ts\" />\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps /// <amd-module name=\"x\" /> above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "/// <amd-module name=\"x\" />\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "/// <amd-module name=\"x\" />\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps /* eslint-disable */ above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "/* eslint-disable */\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "/* eslint-disable */\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps /* eslint no-console: 0 */ above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "/* eslint no-console: 0 */\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "/* eslint no-console: 0 */\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps // oxlint-disable above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// oxlint-disable\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "// oxlint-disable\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps // biome-ignore-all lint: x above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// biome-ignore-all lint: x\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "// biome-ignore-all lint: x\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps // @flow above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// @flow\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "// @flow\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps /** @jsxImportSource preact */ above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "/** @jsxImportSource preact */\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "/** @jsxImportSource preact */\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps /** @jsx h */ above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "/** @jsx h */\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "/** @jsx h */\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps /** @format */ above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "/** @format */\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "/** @format */\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps /** @noprettier */ above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "/** @noprettier */\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "/** @noprettier */\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps // @bun above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// @bun\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "// @bun\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps // Copyright 2026 Someone. MIT license. above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// Copyright 2026 Someone. MIT license.\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "// Copyright 2026 Someone. MIT license.\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps // SPDX-License-Identifier: MIT above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// SPDX-License-Identifier: MIT\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "// SPDX-License-Identifier: MIT\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps /* @license MIT */ above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "/* @license MIT */\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "/* @license MIT */\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps /*! x 1.0 */ above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "/*! x 1.0 */\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "/*! x 1.0 */\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps /** @jest-environment jsdom */ above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "/** @jest-environment jsdom */\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "/** @jest-environment jsdom */\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps // @vitest-environment happy-dom above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// @vitest-environment happy-dom\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "// @vitest-environment happy-dom\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps /** @file What the file is for. */ above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "/** @file What the file is for. */\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "/** @file What the file is for. */\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps /** @fileoverview What the file is for. */ above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "/** @fileoverview What the file is for. */\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "/** @fileoverview What the file is for. */\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps /** @overview What the file is for. */ above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "/** @overview What the file is for. */\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "/** @overview What the file is for. */\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps /** @module x */ above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "/** @module x */\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "/** @module x */\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps /** @packageDocumentation */ above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "/** @packageDocumentation */\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "/** @packageDocumentation */\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps // deno-lint-ignore-file above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// deno-lint-ignore-file\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "// deno-lint-ignore-file\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps // deno-fmt-ignore-file above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// deno-fmt-ignore-file\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "// deno-fmt-ignore-file\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps // dprint-ignore-file above the imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// dprint-ignore-file\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "// dprint-ignore-file\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps a comment about the file above the imports after a shebang",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "#!/usr/bin/env bun\n// @ts-nocheck\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "#!/usr/bin/env bun\n// @ts-nocheck\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps a comment about the file above the imports after a directive",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "\"use client\";\n/* eslint-disable */\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "\"use client\";\n/* eslint-disable */\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "keeps every comment above a comment about the file",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// Copyright 2026 Someone.\n// See the file LICENSE.\n// @ts-check\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "// Copyright 2026 Someone.\n// See the file LICENSE.\n// @ts-check\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "changes nothing if the first import stays first",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// @ts-nocheck\nimport a from \"a\";\nimport z from \"z\";\n",
+  "output": "// @ts-nocheck\nimport a from \"a\";\nimport z from \"z\";\n"
+ },
+ {
+  "name": "moves a comment about the first import with it",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// about z\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "import a from \"a\";\n// about z\nimport z from \"z\";\n"
+ },
+ {
+  "name": "moves a comment about the first import with it, below a comment about the file",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// @ts-nocheck\n// about z\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "// @ts-nocheck\nimport a from \"a\";\n// about z\nimport z from \"z\";\n"
+ },
+ {
+  "name": "moves @ts-expect-error with the first import",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// @ts-expect-error\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "import a from \"a\";\n// @ts-expect-error\nimport z from \"z\";\n"
+ },
+ {
+  "name": "moves @ts-ignore with the first import",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// @ts-ignore\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "import a from \"a\";\n// @ts-ignore\nimport z from \"z\";\n"
+ },
+ {
+  "name": "moves eslint-disable-next-line with the first import",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// eslint-disable-next-line no-restricted-imports\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "import a from \"a\";\n// eslint-disable-next-line no-restricted-imports\nimport z from \"z\";\n"
+ },
+ {
+  "name": "doesn't mistake a package name for a pragma",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// the types are in @bun/types\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "import a from \"a\";\n// the types are in @bun/types\nimport z from \"z\";\n"
+ },
+ {
+  "name": "doesn't mistake @jest/globals for a pragma",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// the mocks are in @jest/globals\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "import a from \"a\";\n// the mocks are in @jest/globals\nimport z from \"z\";\n"
+ },
+ {
+  "name": "moves deno-lint-ignore with the first import",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// deno-lint-ignore no-explicit-any\nimport z from \"z\";\nimport a from \"a\";\n",
+  "output": "import a from \"a\";\n// deno-lint-ignore no-explicit-any\nimport z from \"z\";\n"
+ },
+ {
+  "name": "sorts names case-insensitively, with numbers in natural order, ignoring inline `type`",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { b, a, C, a10, a2, type T, type d, _e, $f } from \"x\";\n",
+  "output": "import { $f, _e, a, a2, a10, b, C, type d, type T } from \"x\";\n"
+ },
+ {
+  "name": "sorts `a as z` by the imported name",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { z as a, b as y, a as z, default as d, c } from \"x\";\n",
+  "output": "import { a as z, b as y, c, default as d, z as a } from \"x\";\n"
+ },
+ {
+  "name": "sorts string names by their contents",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { \"b-c\" as c, \"a-b\" as b, a } from \"x\";\n",
+  "output": "import { a, \"a-b\" as b, \"b-c\" as c } from \"x\";\n"
+ },
+ {
+  "name": "sorts names in `import type`",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import type { B, a } from \"x\";\n",
+  "output": "import type { a, B } from \"x\";\n"
+ },
+ {
+  "name": "merges two imports from the same module",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { b } from \"x\";\nimport { a } from \"x\";\n",
+  "output": "import { a, b } from \"x\";\n"
+ },
+ {
+  "name": "merges three imports with another module between them",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { c } from \"x\";\nimport { y } from \"y\";\nimport { a } from \"x\";\nimport { b } from \"x\";\n",
+  "output": "import { a, b, c } from \"x\";\nimport { y } from \"y\";\n"
+ },
+ {
+  "name": "treats 'x' and \"x\" as the same module",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { b } from 'x';\nimport { a } from \"x\";\n",
+  "output": "import { a, b } from \"x\";\n"
+ },
+ {
+  "name": "merges a default import with named imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import x from \"x\";\nimport { a } from \"x\";\n",
+  "output": "import x, { a } from \"x\";\n"
+ },
+ {
+  "name": "merges named imports with a later default import",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { a } from \"x\";\nimport x from \"x\";\n",
+  "output": "import x, { a } from \"x\";\n"
+ },
+ {
+  "name": "merges names into an import that has a default and names",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import x, { b } from \"x\";\nimport { a } from \"x\";\n",
+  "output": "import x, { a, b } from \"x\";\n"
+ },
+ {
+  "name": "keeps two different default imports separate",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import x from \"x\";\nimport y from \"x\";\nimport { a } from \"x\";\n",
+  "output": "import x, { a } from \"x\";\nimport y from \"x\";\n"
+ },
+ {
+  "name": "doesn't merge a default import with a namespace import",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import x from \"x\";\nimport * as y from \"x\";\n",
+  "output": "import x from \"x\";\nimport * as y from \"x\";\n"
+ },
+ {
+  "name": "doesn't merge a namespace import with named imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import * as y from \"x\";\nimport { b, a } from \"x\";\nimport { c } from \"x\";\n",
+  "output": "import * as y from \"x\";\nimport { a, b, c } from \"x\";\n"
+ },
+ {
+  "name": "doesn't merge names into `import x, * as y`",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import x, * as y from \"x\";\nimport { a } from \"x\";\n",
+  "output": "import x, * as y from \"x\";\nimport { a } from \"x\";\n"
+ },
+ {
+  "name": "keeps `import type` separate from value imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import type { B } from \"x\";\nimport { a } from \"x\";\nimport type { A } from \"x\";\nimport { b } from \"x\";\n",
+  "output": "import type { A, B } from \"x\";\nimport { a, b } from \"x\";\n"
+ },
+ {
+  "name": "merges `{ type B }` with value imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { type B } from \"x\";\nimport { a } from \"x\";\n",
+  "output": "import { a, type B } from \"x\";\n"
+ },
+ {
+  "name": "doesn't merge `import type X` with `import type { A }`",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import type X from \"x\";\nimport type { A } from \"x\";\n",
+  "output": "import type X from \"x\";\nimport type { A } from \"x\";\n"
+ },
+ {
+  "name": "drops duplicate names",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { a, b, a } from \"x\";\nimport { b } from \"x\";\n",
+  "output": "import { a, b } from \"x\";\n"
+ },
+ {
+  "name": "keeps the same name under different aliases",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { a as c } from \"x\";\nimport { a as b, a } from \"x\";\n",
+  "output": "import { a, a as b, a as c } from \"x\";\n"
+ },
+ {
+  "name": "merges imports with equal import attributes",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { b } from \"x\" with { type: \"json\" };\nimport { a } from \"x\" with { \"type\": 'json' };\n",
+  "output": "import { a, b } from \"x\" with { type: \"json\" };\n"
+ },
+ {
+  "name": "doesn't merge imports with different import attributes",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import b from \"x\" with { type: \"json\" };\nimport { a } from \"x\";\nimport { c } from \"x\" with { type: \"css\" };\n",
+  "output": "import b from \"x\" with { type: \"json\" };\nimport { a } from \"x\";\nimport { c } from \"x\" with { type: \"css\" };\n"
+ },
+ {
+  "name": "never moves or merges anything across a side-effect import",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { z } from \"z\";\nimport { b } from \"x\";\nimport \"./setup\";\nimport { a } from \"x\";\nimport { c } from \"a\";\nimport \"./more\";\nimport \"./again\";\nimport { d } from \"a\";\n",
+  "output": "import { b } from \"x\";\nimport { z } from \"z\";\nimport \"./setup\";\nimport { c } from \"a\";\nimport { a } from \"x\";\nimport \"./more\";\nimport \"./again\";\nimport { d } from \"a\";\n"
+ },
+ {
+  "name": "never merges side-effect imports",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import \"x\";\nimport \"x\";\nimport { a } from \"x\";\n",
+  "output": "import \"x\";\nimport \"x\";\nimport { a } from \"x\";\n"
+ },
+ {
+  "name": "merges other imports into the one that has a comment above it",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { c } from \"x\";\n// about b\nimport { b } from \"x\";\nimport { a } from \"x\";\n",
+  "output": "// about b\nimport { a, b, c } from \"x\";\n"
+ },
+ {
+  "name": "doesn't merge two imports that both have a comment above them",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// about b\nimport { b } from \"x\";\n// about a\nimport { a } from \"x\";\n",
+  "output": "// about b\nimport { b } from \"x\";\n// about a\nimport { a } from \"x\";\n"
+ },
+ {
+  "name": "merges other imports into the one that has a trailing comment",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { b } from \"x\"; // about b\nimport { a } from \"x\";\n",
+  "output": "import { a, b } from \"x\"; // about b\n"
+ },
+ {
+  "name": "ignores a comment separated from the import by a blank line",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { b } from \"x\";\n\n// about nothing\n\nimport { a } from \"x\";\n",
+  "output": "import { a, b } from \"x\";\n\n// about nothing\n"
+ },
+ {
+  "name": "moves comments inside the braces with their names",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import {\n  // before c\n  c,\n  b, // behind b\n  /* before a */ a,\n} from \"x\";\n",
+  "output": "import {\n  /* before a */ a,\n  b, // behind b\n  // before c\n  c,\n} from \"x\";\n"
+ },
+ {
+  "name": "moves comments inside the braces with their names across a merge",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { d, c /* behind c */ } from \"x\";\nimport {\n  b, // behind b\n  // before a\n  a,\n} from \"x\";\n",
+  "output": "import {\n  // before a\n  a,\n  b, // behind b\n  c /* behind c */,\n  d,\n} from \"x\";\n"
+ },
+ {
+  "name": "keeps a line comment after the last name from swallowing the brace",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { b, // behind b\n  a // behind a\n} from \"x\";\n",
+  "output": "import {\n  a, // behind a\n  b, // behind b\n} from \"x\";\n"
+ },
+ {
+  "name": "keeps a comment before the closing brace at the end after a merge",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import {\n  b,\n  a,\n  // the end\n} from \"x\";\nimport { c } from \"x\";\n",
+  "output": "import {\n  a,\n  b,\n  c,\n  // the end\n} from \"x\";\n"
+ },
+ {
+  "name": "moves comments right outside the braces with the first and last name",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import /* why */ { b, a } from \"x\";\nimport { c } from \"x\";\nimport { e, d } /* why */ from \"y\";\nimport { f } from \"y\";\n",
+  "output": "import { a, /* why */ b, c } from \"x\";\nimport { d /* why */, e, f } from \"y\";\n"
+ },
+ {
+  "name": "wraps a merged import that no longer fits on one line",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { someRatherLongName, anotherRatherLongName } from \"some-module\";\nimport { yetAnotherRatherLongName, theLastName } from \"some-module\";\n",
+  "output": "import {\n  anotherRatherLongName,\n  someRatherLongName,\n  theLastName,\n  yetAnotherRatherLongName,\n} from \"some-module\";\n"
+ },
+ {
+  "name": "leaves `export .. from` alone",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "export { b, a } from \"x\";\nexport { c } from \"x\";\nimport { e, d } from \"x\";\n",
+  "output": "export { b, a } from \"x\";\nexport { c } from \"x\";\nimport { d, e } from \"x\";\n"
+ },
+ {
+  "name": "leaves a prettier-ignore'd import alone and doesn't merge across it",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { b } from \"x\";\n// prettier-ignore\nimport { d,   c } from \"x\";\nimport { a } from \"x\";\n",
+  "output": "import { b } from \"x\";\n// prettier-ignore\nimport { d,   c } from \"x\";\nimport { a } from \"x\";\n"
+ },
+ {
+  "name": "doesn't merge across other statements",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { b } from \"x\";\nf();\nimport { a } from \"x\";\n",
+  "output": "import { b } from \"x\";\nf();\nimport { a } from \"x\";\n"
+ },
+ {
+  "name": "leaves `import {}` alone and treats `import x, {}` as `import x`",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import {} from \"x\";\nimport { a } from \"x\";\nimport x, {} from \"y\";\nimport { b } from \"y\";\n",
+  "output": "import {} from \"x\";\nimport { a } from \"x\";\nimport x, { b } from \"y\";\n"
+ },
+ {
+  "name": "merges imports that share a line",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { b } from \"x\"; import { a } from \"x\"; import y from \"y\";\n",
+  "output": "import { a, b } from \"x\";\nimport y from \"y\";\n"
+ },
+ {
+  "name": "works after a directive and a top-of-file comment",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "// @ts-check\n\"use client\";\nimport { b } from \"x\";\nimport { a } from \"x\";\n",
+  "output": "// @ts-check\n\"use client\";\nimport { a, b } from \"x\";\n"
+ },
+ {
+  "name": "handles CRLF line endings",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { b } from \"x\";\r\nimport {\r\n  d, // d\r\n  a,\r\n} from \"x\";\r\n",
+  "output": "import {\n  a,\n  b,\n  d, // d\n} from \"x\";\n"
+ },
+ {
+  "name": "groups, sorts names and merges in one pass",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { z } from \"./z\";\nimport fs, { readFileSync } from \"node:fs\";\nimport { b } from \"pkg\";\nimport { existsSync } from \"node:fs\";\nimport type { T } from \"pkg\";\nimport { a } from \"pkg\";\nimport { y } from \"./z\";\n",
+  "output": "import fs, { existsSync, readFileSync } from \"node:fs\";\n\nimport { a, b } from \"pkg\";\nimport type { T } from \"pkg\";\n\nimport { y, z } from \"./z\";\n"
+ },
+ {
+  "name": "moves comments right outside the braces across a merge",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { c } from \"x\";\nimport /* first */ { b, a } /* last */ from \"x\";\n",
+  "output": "import { a /* last */, /* first */ b, c } from \"x\";\n"
+ },
+ {
+  "name": "merges two imports that both have a comment before the brace",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import /* one */ { d, c } from \"x\";\nimport /* two */ { b, a } from \"x\";\n",
+  "output": "import { a, /* two */ b, c, /* one */ d } from \"x\";\n"
+ },
+ {
+  "name": "keeps a comment next to the module specifier in place",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { b } from /* why */ \"x\";\nimport { a } from \"x\";\n",
+  "output": "import { a, b } from /* why */ \"x\";\n"
+ },
+ {
+  "name": "moves a line comment before the brace with the first name",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import // why\n{ b, a } from \"x\";\nimport { c } from \"x\";\n",
+  "output": "import {\n  a,\n  // why\n  b,\n  c,\n} from \"x\";\n"
+ },
+ {
+  "name": "keeps a comment before the closing brace",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import {\n  b,\n  a,\n  // keep\n} from \"x\";\n",
+  "output": "import {\n  a,\n  b,\n  // keep\n} from \"x\";\n"
+ },
+ {
+  "name": "moves a trailing line comment with its name",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import {\n  b, // about b\n  a,\n} from \"x\";\n",
+  "output": "import {\n  a,\n  b, // about b\n} from \"x\";\n"
+ },
+ {
+  "name": "moves a block comment after a name with that name",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { c /* about c */, b, a } from \"x\";\n",
+  "output": "import { a, b, c /* about c */ } from \"x\";\n"
+ },
+ {
+  "name": "moves a comment on its own line with the name below it",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import {\n  c,\n  // about b\n  b,\n  a,\n} from \"x\";\n",
+  "output": "import {\n  a,\n  // about b\n  b,\n  c,\n} from \"x\";\n"
+ },
+ {
+  "name": "moves a comment before the first name with that name",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import {\n  // about b\n  b,\n  a,\n} from \"x\";\n",
+  "output": "import {\n  a,\n  // about b\n  b,\n} from \"x\";\n"
+ },
+ {
+  "name": "keeps a comment before the closing brace when another import merges in",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import {\n  b,\n  a,\n  // keep\n} from \"x\";\nimport { c } from \"x\";\n",
+  "output": "import {\n  a,\n  b,\n  c,\n  // keep\n} from \"x\";\n"
+ },
+ {
+  "name": "keeps a comment before the closing brace of an import that gets merged away",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { c } from \"x\";\nimport {\n  b,\n  a,\n  // keep\n} from \"x\";\n",
+  "output": "import {\n  a,\n  b,\n  c,\n  // keep\n} from \"x\";\n"
+ },
+ {
+  "name": "moves a trailing line comment with its name across a merge",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { c } from \"x\";\nimport {\n  b, // about b\n  a,\n} from \"x\";\n",
+  "output": "import {\n  a,\n  b, // about b\n  c,\n} from \"x\";\n"
+ },
+ {
+  "name": "moves a block comment after a name with that name across a merge",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { d } from \"x\";\nimport { c /* about c */, b, a } from \"x\";\n",
+  "output": "import { a, b, c /* about c */, d } from \"x\";\n"
+ },
+ {
+  "name": "moves a comment on its own line with the name below it across a merge",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { d } from \"x\";\nimport {\n  c,\n  // about b\n  b,\n  a,\n} from \"x\";\n",
+  "output": "import {\n  a,\n  // about b\n  b,\n  c,\n  d,\n} from \"x\";\n"
+ },
+ {
+  "name": "moves a comment before the first name with that name across a merge",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import { c } from \"x\";\nimport {\n  // about b\n  b,\n  a,\n} from \"x\";\n",
+  "output": "import {\n  a,\n  // about b\n  b,\n  c,\n} from \"x\";\n"
+ },
+ {
+  "name": "keeps comments from both imports when they merge",
+  "filename": "a.ts",
+  "options": {
+   "bun.sortImports": true
+  },
+  "input": "import {\n  // about d\n  d,\n  c, // about c\n} from \"x\";\nimport {\n  b /* about b */,\n  // about a\n  a,\n} from \"x\";\n",
+  "output": "import {\n  // about a\n  a,\n  b /* about b */,\n  c, // about c\n  // about d\n  d,\n} from \"x\";\n"
+ }
+]

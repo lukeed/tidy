@@ -8,7 +8,7 @@ use tidy::js::{self, Dialect, Options};
 
 fn format(text: &str, path: &str, options: &Options) -> String {
   let dialect = Dialect::of_path(path).unwrap();
-  js::format(text, path, &Options { dialect, ..*options }).unwrap()
+  js::format(text, path, &Options { dialect, ..options.clone() }).unwrap()
 }
 
 #[test]

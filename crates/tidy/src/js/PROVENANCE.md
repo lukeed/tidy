@@ -10,5 +10,7 @@ The files here start as a verbatim copy of bun's JavaScript and TypeScript forma
 | `js/embed/css.rs`, `markdown.rs`, `graphql.rs`, `html.rs` | `css/embed.rs`, `markdown/embed.rs`, `graphql/embed.rs`, `html/in_js.rs` |
 | `js/embed/doc.rs` | not ported: it turns the `crate::doc` stream of tidy's printers into `js::ir`, which bun's printers write directly |
 | `js/template/js.rs` | `html/js.rs`, printing text for `crate::embed`; `html/vue.rs` is `html/embed.rs`'s `vue` |
+| `js/sort_imports/node.rs`, `oxfmt/directives.rs`, the V8 sort in `sort.rs` | bun's `src/lint/utils/node.rs`; `is_file_level_comment` in `src/lint/fix.rs` and `has_pragma` in `pragma.rs`; `src/lint/utils/array.rs` |
+| `js/sort_imports/collate.rs`, `regex.rs` | not ported: they stand in for ICU's collator, with the root collation's order of ASCII, and for `bun_lint::regex`, with regress |
 
 Not ported: Flow (`print/flow.rs`, `attach/flow.rs`), cursor and range formatting (`cursor.rs`, `range.rs`), and bun's `lib.rs` and `js/mod.rs`, which `js/mod.rs` merges.

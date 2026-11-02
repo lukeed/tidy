@@ -59,6 +59,10 @@ bun's parser records, for each comment, Prettier's `decorateComment`: the innerm
 
 In JavaScript templates, CSS, Markdown, HTML and GraphQL format with tidy's formatters (`embed/`).
 
+## Import sorting
+
+Off by default. `Options::sort_imports` sorts a file's imports as one of these does, from `SortSettings`: oxfmt's `sortImports`, bun's `sortImports` (oxfmt's, then names in braces are sorted and imports of a module merged), `@trivago/prettier-plugin-sort-imports`, `@ianvs/prettier-plugin-sort-imports` and `prettier-plugin-organize-imports` (`sort_imports/`). oxfmt's and bun's sort while the file is formatted; the plugins rewrite its text first, which is then parsed again. Code in other languages isn't sorted.
+
 ## Choices
 
 - JSDoc comments are formatted by default, as prettier-plugin-jsdoc does (Luke, 2026-11-02). Import sorting is an option.

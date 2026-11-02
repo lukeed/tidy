@@ -3,13 +3,12 @@
 use super::super::compare::natord;
 use super::super::sort::stable_sort_by;
 use super::super::{How, SortImports};
+use super::directives::{has_any_pragma, is_file_level_comment};
 use super::options::{Modifier, Options, Selector};
 use crate::js::base::*;
 use crate::js::ir::element::{Interned, LineMode};
 use crate::js::strings;
 use crate::js::write;
-use crate::pragma::{has_ignore_pragma, has_pragma};
-use bun_lint::fix::is_file_level_comment;
 use std::sync::Arc;
 
 impl SortImports {
@@ -159,7 +158,7 @@ fn classify(printed: PrintedImport, source: &[u8], options: &Options) -> (usize,
   add(
     if source.starts_with(b"node:")
       || source.starts_with(b"bun:")
-      || bun_lint::utils::node::is_builtin_module(source)
+      || super::super::node::is_builtin_module(source)
     {
       Selector::Builtin
     } else if matches!(
@@ -380,7 +379,7 @@ fn is_about_the_file(comment: Comment<'_>) -> bool {
   let text = comment.text();
   is_file_level_comment(text, comment.content())
         // These pragmas decide how Prettier parses the file. It matches them loosely.
-        || (strings::contains_char(text, b'@') && (has_pragma(text) || has_ignore_pragma(text)))
+        || (strings::contains_char(text, b'@') && has_any_pragma(text))
 }
 
 /// Sorts the runs of imports in a list of statements. The caller that prints the list announces each thing it's about

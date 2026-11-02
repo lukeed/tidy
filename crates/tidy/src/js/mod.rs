@@ -16,7 +16,6 @@ pub(crate) mod owners;
 pub(crate) mod parentheses;
 pub(crate) mod print;
 pub(crate) mod sort;
-#[path = "detached/sort_imports.rs"]
 pub(crate) mod sort_imports;
 pub(crate) mod source_text;
 pub(crate) mod stack;
@@ -28,6 +27,7 @@ pub(crate) mod utils;
 
 pub(crate) use ir::run::Scratch;
 pub(crate) use options::FormatOptions;
+pub use sort_imports::{Settings as SortSettings, SortImports};
 
 use crate::doc::Eol;
 use crate::json::{ObjectWrap, QuoteProps};
@@ -171,7 +171,7 @@ pub enum OperatorPosition {
 }
 
 /// Options of the JavaScript and TypeScript formatter, Prettier's by default.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Options {
   pub dialect: Dialect,
   pub width: usize,
@@ -197,6 +197,9 @@ pub struct Options {
   pub format_embedded: bool,
   /// Format JSDoc comments as prettier-plugin-jsdoc does.
   pub jsdoc: bool,
+  /// How to sort imports, if at all: as oxfmt's or bun's `sortImports`, or as `@trivago/prettier-plugin-sort-imports`,
+  /// `@ianvs/prettier-plugin-sort-imports` or `prettier-plugin-organize-imports`. See [`SortSettings`].
+  pub sort_imports: Option<std::sync::Arc<SortImports>>,
 }
 
 impl Default for Options {
@@ -220,6 +223,7 @@ impl Default for Options {
       experimental_operator_position: OperatorPosition::End,
       format_embedded: true,
       jsdoc: true,
+      sort_imports: None,
     }
   }
 }
@@ -313,13 +317,26 @@ impl Formatter {
   fn print(&mut self, text: &str, path: &str, options: &Options) -> Result<(), crate::Error> {
     self.allocator.reset();
     let allocator = &self.allocator;
+    let format_options =
+      FormatOptions { sort_imports: options.sort_imports.clone(), ..options.into() };
     let parsed = parse_any(allocator, text, source_types(options.dialect, path, text))?;
     let source_type = parsed.program.source_type;
     let program = allocator.alloc(parsed.program);
-    let file = ast::File::new(text, path.as_bytes(), source_type, program, allocator);
+    let mut file = ast::File::new(text, path.as_bytes(), source_type, program, allocator);
+    let how = options.sort_imports.as_deref();
+    if let Some(sorted) = how.and_then(|how| sort_imports::sorted_text(&file, how)) {
+      let sorted = String::from_utf8(sorted).map_err(|_| crate::Error::Syntax {
+        message: "sorting imports gave invalid UTF-8".to_owned(),
+        at: 0,
+      })?;
+      let sorted = allocator.alloc_str(&sorted);
+      let parsed = parse_any(allocator, sorted, (source_type, None))?;
+      let program = allocator.alloc(parsed.program);
+      file = ast::File::new(sorted, path.as_bytes(), source_type, program, allocator);
+    }
     let mut out = std::mem::take(&mut self.output).into_bytes();
     let formatted =
-      ir::run::format(&file, &options.into(), &mut self.scratch, &mut out, format_file);
+      ir::run::format(&file, &format_options, &mut self.scratch, &mut out, format_file);
     self.output = String::from_utf8(out)
       .unwrap_or_else(|error| String::from_utf8_lossy(error.as_bytes()).into_owned());
     match formatted {

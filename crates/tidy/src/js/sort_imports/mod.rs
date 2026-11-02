@@ -6,13 +6,16 @@
 //! `layout.rs` detects without parsing anything again.
 
 mod babel;
+mod collate;
 mod compare;
 mod generator;
 mod ianvs;
 mod layout;
 mod native;
+mod node;
 mod organize;
 mod oxfmt;
+mod regex;
 mod settings;
 mod sort;
 mod trivago;
@@ -32,42 +35,24 @@ enum How {
   Organize(organize::Options),
 }
 
-/// How to sort imports: validated [`Settings`] with their regular expressions compiled. One is built per run and shared
-/// by all files and threads.
+/// How to sort imports: validated [`Settings`] with their regular expressions compiled, from [`Settings::compile`].
 #[derive(Debug)]
 pub struct SortImports {
   how: How,
+  settings: Settings,
 }
 
-impl SortImports {
-  /// True if `format` sorts the imports instead of [`sorted_text`]. Its output then has the file's tokens in a
-  /// different order.
-  pub fn is_applied_by_format(&self) -> bool {
-    matches!(self.how, How::Oxfmt(_) | How::Native(_))
-  }
-
-  /// Checks that `after`, the parsed output of [`sorted_text`], still imports what `before` does. Always true for the
-  /// Prettier plugins, which may remove imports on purpose.
-  pub fn keeps_imports<'a, 'b>(&self, before: &'a File<'a>, after: &'b File<'b>) -> bool {
-    !matches!(self.how, How::Native(_)) || native::keeps_imports(before, after)
-  }
-
-  /// True if [`sorted_text`] needs to know which imports are used, so the file has to be bound with its symbols and
-  /// scopes. Without them, all imports count as used.
-  pub fn needs_symbols(&self) -> bool {
-    matches!(&self.how, How::Organize(options) if !options.skips_destructive_code_actions)
-  }
-
-  /// True if imports are sorted in code embedded in a file of another language. `prettier-plugin-organize-imports`
-  /// asks TypeScript about the file at `filepath`, which isn't the embedded code, and gets no changes.
-  pub fn applies_to_embedded_code(&self) -> bool {
-    !matches!(self.how, How::Organize(_))
+impl PartialEq for SortImports {
+  fn eq(&self, other: &Self) -> bool {
+    self.settings == other.settings
   }
 }
+
+impl Eq for SortImports {}
 
 /// `file`'s text with its imports sorted. It has to be parsed and formatted in place of `file`. Returns `None` if
 /// formatting `file` gives the same result.
-pub fn sorted_text<'a>(file: &'a File<'a>, how: &SortImports) -> Option<Vec<u8>> {
+pub(crate) fn sorted_text<'a>(file: &'a File<'a>, how: &SortImports) -> Option<Vec<u8>> {
   if file.has_parse_errors() || matches!(how.how, How::Oxfmt(_)) {
     return None;
   }

@@ -16,7 +16,6 @@ use super::compare::natord;
 use crate::js::ast::Span;
 use crate::js::ast::{File, Import, ImportSpec, Stmt, StmtKind};
 use crate::js::strings;
-use bun_lint::tokens::TokenKind;
 use std::cmp::Ordering;
 
 /// One name inside the braces, plus the source text that moves with it.
@@ -288,8 +287,7 @@ impl<'a> Tidy<'a> {
 
   fn is_line_comment_at_end(&self, span: Span) -> bool {
     self.file.comments_in(span).last().is_some_and(|it| {
-      it.kind() == TokenKind::Line
-        && !strings::contains_js_line_break(self.slice(Span::after(it.span(), span.end)))
+      it.is_line() && !strings::contains_js_line_break(self.slice(Span::after(it.span(), span.end)))
     })
   }
 
@@ -300,7 +298,7 @@ impl<'a> Tidy<'a> {
   /// Writes the comments in `span`. `leads` means they belong to the name that follows.
   fn push_comments(&self, span: Span, leads: bool, out: &mut Pieces) {
     for comment in self.file.comments_in(span) {
-      let is_line = comment.kind() == TokenKind::Line;
+      let is_line = comment.is_line();
       // A leading line comment needs its own line, or it would attach to the previous name.
       out.push(if leads && is_line { b"\n" } else { b" " }, false);
       out.push(self.slice(comment.span()), is_line);
@@ -313,7 +311,7 @@ impl<'a> Tidy<'a> {
       self.push_comments(chunk.lead, true, out);
       self.push(chunk.before_comma, out);
       // A block comment after the comma would attach to the next name, so the comma goes after it.
-      let is_line = |it: Span| self.file.comments_in(it).any(|it| it.kind() == TokenKind::Line);
+      let is_line = |it: Span| self.file.comments_in(it).any(|it| it.is_line());
       let comma_is_first = is_line(chunk.after_comma) || is_line(chunk.trail);
       if comma_is_first {
         out.push(b",", false);
@@ -385,7 +383,7 @@ impl<'a> Tidy<'a> {
         let from = self.find(default.between(source), b'f');
         let about_default = Span::after(default, from.unwrap_or(default.end));
         let last = self.file.comments_in(about_default).last();
-        names.ends_in_line_comment = last.is_some_and(|it| it.kind() == TokenKind::Line);
+        names.ends_in_line_comment = last.is_some_and(|it| it.is_line());
         names.push(b", {", false);
         self.write_names(chunks, &mut names);
         names.push(b" }", false);
@@ -520,50 +518,4 @@ pub(super) fn preprocess<'a>(file: &'a File<'a>) -> Option<Vec<u8>> {
   }
   out.extend_from_slice(text.get(from..)?);
   Some(out)
-}
-
-/// Every binding `file` imports, plus all of its comments.
-fn summary<'a>(file: &'a File<'a>) -> (Vec<Vec<u8>>, Vec<&'a [u8]>) {
-  let mut names = Vec::new();
-  for statement in file.body().iter() {
-    let StmtKind::Import(import) = statement.kind() else {
-      continue;
-    };
-    let attributes =
-      import.attributes().map_or(&b""[..], |it| file.slice(it.keyword_span().to(it.braces_span())));
-    let attributes: Vec<u8> = (attributes.iter().copied())
-      .filter(|it| !it.is_ascii_whitespace() && !matches!(it, b'"' | b'\'' | b','))
-      .collect();
-    let mut add = |imported: &[u8], local: &[u8], is_type: bool| {
-      let kind = [u8::from(import.is_type_only()), u8::from(is_type)];
-      let parts = [import.spec().bytes(), &attributes, &kind, imported, local];
-      names.push(parts.join(&0));
-    };
-    if import.default().is_none() && import.namespace().is_none() && import.named().is_empty() {
-      add(b"", b"", false);
-    }
-    if let Some(default) = import.default() {
-      add(b"default", file.slice(default.span()), false);
-    }
-    if let Some(namespace) = import.namespace() {
-      add(b"*", file.slice(namespace.span()), false);
-    }
-    for spec in import.named().iter() {
-      add(
-        without_quotes(file.slice(spec.imported().span())),
-        file.slice(spec.local().span()),
-        spec.is_type_only(),
-      );
-    }
-  }
-  crate::js::sort::sort(&mut names[..]);
-  names.dedup();
-  let mut comments: Vec<&[u8]> = file.comments().map(|it| file.slice(it.span())).collect();
-  crate::js::sort::sort(&mut comments[..]);
-  (names, comments)
-}
-
-/// Checks that `after`, the parsed output of [`preprocess`], still imports the same bindings and has the same comments.
-pub(super) fn keeps_imports<'a, 'b>(before: &'a File<'a>, after: &'b File<'b>) -> bool {
-  !after.has_parse_errors() && summary(before) == summary(after)
 }
