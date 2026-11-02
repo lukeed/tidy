@@ -78,8 +78,7 @@ impl Parser {
     transformer.transform();
     self.pending = transformer.pending;
     attach::attach(&mut self.root);
-    let root = self.root.root;
-    attach::update_positions(&mut self.root, root);
+    attach::update_positions(&mut self.root);
     Ok(())
   }
 }

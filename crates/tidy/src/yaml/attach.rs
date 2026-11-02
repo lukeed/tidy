@@ -13,11 +13,14 @@ struct Line {
 }
 
 pub(crate) fn attach(root: &mut Root) {
+  let comments: Vec<Id> =
+    root.comments.iter().copied().filter(|it| root.node(*it).parent.is_none()).collect();
+  if comments.is_empty() {
+    return;
+  }
   let lines = node_table(root);
   let documents = root.node(root.root).children().to_vec();
   let mut rest = 0;
-  let comments: Vec<Id> =
-    root.comments.iter().copied().filter(|it| root.node(*it).parent.is_none()).collect();
   for comment in comments {
     let line = root.node(comment).position.start.line;
     while documents.len() - rest > 1 && line > root.node(documents[rest]).position.end.line {
@@ -178,12 +181,15 @@ fn is_explicit_mapping_key(root: &Root, key: Id) -> bool {
     .is_none_or(|child| node.position.start.offset != root.node(*child).position.start.offset)
 }
 
-/// `updatePositions`
-pub(crate) fn update_positions(root: &mut Root, id: Id) {
-  for index in 0..root.node(id).children().len() {
-    let child = root.node(id).children()[index];
-    update_positions(root, child);
+/// `updatePositions`. A node comes after its children, as the tree is built from its leaves, so one pass in order
+/// updates them first.
+pub(crate) fn update_positions(root: &mut Root) {
+  for id in 0..root.len() as Id {
+    update_position(root, id);
   }
+}
+
+fn update_position(root: &mut Root, id: Id) {
   if root.node(id).kind == Kind::Document {
     let (head, body) = (root.node(id).children()[0], root.node(id).children()[1]);
     let (head_position, body_position) = (root.node(head).position, root.node(body).position);
