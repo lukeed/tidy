@@ -66,6 +66,17 @@ fn languages() -> Vec<(&'static str, Vec<Tool>)> {
       ],
     ),
     (
+      "dockerfile",
+      vec![
+        tool("tidy", "tree, comments", tidy::bench::dockerfile),
+        tool("dprint-plugin-dockerfile", "tree", |text| {
+          keep(dprint_plugin_dockerfile::ast::Dockerfile::parse(text))
+        }),
+        tool("dockerfile-parser", "tree", |text| keep(dockerfile_parser::Dockerfile::parse(text))),
+        tool("parse-dockerfile", "tree", |text| keep(parse_dockerfile::parse(text))),
+      ],
+    ),
+    (
       "css",
       vec![
         tool("tidy", "tree, values as text", |text| {
@@ -239,7 +250,7 @@ fn main() {
     );
     for ((tool, time), rejected) in tools.iter().zip(&medians).zip(&rejected) {
       println!(
-        "  {:20} {:18} {:8.2} ms {:7.0} MB/s {:6.2}x  rejects {}",
+        "  {:24} {:18} {:8.2} ms {:7.0} MB/s {:6.2}x  rejects {}",
         tool.name,
         tool.builds,
         time * 1000.0,

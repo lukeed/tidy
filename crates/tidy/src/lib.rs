@@ -110,6 +110,7 @@ pub(crate) fn with_bom(had: bool, output: &mut String) -> &str {
 #[cfg(tidy_bench)]
 pub mod bench {
   pub use crate::css::bench_parse as css;
+  pub use crate::dockerfile::bench_parse as dockerfile;
   pub use crate::handlebars::bench_parse as handlebars;
   pub use crate::html::bench_parse as html;
   pub use crate::xml::bench_parse as xml;

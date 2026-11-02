@@ -5,9 +5,12 @@ edition = "2024"
 publish = false
 
 [dependencies]
+dockerfile-parser = "=0.9.0"
+dprint-plugin-dockerfile = "=0.7.0"
 handlebars = "=6.4.4"
 jsonc-parser = { version = "=0.34.0", features = ["serde"] }
 lightningcss = "=1.0.0-alpha.72"
+parse-dockerfile = "=0.1.9"
 quick-xml = "=0.42.0"
 raffia = "=0.13.0"
 roxmltree = "=0.21.2"

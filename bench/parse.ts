@@ -38,6 +38,9 @@ let sources: Record<string, string> = {
 	roxmltree: "roxmltree",
 	"quick-xml": "quick-xml",
 	handlebars: "handlebars",
+	"dprint-plugin-dockerfile": "dprint-plugin-dockerfile",
+	"dockerfile-parser": "dockerfile-parser",
+	"parse-dockerfile": "parse-dockerfile",
 };
 
 let output = await $`${join(target, "release/parse-bench")} --json ${Bun.argv.slice(2)}`.text();
@@ -48,7 +51,7 @@ for (let line of output.split("\n").filter(Boolean)) {
 	console.log(`\n${language}: ${files} of ${total} files, ${megabytes.toFixed(2)} MB`);
 	for (let tool of tools) {
 		let speed = `${(megabytes / (tool.ms / 1000)).toFixed(0)} MB/s`;
-		let columns = [tool.name.padEnd(20), tool.builds.padEnd(22), `${tool.ms.toFixed(2)} ms`.padStart(10), speed.padStart(10)];
+		let columns = [tool.name.padEnd(24), tool.builds.padEnd(22), `${tool.ms.toFixed(2)} ms`.padStart(10), speed.padStart(10)];
 		console.log(`  ${columns.join(" ")}  ${(tool.ms / fastest).toFixed(2).padStart(6)}x  rejects ${tool.rejects}`);
 	}
 	let summary = `${files} of ${total} files, ${megabytes.toFixed(2)} MB: the files that every tool accepts. Each tool parses them on one thread, from memory, and drops what it builds. A time is the median of ${runs} passes. The tools build different things: a tree for a formatter keeps comments and positions, and a value keeps only the data.`;

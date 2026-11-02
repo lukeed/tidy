@@ -42,6 +42,7 @@ checksum = "25670139e591f1c2869eb8d0d977028f8d05e859132b4c874ecd02a00d3c9174"
 name = "dprint-bench"
 version = "0.0.0"
 dependencies = [
+ "dprint-plugin-dockerfile",
  "dprint-plugin-json",
  "dprint-plugin-markdown",
  "dprint-plugin-toml",
@@ -100,6 +101,19 @@ checksum = "1675ad2b358481f3cc46202040d64ac7a36c4ade414a696df32e0e45421a6e9f"
 dependencies = [
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "dprint-plugin-dockerfile"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af35e25698ee01ca35123ffd5beeb498ccc477d1fe20e017299556fc151f719b"
+dependencies = [
+ "dprint-core 0.70.0",
+ "dprint-core-macros",
+ "monch",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]
@@ -249,6 +263,12 @@ name = "memchr"
 version = "2.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
+
+[[package]]
+name = "monch"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6bcc6ad3b93f756f2532d29f7c7291b8d246a2c460a99a3611327bb726830014"
 
 [[package]]
 name = "pretty_yaml"

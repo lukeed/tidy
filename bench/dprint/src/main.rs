@@ -1,7 +1,8 @@
 //! Formats the files under a folder the way dprint does with its plugins, leaving embedded code as it is written:
 //! markup_fmt (dprint-plugin-markup) for markup and XML, malva (dprint-plugin-malva) for style sheets,
-//! dprint-plugin-json for JSON, dprint-plugin-toml for TOML, pretty_yaml (dprint-plugin-yaml) for YAML, and
-//! dprint-plugin-markdown for Markdown. Exits 1 if any file changes, like `--check`.
+//! dprint-plugin-json for JSON, dprint-plugin-toml for TOML, pretty_yaml (dprint-plugin-yaml) for YAML,
+//! dprint-plugin-dockerfile for Dockerfiles, and dprint-plugin-markdown for Markdown. Exits 1 if any file changes,
+//! like `--check`.
 
 use std::path::{Path, PathBuf};
 
@@ -16,9 +17,15 @@ fn main() {
   let markdown = dprint_plugin_markdown::configuration::ConfigurationBuilder::new().build();
   let json = dprint_plugin_json::configuration::ConfigurationBuilder::new().build();
   let toml = dprint_plugin_toml::configuration::ConfigurationBuilder::new().build();
+  let dockerfile = dprint_plugin_dockerfile::configuration::ConfigurationBuilder::new().build();
   let mut changed = 0;
   for path in files {
     let Ok(text) = std::fs::read_to_string(&path) else { continue };
+    if tidy_dockerfile_name(&path) {
+      let output = dprint_plugin_dockerfile::format_text(&path, &text, &dockerfile);
+      changed += usize::from(matches!(output, Ok(Some(output)) if output != text));
+      continue;
+    }
     let output = match path.extension().and_then(|it| it.to_str()) {
       Some("md" | "markdown") => {
         dprint_plugin_markdown::format_text(&text, &markdown, |_, _, _| Ok(None))
@@ -49,6 +56,16 @@ fn main() {
     }
   }
   std::process::exit(i32::from(changed > 0));
+}
+
+/// The names that tidy formats as Dockerfiles.
+fn tidy_dockerfile_name(path: &Path) -> bool {
+  let name = path.file_name().and_then(|it| it.to_str()).unwrap_or_default();
+  let lower = name.to_ascii_lowercase();
+  name.starts_with("Dockerfile")
+    || name.starts_with("Containerfile")
+    || lower.ends_with(".dockerfile")
+    || lower.ends_with(".containerfile")
 }
 
 fn walk(path: &Path, files: &mut Vec<PathBuf>) {

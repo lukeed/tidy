@@ -2,7 +2,7 @@
 // files of a corpus and leaves embedded code alone, except tidy, which always formats style sheets in markup and in
 // Markdown code blocks, so it does more work than the others. Each corpus only has the files that Prettier parses.
 // Each set runs in both orders; Prettier runs fewer times, since it is two orders of magnitude slower. The TOML corpus
-// only has the files that taplo parses.
+// only has the files that taplo parses, and the Dockerfile corpus the ones that prettier-plugin-sh parses.
 //
 // The incumbents, where they format a language:
 // - Prettier 3.9.9, with @prettier/plugin-xml for XML;
@@ -13,6 +13,8 @@
 // - Biome 2.6.4 for JSON, with spaces, as Prettier indents;
 // - for TOML, which Prettier doesn't format: taplo 0.10.0, tidy's reference, tombi 1.9.8, and dprint-plugin-toml;
 // - Google's yamlfmt 0.21.0 for YAML;
+// - for Dockerfiles, which Prettier only formats with a plugin: prettier-plugin-sh 0.20.2, whose formatter is
+//   dockerfmt, and dprint-plugin-dockerfile, tidy's reference;
 // - a naive formatter on @lukeed/html, as a floor for HTML in JavaScript.
 //
 // "all" is every corpus in one tree, and "all-but-xml" leaves out XML, which bun fmt doesn't format. Prettier skips
@@ -44,7 +46,12 @@ await build("bench/dprint", "dprint");
 await build("bench/css", "css");
 
 /** Where each corpus comes from: repositories and the extensions to take from them. */
-let sources: Record<string, { repo: string; extensions: string[]; path?: string }[]> = {
+/** The names of Dockerfiles, as tidy finds them. */
+let dockerfile = (name: string) =>
+	/^(Dockerfile|Containerfile)(\.[\w-]+)?$/.test(name) && !/\.(json|md|ya?ml|toml|txt|sh|go)$/i.test(name)
+	|| /\.(dockerfile|containerfile)$/i.test(name);
+
+let sources: Record<string, { repo: string; extensions: string[]; path?: string; names?: (name: string) => boolean }[]> = {
 	html: ["vite", "storybook"].map((repo) => ({ repo, extensions: ["html"] })),
 	vue: ["vite", "storybook", "npmx.dev"].map((repo) => ({ repo, extensions: ["vue"] })),
 	handlebars: [{ repo: "ghost", extensions: ["hbs"] }],
@@ -61,6 +68,28 @@ let sources: Record<string, { repo: string; extensions: string[]; path?: string 
 		extensions: ["json", "jsonc", "json5"],
 	})),
 	toml: ["bun", "taplo", "aspire", "deno", "oxc", "rolldown"].map((repo) => ({ repo, extensions: ["toml"] })),
+	// The official images: github.com/docker-library/{python,golang,postgres,redis,php,ruby,buildpack-deps,mysql,httpd},
+	// nodejs/docker-node and nginxinc/docker-nginx.
+	dockerfile: [
+		"python",
+		"docker-node",
+		"golang",
+		"postgres",
+		"redis",
+		"php",
+		"ruby",
+		"buildpack-deps",
+		"docker-nginx",
+		"mysql",
+		"httpd",
+		"bun",
+		"v",
+		"jsc-rs",
+		"BrowserBox",
+		"lagon",
+		"buzz",
+		"taplo",
+	].map((repo) => ({ repo, extensions: [], names: dockerfile })),
 	yaml: ["vite", "storybook", "bun", "deno", "oxc", "rolldown", "prettier", "aspire"].map((repo) => ({
 		repo,
 		extensions: ["yml", "yaml"],
@@ -69,7 +98,13 @@ let sources: Record<string, { repo: string; extensions: string[]; path?: string 
 };
 
 /** Whether the reference formatter of the file's language parses it. */
-async function parses(file: string, source: string) {
+async function parses(file: string, source: string, path: string) {
+	// prettier-plugin-sh's Dockerfile parser ends the process on a syntax error, so it runs on its own.
+	if (dockerfile(file.split("/").pop()!)) {
+		let prettier = join(root, "node_modules/.bin/prettier");
+		let run = await $`${prettier} --check ${path} --plugin prettier-plugin-sh`.cwd(root).nothrow().quiet();
+		return run.exitCode === 0 || run.exitCode === 1;
+	}
 	if (file.endsWith(".toml")) {
 		try {
 			tidyFormat(source, { parser: "toml" });
@@ -101,14 +136,15 @@ let parsers: Record<string, Record<string, unknown>> = {
 let corpus = join(tmpdir(), "tidy-bench");
 rmSync(corpus, { recursive: true, force: true });
 for (let [name, list] of Object.entries(sources)) {
-	for (let { repo, extensions } of list) {
+	for (let { repo, extensions, names } of list) {
 		let patterns = extensions.map((extension) => `*.${extension}`);
 		let listed = await $`git -C ${join(oss, repo)} ls-files -z -- ${patterns}`.nothrow().text();
 		for (let file of listed.split("\0").filter(Boolean)) {
+			if (names && !names(file.split("/").pop()!)) continue;
 			if (/node_modules|\/dist\/|\/build\/|\.min\.css$|(^|\/)\./.test(file)) continue;
 			let source = await Bun.file(join(oss, repo, file)).text().catch(() => undefined);
 			if (source === undefined) continue;
-			if (!(await parses(file, source))) continue;
+			if (!(await parses(file, source, join(oss, repo, file)))) continue;
 			let to = join(corpus, name, repo, file);
 			mkdirSync(dirname(to), { recursive: true });
 			cpSync(join(oss, repo, file), to);
@@ -144,14 +180,14 @@ let commands = (dir: string): Record<string, string> => ({
 	taplo: `${taplo} fmt --check ${dir}/**/*.toml`,
 	tombi: `${root}/node_modules/@tombi-toml/cli-darwin-arm64/tombi format --check ${dir}`,
 	yamlfmt: `${yamlfmt} -lint ${dir}`,
-	prettier: `${prettier} --check ${dir} ${off} --log-level silent --plugin @prettier/plugin-xml`,
+	prettier: `${prettier} --check ${dir} ${off} --log-level silent --plugin @prettier/plugin-xml --plugin prettier-plugin-sh`,
 });
 
 /** What each tool is, with its version. */
 let versions: Record<string, string> = {
 	tidy: "tidy at the commit above",
 	bun: `bun fmt ${await version(["bun", "--version"])}`,
-	dprint: `dprint plugins: ${(await crates("bench/dprint/Cargo.lock", ["markup_fmt", "malva", "dprint-plugin-json", "pretty_yaml", "dprint-plugin-toml", "dprint-plugin-markdown"])).join(", ")}`,
+	dprint: `dprint plugins: ${(await crates("bench/dprint/Cargo.lock", ["markup_fmt", "malva", "dprint-plugin-json", "pretty_yaml", "dprint-plugin-toml", "dprint-plugin-dockerfile", "dprint-plugin-markdown"])).join(", ")}`,
 	oxc: (await crates("bench/css/Cargo.lock", ["oxc_formatter_css"]))[0],
 	lightningcss: (await crates("bench/css/Cargo.lock", ["lightningcss"]))[0],
 	naive: `a naive formatter on @lukeed/html ${(await import("@lukeed/html/package.json")).version}`,
@@ -159,7 +195,7 @@ let versions: Record<string, string> = {
 	taplo: `taplo ${await version([taplo, "--version"])}`,
 	tombi: `tombi ${await version([join(root, "node_modules/@tombi-toml/cli-darwin-arm64/tombi"), "--version"])}`,
 	yamlfmt: `yamlfmt ${await version([yamlfmt, "-version"])}`,
-	prettier: `Prettier ${prettierApi.version}, @prettier/plugin-xml ${(await import("@prettier/plugin-xml/package.json")).version}`,
+	prettier: `Prettier ${prettierApi.version}, @prettier/plugin-xml ${(await import("@prettier/plugin-xml/package.json")).version}, prettier-plugin-sh ${(await import("prettier-plugin-sh/package.json")).version}`,
 };
 
 /** The corpora that each tool formats; the others leave them out. */
@@ -167,7 +203,7 @@ let markup = ["html", "vue", "pages"];
 let sheets = ["css", "scss", "less"];
 let formats: Record<string, string[]> = {
 	bun: [...markup, "handlebars", ...sheets, "json", "yaml", "toml", "markdown", "all-but-xml"],
-	dprint: [...markup, ...sheets, "json", "yaml", "toml", "xml", "markdown", "all", "all-but-xml"],
+	dprint: [...markup, ...sheets, "json", "yaml", "toml", "dockerfile", "xml", "markdown", "all", "all-but-xml"],
 	yamlfmt: ["yaml"],
 	biome: ["json"],
 	taplo: ["toml"],
@@ -205,6 +241,7 @@ let names = [
 	"json",
 	"yaml",
 	"toml",
+	"dockerfile",
 	"xml",
 	"markdown",
 ];
