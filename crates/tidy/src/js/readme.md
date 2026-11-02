@@ -61,7 +61,7 @@ In JavaScript templates, CSS, Markdown, HTML and GraphQL format with tidy's form
 
 ## Import sorting
 
-Off by default. `Options::sort_imports` sorts a file's imports as one of these does, from `SortSettings`: oxfmt's `sortImports`, bun's `sortImports` (oxfmt's, then names in braces are sorted and imports of a module merged), `@trivago/prettier-plugin-sort-imports`, `@ianvs/prettier-plugin-sort-imports` and `prettier-plugin-organize-imports` (`sort_imports/`). oxfmt's and bun's sort while the file is formatted; the plugins rewrite its text first, which is then parsed again. Code in other languages isn't sorted.
+Off by default. `Options::sort_imports` sorts a file's imports as one of these does, from `SortSettings`: oxfmt's `sortImports`, bun's `sortImports` (oxfmt's, then names in braces are sorted and imports of a module merged), `@trivago/prettier-plugin-sort-imports`, `@ianvs/prettier-plugin-sort-imports` and `prettier-plugin-organize-imports` (`sort_imports/`). oxfmt's and bun's sort while the file is formatted; the plugins rewrite its text first, which is then parsed again. Scripts in other languages are sorted where the tools sort them: oxfmt's and bun's in a Vue file only, the plugins in a Vue file before it is parsed and in the scripts of other markup and Markdown, except `prettier-plugin-organize-imports`, which only sorts files (`sort_imports::in_markup`, `in_markdown`).
 
 ## Choices
 
