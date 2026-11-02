@@ -1,12 +1,16 @@
 //! The syntax tree as bun's printer reads it: the handles of bun's `bun_lint::ast`, over oxc's tree. See `../readme.md`.
 
 mod expr;
+mod hir;
+mod key;
 mod list;
 mod name;
 mod node;
 mod span;
 
 pub(crate) use expr::*;
+pub(crate) use hir::*;
+pub(crate) use key::*;
 pub(crate) use list::*;
 pub(crate) use name::*;
 pub(crate) use node::*;
@@ -22,6 +26,8 @@ pub(crate) const NONE: u32 = u32::MAX;
 /// A parsed file, with tables of its nodes by id.
 pub(crate) struct File<'a> {
   pub(crate) text: &'a str,
+  /// For the names that the source doesn't spell out, such as `1000` for the key `1e3`.
+  allocator: &'a oxc_allocator::Allocator,
   pub(crate) program: &'a Program<'a>,
   kinds: Vec<Option<AstKind<'a>>>,
   parents: Vec<u32>,
@@ -36,7 +42,11 @@ pub(crate) struct File<'a> {
 }
 
 impl<'a> File<'a> {
-  pub(crate) fn new(text: &'a str, program: &'a Program<'a>) -> File<'a> {
+  pub(crate) fn new(
+    text: &'a str,
+    program: &'a Program<'a>,
+    allocator: &'a oxc_allocator::Allocator,
+  ) -> File<'a> {
     let mut walk = Walk::default();
     walk.visit_program(program);
     let Walk { kinds, parents, edges, mut parens, .. } = walk;
@@ -59,7 +69,7 @@ impl<'a> File<'a> {
       children[at as usize] = child;
       positions[child as usize] = at;
     }
-    File { text, program, kinds, parents, children, ranges, positions, parens }
+    File { text, allocator, program, kinds, parents, children, ranges, positions, parens }
   }
 
   /// The node with `id`, unless it's skipped: parentheses, a chain, or no node at all.
@@ -93,6 +103,11 @@ impl<'a> File<'a> {
     let first = self.parens.partition_point(|it| it.0 < id);
     let count = self.parens[first..].iter().take_while(|it| it.0 == id).count();
     &self.parens[first..first + count]
+  }
+
+  /// A copy of `text` that lives as long as the tree.
+  pub(crate) fn keep(&self, text: &str) -> &'a str {
+    self.allocator.alloc_str(text)
   }
 
   pub(crate) fn slice(&self, span: Span) -> &'a str {
