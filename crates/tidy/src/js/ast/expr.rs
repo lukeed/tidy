@@ -832,7 +832,7 @@ fn span(span: oxc_span::Span) -> Span {
   Span::new(span.start, span.end)
 }
 
-fn is_const(ty: &TSType) -> bool {
+pub(crate) fn is_const(ty: &TSType) -> bool {
   matches!(ty, TSType::TSTypeReference(it) if it.type_arguments.is_none()
     && matches!(&it.type_name, oxc_ast::ast::TSTypeName::IdentifierReference(name) if name.name == "const"))
 }
