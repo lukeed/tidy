@@ -28,7 +28,7 @@ pub(crate) struct Record {
   pub(crate) following: u32,
 }
 
-/// Prettier's `canAttachComment` for ESTree, and the nodes that oxc has and ESTree doesn't.
+/// Prettier's `canAttachComment` for ESTree, and the nodes that oxc has and ESTree doesn't, such as an array's holes.
 fn attachable(kind: AstKind) -> bool {
   !matches!(
     kind,
@@ -37,6 +37,7 @@ fn attachable(kind: AstKind) -> bool {
       | AstKind::FormalParameters(_)
       | AstKind::CatchParameter(_)
       | AstKind::WithClause(_)
+      | AstKind::Elision(_)
   )
 }
 
@@ -387,7 +388,7 @@ impl<'a> Comment<'a> {
 
   /// A decorator and `<..>` aren't bun's nodes. As bun's parser records them, a decorator stands for its expression,
   /// and `<..>` for its last parameter or argument before the comment and its first after it. The key of a mapped
-  /// type is a name. The `{ .. }` of a class, an interface, an enum or a module is neither.
+  /// type is a name. The `{ .. }` of a function, a class, an interface, an enum or a module is neither.
   fn node_or_name(self, mut id: u32, last: bool) -> Option<NodeOrName<'a>> {
     if id == NONE {
       return None;
@@ -395,6 +396,7 @@ impl<'a> Comment<'a> {
     match self.file.kind(id) {
       Some(
         AstKind::ClassBody(_)
+        | AstKind::FunctionBody(_)
         | AstKind::TSInterfaceBody(_)
         | AstKind::TSEnumBody(_)
         | AstKind::TSModuleBlock(_),
