@@ -34,7 +34,7 @@ type Callback<'a> = Function<'a, EmbedRequest, Option<String>>;
 pub struct FormatOptions {
   /// The language. Default: by `filepath`, and HTML without one.
   #[napi(
-    ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'json' | 'jsonc' | 'json5' | 'json-stringify' | 'yaml' | 'toml' | 'dockerfile' | 'ini' | 'gitconfig' | 'graphql' | 'babel' | 'typescript' | 'babel-ts' | 'xml' | 'markdown'"
+    ts_type = "'html' | 'vue' | 'mjml' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'json' | 'jsonc' | 'json5' | 'json-stringify' | 'yaml' | 'toml' | 'dockerfile' | 'ini' | 'gitconfig' | 'graphql' | 'babel' | 'typescript' | 'babel-ts' | 'xml' | 'markdown'"
   )]
   pub parser: Option<String>,
   /// The file's path, which decides the language and some details.
@@ -191,6 +191,7 @@ fn language(input: &FormatOptions) -> napi::Result<(Language, Option<tidy::handl
   Ok(match input.parser.as_deref() {
     Some("html") => (Language::Html, None),
     Some("vue") => (Language::Vue, None),
+    Some("mjml") => (Language::Mjml, None),
     Some("handlebars") => (Language::Handlebars, None),
     Some("tempura") => (Language::Handlebars, Some(Dialect::Tempura)),
     Some("css") => (Language::Css(css::Dialect::Css), None),

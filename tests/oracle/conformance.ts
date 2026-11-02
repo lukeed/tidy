@@ -53,7 +53,7 @@ function cases(snapshot: string, directory: string): Case[] {
 function settings(options: Record<string, unknown>, file: string): FormatOptions | undefined {
 	let parsers = options.parsers as string[];
 	let parser: string = parsers?.[0] === "glimmer" ? "handlebars" : parsers?.[0];
-	if (!["html", "vue", "handlebars", "css", "scss", "less"].includes(parser)) return undefined;
+	if (!["html", "vue", "mjml", "handlebars", "css", "scss", "less"].includes(parser)) return undefined;
 	let whitespace = { css: "auto", strict: "strict", ignore: "ignore" }[(options.htmlWhitespaceSensitivity as string) ?? "css"];
 	return {
 		parser,

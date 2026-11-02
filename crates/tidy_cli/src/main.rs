@@ -34,9 +34,9 @@ Usage
 Options
   --check                         List files that aren't formatted, and exit 1 if any
   -w, --write                     Rewrite files in place
-  --parser <name>                 html, vue, handlebars, tempura, css, scss, less, json, jsonc, json5,
-                                  json-stringify, yaml, toml, dockerfile, ini, gitconfig, graphql, babel,
-                                  typescript, babel-ts, xml, or markdown (default: by file name)
+  --parser <name>                 html, vue, mjml, handlebars, tempura, css, scss, less, json, jsonc,
+                                  json5, json-stringify, yaml, toml, dockerfile, ini, gitconfig, graphql,
+                                  babel, typescript, babel-ts, xml, or markdown (default: by file name)
   --stdin-filepath <path>         The path of the text on stdin, for its language and its config files
   --config <path>                 Use this config for every file instead of the nearest one
   --no-config                     Read no config files and no .editorconfig
@@ -94,6 +94,7 @@ fn run() -> Result<ExitCode, String> {
       let (language, dialect) = match name {
         "html" => (Language::Html, None),
         "vue" => (Language::Vue, None),
+        "mjml" => (Language::Mjml, None),
         "handlebars" => (Language::Handlebars, None),
         "tempura" => (Language::Handlebars, Some(handlebars::Dialect::Tempura)),
         "css" => (Language::Css(css::Dialect::Css), None),

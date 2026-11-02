@@ -14,6 +14,8 @@ use crate::{
 pub enum Language {
   Html,
   Vue,
+  /// MJML, email markup: HTML's options, with Prettier's `mjml` parser.
+  Mjml,
   Handlebars,
   Css(css::Dialect),
   Json(json::Dialect),
@@ -66,6 +68,7 @@ impl Language {
     match extension.as_str() {
       "html" | "htm" | "xht" | "xhtml" => Some(Language::Html),
       "vue" => Some(Language::Vue),
+      "mjml" => Some(Language::Mjml),
       "md" | "markdown" => Some(Language::Markdown),
       _ => None,
     }
@@ -367,10 +370,15 @@ impl Formatter {
   ) -> Result<&str, Error> {
     let filepath = path.map(str::to_owned);
     match language {
-      Language::Html | Language::Vue => {
+      Language::Html | Language::Vue | Language::Mjml => {
         let base = if language == Language::Vue { &options.vue } else { &options.html };
+        let parser = match language {
+          Language::Mjml => html::Parser::Mjml,
+          _ => base.parser,
+        };
         let options = html::Options {
           filepath,
+          parser,
           #[cfg(feature = "js")]
           js: options.js.clone(),
           ..base.clone()
