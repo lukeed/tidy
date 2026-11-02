@@ -654,7 +654,8 @@ fn is_field(file: &File, parent: u32, child: u32) -> bool {
       K::ImportDeclaration(_)
       | K::ExportFromDeclaration(_)
       | K::ExportAllDeclaration(_)
-      | K::TSExternalModuleDeclaration(_),
+      | K::TSExternalModuleDeclaration(_)
+      | K::TSExternalModuleReference(_),
     ) => matches!(file.kind(child), Some(K::StringLiteral(_))),
     _ => false,
   }

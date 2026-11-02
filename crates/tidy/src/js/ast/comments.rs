@@ -412,10 +412,10 @@ impl<'a> Comment<'a> {
     self.record.next
   }
 
-  /// A decorator, a `catch` clause and `<..>` aren't bun's nodes. As bun's parser records them, a decorator stands for
-  /// its expression, a `catch` clause for its body, and `<..>` for its last parameter or argument before the comment
-  /// and its first after it. The key of a mapped type is a name. The `{ .. }` of a function, a class, an interface, an
-  /// enum or a module is neither.
+  /// A decorator, a `catch` clause, a type annotation and `<..>` aren't bun's nodes. As bun's parser records them, a
+  /// decorator stands for its expression, a `catch` clause for its body, a type annotation for its type, and `<..>` for
+  /// its last parameter or argument before the comment and its first after it. The key of a mapped type is a name. The
+  /// `{ .. }` of a function, a class, an interface, an enum or a module is neither.
   fn node_or_name(self, mut id: u32, last: bool) -> Option<NodeOrName<'a>> {
     if id == NONE {
       return None;
@@ -430,6 +430,7 @@ impl<'a> Comment<'a> {
       ) => return None,
       Some(AstKind::Decorator(it)) => id = expression_id(&it.expression),
       Some(AstKind::CatchClause(it)) => id = it.body.node_id.get().index() as u32,
+      Some(AstKind::TSTypeAnnotation(it)) => id = it.type_annotation.node_id().index() as u32,
       Some(AstKind::BindingIdentifier(it))
         if matches!(self.file.kind(self.file.parent_id(id)), Some(AstKind::TSMappedType(_))) =>
       {
