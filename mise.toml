@@ -26,11 +26,18 @@ run = "cargo fmt --all"
 
 [tasks.clippy]
 description = "Lint with warnings denied"
-run = "cargo clippy --workspace --all-targets -- -D warnings"
+run = [
+  "cargo clippy --workspace --all-targets -- -D warnings",
+  "cargo clippy -p tidy --no-default-features --all-targets -- -D warnings",
+]
 
 [tasks.test]
 description = "Run all tests"
-run = ["cargo test --workspace", "bun test --cwd crates/tidy_napi"]
+run = [
+  "cargo test --workspace",
+  "cargo test -p tidy --no-default-features",
+  "bun test --cwd crates/tidy_napi",
+]
 depends = ["build:napi"]
 
 [tasks.check]
