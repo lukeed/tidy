@@ -48,8 +48,14 @@ macro_rules! handle_structs {
 
         /// The node's source text.
         #[inline]
-        pub(crate) fn text(self) -> &'a str {
+        pub(crate) fn text(self) -> &'a [u8] {
           self.file.slice(self.span())
+        }
+
+        /// The node's source text as a string.
+        #[inline]
+        pub(crate) fn source(self) -> &'a str {
+          self.file.str(self.span())
         }
       }
 

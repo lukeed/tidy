@@ -39,7 +39,7 @@ impl<'a> Key<'a> {
     let inner = span(key.span());
     let kind = match key {
       PropertyKey::StaticIdentifier(it) => KeyKind::Ident(Name(it.name.as_str())),
-      PropertyKey::PrivateIdentifier(_) => KeyKind::Private(Name(file.slice(inner))),
+      PropertyKey::PrivateIdentifier(_) => KeyKind::Private(Name(file.str(inner))),
       _ => match key.as_expression().map(|it| literal(file, it)) {
         Some(Some(Literal::String(name))) if computed => KeyKind::ComputedString(name),
         Some(Some(Literal::Number(name))) if computed => KeyKind::ComputedNumber(name),
@@ -71,7 +71,7 @@ impl<'a> Key<'a> {
   /// The name of a JSX attribute.
   pub(crate) fn jsx(file: &'a File<'a>, name: &'a JSXAttributeName<'a>) -> Key<'a> {
     let span = span(name.span());
-    Key { kind: KeyKind::Ident(Name(file.slice(span))), inner: span, outer: span, jsx: true }
+    Key { kind: KeyKind::Ident(Name(file.str(span))), inner: span, outer: span, jsx: true }
   }
 
   pub(crate) fn kind(self) -> KeyKind<'a> {
@@ -136,7 +136,7 @@ enum Literal<'a> {
 fn literal<'a>(file: &'a File<'a>, expression: &'a Expression<'a>) -> Option<Literal<'a>> {
   match expression {
     Expression::StringLiteral(it) => {
-      let text = file.slice(span(it.span));
+      let text = file.str(span(it.span));
       let quoted = text.get(1..text.len().saturating_sub(1)).unwrap_or_default();
       Some(Literal::String(Name(it.value.as_str().unwrap_or(quoted))))
     }

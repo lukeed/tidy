@@ -654,7 +654,7 @@ impl<'a> Stmt<'a> {
   pub(crate) fn directive(self) -> Option<&'a [u8]> {
     match self.file.kind(self.id)? {
       AstKind::Directive(it) => {
-        let text = self.file.slice(span(it.expression.span));
+        let text = self.file.str(span(it.expression.span));
         Some(text.get(1..text.len().saturating_sub(1)).unwrap_or_default().as_bytes())
       }
       _ => None,
@@ -691,11 +691,11 @@ fn export_name<'a>(file: &'a super::File<'a>, name: &'a ModuleExportName<'a>) ->
   let span = span(name.span());
   match name {
     ModuleExportName::StringLiteral(it) => {
-      let quoted = file.slice(span);
+      let quoted = file.str(span);
       let inner = quoted.get(1..quoted.len().saturating_sub(1)).unwrap_or_default();
       Ident { name: Name(it.value.as_str().unwrap_or(inner)), span, string: true }
     }
-    _ => Ident { name: Name(file.slice(span)), span, string: false },
+    _ => Ident { name: Name(file.str(span)), span, string: false },
   }
 }
 

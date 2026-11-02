@@ -251,7 +251,7 @@ impl<'a> Comment<'a> {
 
   /// The source text, with the `//` or the `/*` and `*/`.
   pub(crate) fn text(self) -> &'a [u8] {
-    self.file.slice(self.span()).as_bytes()
+    self.file.slice(self.span())
   }
 
   /// The text between `/*` and `*/`, or after `//`.

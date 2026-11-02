@@ -1719,7 +1719,7 @@ fn missing<'a>(at: Span) -> Ident<'a> {
 
 /// The value of a string literal.
 fn string<'a>(file: &'a File<'a>, it: &StringLiteral<'a>) -> Name<'a> {
-  let text = file.slice(span(it.span));
+  let text = file.str(span(it.span));
   let quoted = text.get(1..text.len().saturating_sub(1)).unwrap_or_default();
   Name(it.value.as_str().unwrap_or(quoted))
 }

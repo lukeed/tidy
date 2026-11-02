@@ -246,7 +246,7 @@ impl<'a> Expr<'a> {
     match raw {
       K::Elision(_) | K::JSXEmptyExpression(_) => ExprKind::Missing,
       K::IdentifierReference(it) => ExprKind::Ident(Name(it.name.as_str())),
-      K::PrivateIdentifier(_) => ExprKind::PrivateIdentifier(Name(self.text())),
+      K::PrivateIdentifier(_) => ExprKind::PrivateIdentifier(Name(self.source())),
       K::ThisExpression(_) => ExprKind::This,
       K::Super(_) => ExprKind::Super,
       K::NullLiteral(_) => ExprKind::Null,
@@ -256,7 +256,7 @@ impl<'a> Expr<'a> {
       },
       K::NumericLiteral(it) => ExprKind::Number(it.value),
       K::StringLiteral(it) => {
-        let text = self.text();
+        let text = self.source();
         let quoted = text.get(1..text.len().saturating_sub(1)).unwrap_or_default();
         ExprKind::String(Name(it.value.as_str().unwrap_or(quoted)))
       }
@@ -297,7 +297,7 @@ impl<'a> Expr<'a> {
       }
       K::PrivateFieldExpression(it) => {
         let span = span(it.field.span);
-        let name = Ident { name: Name(self.file.slice(span)), span, string: false };
+        let name = Ident { name: Name(self.file.str(span)), span, string: false };
         ExprKind::Dot { obj: self.of(&it.object), name, chain: self.chain() }
       }
       K::ComputedMemberExpression(it) => ExprKind::Index {
@@ -325,7 +325,7 @@ impl<'a> Expr<'a> {
       }
       K::JSXIdentifier(it) if it.name.contains('-') => ExprKind::String(Name(it.name.as_str())),
       K::JSXIdentifier(it) => ExprKind::Ident(Name(it.name.as_str())),
-      K::JSXNamespacedName(_) => ExprKind::String(Name(self.text())),
+      K::JSXNamespacedName(_) => ExprKind::String(Name(self.source())),
       K::CallExpression(_) => ExprKind::Call(Call { expr: self }),
       K::NewExpression(_) => ExprKind::New(Call { expr: self }),
       K::UnaryExpression(it) => {
@@ -1197,7 +1197,7 @@ impl<'a> Regex<'a> {
   }
 
   pub(crate) fn flags(self) -> &'a [u8] {
-    let text = self.expr.text().as_bytes();
+    let text = self.expr.text();
     let slash = text.iter().rposition(|&byte| byte == b'/').map_or(text.len(), |at| at + 1);
     &text[slash..]
   }

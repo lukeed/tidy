@@ -236,7 +236,7 @@ impl<'a> TypeNode<'a> {
         TypeKind::BigIntLit { text: Name(it.raw.map_or("", |raw| raw.as_str())), negative: false }
       }
       TSLiteral::StringLiteral(it) => {
-        let text = self.file.slice(span(it.span));
+        let text = self.file.str(span(it.span));
         let quoted = text.get(1..text.len().saturating_sub(1)).unwrap_or_default();
         TypeKind::StringLit(Name(it.value.as_str().unwrap_or(quoted)))
       }

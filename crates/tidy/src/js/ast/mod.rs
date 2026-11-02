@@ -120,8 +120,17 @@ impl<'a> File<'a> {
     self.allocator.alloc_str(text)
   }
 
-  pub(crate) fn slice(&self, span: Span) -> &'a str {
+  pub(crate) fn slice(&self, span: Span) -> &'a [u8] {
+    self.text.as_bytes().get(span.start as usize..span.end as usize).unwrap_or_default()
+  }
+
+  pub(crate) fn str(&self, span: Span) -> &'a str {
     self.text.get(span.start as usize..span.end as usize).unwrap_or_default()
+  }
+
+  /// The whole source text.
+  pub(crate) fn text(&self) -> &'a [u8] {
+    self.text.as_bytes()
   }
 }
 
