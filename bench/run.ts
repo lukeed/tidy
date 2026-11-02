@@ -12,6 +12,7 @@
 // - oxc's CSS formatter and lightningcss (CSS only, which reprints rather than formats) for style sheets;
 // - Biome 2.6.4 for JSON, with spaces, as Prettier indents;
 // - for TOML, which Prettier doesn't format: taplo 0.10.0, tidy's reference, tombi 1.9.8, and dprint-plugin-toml;
+// - Google's yamlfmt 0.21.0 for YAML;
 // - a naive formatter on @lukeed/html, as a floor for HTML in JavaScript.
 //
 // "all" is every corpus in one tree, and "all-but-xml" leaves out XML, which bun fmt doesn't format. Prettier skips
@@ -57,6 +58,10 @@ let sources: Record<string, { repo: string; extensions: string[]; path?: string 
 		extensions: ["json", "jsonc", "json5"],
 	})),
 	toml: ["bun", "taplo", "aspire", "deno", "oxc", "rolldown"].map((repo) => ({ repo, extensions: ["toml"] })),
+	yaml: ["vite", "storybook", "bun", "deno", "oxc", "rolldown", "prettier", "aspire"].map((repo) => ({
+		repo,
+		extensions: ["yml", "yaml"],
+	})),
 	markdown: ["vite", "storybook", "shadcn-svelte", "bun"].map((repo) => ({ repo, extensions: ["md"] })),
 };
 
@@ -86,6 +91,8 @@ let parsers: Record<string, Record<string, unknown>> = {
 	".svg": { parser: "xml", plugins: ["@prettier/plugin-xml"] },
 	".xsl": { parser: "xml", plugins: ["@prettier/plugin-xml"] },
 	".md": { parser: "markdown" },
+	".yml": { parser: "yaml" },
+	".yaml": { parser: "yaml" },
 };
 
 let corpus = join(tmpdir(), "tidy-bench");
@@ -120,6 +127,7 @@ function size(path: string): [number, number] {
 
 let prettier = join(root, "node_modules/.bin/prettier");
 let taplo = (await $`mise which taplo`.cwd(root).text()).trim();
+let yamlfmt = (await $`mise which yamlfmt`.cwd(root).text()).trim();
 let off = "--no-config --embedded-language-formatting off";
 let commands = (dir: string): Record<string, string> => ({
 	tidy: `${target}/release/tidy ${dir} --check --no-config`,
@@ -132,6 +140,7 @@ let commands = (dir: string): Record<string, string> => ({
 	biome: `${root}/node_modules/.bin/biome format --indent-style=space --max-diagnostics=0 ${dir}`,
 	taplo: `${taplo} fmt --check ${dir}/**/*.toml`,
 	tombi: `${root}/node_modules/@tombi-toml/cli-darwin-arm64/tombi format --check ${dir}`,
+	yamlfmt: `${yamlfmt} -lint ${dir}`,
 	prettier: `${prettier} --check ${dir} ${off} --log-level silent --plugin @prettier/plugin-xml`,
 });
 
@@ -139,8 +148,9 @@ let commands = (dir: string): Record<string, string> => ({
 let markup = ["html", "vue", "pages"];
 let sheets = ["css", "scss", "less"];
 let formats: Record<string, string[]> = {
-	bun: [...markup, "handlebars", ...sheets, "json", "toml", "markdown", "all-but-xml"],
-	dprint: [...markup, ...sheets, "json", "toml", "xml", "markdown", "all", "all-but-xml"],
+	bun: [...markup, "handlebars", ...sheets, "json", "yaml", "toml", "markdown", "all-but-xml"],
+	dprint: [...markup, ...sheets, "json", "yaml", "toml", "xml", "markdown", "all", "all-but-xml"],
+	yamlfmt: ["yaml"],
 	biome: ["json"],
 	taplo: ["toml"],
 	tombi: ["toml"],
@@ -164,7 +174,22 @@ async function time(names: string[], all: Record<string, string>, count: number)
 }
 
 let average = (values: number[]) => (values.reduce((sum, value) => sum + value, 0) / values.length) * 1000;
-let names = ["all", "all-but-xml", "html", "vue", "pages", "handlebars", "css", "scss", "less", "json", "toml", "xml", "markdown"];
+let names = [
+	"all",
+	"all-but-xml",
+	"html",
+	"vue",
+	"pages",
+	"handlebars",
+	"css",
+	"scss",
+	"less",
+	"json",
+	"yaml",
+	"toml",
+	"xml",
+	"markdown",
+];
 let rows: string[] = [];
 for (let name of names.filter((name) => !only || only.includes(name))) {
 	let dir = join(corpus, name);
