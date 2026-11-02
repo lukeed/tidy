@@ -83,6 +83,20 @@ pub(crate) fn without_bom(text: &str) -> (bool, &str) {
   }
 }
 
+/// Reads `text` without its byte order mark, if it has one, with the offsets of errors in `text`.
+#[cfg(feature = "config")]
+pub(crate) fn read_without_bom<T>(
+  text: &str,
+  read: fn(&str) -> Result<T, Error>,
+) -> Result<T, Error> {
+  let (bom, rest) = without_bom(text);
+  let shift = if bom { '\u{FEFF}'.len_utf8() } else { 0 };
+  read(rest).map_err(|error| match error {
+    Error::Syntax { message, at } => Error::Syntax { message, at: at + shift },
+    error => error,
+  })
+}
+
 /// Puts back the byte order mark that `without_bom` split off.
 pub(crate) fn with_bom(had: bool, output: &mut String) -> &str {
   if had {

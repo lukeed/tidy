@@ -10,6 +10,10 @@ use crate::Error;
 
 /// The value of `text`, or null if it only has comments. `Infinity` and `NaN` are null, as `JSON.stringify` writes them.
 pub fn value(text: &str) -> Result<Value, Error> {
+  crate::read_without_bom(text, document)
+}
+
+fn document(text: &str) -> Result<Value, Error> {
   let tree = super::parse(text)?;
   let Some(root) = tree.root() else { return Ok(Value::Null) };
   Reader { text, tree: &tree }.value(root)

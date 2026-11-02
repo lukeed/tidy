@@ -11,6 +11,10 @@ use crate::Error;
 
 /// The value of `text`: a table.
 pub fn value(text: &str) -> Result<Value, Error> {
+  crate::read_without_bom(text, document)
+}
+
+fn document(text: &str) -> Result<Value, Error> {
   let tree = super::parse(text)?;
   let reader = Reader { text, tree: &tree };
   let mut root = Table::new(Made::Header);

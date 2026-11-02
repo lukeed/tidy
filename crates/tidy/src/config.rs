@@ -467,7 +467,7 @@ fn value(text: &str, toml: bool) -> Result<Value, crate::Error> {
 fn describe(text: &str, error: crate::Error) -> String {
   match error {
     crate::Error::Syntax { message, at } => {
-      let before = &text[..at.min(text.len())];
+      let before = crate::without_bom(&text[..at.min(text.len())]).1;
       let line = before.matches('\n').count() + 1;
       let column = before.rsplit('\n').next().unwrap_or_default().chars().count() + 1;
       format!("{line}:{column}: {message}")
