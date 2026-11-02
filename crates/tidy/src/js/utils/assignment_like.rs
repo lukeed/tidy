@@ -9,6 +9,7 @@ use super::suppressed::FormatSuppressedNode;
 use super::typecast::{
     comments_of_outermost_node, has_comments, has_leading_own_line_comment, is_cast_target,
 };
+use crate::js::base::*;
 use crate::js::format::{ExprOptions, FormatExpr, FormatTypeAnnotation};
 use crate::js::parentheses::expression::expression_needs_parentheses;
 use crate::js::print::arrow_function_expression::FormatJsArrowFunctionExpressionOptions;
@@ -17,7 +18,6 @@ use crate::js::print::class::write_comments_between_modifiers;
 use crate::js::print::decorators::FormatDecorators;
 use crate::js::print::patterns::FormatBindingPropertyValue;
 use crate::js::print::type_parameters::type_arguments;
-use crate::js::base::*;
 use crate::js::{format_args, write};
 use smallvec::SmallVec;
 
@@ -765,6 +765,7 @@ fn should_break_after_operator<'a>(
     };
     match right.tag() {
         ExprTag::Binary => breaks_as_binary_expression(right).unwrap_or(true),
+        ExprTag::Sequence => true,
         ExprTag::Cond if f.options().experimental_ternaries => {
             matches!(right.kind(), ExprKind::Cond { yes, no, .. } if yes.tag() == ExprTag::Cond || no.tag() == ExprTag::Cond)
         }

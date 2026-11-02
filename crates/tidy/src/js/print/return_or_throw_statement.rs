@@ -1,12 +1,12 @@
 use super::call_like_expression::is_printed_as_member_chain;
 use super::semicolon::OptionalSemicolon;
+use crate::js::base::*;
 use crate::js::parentheses::expression::expression_needs_parentheses;
 use crate::js::utils::member_chain::head_of_member_chain;
 use crate::js::utils::typecast::{
     comments_of_outermost_node, has_leading_own_line_comment, is_cast_target,
     is_cast_target_that_hides_its_kind, is_chain_expression_without_comments,
 };
-use crate::js::base::*;
 use crate::js::{format_args, write};
 
 pub(crate) fn write_return_statement<'a>(
@@ -99,7 +99,7 @@ impl<'a> Format<'a> for FormatAdjacentArgument<'a> {
                     if_group_breaks(&")")
                 ))
             );
-        } else if argument.binary_op() == Some(BinOp::Comma) && is_cast_target(argument, f) {
+        } else if argument.tag() == ExprTag::Sequence && is_cast_target(argument, f) {
             // `return (/** @type {T} */ (a, b));`: oxfmt looks inside the type cast's parentheses, and wraps the whole
             // thing in a sequence's parentheses.
             write!(
@@ -118,6 +118,7 @@ fn has_naked_left_side(e: Expr<'_>) -> bool {
     match e.kind() {
         ExprKind::Assign { .. }
         | ExprKind::Binary { .. }
+        | ExprKind::Sequence(_)
         | ExprKind::Cond { .. }
         | ExprKind::Call(_)
         | ExprKind::Dot { .. }
@@ -136,9 +137,7 @@ fn has_naked_left_side(e: Expr<'_>) -> bool {
 /// operand of `!a`, `await a` and `<T>a`, the callee of `new A()` and the first `${}` of a template.
 fn left_side(e: Expr<'_>) -> Option<Expr<'_>> {
     match e.kind() {
-        ExprKind::Binary {
-            op: BinOp::Comma, ..
-        } => e.sequence().first().copied(),
+        ExprKind::Sequence(expressions) => expressions.first(),
         ExprKind::Template(template) => template.exprs().first(),
         ExprKind::Binary { left, .. } => Some(left),
         ExprKind::Assign { target, .. } => Some(target),
@@ -238,11 +237,7 @@ fn has_comment_on_left_edge<'a>(
     // A sequence or an assignment is printed in parentheses.
     let mut is_right_after_keyword = !matches!(
         argument.kind(),
-        ExprKind::Assign { .. }
-            | ExprKind::Binary {
-                op: BinOp::Comma,
-                ..
-            }
+        ExprKind::Assign { .. } | ExprKind::Sequence(_)
     );
     // The head of the member chain being walked. It's printed first. Every `.b`, `[b]`, `!` and `()` applied to it is
     // printed after it, along with its comments.

@@ -471,13 +471,13 @@ impl<'a> Stmt<'a> {
 
   /// `with { type: "json" }` of an `Import`, an `ExportNamed` or an `ExportStar`.
   pub(crate) fn import_attributes(self) -> Option<ImportAttributes<'a>> {
-    let clause = match self.file.kind(self.id)? {
-      AstKind::ImportDeclaration(it) => it.with_clause.as_deref()?,
-      AstKind::ExportFromDeclaration(it) => it.with_clause.as_deref()?,
-      AstKind::ExportAllDeclaration(it) => it.with_clause.as_deref()?,
+    let (source, clause) = match self.file.kind(self.id)? {
+      AstKind::ImportDeclaration(it) => (&it.source, it.with_clause.as_deref()?),
+      AstKind::ExportFromDeclaration(it) => (&it.source, it.with_clause.as_deref()?),
+      AstKind::ExportAllDeclaration(it) => (&it.source, it.with_clause.as_deref()?),
       _ => return None,
     };
-    Some(ImportAttributes::clause(self.file, clause))
+    Some(ImportAttributes::clause(self.file, source.span.end, clause))
   }
 
   /// The offset of the `*` of an `ExportStar`.

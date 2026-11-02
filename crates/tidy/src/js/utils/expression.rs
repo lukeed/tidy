@@ -56,9 +56,7 @@ impl<'a> ExpressionLeftSide<'a> {
             };
         }
         match self.expr.kind() {
-            ExprKind::Binary {
-                op: BinOp::Comma, ..
-            } => self.expr.sequence().first().copied().and_then(expression),
+            ExprKind::Sequence(expressions) => expressions.first().and_then(expression),
             ExprKind::Binary {
                 op: BinOp::In,
                 left,

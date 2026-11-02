@@ -1,10 +1,10 @@
 //! Decides which expressions need parentheses in their position. Prettier's `needsParentheses`.
 
 use crate::js::ast_nodes::ExpressionStatement;
+use crate::js::base::*;
 use crate::js::print::binary_like_expression::{is_angular_pipe, should_flatten};
 use crate::js::print::return_or_throw_statement::has_argument_leading_comments;
 use crate::js::utils::typecast::{has_comments, has_comments_that_count, is_cast_target};
-use crate::js::base::*;
 use AstNodes as N;
 
 /// True if `e`, as ESTree's `Expression`, needs parentheses. For a whole optional chain that's the `ChainExpression`.
@@ -120,6 +120,9 @@ fn start_of_token_after<'a>(e: Expr<'a>, f: &Formatter<'a>) -> Option<u8> {
             ExprKind::Binary { op, left, .. } if is(left) => {
                 return op.as_str().as_bytes().first().copied();
             }
+            ExprKind::Sequence(expressions) if expressions.last() != Some(current) => {
+                return Some(b',');
+            }
             ExprKind::Unary { op, .. } if !op.is_prefix() => {
                 return op.as_str().as_bytes().first().copied();
             }
@@ -137,6 +140,7 @@ fn start_of_token_after<'a>(e: Expr<'a>, f: &Formatter<'a>) -> Option<u8> {
             }
             // `current` is the end of `parent`.
             ExprKind::Binary { .. }
+            | ExprKind::Sequence(_)
             | ExprKind::Unary { .. }
             | ExprKind::Cond { .. }
             | ExprKind::Assign { .. }
@@ -168,7 +172,7 @@ fn would_start_statement<'a>(first: Expr<'a>, e: Expr<'a>) -> bool {
         return false;
     }
     let (outermost, container) = left_edge_end(e, e.as_ast_nodes());
-    let is_sequence = outermost.binary_op() == Some(BinOp::Comma);
+    let is_sequence = outermost.tag() == ExprTag::Sequence;
     match container {
         // A sequence gets parentheses there anyway.
         N::ExpressionStatement(ExpressionStatement::Stmt(_)) => !is_sequence,
@@ -188,6 +192,10 @@ fn has_bare_in(e: Expr<'_>) -> bool {
     while let Some(next) = pending.pop() {
         if next.binary_op() == Some(BinOp::In) {
             return true;
+        }
+        if let ExprKind::Sequence(expressions) = next.kind() {
+            pending.extend(expressions.iter().filter(|it| !it.is_parenthesized()));
+            continue;
         }
         let (first, second) = match next.kind() {
             ExprKind::Binary { left, right, .. } => (Some(left), Some(right)),
@@ -243,9 +251,8 @@ fn may_need_parentheses<'a>(e: Expr<'a>) -> bool {
                 || (text.len() >= 35 && text.starts_with(b"PRETTIER_"));
         }
         // `in` in the head of a `for` statement, and a sequence, depend on more than the parent.
-        T::Binary if matches!(e.binary_op(), None | Some(BinOp::In | BinOp::Comma)) => {
-            return true;
-        }
+        T::Binary if matches!(e.binary_op(), None | Some(BinOp::In)) => return true,
+        T::Sequence => return true,
         _ => {}
     }
     let is_argument =
@@ -366,14 +373,9 @@ fn needs_parentheses_in_position<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {
         ExprKind::Object(_) => match left_edge_end(e, e.as_chain_element()) {
             (_, N::ExpressionStatement(ExpressionStatement::Stmt(_))) => true,
             // A sequence and an assignment get parentheses there anyway.
-            (body, N::ExpressionStatement(ExpressionStatement::ArrowBody(_))) => !matches!(
-                body.kind(),
-                ExprKind::Assign { .. }
-                    | ExprKind::Binary {
-                        op: BinOp::Comma,
-                        ..
-                    }
-            ),
+            (body, N::ExpressionStatement(ExpressionStatement::ArrowBody(_))) => {
+                !matches!(body.kind(), ExprKind::Assign { .. } | ExprKind::Sequence(_))
+            }
             _ => false,
         },
         ExprKind::Fn(func) if func.is_arrow() => false,
@@ -429,9 +431,7 @@ fn needs_parentheses_in_position<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {
             }
             _ => is_member_object(e, parent) || parent.is_call_like_callee(e),
         },
-        ExprKind::Binary {
-            op: BinOp::Comma, ..
-        } => match parent {
+        ExprKind::Sequence(_) => match parent {
             N::ForStatement(_) => false,
             // The statement prints parentheses around a comment and what follows it.
             N::ReturnStatement(_) | N::ThrowStatement(_) => !has_argument_leading_comments(e, f),
@@ -545,6 +545,7 @@ fn parent_needs_parentheses<'a>(
                 ExprKind::Assign { .. }
                 | ExprKind::Await(_)
                 | ExprKind::Binary { .. }
+                | ExprKind::Sequence(_)
                 | ExprKind::Cond { .. }
                 | ExprKind::New(_)
                 | ExprKind::Object(_)
@@ -568,6 +569,7 @@ fn parent_needs_parentheses<'a>(
                     ExprKind::Array(_)
                         | ExprKind::Object(_)
                         | ExprKind::Binary { .. }
+                        | ExprKind::Sequence(_)
                         | ExprKind::Fn(_)
                         | ExprKind::Class(_)
                 )))
@@ -598,10 +600,8 @@ fn should_wrap_function_for_export_default<'a>(declaration: Expr<'a>, f: &Format
             return false;
         }
         current = match current.kind() {
-            ExprKind::Binary {
-                op: BinOp::Comma, ..
-            } => match current.sequence().first() {
-                Some(&first) => first,
+            ExprKind::Sequence(expressions) => match expressions.first() {
+                Some(first) => first,
                 None => return false,
             },
             ExprKind::Binary { left, .. } => left,

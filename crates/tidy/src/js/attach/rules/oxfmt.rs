@@ -5,6 +5,7 @@
 //! in place of Prettier's rule for the same node.
 
 use super::*;
+use crate::js::ast::{ExprTag, FnKind, assign_op_text};
 use crate::js::attach::surrounding_nodes::CommentsBetweenTokens;
 use crate::js::comments::Comment;
 use crate::js::fields::ExprFields;
@@ -13,7 +14,6 @@ use crate::js::utils::call_expression::comments_stay_after_callee_for_oxfmt;
 use crate::js::utils::conditional::is_jsx_conditional_chain;
 use crate::js::utils::expression::ExpressionLeftSide;
 use crate::js::utils::operators::BinOpExt;
-use crate::js::ast::{BinOp, ExprTag, FnKind, assign_op_text};
 
 /// One step of [`Rules::has_following_node`]. Returns `node`'s parent if whatever follows the parent also follows
 /// `node`, or else the answer.
@@ -81,12 +81,7 @@ fn parent_with_same_following_node(node: Node<'_>) -> Result<Node<'_>, bool> {
 fn keeps_parentheses_as_arrow_body(body: Expr<'_>) -> bool {
     matches!(
         body.kind(),
-        ExprKind::Assign { .. }
-            | ExprKind::Jsx(_)
-            | ExprKind::Binary {
-                op: BinOp::Comma,
-                ..
-            }
+        ExprKind::Assign { .. } | ExprKind::Jsx(_) | ExprKind::Sequence(_)
     )
 }
 
@@ -94,7 +89,7 @@ fn keeps_parentheses_as_arrow_body(body: Expr<'_>) -> bool {
 /// case for a sequence or an assignment that's a variable's value, an arrow function's body or the right side of an
 /// assignment. `gets_parentheses` means `e` is in such a position.
 fn keeps_comment_in_parentheses(mut e: Expr<'_>, mut gets_parentheses: bool) -> bool {
-    let is_sequence = |e: Expr<'_>| e.binary_op() == Some(BinOp::Comma);
+    let is_sequence = |e: Expr<'_>| e.tag() == ExprTag::Sequence;
     loop {
         match e.kind() {
             _ if is_sequence(e) => return gets_parentheses,

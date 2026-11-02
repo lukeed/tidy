@@ -1554,8 +1554,9 @@ impl<'a> Import<'a> {
 
   /// `with { type: "json" }`
   pub(crate) fn attributes(self) -> Option<ImportAttributes<'a>> {
-    let clause = self.raw_import()?.with_clause.as_deref()?;
-    Some(ImportAttributes::clause(self.file, clause))
+    let import = self.raw_import()?;
+    let clause = import.with_clause.as_deref()?;
+    Some(ImportAttributes::clause(self.file, import.source.span.end, clause))
   }
 
   /// Everything between `import` and `from`. Empty for `import "spec"`.
@@ -1707,7 +1708,7 @@ impl<'a> Export<'a> {
   pub(crate) fn attributes(self) -> Option<ImportAttributes<'a>> {
     match self.raw() {
       K::ExportFromDeclaration(it) => {
-        Some(ImportAttributes::clause(self.file, it.with_clause.as_deref()?))
+        Some(ImportAttributes::clause(self.file, it.source.span.end, it.with_clause.as_deref()?))
       }
       _ => None,
     }

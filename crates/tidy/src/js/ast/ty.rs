@@ -497,9 +497,10 @@ pub(crate) struct ImportAttributes<'a> {
 }
 
 impl<'a> ImportAttributes<'a> {
-  /// The `with` clause of an import or export declaration.
-  pub(crate) fn clause(file: &'a File<'a>, clause: &WithClause) -> Self {
-    ImportAttributes { file, keyword: clause.span.start, id: clause.node_id.get().index() as u32 }
+  /// The `with` clause of an import or export declaration whose module specifier ends at `source`.
+  pub(crate) fn clause(file: &'a File<'a>, source: u32, clause: &WithClause) -> Self {
+    let keyword = skip_trivia(file.text.as_bytes(), source);
+    ImportAttributes { file, keyword, id: clause.node_id.get().index() as u32 }
   }
 
   /// The `{ type: "json" }`. For a declaration, it's the `with` clause.
@@ -520,9 +521,7 @@ impl<'a> ImportAttributes<'a> {
   /// The `{ .. }`.
   pub(crate) fn braces_span(self) -> Span {
     match self.file.kind(self.id) {
-      Some(AstKind::WithClause(it)) => {
-        Span::new(skip_trivia(self.file.text.as_bytes(), self.keyword_span().end), it.span.end)
-      }
+      Some(AstKind::WithClause(it)) => span(it.span),
       _ => self.object().span(),
     }
   }

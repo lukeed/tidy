@@ -617,6 +617,7 @@ fn write_expression_of<'a>(tag: ExprTag, e: Expr<'a>, options: ExprOptions, f: &
         ExprTag::Array => write_array(e, f),
         ExprTag::Unary => write_unary_expression(e, f),
         ExprTag::Binary => write_binary_expression(e, f),
+        ExprTag::Sequence => write_sequence_expression(e, f),
         ExprTag::Assign => write_assignment_expression(e, f),
         ExprTag::Cond => write_conditional_expression(e, f),
         _ => write_less_common_expression(e, f),
@@ -712,10 +713,12 @@ fn write_unary_expression<'a>(e: Expr<'a>, f: &mut Formatter<'a>) {
 
 #[inline(never)]
 fn write_binary_expression<'a>(e: Expr<'a>, f: &mut Formatter<'a>) {
-    match e.binary_op() {
-        Some(BinOp::Comma) => print::sequence_expression::write_sequence_expression(e, f),
-        _ => print::binary_like_expression::write_binary_like_expression(e, f),
-    }
+    print::binary_like_expression::write_binary_like_expression(e, f);
+}
+
+#[inline(never)]
+fn write_sequence_expression<'a>(e: Expr<'a>, f: &mut Formatter<'a>) {
+    print::sequence_expression::write_sequence_expression(e, f);
 }
 
 #[inline(never)]

@@ -13,13 +13,13 @@ use super::surrounding_nodes::{
     AttachContext, SurroundingNodes, function_of, has_parameters, union_members,
 };
 use super::{Attachment, CommentContext, Marker, Owner};
-use crate::js::ast_nodes::{AsAstNodes, AstNodes as N, ExpressionStatement};
-use crate::js::comments::CommentExt;
+use crate::js::ast::Span;
 use crate::js::ast::{
     Case, Expr, ExprKind, Flags, FnBody, Func, List, Member, Node, Param, PatKind, PropKind, Stmt,
     StmtKind, StmtTag, TypeKind, TypeNode,
 };
-use crate::js::ast::Span;
+use crate::js::ast_nodes::{AsAstNodes, AstNodes as N, ExpressionStatement};
+use crate::js::comments::CommentExt;
 
 mod oxfmt;
 
@@ -1148,12 +1148,10 @@ impl<'a> Rules<'_, 'a, '_> {
             return None;
         }
         match preceding_node {
-            Owner::Node(N::SequenceExpression(e)) => match e.kind() {
-                ExprKind::Binary { right, .. } => {
-                    Some(Attachment::trailing(self.cx.owner_of_expr(right)))
-                }
-                _ => None,
-            },
+            Owner::Node(N::SequenceExpression(e)) => e
+                .sequence()
+                .last()
+                .map(|&right| Attachment::trailing(self.cx.owner_of_expr(right))),
             Owner::Node(assignment @ N::AssignmentExpression(_)) => self
                 .right_of_assignment(assignment)
                 .map(Attachment::trailing),

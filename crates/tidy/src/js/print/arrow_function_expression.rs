@@ -3,6 +3,7 @@ use super::function::{FormatContentWithCacheMode, FormatFunctionBody};
 use super::parameters::{FormatFormalParameters, has_only_simple_parameters};
 use super::type_parameters::type_parameters;
 use crate::js::attach::Marker;
+use crate::js::base::*;
 use crate::js::format::{ExprOptions, FormatTypeAnnotation, write_expression};
 use crate::js::trivia::comments_stay_between_head_and_body;
 use crate::js::utils::assignment_like::AssignmentLikeLayout;
@@ -12,7 +13,6 @@ use crate::js::utils::typecast::{
     cast_parentheses, has_leading_own_line_comment, is_cast_target,
     is_cast_target_that_hides_its_kind,
 };
-use crate::js::base::*;
 use crate::js::{format_args, write};
 use smallvec::SmallVec;
 
@@ -59,13 +59,7 @@ fn get_expression(arrow: Func<'_>) -> Option<Expr<'_>> {
 }
 
 fn is_sequence(e: Expr<'_>) -> bool {
-    matches!(
-        e.kind(),
-        ExprKind::Binary {
-            op: BinOp::Comma,
-            ..
-        }
-    )
+    matches!(e.kind(), ExprKind::Sequence(_))
 }
 
 /// Returns the arrow function that's the body of `arrow`. For Prettier, one inside type cast parentheses is a
