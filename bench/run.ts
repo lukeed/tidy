@@ -14,6 +14,8 @@
 // - Biome 2.6.4 for JSON, with spaces, as Prettier indents;
 // - for TOML, which Prettier doesn't format: taplo 0.10.0, tidy's reference, tombi 1.9.8, and dprint-plugin-toml;
 // - Google's yamlfmt 0.21.0 for YAML;
+// - oxfmt, oxc's formatter, for every corpus but XML, Dockerfiles and INI, with a width of 80, as Prettier's. It
+//   formats HTML, Vue and Handlebars with the Prettier plugins that it bundles, in Node;
 // - for Dockerfiles, which Prettier only formats with a plugin: prettier-plugin-sh 0.20.2, whose formatter is
 //   dockerfmt, and dprint-plugin-dockerfile, tidy's reference;
 // - for INI, which Prettier only formats with a plugin: prettier-plugin-ini 1.3.0, tidy's reference;
@@ -192,6 +194,8 @@ let prettier = join(root, "node_modules/.bin/prettier");
 let taplo = (await $`mise which taplo`.cwd(root).text()).trim();
 let yamlfmt = (await $`mise which yamlfmt`.cwd(root).text()).trim();
 let off = "--no-config --embedded-language-formatting off";
+let oxfmt = join(corpus, "oxfmtrc.json");
+await Bun.write(oxfmt, JSON.stringify({ printWidth: 80, embeddedLanguageFormatting: "off" }));
 let commands = (dir: string): Record<string, string> => ({
 	tidy: `${target}/release/tidy ${dir} --check --no-config`,
 	"tidy (1 thread)": `${target}/release/tidy ${dir} --check --no-config --threads 1`,
@@ -200,6 +204,7 @@ let commands = (dir: string): Record<string, string> => ({
 	oxc: `${target}/css/release/css-bench oxc ${dir}`,
 	lightningcss: `${target}/css/release/css-bench lightningcss ${dir}`,
 	naive: `bun ${root}/bench/naive.ts ${dir}`,
+	oxfmt: `${root}/node_modules/.bin/oxfmt --check -c ${oxfmt} --disable-nested-config ${dir}`,
 	biome: `${root}/node_modules/.bin/biome format --indent-style=space --max-diagnostics=0 ${dir}`,
 	taplo: `${taplo} fmt --check ${dir}/**/*.toml`,
 	tombi: `${root}/node_modules/@tombi-toml/cli-darwin-arm64/tombi format --check ${dir}`,
@@ -214,6 +219,7 @@ let versions: Record<string, string> = {
 	dprint: `dprint plugins: ${(await crates("bench/dprint/Cargo.lock", ["markup_fmt", "malva", "dprint-plugin-json", "pretty_yaml", "dprint-plugin-toml", "dprint-plugin-dockerfile", "dprint-plugin-markdown"])).join(", ")}`,
 	oxc: (await crates("bench/css/Cargo.lock", ["oxc_formatter_css"]))[0],
 	lightningcss: (await crates("bench/css/Cargo.lock", ["lightningcss"]))[0],
+	oxfmt: `oxfmt ${await version([join(root, "node_modules/.bin/oxfmt"), "--version"])}`,
 	naive: `a naive formatter on @lukeed/html ${(await import("@lukeed/html/package.json")).version}`,
 	biome: `Biome ${await version([join(root, "node_modules/.bin/biome"), "--version"])}`,
 	taplo: `taplo ${await version([taplo, "--version"])}`,
@@ -229,6 +235,7 @@ let formats: Record<string, string[]> = {
 	bun: [...markup, "handlebars", ...sheets, "json", "yaml", "toml", "markdown", "all-but-xml"],
 	dprint: [...markup, ...sheets, "json", "yaml", "toml", "dockerfile", "xml", "markdown", "all", "all-but-xml"],
 	yamlfmt: ["yaml"],
+	oxfmt: [...markup, "handlebars", ...sheets, "json", "yaml", "toml", "markdown", "all", "all-but-xml"],
 	biome: ["json"],
 	taplo: ["toml"],
 	tombi: ["toml"],
