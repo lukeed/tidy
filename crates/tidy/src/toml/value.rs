@@ -3,6 +3,7 @@
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 
+use serde_json::map::Entry;
 use serde_json::{Map, Number, Value};
 
 use super::lexer::Token;
@@ -77,10 +78,10 @@ impl Table {
 
   /// The table or array of tables at `key`, which is a new table if there was nothing: `None` if a value is there.
   fn child(&mut self, key: &str, made: Made) -> Option<&mut Child> {
-    if self.values.contains_key(key) {
-      return None;
-    }
     if !self.tables.contains_key(key) {
+      if self.values.contains_key(key) {
+        return None;
+      }
       self.tables.insert(key.to_owned(), Child::Table(Table::new(made)));
     }
     self.tables.get_mut(key)
@@ -134,10 +135,13 @@ fn insert(table: &mut Table, keys: &[Key], value: Value) -> Result<(), Error> {
       _ => return Err(defined(&keys[..=index], *at)),
     };
   }
-  if table.values.contains_key(&*last.0) || table.tables.contains_key(&*last.0) {
+  if table.tables.contains_key(&*last.0) {
     return Err(defined(keys, last.1));
   }
-  table.values.insert(last.0.to_string(), value);
+  match table.values.entry(last.0.to_string()) {
+    Entry::Vacant(entry) => _ = entry.insert(value),
+    Entry::Occupied(_) => return Err(defined(keys, last.1)),
+  }
   Ok(())
 }
 
