@@ -359,6 +359,7 @@ impl<'a> Node<'a> {
         _ => Node::Expr(Expr::new(file, id)),
       },
       K::ObjectProperty(_)
+      | K::ImportAttribute(_)
       | K::AssignmentTargetPropertyIdentifier(_)
       | K::AssignmentTargetPropertyProperty(_) => Node::Prop(Prop::new(file, id)),
       K::Directive(_)

@@ -443,7 +443,7 @@ impl<'a> AstNodes<'a> {
       K::TSConstructSignatureDeclaration(_) => {
         N::TSConstructSignatureDeclaration(Member::new(file, id))
       }
-      K::ObjectProperty(_) => N::ObjectProperty(Prop::new(file, id)),
+      K::ObjectProperty(_) | K::ImportAttribute(_) => N::ObjectProperty(Prop::new(file, id)),
       K::JSXAttribute(_) => N::JSXAttribute(Prop::new(file, id)),
       K::JSXSpreadAttribute(_) => N::JSXSpreadAttribute(Prop::new(file, id)),
       K::AssignmentTargetPropertyIdentifier(_) => {
