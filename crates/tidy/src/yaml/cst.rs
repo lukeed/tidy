@@ -1,6 +1,8 @@
 //! The concrete syntax tree of `yaml` 2.9.0 (`src/parse/cst.ts`, `parser.ts`), built from the lexemes the way its
 //! `Parser` builds it, in an arena. Its nodes keep every source token, so the text can be printed back from them.
 
+use smallvec::{SmallVec, smallvec};
+
 use super::lexer::Lexeme;
 
 /// The type of a source token: a lexeme that the parser keeps as it is.
@@ -40,6 +42,9 @@ pub(crate) struct Source {
   pub(crate) end: u32,
   pub(crate) indent: u32,
 }
+
+/// The lexemes of a part of an item or a token: most have three or fewer.
+pub(crate) type Sources = SmallVec<[Source; 3]>;
 
 pub(crate) type Id = u32;
 
@@ -89,10 +94,10 @@ impl Last {
 /// An item of a collection.
 #[derive(Clone, Debug, Default)]
 pub(crate) struct Item {
-  pub(crate) start: Vec<Source>,
+  pub(crate) start: Sources,
   pub(crate) explicit_key: bool,
   pub(crate) key: Key,
-  pub(crate) sep: Option<Vec<Source>>,
+  pub(crate) sep: Option<Sources>,
   pub(crate) value: Option<Id>,
 }
 
@@ -118,21 +123,21 @@ pub(crate) enum Node {
   },
   Document {
     offset: u32,
-    start: Vec<Source>,
+    start: Sources,
     value: Option<Id>,
-    end: Option<Vec<Source>>,
+    end: Option<Sources>,
   },
   DocumentEnd {
     offset: u32,
     source_end: u32,
-    end: Option<Vec<Source>>,
+    end: Option<Sources>,
   },
   FlowScalar {
     kind: ScalarKind,
     offset: u32,
     source_end: u32,
     indent: u32,
-    end: Option<Vec<Source>>,
+    end: Option<Sources>,
   },
   BlockScalar {
     offset: u32,
@@ -155,7 +160,7 @@ pub(crate) enum Node {
     indent: u32,
     start: Source,
     items: Vec<Item>,
-    end: Vec<Source>,
+    end: Sources,
   },
 }
 
@@ -223,7 +228,7 @@ impl Node {
   }
 
   /// `end`, of the tokens that have one: documents, flow scalars and flow collections.
-  fn end_mut(&mut self) -> Option<&mut Option<Vec<Source>>> {
+  fn end_mut(&mut self) -> Option<&mut Option<Sources>> {
     match self {
       Node::Document { end, .. } | Node::DocumentEnd { end, .. } | Node::FlowScalar { end, .. } => {
         Some(end)
@@ -296,9 +301,9 @@ fn find_non_empty(list: &[Source]) -> Option<usize> {
 }
 
 /// `getFirstKeyStartProps`: removes the props of the key at the end of `prev`, and returns them.
-fn first_key_start_props(prev: &mut Vec<Source>) -> Vec<Source> {
+fn first_key_start_props(prev: &mut Sources) -> Sources {
   if prev.is_empty() {
-    return Vec::new();
+    return Sources::new();
   }
   let mut i = prev.len() as isize;
   loop {
@@ -317,7 +322,7 @@ fn first_key_start_props(prev: &mut Vec<Source>) -> Vec<Source> {
   while prev.get(i).is_some_and(|it| it.kind == Kind::Space) {
     i += 1;
   }
-  prev.split_off(i.min(prev.len()))
+  prev.drain(i.min(prev.len())..).collect()
 }
 
 pub(crate) struct Parser<'p> {
@@ -511,14 +516,14 @@ impl<'p> Parser<'p> {
         let items = self.node_mut(top).items_mut().expect("a map has items");
         let it = items.last_mut().expect("a map has an item");
         if it.value.is_some() {
-          items.push(Item { key: Key::Token(token), sep: Some(Vec::new()), ..Item::default() });
+          items.push(Item { key: Key::Token(token), sep: Some(Sources::new()), ..Item::default() });
           self.on_key_line = true;
           return;
         } else if it.sep.is_some() {
           it.value = Some(token);
         } else {
           it.key = Key::Token(token);
-          it.sep = Some(Vec::new());
+          it.sep = Some(Sources::new());
           self.on_key_line = !it.explicit_key;
           return;
         }
@@ -538,11 +543,13 @@ impl<'p> Parser<'p> {
           Some(it) if it.value.is_none() && it.sep.is_some() => it.value = Some(token),
           Some(it) if it.value.is_none() => {
             it.key = Key::Token(token);
-            it.sep = Some(Vec::new());
+            it.sep = Some(Sources::new());
           }
-          _ => {
-            items.push(Item { key: Key::Token(token), sep: Some(Vec::new()), ..Item::default() })
-          }
+          _ => items.push(Item {
+            key: Key::Token(token),
+            sep: Some(Sources::new()),
+            ..Item::default()
+          }),
         }
         return;
       }
@@ -632,7 +639,7 @@ impl<'p> Parser<'p> {
       }
       Kind::DocMode | Kind::DocStart => {
         let start =
-          if self.kind == Kind::DocStart { vec![self.source_token()] } else { Vec::new() };
+          if self.kind == Kind::DocStart { smallvec![self.source_token()] } else { Sources::new() };
         let id =
           self.tree.add(Node::Document { offset: self.offset, start, value: None, end: None });
         self.stack.push(id);
@@ -697,7 +704,7 @@ impl<'p> Parser<'p> {
         sep.push(token);
         sep
       }
-      None => vec![token],
+      None => smallvec![token],
     };
     let item = Item { start, key: Key::Token(scalar), sep: Some(sep), ..Item::default() };
     let map = self.tree.add(Node::BlockMap { offset, indent, items: vec![item] });
@@ -706,7 +713,7 @@ impl<'p> Parser<'p> {
   }
 
   /// `getFirstKeyStartProps(getPrevProps(parent))`
-  fn prev_props_split(&mut self, parent: Id) -> Vec<Source> {
+  fn prev_props_split(&mut self, parent: Id) -> Sources {
     match self.node_mut(parent) {
       Node::Document { start, .. } => first_key_start_props(start),
       Node::BlockMap { items, .. } => {
@@ -719,7 +726,7 @@ impl<'p> Parser<'p> {
       Node::BlockSeq { items, .. } => {
         first_key_start_props(&mut items.last_mut().expect("a sequence has an item").start)
       }
-      _ => Vec::new(),
+      _ => Sources::new(),
     }
   }
 
@@ -759,7 +766,7 @@ impl<'p> Parser<'p> {
           if self.ends_with_comment(value) {
             self.push_end(value, token);
           } else {
-            self.push_item(map, Item { start: vec![token], ..Item::default() });
+            self.push_item(map, Item { start: smallvec![token], ..Item::default() });
           }
         } else {
           self.with_last(map, |it| match &mut it.sep {
@@ -773,7 +780,7 @@ impl<'p> Parser<'p> {
         let items = self.node(map).items().expect("items");
         let it = items.last().expect("an item");
         if it.value.is_some() {
-          self.push_item(map, Item { start: vec![token], ..Item::default() });
+          self.push_item(map, Item { start: smallvec![token], ..Item::default() });
         } else if it.sep.is_some() {
           self.with_last(map, |it| it.sep.as_mut().expect("sep").push(token));
         } else {
@@ -795,7 +802,7 @@ impl<'p> Parser<'p> {
       let at_next_item =
         at_map_indent && (it.sep.is_some() || it.explicit_key) && self.kind != Kind::SeqItemInd;
       // For empty nodes, newline-separated tokens that are not indented go to the next node.
-      let mut start: Vec<Source> = Vec::new();
+      let mut start = Sources::new();
       if at_next_item
         && it.value.is_none()
         && let Some(sep) = &it.sep
@@ -812,7 +819,7 @@ impl<'p> Parser<'p> {
         }
         if nl.len() >= 2 {
           let at = nl[1];
-          start = self.with_last(map, |it| it.sep.as_mut().expect("sep").split_off(at));
+          start = self.with_last(map, |it| it.sep.as_mut().expect("sep").drain(at..).collect());
         }
       }
       let items = self.node(map).items().expect("items");
@@ -840,7 +847,7 @@ impl<'p> Parser<'p> {
             start.push(token);
             self.push_item(map, Item { start, explicit_key: true, ..Item::default() });
           } else {
-            let item = Item { start: vec![token], explicit_key: true, ..Item::default() };
+            let item = Item { start: smallvec![token], explicit_key: true, ..Item::default() };
             self.push_block_map(item);
           }
           self.on_key_line = true;
@@ -853,25 +860,27 @@ impl<'p> Parser<'p> {
               if it.start_newline {
                 self.with_last(map, |it| {
                   it.key = Key::Null;
-                  it.sep = Some(vec![token]);
+                  it.sep = Some(smallvec![token]);
                 });
               } else {
                 let start = self.with_last(map, |it| first_key_start_props(&mut it.start));
                 self.push_block_map(Item {
                   start,
                   key: Key::Null,
-                  sep: Some(vec![token]),
+                  sep: Some(smallvec![token]),
                   ..Item::default()
                 });
               }
             } else if it.value.is_some() {
-              self
-                .push_item(map, Item { key: Key::Null, sep: Some(vec![token]), ..Item::default() });
+              self.push_item(
+                map,
+                Item { key: Key::Null, sep: Some(smallvec![token]), ..Item::default() },
+              );
             } else if sep.is_some_and(|sep| sep.map_value) {
               self.push_block_map(Item {
                 start,
                 key: Key::Null,
-                sep: Some(vec![token]),
+                sep: Some(smallvec![token]),
                 ..Item::default()
               });
             } else if matches!(it.key, Key::Token(key) if is_flow_token(self.node(key)))
@@ -896,15 +905,19 @@ impl<'p> Parser<'p> {
           } else if it.sep.is_none() {
             self.with_last(map, |it| {
               it.key = Key::Null;
-              it.sep = Some(vec![token]);
+              it.sep = Some(smallvec![token]);
             });
           } else if it.value.is_some() || at_next_item {
             self.push_item(
               map,
-              Item { start, key: Key::Null, sep: Some(vec![token]), ..Item::default() },
+              Item { start, key: Key::Null, sep: Some(smallvec![token]), ..Item::default() },
             );
           } else if it.sep.is_some_and(|sep| sep.map_value) {
-            self.push_block_map(Item { key: Key::Null, sep: Some(vec![token]), ..Item::default() });
+            self.push_block_map(Item {
+              key: Key::Null,
+              sep: Some(smallvec![token]),
+              ..Item::default()
+            });
           } else {
             self.with_last(map, |it| it.sep.as_mut().expect("sep").push(token));
           }
@@ -917,7 +930,7 @@ impl<'p> Parser<'p> {
             let fs = self.tree.add(fs);
             self.push_item(
               map,
-              Item { start, key: Key::Token(fs), sep: Some(Vec::new()), ..Item::default() },
+              Item { start, key: Key::Token(fs), sep: Some(Sources::new()), ..Item::default() },
             );
             self.on_key_line = true;
           } else if it.sep.is_some() {
@@ -927,7 +940,7 @@ impl<'p> Parser<'p> {
             let fs = self.tree.add(fs);
             self.with_last(map, |it| {
               it.key = Key::Token(fs);
-              it.sep = Some(Vec::new());
+              it.sep = Some(Sources::new());
             });
             self.on_key_line = true;
           }
@@ -964,14 +977,14 @@ impl<'p> Parser<'p> {
       Kind::Newline => {
         match it.value {
           Some(value) if self.ends_with_comment(value) => self.push_end(value, token),
-          Some(_) => self.push_item(seq, Item { start: vec![token], ..Item::default() }),
+          Some(_) => self.push_item(seq, Item { start: smallvec![token], ..Item::default() }),
           None => self.with_last(seq, |it| it.start.push(token)),
         }
         return;
       }
       Kind::Space | Kind::Comment => {
         if it.value.is_some() {
-          self.push_item(seq, Item { start: vec![token], ..Item::default() });
+          self.push_item(seq, Item { start: smallvec![token], ..Item::default() });
         } else {
           let items = self.node(seq).items().expect("items");
           let indented =
@@ -988,7 +1001,7 @@ impl<'p> Parser<'p> {
       }
       Kind::SeqItemInd if self.indent == seq_indent => {
         if it.value.is_some() || it.start_seq_item {
-          self.push_item(seq, Item { start: vec![token], ..Item::default() });
+          self.push_item(seq, Item { start: smallvec![token], ..Item::default() });
         } else {
           self.with_last(seq, |it| it.start.push(token));
         }
@@ -1025,7 +1038,7 @@ impl<'p> Parser<'p> {
         Kind::Comma | Kind::ExplicitKeyInd => {
           match it {
             Some(it) if it.sep.is_none() => self.with_last(fc, |it| it.start.push(token)),
-            _ => self.push_item(fc, Item { start: vec![token], ..Item::default() }),
+            _ => self.push_item(fc, Item { start: smallvec![token], ..Item::default() }),
           }
           return;
         }
@@ -1036,11 +1049,12 @@ impl<'p> Parser<'p> {
             }
             Some(it) if it.value.is_none() => self.with_last(fc, |it| {
               it.key = Key::Null;
-              it.sep = Some(vec![token]);
+              it.sep = Some(smallvec![token]);
             }),
-            _ => {
-              self.push_item(fc, Item { key: Key::Null, sep: Some(vec![token]), ..Item::default() })
-            }
+            _ => self.push_item(
+              fc,
+              Item { key: Key::Null, sep: Some(smallvec![token]), ..Item::default() },
+            ),
           }
           return;
         }
@@ -1050,7 +1064,7 @@ impl<'p> Parser<'p> {
               self.with_last(fc, |it| it.sep.as_mut().expect("sep").push(token))
             }
             Some(it) if it.value.is_none() => self.with_last(fc, |it| it.start.push(token)),
-            _ => self.push_item(fc, Item { start: vec![token], ..Item::default() }),
+            _ => self.push_item(fc, Item { start: smallvec![token], ..Item::default() }),
           }
           return;
         }
@@ -1061,11 +1075,11 @@ impl<'p> Parser<'p> {
             Some(it) if it.value.is_none() && it.sep.is_some() => self.stack.push(fs),
             Some(it) if it.value.is_none() => self.with_last(fc, |it| {
               it.key = Key::Token(fs);
-              it.sep = Some(Vec::new());
+              it.sep = Some(Sources::new());
             }),
             _ => self.push_item(
               fc,
-              Item { key: Key::Token(fs), sep: Some(Vec::new()), ..Item::default() },
+              Item { key: Key::Token(fs), sep: Some(Sources::new()), ..Item::default() },
             ),
           }
           return;
@@ -1109,7 +1123,7 @@ impl<'p> Parser<'p> {
       self.fix_flow_seq_items(fc);
       let Node::FlowCollection { offset, indent, end, .. } = self.node_mut(fc) else { return };
       let (offset, indent) = (*offset, *indent);
-      let mut sep = end.split_off(1.min(end.len()));
+      let mut sep: Sources = end.drain(1.min(end.len())..).collect();
       sep.push(token);
       let item = Item { start, key: Key::Token(fc), sep: Some(sep), ..Item::default() };
       let map = self.tree.add(Node::BlockMap { offset, indent, items: vec![item] });
@@ -1149,13 +1163,17 @@ impl<'p> Parser<'p> {
         props: vec![Prop::Source(token)],
         source: (offset, offset),
       },
-      Kind::FlowMapStart | Kind::FlowSeqStart => {
-        Node::FlowCollection { offset, indent, start: token, items: Vec::new(), end: Vec::new() }
-      }
+      Kind::FlowMapStart | Kind::FlowSeqStart => Node::FlowCollection {
+        offset,
+        indent,
+        start: token,
+        items: Vec::new(),
+        end: Sources::new(),
+      },
       Kind::SeqItemInd => Node::BlockSeq {
         offset,
         indent,
-        items: vec![Item { start: vec![token], ..Item::default() }],
+        items: vec![Item { start: smallvec![token], ..Item::default() }],
       },
       Kind::ExplicitKeyInd => {
         self.on_key_line = true;
@@ -1170,7 +1188,7 @@ impl<'p> Parser<'p> {
       Kind::MapValueInd => {
         self.on_key_line = true;
         let start = self.prev_props_split(parent);
-        let item = Item { start, key: Key::Null, sep: Some(vec![token]), ..Item::default() };
+        let item = Item { start, key: Key::Null, sep: Some(smallvec![token]), ..Item::default() };
         Node::BlockMap { offset, indent, items: vec![item] }
       }
       _ => return None,
@@ -1222,10 +1240,10 @@ impl<'p> Parser<'p> {
   }
 
   fn push_end(&mut self, id: Id, token: Source) {
-    self.extend_end(id, vec![token]);
+    self.extend_end(id, smallvec![token]);
   }
 
-  fn extend_end(&mut self, id: Id, tokens: Vec<Source>) {
+  fn extend_end(&mut self, id: Id, tokens: Sources) {
     match self.node_mut(id) {
       Node::FlowCollection { end, .. } => end.extend(tokens),
       node => {
@@ -1257,7 +1275,7 @@ impl<'p> Parser<'p> {
     }
     let token = self.source_token();
     if let Node::DocumentEnd { end, .. } = self.node_mut(doc_end) {
-      end.get_or_insert_with(Vec::new).push(token);
+      end.get_or_insert_with(Sources::new).push(token);
     }
     if self.kind == Kind::Newline {
       self.pop(None);
@@ -1285,7 +1303,7 @@ impl<'p> Parser<'p> {
           Node::FlowCollection { end, .. } => end.push(token),
           node => {
             if let Some(end) = node.end_mut() {
-              end.get_or_insert_with(Vec::new).push(token);
+              end.get_or_insert_with(Sources::new).push(token);
             }
           }
         }

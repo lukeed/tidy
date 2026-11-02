@@ -304,7 +304,7 @@ impl<'t> Transformer<'t> {
     let mut trailing: Option<Id> = None;
     if let Some(cst) = data.cst {
       let Token::Document { end, .. } = self.cst(cst) else { unreachable!() };
-      let mut tokens: Vec<Source> = end.clone().unwrap_or_default();
+      let mut tokens: Vec<Source> = end.as_deref().unwrap_or_default().to_vec();
       if let Some((_, _, Some(end))) = &doc_end {
         tokens.extend(end.iter().copied());
       }

@@ -7,4 +7,5 @@ publish = false
 [dependencies]
 serde = "1"
 serde_json = { version = "1", features = ["unbounded_depth"] }
+smallvec = { version = "1.16.4", features = ["union"] }
 tidy = { path = "../../../crates/tidy" }
