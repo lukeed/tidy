@@ -44,6 +44,7 @@ export function language(name: string) {
 		less: "Less",
 		handlebars: "Handlebars",
 		markdown: "Markdown",
+		dockerfile: "Dockerfiles",
 		vue: "Vue",
 		pages: "HTML pages",
 		all: "all corpora",

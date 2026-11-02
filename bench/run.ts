@@ -2,7 +2,8 @@
 // files of a corpus and leaves embedded code alone, except tidy, which always formats style sheets in markup and in
 // Markdown code blocks, so it does more work than the others. Each corpus only has the files that Prettier parses.
 // Each set runs in both orders; Prettier runs fewer times, since it is two orders of magnitude slower. The TOML corpus
-// only has the files that taplo parses, and the Dockerfile corpus the ones that prettier-plugin-sh parses.
+// only has the files that taplo parses, the Dockerfile corpus the ones that prettier-plugin-sh parses, and the INI
+// corpus the ones that prettier-plugin-ini parses, with the hidden files that hold INI, such as `.editorconfig`.
 //
 // The incumbents, where they format a language:
 // - Prettier 3.9.9, with @prettier/plugin-xml for XML;
@@ -15,6 +16,7 @@
 // - Google's yamlfmt 0.21.0 for YAML;
 // - for Dockerfiles, which Prettier only formats with a plugin: prettier-plugin-sh 0.20.2, whose formatter is
 //   dockerfmt, and dprint-plugin-dockerfile, tidy's reference;
+// - for INI, which Prettier only formats with a plugin: prettier-plugin-ini 1.3.0, tidy's reference;
 // - a naive formatter on @lukeed/html, as a floor for HTML in JavaScript.
 //
 // "all" is every corpus in one tree, and "all-but-xml" leaves out XML, which bun fmt doesn't format. Prettier skips
@@ -50,6 +52,16 @@ await build("bench/css", "css");
 let dockerfile = (name: string) =>
 	/^(Dockerfile|Containerfile)(\.[\w-]+)?$/.test(name) && !/\.(json|md|ya?ml|toml|txt|sh|go)$/i.test(name)
 	|| /\.(dockerfile|containerfile)$/i.test(name);
+
+/** The names of INI files, as tidy finds them. */
+let ini = (name: string) => {
+	let lower = name.toLowerCase();
+	let names = [".coveragerc", ".flake8", ".pylintrc", "pylintrc", "buildozer.spec", "vlcrc", ".editorconfig"];
+	names.push(".shellcheckrc", ".npmrc", ".gitconfig", ".gitmodules", "gitconfig");
+	let extensions = ["ini", "cfg", "cnf", "dof", "lektorproject", "prefs", "properties", "url", "sfv", "mc"];
+	extensions.push("editorconfig", "gitconfig", "outjob", "pcbdoc", "prjpcb", "schdoc");
+	return names.includes(lower) || extensions.includes(lower.split(".").pop()!);
+};
 
 let sources: Record<string, { repo: string; extensions: string[]; path?: string; names?: (name: string) => boolean }[]> = {
 	html: ["vite", "storybook"].map((repo) => ({ repo, extensions: ["html"] })),
@@ -90,6 +102,11 @@ let sources: Record<string, { repo: string; extensions: string[]; path?: string;
 		"buzz",
 		"taplo",
 	].map((repo) => ({ repo, extensions: [], names: dockerfile })),
+	ini: ["maven", "bun", "aspire", "deno", "angular-html-parser", "nowinandroid", "twinkleplop"].map((repo) => ({
+		repo,
+		extensions: [],
+		names: ini,
+	})),
 	yaml: ["vite", "storybook", "bun", "deno", "oxc", "rolldown", "prettier", "aspire"].map((repo) => ({
 		repo,
 		extensions: ["yml", "yaml"],
@@ -104,6 +121,9 @@ async function parses(file: string, source: string, path: string) {
 		let prettier = join(root, "node_modules/.bin/prettier");
 		let run = await $`${prettier} --check ${path} --plugin prettier-plugin-sh`.cwd(root).nothrow().quiet();
 		return run.exitCode === 0 || run.exitCode === 1;
+	}
+	if (ini(file.split("/").pop()!)) {
+		return prettierApi.format(source, { parser: "ini", plugins: ["prettier-plugin-ini"] }).then(() => true, () => false);
 	}
 	if (file.endsWith(".toml")) {
 		try {
@@ -141,7 +161,8 @@ for (let [name, list] of Object.entries(sources)) {
 		let listed = await $`git -C ${join(oss, repo)} ls-files -z -- ${patterns}`.nothrow().text();
 		for (let file of listed.split("\0").filter(Boolean)) {
 			if (names && !names(file.split("/").pop()!)) continue;
-			if (/node_modules|\/dist\/|\/build\/|\.min\.css$|(^|\/)\./.test(file)) continue;
+			let hidden = name === "ini" ? /(^|\/)\.[^/]*\// : /(^|\/)\./;
+			if (/node_modules|\/dist\/|\/build\/|\.min\.css$/.test(file) || hidden.test(file)) continue;
 			let source = await Bun.file(join(oss, repo, file)).text().catch(() => undefined);
 			if (source === undefined) continue;
 			if (!(await parses(file, source, join(oss, repo, file)))) continue;
@@ -156,6 +177,9 @@ for (let name of [...Object.keys(sources), "pages"]) {
 	cpSync(join(corpus, name), join(corpus, "all", name), { recursive: true });
 	if (name !== "xml") cpSync(join(corpus, name), join(corpus, "all-but-xml", name), { recursive: true });
 }
+
+let megabytes = (bytes: number) =>
+	bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
 function size(path: string): [number, number] {
 	if (statSync(path).isFile()) return [1, statSync(path).size];
@@ -180,7 +204,7 @@ let commands = (dir: string): Record<string, string> => ({
 	taplo: `${taplo} fmt --check ${dir}/**/*.toml`,
 	tombi: `${root}/node_modules/@tombi-toml/cli-darwin-arm64/tombi format --check ${dir}`,
 	yamlfmt: `${yamlfmt} -lint ${dir}`,
-	prettier: `${prettier} --check ${dir} ${off} --log-level silent --plugin @prettier/plugin-xml --plugin prettier-plugin-sh`,
+	prettier: `${prettier} --check ${dir} ${off} --log-level silent --plugin @prettier/plugin-xml --plugin prettier-plugin-sh --plugin prettier-plugin-ini`,
 });
 
 /** What each tool is, with its version. */
@@ -195,7 +219,7 @@ let versions: Record<string, string> = {
 	taplo: `taplo ${await version([taplo, "--version"])}`,
 	tombi: `tombi ${await version([join(root, "node_modules/@tombi-toml/cli-darwin-arm64/tombi"), "--version"])}`,
 	yamlfmt: `yamlfmt ${await version([yamlfmt, "-version"])}`,
-	prettier: `Prettier ${prettierApi.version}, @prettier/plugin-xml ${(await import("@prettier/plugin-xml/package.json")).version}, prettier-plugin-sh ${(await import("prettier-plugin-sh/package.json")).version}`,
+	prettier: `Prettier ${prettierApi.version}, @prettier/plugin-xml ${(await import("@prettier/plugin-xml/package.json")).version}, prettier-plugin-sh ${(await import("prettier-plugin-sh/package.json")).version}, prettier-plugin-ini ${(await import("prettier-plugin-ini/package.json")).version}`,
 };
 
 /** The corpora that each tool formats; the others leave them out. */
@@ -242,6 +266,7 @@ let names = [
 	"yaml",
 	"toml",
 	"dockerfile",
+	"ini",
 	"xml",
 	"markdown",
 ];
@@ -254,14 +279,14 @@ for (let name of names.filter((name) => !only || only.includes(name))) {
 	let slow = name === "toml" ? {} : await time(["prettier"], all, Math.min(runs, 3));
 	let means = { ...(await time(fast, all, runs)), ...slow };
 	let ours = average(means.tidy);
-	rows.push(`\n${name}: ${files} files, ${(bytes / 1024 / 1024).toFixed(1)} MB`);
+	rows.push(`\n${name}: ${files} files, ${megabytes(bytes)}`);
 	let sorted = Object.entries(means).sort(([, left], [, right]) => average(left) - average(right));
 	for (let [tool, values] of sorted) {
 		let mean = average(values);
 		rows.push(`  ${tool.padEnd(16)} ${mean.toFixed(1).padStart(9)} ms  ${(mean / ours).toFixed(2).padStart(7)}x`);
 	}
 	console.log(rows.slice(-sorted.length - 1).join("\n"));
-	let summary = `${files} files, ${(bytes / 1024 / 1024).toFixed(1)} MB. Each tool checks every file. A time is the mean of ${runs} runs in each order, or ${Math.min(runs, 3)} for Prettier.`;
+	let summary = `${files} files, ${megabytes(bytes)}. Each tool checks every file. A time is the mean of ${runs} runs in each order, or ${Math.min(runs, 3)} for Prettier.`;
 	let head = ["Tool", "Time", "Against tidy"];
 	let table = sorted.map(([tool, values]) => [tool, `${average(values).toFixed(1)} ms`, `${(average(values) / ours).toFixed(2)}x`]);
 	let used = sorted.map(([tool]) => tool).filter((tool) => !tool.includes("(1 thread)"));
