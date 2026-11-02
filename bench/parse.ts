@@ -63,5 +63,5 @@ for (let line of output.split("\n").filter(Boolean)) {
 	let head = ["Tool", "Builds", "Time", "Speed", "Against fastest", "Rejects"];
 	let names = [...new Set(tools.map((tool) => sources[tool.name.split(" ")[0]]).filter(Boolean))];
 	let versions = ["tidy at the commit above", ...(await crates("bench/parse/Cargo.lock", names))];
-	await record(`parse/${language}.md`, `${named(language)} parsers`, [{ summary, head, rows }], versions);
+	await record(`parse/${language}.md`, `Parsers: ${named(language)}`, [{ summary, head, rows }], versions);
 }

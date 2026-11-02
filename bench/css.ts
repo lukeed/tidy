@@ -148,4 +148,4 @@ let versions = [
 	`bun fmt ${await version(["bun", "--version"])}`,
 	`Prettier ${prettier.version}`,
 ];
-await record("css.md", "CSS formatters", sections, versions);
+await record("css.md", "Formatters: CSS, SCSS and Less", sections, versions);

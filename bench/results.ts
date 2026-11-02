@@ -40,8 +40,16 @@ async function setup() {
 
 /** How a corpus or language is written in prose. */
 export function language(name: string) {
-	let names: Record<string, string> = { less: "Less", handlebars: "Handlebars", markdown: "Markdown", vue: "Vue" };
-	return names[name] ?? (name.includes("-") || name === "all" || name === "pages" ? name : name.toUpperCase());
+	let names: Record<string, string> = {
+		less: "Less",
+		handlebars: "Handlebars",
+		markdown: "Markdown",
+		vue: "Vue",
+		pages: "HTML pages",
+		all: "all corpora",
+		"all-but-xml": "all corpora but XML",
+	};
+	return names[name] ?? name.toUpperCase();
 }
 
 /** The versions of `names` in a Cargo.lock, as `name version`. */

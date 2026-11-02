@@ -228,5 +228,5 @@ for (let name of names.filter((name) => !only || only.includes(name))) {
 	let head = ["Tool", "Time", "Against tidy"];
 	let table = sorted.map(([tool, values]) => [tool, `${average(values).toFixed(1)} ms`, `${(average(values) / ours).toFixed(2)}x`]);
 	let used = sorted.map(([tool]) => tool).filter((tool) => !tool.includes("(1 thread)"));
-	await record(`format/${name}.md`, `${language(name)} formatters`, [{ summary, head, rows: table }], used.map((tool) => versions[tool] ?? tool));
+	await record(`format/${name}.md`, `Formatters: ${language(name)}`, [{ summary, head, rows: table }], used.map((tool) => versions[tool] ?? tool));
 }
