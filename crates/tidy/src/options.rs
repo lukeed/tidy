@@ -4,7 +4,7 @@
 use crate::embed::Embed;
 use crate::embed::{Kind, Request};
 use crate::{
-  Error, Whitespace, css, doc, dockerfile, handlebars, html, json, markdown, toml, xml, yaml,
+  Error, Whitespace, css, doc, dockerfile, handlebars, html, ini, json, markdown, toml, xml, yaml,
 };
 
 /// A language that tidy formats.
@@ -20,6 +20,7 @@ pub enum Language {
   Yaml,
   Markdown,
   Dockerfile,
+  Ini(ini::Dialect),
 }
 
 impl Language {
@@ -36,6 +37,9 @@ impl Language {
     }
     if dockerfile::is_dockerfile_path(path) {
       return Some(Language::Dockerfile);
+    }
+    if let Some(dialect) = ini::Dialect::of_path(path) {
+      return Some(Language::Ini(dialect));
     }
     if yaml::is_yaml_path(path) {
       return Some(Language::Yaml);
@@ -71,6 +75,8 @@ pub struct Options {
   pub yaml: yaml::Options,
   pub markdown: markdown::Options,
   pub dockerfile: dockerfile::Options,
+  /// For every dialect of INI.
+  pub ini: ini::Options,
 }
 
 impl Default for Options {
@@ -86,6 +92,7 @@ impl Default for Options {
       yaml: yaml::Options::default(),
       markdown: markdown::Options::default(),
       dockerfile: dockerfile::Options::default(),
+      ini: ini::Options::default(),
     }
   }
 }
@@ -103,6 +110,7 @@ impl Options {
     shared.yaml(&mut self.yaml);
     shared.markdown(&mut self.markdown);
     shared.dockerfile(&mut self.dockerfile);
+    shared.ini(&mut self.ini);
   }
 }
 
@@ -223,6 +231,13 @@ impl Shared {
     set(&mut options.eol, self.eol);
   }
 
+  /// The indent is that of the values of a key over lines.
+  pub fn ini(&self, options: &mut ini::Options) {
+    set(&mut options.tab_width, self.indent);
+    set(&mut options.tabs, self.tabs);
+    set(&mut options.eol, self.eol);
+  }
+
   pub fn xml(&self, options: &mut xml::Options) {
     set(&mut options.width, self.width);
     set(&mut options.tab_width, self.indent);
@@ -271,6 +286,7 @@ pub struct Formatter {
   xml: xml::Formatter,
   yaml: yaml::Formatter,
   dockerfile: dockerfile::Formatter,
+  ini: ini::Formatter,
   markdown: String,
 }
 
@@ -305,6 +321,10 @@ impl Formatter {
       }
       Language::Toml => self.toml.format(text, &options.toml),
       Language::Dockerfile => self.dockerfile.format(text, &options.dockerfile),
+      Language::Ini(dialect) => {
+        let options = ini::Options { dialect, ..options.ini.clone() };
+        self.ini.format(text, &options)
+      }
       Language::Xml => self.xml.format(text, &options.xml, embed),
       Language::Yaml => {
         let options = yaml::Options { filepath, ..options.yaml.clone() };

@@ -72,6 +72,15 @@ fn sets_dockerfile() {
 }
 
 #[test]
+fn sets_ini() {
+  let config =
+    Config::json(r#"{ "indent": 4, "ini": { "spaceAroundEquals": false, "tabs": true } }"#)
+      .unwrap();
+  let options = options(&config).ini;
+  assert_eq!((options.spaces, options.tab_width, options.tabs), (false, 4, true));
+}
+
+#[test]
 fn sets_json_yaml_and_toml() {
   let config = Config::toml(
     r#"

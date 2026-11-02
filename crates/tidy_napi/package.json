@@ -1,7 +1,7 @@
 {
   "name": "tidyrs",
   "version": "0.0.0",
-  "description": "A fast formatter for HTML, Vue, Handlebars, CSS, JSON, YAML, TOML, XML and Markdown, with Prettier's style by default",
+  "description": "A fast formatter for HTML, Vue, Handlebars, CSS, JSON, YAML, TOML, XML, INI, Dockerfiles and Markdown, with Prettier's style by default",
   "license": "MIT",
   "author": "Luke Edwards <luke.edwards05@gmail.com> (https://lukeed.com)",
   "repository": {

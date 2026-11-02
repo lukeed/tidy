@@ -1,11 +1,11 @@
-//! Every known deviation from Prettier 3.9.9, from taplo for TOML and from dprint-plugin-dockerfile for Dockerfiles,
-//! listed in `deviations.md`. Each row holds an
+//! Every known deviation from Prettier 3.9.9, from taplo for TOML, from dprint-plugin-dockerfile for Dockerfiles and
+//! from prettier-plugin-ini for INI, listed in `deviations.md`. Each row holds an
 //! input, what the reference prints and what tidy prints. A row fails if tidy prints something else, or if the
 //! reference's output is now the same.
 
 use serde_json::Value;
 use tidy::embed::Verbatim;
-use tidy::{Language, css, dockerfile, handlebars, html, toml, xml};
+use tidy::{Language, css, dockerfile, handlebars, html, ini, toml, xml};
 
 fn format(parser: &str, input: &str, option: Option<&str>) -> String {
   let whitespace = match option {
@@ -33,6 +33,11 @@ fn format(parser: &str, input: &str, option: Option<&str>) -> String {
     "toml" => toml::format(input, &toml::Options::default()).map_err(|error| error.to_string()),
     "dockerfile" => {
       dockerfile::format(input, &dockerfile::Options::default()).map_err(|error| error.to_string())
+    }
+    "ini" | "gitconfig" => {
+      let dialect = if parser == "gitconfig" { ini::Dialect::Git } else { ini::Dialect::Ini };
+      ini::format(input, &ini::Options { dialect, ..ini::Options::default() })
+        .map_err(|error| error.to_string())
     }
     "handlebars" => {
       let dialect = handlebars::Dialect::Handlebars;

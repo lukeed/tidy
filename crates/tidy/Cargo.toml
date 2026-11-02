@@ -1,6 +1,6 @@
 [package]
 name = "tidy"
-description = "A fast formatter for HTML, Vue, Handlebars, CSS, JSON, YAML, TOML, XML and Markdown, with Prettier's style by default"
+description = "A fast formatter for HTML, Vue, Handlebars, CSS, JSON, YAML, TOML, XML, INI, Dockerfiles and Markdown, with Prettier's style by default"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

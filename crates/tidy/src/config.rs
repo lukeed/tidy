@@ -41,6 +41,7 @@ pub struct Config {
   pub yaml: Yaml,
   pub markdown: Markdown,
   pub dockerfile: Dockerfile,
+  pub ini: Ini,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -95,6 +96,14 @@ pub struct Dockerfile {
   pub shared: Shared,
   pub indent_stages: Option<bool>,
   pub healthcheck_cmd_new_line: Option<bool>,
+}
+
+/// prettier-plugin-ini's options. The shared `indent` is the indent of the values of a key over lines.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Ini {
+  pub shared: Shared,
+  /// `spaceAroundEquals`: the plugin's `iniSpaceAroundEquals`.
+  pub space_around_equals: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -168,6 +177,7 @@ impl Config {
         "json" => config.json = json(section("json")?)?,
         "toml" => config.toml = toml(section("toml")?)?,
         "dockerfile" => config.dockerfile = dockerfile(section("dockerfile")?)?,
+        "ini" => config.ini = ini(section("ini")?)?,
         "yaml" => config.yaml = yaml(section("yaml")?)?,
         "xml" => config.xml = xml(section("xml")?)?,
         "markdown" => config.markdown = markdown(section("markdown")?)?,
@@ -200,6 +210,8 @@ impl Config {
     self.dockerfile.shared.dockerfile(&mut options.dockerfile);
     set(&mut options.dockerfile.indent_stages, self.dockerfile.indent_stages);
     set(&mut options.dockerfile.healthcheck_cmd_new_line, self.dockerfile.healthcheck_cmd_new_line);
+    self.ini.shared.ini(&mut options.ini);
+    set(&mut options.ini.spaces, self.ini.space_around_equals);
     self.yaml.shared.yaml(&mut options.yaml);
     set(&mut options.yaml.wrap, self.yaml.wrap);
     self.xml.shared.xml(&mut options.xml);
@@ -374,6 +386,19 @@ fn dockerfile(map: &Map<String, Value>) -> Result<Dockerfile, String> {
       _ => return Err(format!("unknown option `{name}`")),
     };
     *field = Some(flag(value, &name)?);
+  }
+  Ok(options)
+}
+
+fn ini(map: &Map<String, Value>) -> Result<Ini, String> {
+  let mut options = Ini::default();
+  for (key, value) in map {
+    let name = format!("ini.{key}");
+    match key.as_str() {
+      "spaceAroundEquals" => options.space_around_equals = Some(flag(value, &name)?),
+      _ if shared(&mut options.shared, key, value, "ini")? => {}
+      _ => return Err(format!("unknown option `{name}`")),
+    }
   }
   Ok(options)
 }

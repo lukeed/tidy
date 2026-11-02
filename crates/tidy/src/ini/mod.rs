@@ -37,7 +37,8 @@ const NAMES: [&str; 12] = [
   "gitconfig",
 ];
 
-/// The extensions that the plugin formats, but `.pro`, which is mostly qmake's.
+/// The extensions that the plugin formats, but `.pro`, which is mostly qmake's, and `.reg`, which regedit writes in
+/// UTF-16.
 const EXTENSIONS: [&str; 16] = [
   "ini",
   "cfg",

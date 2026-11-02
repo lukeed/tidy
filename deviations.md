@@ -1,6 +1,6 @@
 # Deviations from Prettier
 
-tidy prints what Prettier 3.9.9 prints, XML what `@prettier/plugin-xml` 3.4.2 prints, TOML, which Prettier doesn't format, what taplo 0.14.0 prints by default, and Dockerfiles what dprint-plugin-dockerfile 0.7.0 prints on its first pass, except where this file says otherwise. Markdown follows Prettier 3.9.10, and its deviations are in [`markdown-divergences.md`](markdown-divergences.md), which is generated from its cases. Each entry below says what tidy prints instead, why, where the rule is, and whether Luke has signed it off. `crates/tidy/tests/deviations.json` holds every input that was checked against both tools, and `cargo test --test deviations` fails if tidy stops printing what an entry says.
+tidy prints what Prettier 3.9.9 prints, XML what `@prettier/plugin-xml` 3.4.2 prints, TOML, which Prettier doesn't format, what taplo 0.14.0 prints by default, Dockerfiles what dprint-plugin-dockerfile 0.7.0 prints on its first pass, and INI files what prettier-plugin-ini 1.3.0 prints, except where this file says otherwise. Markdown follows Prettier 3.9.10, and its deviations are in [`markdown-divergences.md`](markdown-divergences.md), which is generated from its cases. Each entry below says what tidy prints instead, why, where the rule is, and whether Luke has signed it off. `crates/tidy/tests/deviations.json` holds every input that was checked against both tools, and `cargo test --test deviations` fails if tidy stops printing what an entry says.
 
 ## Process
 
@@ -76,6 +76,12 @@ Most entries come from bun's ports, which correct the places where Prettier's ou
 | [dockerfile-read-back](#dockerfile-read-back) | dockerfile | proposed |
 | [dockerfile-byte-order-mark](#dockerfile-byte-order-mark) | dockerfile | proposed |
 | [dockerfile-embedded](#dockerfile-embedded) | markdown | proposed |
+| [ini-space-around-equals](#ini-space-around-equals) | ini | approved 2026-11-01 |
+| [ini-git-config](#ini-git-config) | ini | approved 2026-11-01 |
+| [ini-kept-mode](#ini-kept-mode) | ini | proposed |
+| [ini-empty-section](#ini-empty-section) | ini | proposed |
+| [ini-empty-list](#ini-empty-list) | ini | proposed |
+| [ini-embedded](#ini-embedded) | markdown | proposed |
 | [the rule in step 2](#process) | all | proposed |
 | [tempura and text mode](#beyond-prettier) | handlebars | approved 2026-10-31 |
 
@@ -937,6 +943,94 @@ tidy:   "﻿FROM a\n"
 input:    "```dockerfile\nfrom   node\n```\n"
 Prettier: "```dockerfile\nfrom   node\n```\n"
 tidy:     "```dockerfile\nFROM node\n```\n"
+```
+
+## INI
+
+tidy formats the files that prettier-plugin-ini formats, but `.pro`, which is mostly qmake's, and `.reg`, which regedit writes in UTF-16. It also formats `.npmrc`. A file that the plugin reads prints as the plugin prints it, with the deviations below. Where an entry shows the plugin's output, it is with `iniSpaceAroundEquals`, but in ini-space-around-equals. `tests/oracle/ini.ts` checks this on a corpus and on generated files, with the plugin's tree changed by ini-empty-section and ini-empty-list.
+
+### ini-space-around-equals
+
+- Status: approved 2026-11-01
+- Why: `key = value` is the more common style in INI files. The option `ini.spaceAroundEquals: false` prints `key=value`, the plugin's default.
+- Where: crates/tidy/src/ini/mod.rs (`Options::default`)
+- Parser: ini
+
+```
+input:  "a=1\n"
+plugin: "a=1\n"
+tidy:   "a = 1\n"
+```
+
+### ini-git-config
+
+- Status: approved 2026-11-01
+- Why: git writes its config with an indent, and the plugin removes it. In `.gitconfig`, `.gitmodules` and `*.gitconfig`, tidy keeps the indent of each line, in kept mode (see ini-kept-mode).
+- Where: crates/tidy/src/ini/parse.rs (`parse`)
+- Parser: gitconfig
+
+```
+input:  "[core]\n\tbare = false\n"
+plugin: "[core]\nbare = false\n"
+tidy:   "[core]\n\tbare = false\n"
+```
+
+### ini-kept-mode
+
+- Status: proposed
+- Why: The plugin rejects a file with a line that isn't a key, a section, a comment or a value of a list: a bare key, `key: value`, a comment after a section, a `]` in a section's name, or a value over lines. tidy formats the file, but keeps the indent of each line, since in such files the indent can carry meaning, as in web-platform-tests metadata. A line indented deeper than the key above it continues that key's value, as in Python's configparser, and stays as written. Keys get the spaces around `=`, sections and comments lose the spaces at their ends, and runs of blank lines become one. This replaces the plan to print these lines in the plugin's style: the plugin removes indents, so a file it can't read would change its meaning.
+- Where: crates/tidy/src/ini/parse.rs (`kept`)
+- Parser: ini
+
+```
+input:  "[a]\nkey = first\n  x=1\n  bare\n"
+plugin: error
+tidy:   "[a]\nkey = first\n  x=1\n  bare\n"
+```
+
+```
+input:  "[*.out]   # editor\nindent_size=4\n"
+plugin: error
+tidy:   "[*.out] # editor\nindent_size = 4\n"
+```
+
+### ini-empty-section
+
+- Status: proposed
+- Why: The plugin ends an empty section with a line break of its own, so a blank line before the next section becomes two, and each pass adds one more. tidy prints one blank line after an empty section. Where the next line follows directly, this is the plugin's output.
+- Where: crates/tidy/src/ini/print.rs (`nodes`)
+- Parser: ini
+
+```
+input:  "[a]\n\n[b]\nx=1\n"
+plugin: "[a]\n\n\n[b]\nx = 1\n"
+tidy:   "[a]\n\n[b]\nx = 1\n"
+```
+
+### ini-empty-list
+
+- Status: proposed
+- Why: After `key =`, the plugin reads a line of only white space as the start of a list without values, and prints a blank line after it that it reads back as the end of the section. tidy prints a key with an empty value, so a second pass doesn't change the file.
+- Where: crates/tidy/src/ini/parse.rs (`plugin`)
+- Parser: ini
+
+```
+input:  "a =\n  \nb = 1\n"
+plugin: "a =\n\n\nb = 1\n"
+tidy:   "a =\n\nb = 1\n"
+```
+
+### ini-embedded
+
+- Status: proposed
+- Why: Prettier has no INI formatter of its own, so it leaves ```` ```ini ```` code blocks as they are written. tidy formats them as it formats an INI file, at the start of a line only, since an indent can continue a value.
+- Where: crates/tidy/src/embed.rs (`own`, `builtin`)
+- Parser: markdown
+
+```
+input:    "```ini\na=1\n```\n"
+Prettier: "```ini\na=1\n```\n"
+tidy:     "```ini\na = 1\n```\n"
 ```
 
 ## Beyond Prettier

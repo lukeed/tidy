@@ -3,7 +3,7 @@ use napi_derive::napi;
 use serde_json::{Map, Value};
 use tidy::config::Config;
 use tidy::embed::{Kind, Request};
-use tidy::{Formatter, Language, Options, css, json};
+use tidy::{Formatter, Language, Options, css, ini, json};
 
 /// A piece of embedded code for the host to format.
 #[napi(object)]
@@ -29,7 +29,7 @@ type Callback<'a> = Function<'a, EmbedRequest, Option<String>>;
 pub struct FormatOptions {
   /// The language. Default: by `filepath`, and HTML without one.
   #[napi(
-    ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'json' | 'jsonc' | 'json5' | 'json-stringify' | 'yaml' | 'toml' | 'dockerfile' | 'xml' | 'markdown'"
+    ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'json' | 'jsonc' | 'json5' | 'json-stringify' | 'yaml' | 'toml' | 'dockerfile' | 'ini' | 'gitconfig' | 'xml' | 'markdown'"
   )]
   pub parser: Option<String>,
   /// The file's path, which decides the language and some details.
@@ -83,6 +83,9 @@ pub struct FormatOptions {
   /// `healthcheckCmdNewLine`.
   #[napi(ts_type = "Record<string, unknown>")]
   pub dockerfile: Option<Value>,
+  /// Options for INI only: the shared ones, and `spaceAroundEquals`.
+  #[napi(ts_type = "Record<string, unknown>")]
+  pub ini: Option<Value>,
   /// Options for XML only: the shared ones, and `selfClosingSpace`, `sortAttributes` and `attributeQuotes`.
   #[napi(ts_type = "Record<string, unknown>")]
   pub xml: Option<Value>,
@@ -181,6 +184,8 @@ fn language(input: &FormatOptions) -> napi::Result<(Language, Option<tidy::handl
     Some("json-stringify") => (Language::Json(json::Dialect::Stringify), None),
     Some("toml") => (Language::Toml, None),
     Some("dockerfile") => (Language::Dockerfile, None),
+    Some("ini") => (Language::Ini(ini::Dialect::Ini), None),
+    Some("gitconfig") => (Language::Ini(ini::Dialect::Git), None),
     Some("yaml") => (Language::Yaml, None),
     Some("xml") => (Language::Xml, None),
     Some("markdown") => (Language::Markdown, None),
@@ -218,6 +223,7 @@ fn config(input: &FormatOptions) -> Value {
   put("json", input.json.clone());
   put("toml", input.toml.clone());
   put("dockerfile", input.dockerfile.clone());
+  put("ini", input.ini.clone());
   put("yaml", input.yaml.clone());
   put("xml", input.xml.clone());
   put("markdown", input.markdown.clone());

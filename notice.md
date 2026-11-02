@@ -10,6 +10,7 @@ tidy ports code from these projects, all under the MIT license:
 - [Handlebars](https://github.com/handlebars-lang/handlebars-parser), [simple-html-tokenizer](https://github.com/tildeio/simple-html-tokenizer), and [@glimmer/syntax](https://github.com/glimmerjs/glimmer-vm): the Handlebars lexer and grammar, the HTML tokenizer, and the tree builder that Glimmer uses. Copyright (c) Yehuda Katz, Tilde, Inc., and contributors.
 - [@prettier/plugin-xml](https://github.com/prettier/plugin-xml) 3.4.2: the XML printer. Copyright (c) 2019-present Kevin Newton.
 - [dprint-plugin-dockerfile](https://github.com/dprint/dprint-plugin-dockerfile) 0.7.0: the Dockerfile parser and generator, with the parts of [dprint-core](https://github.com/dprint/dprint)'s printer that they use. Copyright (c) 2021 David Sherret.
+- [prettier-plugin-ini](https://github.com/kddnewton/prettier-plugin-ini) 1.3.0: the INI parser and printer. Copyright (c) 2020-present Kevin Newton.
 - [Bun](https://github.com/oven-sh/bun): the Rust ports of the above that the HTML, Handlebars and CSS modules start from, and the tables of string widths. Copyright (c) Oven-sh.
 
 It also ports the lexer, the concrete syntax tree parser and the composer of [yaml](https://github.com/eemeli/yaml) 2.9.0, under the [ISC License](https://opensource.org/license/isc-license-txt). Copyright Eemeli Aro.

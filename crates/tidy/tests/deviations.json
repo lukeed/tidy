@@ -2510,5 +2510,107 @@
         "tidy": "```dockerfile\nFROM node\n```\n"
       }
     ]
+  },
+  {
+    "id": "ini-space-around-equals",
+    "rows": [
+      {
+        "parsers": [
+          "ini"
+        ],
+        "input": "a=1\n",
+        "prettier": "a=1\n",
+        "tidy": "a = 1\n"
+      }
+    ]
+  },
+  {
+    "id": "ini-kept-mode",
+    "rows": [
+      {
+        "parsers": [
+          "ini"
+        ],
+        "input": "[a]\nkey = first\n    second line\n",
+        "prettier": "!error Error parsing .ini on line 3:",
+        "tidy": "[a]\nkey = first\n    second line\n"
+      },
+      {
+        "parsers": [
+          "ini"
+        ],
+        "input": "[a]\nkey = first\n  x=1\n  bare\n",
+        "prettier": "!error Error parsing .ini on line 4:",
+        "tidy": "[a]\nkey = first\n  x=1\n  bare\n"
+      },
+      {
+        "parsers": [
+          "ini"
+        ],
+        "input": "[test.html]\n  expected: FAIL\n",
+        "prettier": "!error Error parsing .ini on line 2:",
+        "tidy": "[test.html]\n  expected: FAIL\n"
+      },
+      {
+        "parsers": [
+          "ini"
+        ],
+        "input": "[*.out]   # editor\nindent_size=4\n",
+        "prettier": "!error Error parsing .ini on line 1:",
+        "tidy": "[*.out] # editor\nindent_size = 4\n"
+      }
+    ]
+  },
+  {
+    "id": "ini-git-config",
+    "rows": [
+      {
+        "parsers": [
+          "gitconfig"
+        ],
+        "input": "[core]\n\tbare = false\n",
+        "prettier": "[core]\nbare = false\n",
+        "tidy": "[core]\n\tbare = false\n"
+      }
+    ]
+  },
+  {
+    "id": "ini-empty-section",
+    "rows": [
+      {
+        "parsers": [
+          "ini"
+        ],
+        "input": "[a]\n\n[b]\nx=1\n",
+        "prettier": "[a]\n\n\n[b]\nx = 1\n",
+        "tidy": "[a]\n\n[b]\nx = 1\n"
+      }
+    ]
+  },
+  {
+    "id": "ini-empty-list",
+    "rows": [
+      {
+        "parsers": [
+          "ini"
+        ],
+        "input": "a =\n  \nb = 1\n",
+        "prettier": "a =\n\n\nb = 1\n",
+        "tidy": "a =\n\nb = 1\n"
+      }
+    ]
+  },
+  {
+    "id": "ini-embedded",
+    "rows": [
+      {
+        "parsers": [
+          "markdown"
+        ],
+        "input": "```ini\na=1\n```\n",
+        "prettier": "```ini\na=1\n```\n",
+        "tidy": "```ini\na = 1\n```\n"
+      }
+    ]
   }
 ]
