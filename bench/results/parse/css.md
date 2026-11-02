@@ -4,13 +4,14 @@
 
 | Tool | Builds | Time | Speed | Against fastest | Rejects |
 | --- | --- | ---: | ---: | ---: | ---: |
-| tidy | tree, values as text | 0.97 ms | 234 MB/s | 1.00x | 0 |
-| raffia | tree, comments | 3.83 ms | 59 MB/s | 3.97x | 0 |
-| lightningcss | typed rules | 2.93 ms | 77 MB/s | 3.04x | 1 |
+| tidy | tree, values as text | 1.14 ms | 198 MB/s | 1.00x | 0 |
+| raffia | tree, comments | 3.79 ms | 60 MB/s | 3.32x | 0 |
+| oxc-css-parser | tree, comments | 3.45 ms | 65 MB/s | 3.03x | 0 |
+| lightningcss | typed rules | 2.98 ms | 76 MB/s | 2.61x | 1 |
 
 ## Setup
 
-- Date: 2026-11-01
-- Commit: 65190ed
+- Date: 2026-11-02
+- Commit: e043a18
 - Machine: Apple M1 Max, 10 cores, macOS 15.7.9
-- Tools: tidy at the commit above, raffia 0.13.0, lightningcss 1.0.0-alpha.72
+- Tools: tidy at the commit above, raffia 0.13.0, oxc-css-parser 0.0.19, lightningcss 1.0.0-alpha.72

@@ -4,13 +4,13 @@
 
 | Tool | Builds | Time | Speed | Against fastest | Rejects |
 | --- | --- | ---: | ---: | ---: | ---: |
-| tidy | lines, comments | 0.14 ms | 275 MB/s | 1.00x | 0 |
-| rust-ini | map | 0.45 ms | 85 MB/s | 3.25x | 1 |
-| configparser | map, lowercase names | 0.45 ms | 84 MB/s | 3.27x | 0 |
+| tidy | lines, comments | 0.14 ms | 271 MB/s | 1.00x | 0 |
+| rust-ini | map | 0.46 ms | 84 MB/s | 3.24x | 1 |
+| configparser | map, lowercase names | 0.46 ms | 83 MB/s | 3.25x | 0 |
 
 ## Setup
 
-- Date: 2026-11-01
-- Commit: 12661f9
+- Date: 2026-11-02
+- Commit: e043a18
 - Machine: Apple M1 Max, 10 cores, macOS 15.7.9
 - Tools: tidy at the commit above, rust-ini 0.21.3, configparser 3.3.0
