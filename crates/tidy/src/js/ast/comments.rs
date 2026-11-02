@@ -212,12 +212,34 @@ impl<'a> File<'a> {
   }
 
   /// Prettier's `locEnd` leaves out the `;` that ends a statement, so a comment before it comes after the statement.
+  /// Its `locStart` of a class, and of an `export` of one, is the first decorator, which can come before the `export`.
   fn decorated_span(&self, id: u32) -> Span {
     let span = self.span_of(id);
-    match self.ends_with_its_semicolon(id) {
+    let span = match self.ends_with_its_semicolon(id) {
       true => self.without_semicolon(span),
       false => span,
+    };
+    match self.first_decorator(id) {
+      Some(start) if start < span.start => Span::new(start, span.end),
+      _ => span,
     }
+  }
+
+  /// Where the first decorator of a class, or of the class an `export` declares, starts.
+  fn first_decorator(&self, id: u32) -> Option<u32> {
+    let class = match self.kind(id)? {
+      AstKind::Class(class) => class,
+      AstKind::ExportDeclaration(it) => match &it.declaration {
+        oxc_ast::ast::Declaration::ClassDeclaration(class) => class,
+        _ => return None,
+      },
+      AstKind::ExportDefaultDeclaration(it) => match &it.declaration {
+        oxc_ast::ast::ExportDefaultDeclarationKind::ClassDeclaration(class) => class,
+        _ => return None,
+      },
+      _ => return None,
+    };
+    class.decorators.first().map(|it| it.span.start)
   }
 
   /// True for a statement that ends with its own `;`, or with that of its last statement: `if (a) b;`.
@@ -358,13 +380,25 @@ impl<'a> Comment<'a> {
   }
 
   /// A decorator and `<..>` aren't bun's nodes. As bun's parser records them, a decorator stands for its expression,
-  /// and `<..>` for its last parameter or argument before the comment and its first after it.
+  /// and `<..>` for its last parameter or argument before the comment and its first after it. The key of a mapped
+  /// type is a name. The `{ .. }` of a class, an interface, an enum or a module is neither.
   fn node_or_name(self, mut id: u32, last: bool) -> Option<NodeOrName<'a>> {
     if id == NONE {
       return None;
     }
     match self.file.kind(id) {
+      Some(
+        AstKind::ClassBody(_)
+        | AstKind::TSInterfaceBody(_)
+        | AstKind::TSEnumBody(_)
+        | AstKind::TSModuleBlock(_),
+      ) => return None,
       Some(AstKind::Decorator(it)) => id = expression_id(&it.expression),
+      Some(AstKind::BindingIdentifier(it))
+        if matches!(self.file.kind(self.file.parent_id(id)), Some(AstKind::TSMappedType(_))) =>
+      {
+        return Some(NodeOrName::Name(it.span.start));
+      }
       Some(AstKind::TSTypeParameterDeclaration(_) | AstKind::TSTypeParameterInstantiation(_)) => {
         let children = self.file.children(id);
         id = *(if last { children.last() } else { children.first() }).unwrap_or(&id);

@@ -281,6 +281,11 @@ impl<'a> Node<'a> {
       K::TSQualifiedName(_) if matches!(name_owner(file, id), Some(K::TSTypeQuery(_))) => {
         Node::Expr(Expr::new(file, id))
       }
+      K::NumericLiteral(_) | K::StringLiteral(_) | K::BigIntLiteral(_) | K::TemplateLiteral(_)
+        if is_field(file, file.parent_id(id), id) =>
+      {
+        return None;
+      }
       K::BooleanLiteral(_)
       | K::NumericLiteral(_)
       | K::StringLiteral(_)
@@ -700,11 +705,14 @@ fn same_kind(file: &File, node: Node, rest: &[u32], max: usize) -> usize {
   rest.iter().take(max).take_while(same).count()
 }
 
-/// True for a child that bun's tree has as a field rather than a node: a key that isn't computed, a module specifier,
-/// the `#b` of `a.#b`.
+/// True for a child that bun's tree has as a field rather than a node: a key that isn't computed or is a literal in
+/// brackets, a module specifier, the `#b` of `a.#b`.
 fn is_field(file: &File, parent: u32, child: u32) -> bool {
   use AstKind as K;
-  let key = |key: &PropertyKey, computed: bool| !computed && key.node_id().index() as u32 == child;
+  let key = |key: &PropertyKey, computed: bool| {
+    key.node_id().index() as u32 == child
+      && (!computed || key.as_expression().is_some_and(super::key::is_literal))
+  };
   match file.kind(parent) {
     Some(K::ObjectProperty(it)) => key(&it.key, it.computed),
     Some(K::MethodDefinition(it)) => key(&it.key, it.computed),

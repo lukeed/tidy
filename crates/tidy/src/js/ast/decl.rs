@@ -1612,6 +1612,11 @@ impl<'a> ImportSpec<'a> {
     matches!(self.raw(), K::ImportSpecifier(it) if it.import_kind.is_type())
   }
 
+  /// In braces: not a default or namespace import.
+  pub(crate) fn is_named(self) -> bool {
+    matches!(self.raw(), K::ImportSpecifier(_))
+  }
+
   pub(crate) fn import(self) -> Import<'a> {
     Import::new(self.file, self.file.parent_id(self.id))
   }

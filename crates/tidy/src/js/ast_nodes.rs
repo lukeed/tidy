@@ -320,6 +320,7 @@ pub(crate) fn node_as_ast_nodes<'a>(node: Node<'a>) -> AstNodes<'a> {
     Node::File(file) => AstNodes::Program(Program(file)),
     Node::Expr(e) => e.as_ast_nodes(),
     Node::Stmt(statement) => statement.as_ast_nodes(),
+    Node::PatProp(prop) => AstNodes::BindingProperty(prop),
     node => AstNodes::at(node.file(), node.id())
       .unwrap_or_else(|| AstNodes::around(node.file(), node.id())),
   }
@@ -413,6 +414,12 @@ impl<'a> AstNodes<'a> {
         _ => N::AssignmentTargetRest(e()),
       },
       K::SpreadElement(_) => N::SpreadElement(Node::of(file, id)?),
+      K::ExpressionStatement(_)
+        if file.path().first() == Some(&0)
+          && matches!(file.kind(parent()), Some(K::Program(_))) =>
+      {
+        N::Program(Program(file))
+      }
       K::ExpressionStatement(_) => {
         N::ExpressionStatement(ExpressionStatement::Stmt(Stmt::new(file, id)))
       }
@@ -595,6 +602,11 @@ impl<'a> AstNodes<'a> {
       N::FormalParameters(func) => match func.file.kind(func.id)? {
         K::Function(it) => it.params.node_id.get().index() as u32,
         K::ArrowFunctionExpression(it) => it.params.node_id.get().index() as u32,
+        K::TSMethodSignature(it) => it.params.node_id.get().index() as u32,
+        K::TSCallSignatureDeclaration(it) => it.params.node_id.get().index() as u32,
+        K::TSConstructSignatureDeclaration(it) => it.params.node_id.get().index() as u32,
+        K::TSFunctionType(it) => it.params.node_id.get().index() as u32,
+        K::TSConstructorType(it) => it.params.node_id.get().index() as u32,
         _ => return None,
       },
       N::ClassBody(class) => match class.file.kind(class.id)? {

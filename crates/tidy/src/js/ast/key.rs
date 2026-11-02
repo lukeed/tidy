@@ -127,6 +127,20 @@ impl<'a> Key<'a> {
   }
 }
 
+/// True if `expression` in brackets is a [`KeyKind::ComputedString`] or a [`KeyKind::ComputedNumber`].
+pub(super) fn is_literal(expression: &Expression) -> bool {
+  match expression {
+    Expression::StringLiteral(_) | Expression::NumericLiteral(_) | Expression::BigIntLiteral(_) => {
+      true
+    }
+    Expression::TemplateLiteral(it) => {
+      it.expressions.is_empty()
+        && it.quasis.first().and_then(|it| it.value.cooked).is_some_and(|it| it.as_str().is_some())
+    }
+    _ => false,
+  }
+}
+
 enum Literal<'a> {
   String(Name<'a>),
   Number(Name<'a>),

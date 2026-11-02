@@ -512,9 +512,11 @@ impl<'a> Rules<'_, 'a, '_> {
         Some(Attachment::leading(enclosing_node))
       }
       N::ImportDeclaration(_) | N::ExportNamedDeclaration(_) if text_position != Remaining => {
-        let specifier = self
-          .preceding_node
-          .filter(|it| matches!(it, Owner::Node(N::ImportSpecifier(_) | N::ExportSpecifier(_))))?;
+        let specifier = self.preceding_node.filter(|it| match it {
+          Owner::Node(N::ImportSpecifier(spec)) => spec.is_named(),
+          Owner::Node(N::ExportSpecifier(_)) => true,
+          _ => false,
+        })?;
         (self.context.comment.has_newline_after()).then(|| Attachment::trailing(specifier))
       }
 
