@@ -1,8 +1,8 @@
 // Times the JavaScript and TypeScript formatters against each other, and counts the files that each prints as Prettier
-// does. tidy doesn't format scripts yet; this bench measures the field. Each corpus has the files that Prettier parses.
-// Every tool runs with Prettier's defaults: oxfmt with a width of 80, Biome with spaces, and none formats embedded code.
+// does. Each corpus has the files that Prettier parses. Every tool runs with Prettier's defaults: oxfmt with a width of
+// 80, Biome with spaces, tidy without JSDoc formatting, and none formats embedded code.
 //
-// The tools: Prettier 3.9.9, oxfmt, Biome and bun fmt. Each set runs in both orders; Prettier runs fewer times.
+// The tools: tidy, Prettier 3.9.9, oxfmt, Biome and bun fmt. Each set runs in both orders; Prettier runs fewer times.
 // The results go to bench/results/format/js.md and ts.md.
 //
 //   bun bench/js.ts [--runs <n>] [--oss <dir>] [--only js,ts]
@@ -21,6 +21,8 @@ let only = option("--only")?.split(",");
 
 let root = new URL("..", import.meta.url).pathname;
 let bin = (name: string) => join(root, "node_modules/.bin", name);
+let target = join(root, "target");
+await $`cargo build --release -p tidy_cli`.cwd(root).env({ ...process.env, CARGO_TARGET_DIR: target }).quiet();
 let repos = ["vite", "storybook", "rolldown", "BrowserBox"];
 let extensions: Record<string, string[]> = {
 	js: ["js", "jsx", "mjs", "cjs"],
@@ -31,11 +33,15 @@ let base = join(tmpdir(), "tidy-bench-js");
 rmSync(base, { recursive: true, force: true });
 let config = join(base, "oxfmtrc.json");
 await Bun.write(config, JSON.stringify({ printWidth: 80, embeddedLanguageFormatting: "off" }));
+let tidyConfig = join(base, "tidy.json");
+await Bun.write(tidyConfig, JSON.stringify({ embedded: false, js: { jsdoc: false } }));
 
 /** The commands that check a folder, and the ones that format it in place. */
 let commands = (dir: string, write: boolean): Record<string, string> => {
 	let check = write ? "" : "--check";
 	return {
+		tidy: `${target}/release/tidy ${dir} ${write ? "--write" : "--check"} --config ${tidyConfig}`,
+		"tidy (1 thread)": `${target}/release/tidy ${dir} ${write ? "--write" : "--check"} --config ${tidyConfig} --threads 1`,
 		prettier: `${bin("prettier")} ${write ? "--write" : "--check"} ${dir} --no-config --embedded-language-formatting off --log-level silent`,
 		oxfmt: `${bin("oxfmt")} ${check} -c ${config} --disable-nested-config ${dir}`,
 		"oxfmt (1 thread)": `${bin("oxfmt")} ${check} -c ${config} --disable-nested-config --threads=1 ${dir}`,
@@ -45,6 +51,7 @@ let commands = (dir: string, write: boolean): Record<string, string> => {
 };
 
 let versions: Record<string, string> = {
+	tidy: "tidy at the commit above",
 	prettier: `Prettier ${prettierApi.version}`,
 	oxfmt: `oxfmt ${await version([bin("oxfmt"), "--version"])}`,
 	biome: `Biome ${await version([bin("biome"), "--version"])}`,
