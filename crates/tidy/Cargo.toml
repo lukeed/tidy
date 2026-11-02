@@ -34,7 +34,7 @@ workspace = true
 serde_json = "1"
 
 [features]
-default = ["js"]
+default = []
 # Formats JavaScript and TypeScript, and the scripts in markup and Markdown, with oxc's parser. Without it, they go to
 # the embed hook.
 js = ["dep:oxc_allocator", "dep:oxc_ast", "dep:oxc_ast_visit", "dep:oxc_parser", "dep:oxc_span", "dep:oxc_syntax"]
