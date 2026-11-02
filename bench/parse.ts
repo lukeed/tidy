@@ -43,6 +43,11 @@ let sources: Record<string, string> = {
 	"parse-dockerfile": "parse-dockerfile",
 	"rust-ini": "rust-ini",
 	configparser: "configparser",
+	oxc_parser: "oxc_parser",
+	"oxc-toml": "oxc-toml",
+	"oxc-yaml-parser": "oxc-yaml-parser",
+	"oxc-css-parser": "oxc-css-parser",
+	"oxc-htmlish-parser": "oxc-htmlish-parser",
 };
 
 let output = await $`${join(target, "release/parse-bench")} --json ${Bun.argv.slice(2)}`.text();

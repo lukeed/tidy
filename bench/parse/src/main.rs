@@ -28,6 +28,7 @@ fn languages() -> Vec<(&'static str, Vec<Tool>)> {
         tool("tidy parse", "tree, comments", |text| keep(tidy::json::parse(text))),
         tool("tidy value", "serde_json value", |text| keep(tidy::json::value(text))),
         tool("jsonc-parser ast", "tree, comments", jsonc_ast),
+        tool("oxc_parser", "JS tree, comments", oxc_json),
         tool("jsonc-parser value", "own value", |text| {
           keep(jsonc_parser::parse_to_value(text, &Default::default()))
         }),
@@ -51,6 +52,10 @@ fn languages() -> Vec<(&'static str, Vec<Tool>)> {
         }),
         tool("toml_edit", "document, trivia", |text| keep(text.parse::<toml_edit::DocumentMut>())),
         tool("toml", "value", |text| keep(toml::from_str::<toml::Table>(text))),
+        tool("oxc-toml", "tree, trivia", |text| {
+          let parse = oxc_toml::parse(text);
+          parse.errors.is_empty() && keep::<_, ()>(Ok(parse))
+        }),
       ],
     ),
     (
@@ -58,6 +63,10 @@ fn languages() -> Vec<(&'static str, Vec<Tool>)> {
       vec![
         tool("tidy parse", "tree, comments", |text| keep(tidy::yaml::parse(text))),
         tool("yaml_parser", "tree, trivia", |text| keep(yaml_parser::parse(text))),
+        tool("oxc-yaml-parser", "tree, comments", |text| {
+          let allocator = oxc_yaml_parser::Allocator::default();
+          keep(oxc_yaml_parser::Parser::new(&allocator, text).parse())
+        }),
         tool("saphyr", "value", |text| {
           keep(<saphyr::Yaml as saphyr::LoadableYamlNode>::load_from_str(text))
         }),
@@ -93,6 +102,7 @@ fn languages() -> Vec<(&'static str, Vec<Tool>)> {
           tidy::bench::css(text, tidy::css::Dialect::Css)
         }),
         tool("raffia", "tree, comments", |text| raffia(text, raffia::Syntax::Css)),
+        tool("oxc-css-parser", "tree, comments", |text| oxc_css(text, oxc_css_parser::Syntax::Css)),
         tool("lightningcss", "typed rules", |text| {
           let options = lightningcss::stylesheet::ParserOptions::default();
           keep(lightningcss::stylesheet::StyleSheet::parse(text, options))
@@ -106,6 +116,9 @@ fn languages() -> Vec<(&'static str, Vec<Tool>)> {
           tidy::bench::css(text, tidy::css::Dialect::Scss)
         }),
         tool("raffia", "tree, comments", |text| raffia(text, raffia::Syntax::Scss)),
+        tool("oxc-css-parser", "tree, comments", |text| {
+          oxc_css(text, oxc_css_parser::Syntax::Scss)
+        }),
       ],
     ),
     (
@@ -115,6 +128,9 @@ fn languages() -> Vec<(&'static str, Vec<Tool>)> {
           tidy::bench::css(text, tidy::css::Dialect::Less)
         }),
         tool("raffia", "tree, comments", |text| raffia(text, raffia::Syntax::Less)),
+        tool("oxc-css-parser", "tree, comments", |text| {
+          oxc_css(text, oxc_css_parser::Syntax::Less)
+        }),
       ],
     ),
     (
@@ -123,6 +139,12 @@ fn languages() -> Vec<(&'static str, Vec<Tool>)> {
         tool("tidy", "tree, strict", tidy::bench::html),
         tool("scraper", "spec DOM", |text| keep::<_, ()>(Ok(scraper::Html::parse_document(text)))),
         tool("tl", "tree, lenient", |text| keep(tl::parse(text, tl::ParserOptions::default()))),
+        tool("oxc-htmlish-parser", "tree, lenient", |text| {
+          let allocator = oxc_htmlish_parser::Allocator::default();
+          let parser =
+            oxc_htmlish_parser::Parser::new(&allocator, text, oxc_htmlish_parser::Dialect::Html);
+          keep(parser.parse())
+        }),
       ],
     ),
     (
@@ -156,6 +178,23 @@ fn jsonc_ast(text: &str) -> bool {
     tokens: false,
   };
   keep(jsonc_parser::parse_to_ast(text, &collect, &Default::default()))
+}
+
+/// As oxfmt reads JSON: an expression in parentheses, with the JavaScript parser.
+fn oxc_json(text: &str) -> bool {
+  let allocator = oxc_allocator::Allocator::default();
+  let source = allocator.alloc_concat_strs_array(["(", text, "\n)"]);
+  let options = oxc_parser::ParseOptions { preserve_parens: false, ..Default::default() };
+  let parser = oxc_parser::Parser::new(&allocator, source, oxc_span::SourceType::default());
+  let parsed = black_box(parser.with_options(options).parse());
+  parsed.diagnostics.is_empty() && !parsed.fatal_error
+}
+
+fn oxc_css(text: &str, syntax: oxc_css_parser::Syntax) -> bool {
+  let allocator = oxc_css_parser::Allocator::default();
+  let mut parser =
+    oxc_css_parser::ParserBuilder::new(&allocator, text).syntax(syntax).comments().build();
+  keep(parser.parse::<oxc_css_parser::ast::Stylesheet>())
 }
 
 fn raffia(text: &str, syntax: raffia::Syntax) -> bool {
