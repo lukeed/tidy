@@ -37,6 +37,8 @@ impl<'a> Pat<'a> {
     let first = || file.children(self.id).first().copied();
     match file.kind(self.id) {
       Some(AstKind::BindingIdentifier(it)) => PatKind::Ident(Name(it.name.as_str())),
+      Some(AstKind::TSThisParameter(_)) => PatKind::Ident(Name("this")),
+      Some(AstKind::TSIndexSignatureName(it)) => PatKind::Ident(Name(it.name.as_str())),
       Some(AstKind::ObjectPattern(it)) => {
         let len = it.properties.len() + usize::from(it.rest.is_some());
         PatKind::Object(List::run(file, first(), len))

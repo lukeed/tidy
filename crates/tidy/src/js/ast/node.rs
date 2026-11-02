@@ -238,6 +238,9 @@ impl<'a> Node<'a> {
       {
         return None;
       }
+      K::TSNamespaceDeclaration(_) if matches!(parent(), Some(K::TSNamespaceDeclaration(_))) => {
+        return None;
+      }
       K::Function(function) => match parent() {
         Some(K::MethodDefinition(_)) => Node::Func(Func::new(file, id)),
         _ if function.is_declaration() => Node::Stmt(Stmt::new(file, id)),
@@ -288,7 +291,6 @@ impl<'a> Node<'a> {
       | K::AssignmentExpression(_)
       | K::ArrayAssignmentTarget(_)
       | K::ObjectAssignmentTarget(_)
-      | K::AssignmentTargetRest(_)
       | K::AssignmentTargetWithDefault(_)
       | K::SequenceExpression(_)
       | K::Super(_)
@@ -324,6 +326,7 @@ impl<'a> Node<'a> {
       K::AssignmentTargetRest(_) if matches!(parent(), Some(K::ObjectAssignmentTarget(_))) => {
         Node::Prop(Prop::new(file, id))
       }
+      K::AssignmentTargetRest(_) => Node::Expr(Expr::new(file, id)),
       K::SpreadElement(_) => match parent() {
         Some(K::ObjectExpression(_)) => Node::Prop(Prop::new(file, id)),
         _ => Node::Expr(Expr::new(file, id)),
@@ -394,13 +397,18 @@ impl<'a> Node<'a> {
         Node::PatProp(PatProp::new(file, id))
       }
       K::AssignmentPattern(_) if matches!(parent(), Some(K::BindingProperty(_))) => return None,
+      K::BindingRestElement(_) if matches!(parent(), Some(K::FormalParameterRest(_))) => {
+        return None;
+      }
       K::AssignmentPattern(_)
       | K::ObjectPattern(_)
       | K::ArrayPattern(_)
-      | K::BindingRestElement(_)
-      | K::FormalParameterRest(_) => Node::Pat(Pat::new(file, id)),
+      | K::BindingRestElement(_) => Node::Pat(Pat::new(file, id)),
       K::BindingProperty(_) => Node::PatProp(PatProp::new(file, id)),
-      K::FormalParameter(_) | K::TSThisParameter(_) => Node::Param(Param::new(file, id)),
+      K::FormalParameter(_)
+      | K::FormalParameterRest(_)
+      | K::TSThisParameter(_)
+      | K::TSIndexSignatureName(_) => Node::Param(Param::new(file, id)),
       K::MethodDefinition(_)
       | K::PropertyDefinition(_)
       | K::StaticBlock(_)

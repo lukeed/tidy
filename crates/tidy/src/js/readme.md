@@ -44,7 +44,7 @@ bun's tree is built for its type checker, not ESTree. Where they differ, `js::as
 | `Member` | `ClassElement`, `TSSignature` |
 | `Prop` | `ObjectProperty`, a `SpreadElement` in an object |
 | `Pat`, `PatProp`, `PatElem` | `BindingPattern`, `BindingProperty`, an element of `ArrayPattern` |
-| `Param`, `TypeParam` | `FormalParameter`, `TSTypeParameter` |
+| `Param`, `TypeParam` | `FormalParameter`, `FormalParameterRest`, `TSThisParameter`, `TSIndexSignatureName`; `TSTypeParameter` and a mapped type's key |
 | `VarDecl`, `Case`, `EnumMember` | `VariableDeclarator`, `SwitchCase`, `TSEnumMember` |
 | `ImportSpec`, `ExportSpec`, `TupleElem` | `ImportDeclarationSpecifier`, `ExportSpecifier`, `TSTupleElement` |
 
