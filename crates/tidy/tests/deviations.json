@@ -2652,5 +2652,19 @@
         "tidy": "/** @param {string} a The thing */\nfunction f(a) {}\n"
       }
     ]
+  },
+  {
+    "id": "js-markdown-fence-length",
+    "rows": [
+      {
+        "parsers": [
+          "babel",
+          "typescript"
+        ],
+        "input": "md`\n\\`\\`\\`js\nmarkdown\\`\n    \\\\\\`\\\\\\`\\\\\\`js\n    console.log('hi');\n    \\\\\\`\\\\\\`\\\\\\`\n\\`\n\\`\\`\\`\n`;\n",
+        "prettier": "md`\n~~~js\nmarkdown\\`\n  ~~~js\n  console.log(\"hi\");\n  ~~~\n\\`;\n~~~\n`;\n",
+        "tidy": "md`\n~~~~js\nmarkdown\\`\n  ~~~js\n  console.log(\"hi\");\n  ~~~\n\\`;\n~~~~\n`;\n"
+      }
+    ]
   }
 ]

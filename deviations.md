@@ -85,6 +85,7 @@ Most entries come from bun's ports, which correct the places where Prettier's ou
 | [graphql-block-string-padding](#graphql-block-string-padding) | graphql | approved 2026-11-02 |
 | [graphql-block-string-trailing-space](#graphql-block-string-trailing-space) | graphql | approved 2026-11-02 |
 | [js-jsdoc](#js-jsdoc) | babel/typescript | approved 2026-11-02 |
+| [js-markdown-fence-length](#js-markdown-fence-length) | babel/typescript | approved 2026-11-02 |
 | [the rule in step 2](#process) | all | proposed |
 | [tempura and text mode](#beyond-prettier) | handlebars | approved 2026-10-31 |
 
@@ -1079,6 +1080,19 @@ tidy:     "\"\"\"\nends in a space \nlast\n\"\"\"\nscalar A\n"
 input:    "/**\n * @param {string}   a   the thing\n */\nfunction f(a) {}\n"
 Prettier: "/**\n * @param {string}   a   the thing\n */\nfunction f(a) {}\n"
 tidy:     "/** @param {string} a The thing */\nfunction f(a) {}\n"
+```
+
+### js-markdown-fence-length
+
+- Status: approved 2026-11-02
+- Why: Luke decided tidy must not break Markdown. In a `md` or `markdown` template, Prettier picks the length of a `~` fence from the code as written, before the code in it is formatted. When the formatted code has a `~~~` fence of its own (a nested `md` template does), that inner fence closes the outer one, and the rest of the block becomes text. tidy picks the length from the formatted code, so the outer fence is longer than any run of `~` inside it.
+- Where: crates/tidy/src/markdown/writer/code.rs (`fenced`)
+- Parser: babel, typescript
+
+```
+input:    "md`\n\\`\\`\\`js\nmarkdown\\`\n    \\\\\\`\\\\\\`\\\\\\`js\n    console.log('hi');\n    \\\\\\`\\\\\\`\\\\\\`\n\\`\n\\`\\`\\`\n`;\n"
+Prettier: "md`\n~~~js\nmarkdown\\`\n  ~~~js\n  console.log(\"hi\");\n  ~~~\n\\`;\n~~~\n`;\n"
+tidy:     "md`\n~~~~js\nmarkdown\\`\n  ~~~js\n  console.log(\"hi\");\n  ~~~\n\\`;\n~~~~\n`;\n"
 ```
 
 ## Beyond Prettier
