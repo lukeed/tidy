@@ -3,7 +3,7 @@
 
 use crate::embed::Embed;
 use crate::embed::{Kind, Request};
-use crate::{Error, Whitespace, css, doc, handlebars, html, json, markdown, toml, xml};
+use crate::{Error, Whitespace, css, doc, handlebars, html, json, markdown, toml, xml, yaml};
 
 /// A language that tidy formats.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -15,6 +15,7 @@ pub enum Language {
   Json(json::Dialect),
   Toml,
   Xml,
+  Yaml,
   Markdown,
 }
 
@@ -29,6 +30,9 @@ impl Language {
     }
     if toml::is_toml_path(path) {
       return Some(Language::Toml);
+    }
+    if yaml::is_yaml_path(path) {
+      return Some(Language::Yaml);
     }
     if handlebars::is_handlebars_path(path) {
       return Some(Language::Handlebars);
@@ -58,6 +62,7 @@ pub struct Options {
   pub json: json::Options,
   pub toml: toml::Options,
   pub xml: xml::Options,
+  pub yaml: yaml::Options,
   pub markdown: markdown::Options,
 }
 
@@ -71,6 +76,7 @@ impl Default for Options {
       json: json::Options::default(),
       toml: toml::Options::default(),
       xml: xml::Options::default(),
+      yaml: yaml::Options::default(),
       markdown: markdown::Options::default(),
     }
   }
@@ -86,6 +92,7 @@ impl Options {
     shared.json(&mut self.json);
     shared.toml(&mut self.toml);
     shared.xml(&mut self.xml);
+    shared.yaml(&mut self.yaml);
     shared.markdown(&mut self.markdown);
   }
 }
@@ -105,6 +112,8 @@ pub struct Shared {
   pub single_quote: Option<bool>,
   /// Prettier's `trailingComma` is not `"none"`: SCSS, JSONC, JSON5, and TOML arrays.
   pub trailing_comma: Option<bool>,
+  /// Spaces inside the braces of an object on one line: JSON, and YAML's flow mappings.
+  pub bracket_spacing: Option<bool>,
   /// HTML, Vue and XML.
   pub bracket_same_line: Option<bool>,
   /// HTML, Vue and XML.
@@ -126,6 +135,7 @@ impl Shared {
       whitespace: other.whitespace.or(self.whitespace),
       single_quote: other.single_quote.or(self.single_quote),
       trailing_comma: other.trailing_comma.or(self.trailing_comma),
+      bracket_spacing: other.bracket_spacing.or(self.bracket_spacing),
       bracket_same_line: other.bracket_same_line.or(self.bracket_same_line),
       single_attribute_per_line: other.single_attribute_per_line.or(self.single_attribute_per_line),
       ignore: other.ignore.clone().or_else(|| self.ignore.clone()),
@@ -174,6 +184,18 @@ impl Shared {
     set(&mut options.eol, self.eol);
     set(&mut options.single_quote, self.single_quote);
     set(&mut options.trailing_comma, self.trailing_comma);
+    set(&mut options.bracket_spacing, self.bracket_spacing);
+    set(&mut options.ignore, self.ignore.clone());
+  }
+
+  pub fn yaml(&self, options: &mut yaml::Options) {
+    set(&mut options.width, self.width);
+    set(&mut options.tab_width, self.indent);
+    set(&mut options.tabs, self.tabs);
+    set(&mut options.eol, self.eol);
+    set(&mut options.single_quote, self.single_quote);
+    set(&mut options.trailing_comma, self.trailing_comma);
+    set(&mut options.bracket_spacing, self.bracket_spacing);
     set(&mut options.ignore, self.ignore.clone());
   }
 
@@ -231,6 +253,7 @@ pub struct Formatter {
   json: json::Formatter,
   toml: toml::Formatter,
   xml: xml::Formatter,
+  yaml: yaml::Formatter,
   markdown: String,
 }
 
@@ -265,6 +288,10 @@ impl Formatter {
       }
       Language::Toml => self.toml.format(text, &options.toml),
       Language::Xml => self.xml.format(text, &options.xml, embed),
+      Language::Yaml => {
+        let options = yaml::Options { filepath, ..options.yaml.clone() };
+        self.yaml.format(text, &options)
+      }
       Language::Markdown => {
         let (bom, text) = crate::without_bom(text);
         self.markdown = match options.markdown.format_embedded {
@@ -286,7 +313,7 @@ impl Formatter {
                 css::format(code.text, &options, &mut *embed).ok()
               })
               .or_else(|| {
-                crate::embed::builtin(&request, options.json.tab_width, options.json.tabs)
+                crate::embed::builtin(&request, options.yaml.tab_width, options.yaml.tabs)
               })
           }),
           false => markdown::format(text, &options.markdown),

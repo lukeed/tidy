@@ -1,7 +1,8 @@
 //! Prettier's YAML printer (`src/language-yaml/printer-yaml.js` and `print/*`).
 
+use super::Options;
 use super::ast::{Chomping, Id, Kind, Root};
-use super::{Options, ProseWrap};
+use crate::Wrap as ProseWrap;
 use crate::doc::{Align, Branch, Docs};
 use crate::stack::Stack;
 use rustc_hash::FxHashSet;
@@ -419,7 +420,7 @@ impl<'a> Printer<'_, 'a> {
 
   /// `printFlowScalarContent`
   fn flow_scalar_content(&mut self, kind: Kind, content: String) {
-    let lines = flow_scalar_line_contents(kind, &content, self.options.prose_wrap);
+    let lines = flow_scalar_line_contents(kind, &content, self.options.wrap);
     for (index, words) in lines.iter().enumerate() {
       if index > 0 {
         self.docs.hardline();
@@ -534,7 +535,7 @@ impl<'a> Printer<'_, 'a> {
     };
     let raw: Vec<&str> = content.split('\n').map(|line| slice_from(line, leading)).collect();
     let mut lines: Vec<Vec<String>>;
-    if self.options.prose_wrap == ProseWrap::Preserve || node.kind == Kind::BlockLiteral {
+    if self.options.wrap == ProseWrap::Preserve || node.kind == Kind::BlockLiteral {
       lines = raw
         .iter()
         .map(|line| if line.is_empty() { Vec::new() } else { vec![(*line).to_owned()] })
@@ -572,7 +573,7 @@ impl<'a> Printer<'_, 'a> {
           words
         })
         .collect();
-      if self.options.prose_wrap == ProseWrap::Never {
+      if self.options.wrap == ProseWrap::Never {
         lines = lines.into_iter().map(|words| vec![words.join(" ")]).collect();
       }
     }
@@ -762,14 +763,14 @@ impl<'a> Printer<'_, 'a> {
       Kind::Alias => return true,
       _ => return false,
     }
-    if self.options.prose_wrap == ProseWrap::Preserve {
+    if self.options.wrap == ProseWrap::Preserve {
       return node.position.start.line == node.position.end.line;
     }
     let raw = self.slice(node.position.start.offset, node.position.end.offset);
     if raw.split('\n').any(|line| line.ends_with('\\')) {
       return false;
     }
-    match self.options.prose_wrap {
+    match self.options.wrap {
       ProseWrap::Never => !node.value.contains('\n'),
       _ => !node.value.contains(['\n', ' ']),
     }

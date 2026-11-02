@@ -55,15 +55,21 @@ pub(crate) fn own(language: &str) -> Option<&'static str> {
 }
 
 /// Formats `request` with tidy's own formatter for its language, as a hook would, for the languages that tidy formats as
-/// text: JSON and TOML. `None` if it has none, or the code doesn't parse. TOML prints at the start of a line only, since
-/// indenting its lines would change its multi-line strings.
+/// text: JSON, YAML and TOML. `None` if it has none, or the code doesn't parse. TOML prints at the start of a line only,
+/// since indenting its lines would change its multi-line strings.
 pub(crate) fn builtin(request: &Request<'_>, tab_width: usize, tabs: bool) -> Option<String> {
-  use crate::{json, toml};
+  use crate::{json, toml, yaml};
   let dialect = match request.language {
     "json" => json::Dialect::Json,
     "jsonc" => json::Dialect::Jsonc,
     "json5" => json::Dialect::Json5,
     "json-stringify" => json::Dialect::Stringify,
+    "yaml" => {
+      let options =
+        yaml::Options { width: request.width, tab_width, tabs, ..yaml::Options::default() };
+      let mut formatter = yaml::Formatter::default();
+      return formatter.embedded(request.code, &options, request.indent).map(str::to_owned);
+    }
     "toml" if request.indent == 0 => {
       let options =
         toml::Options { column_width: request.width, tab_width, tabs, ..toml::Options::default() };

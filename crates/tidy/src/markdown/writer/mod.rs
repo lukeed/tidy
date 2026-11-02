@@ -14,11 +14,12 @@ mod wiki;
 
 use pulldown_cmark::{CodeBlockKind, Event, Options as Flags, Parser, Tag, TagEnd};
 
+use crate::Wrap;
 use crate::markdown::directive::{self, Directive};
 use crate::markdown::front;
 use crate::markdown::table::Table;
 use crate::markdown::wrap::Paragraph;
-use crate::markdown::{Code, Heading, Numbering, Options, Rule, Wrap};
+use crate::markdown::{Code, Heading, Numbering, Options, Rule};
 use code::{Block, fence};
 use footnote::Start;
 use inline::{Image, Link, collapse, span};

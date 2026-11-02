@@ -80,18 +80,6 @@ impl Parser {
   }
 }
 
-/// `proseWrap`: how the words of flow scalars and folded block scalars are wrapped.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
-pub enum ProseWrap {
-  /// As they are written.
-  #[default]
-  Preserve,
-  /// At the line width.
-  Always,
-  /// Each paragraph on one line.
-  Never,
-}
-
 /// Options of the YAML printer, Prettier's by default.
 #[derive(Clone, Debug)]
 pub struct Options {
@@ -105,7 +93,7 @@ pub struct Options {
   pub bracket_spacing: bool,
   /// A trailing comma in flow collections that break.
   pub trailing_comma: bool,
-  pub prose_wrap: ProseWrap,
+  pub wrap: crate::Wrap,
   /// The ignore directive, Prettier's `prettier-ignore` by default: a node after `# name` prints as it is written.
   pub ignore: String,
   /// The file's path. `.prettierrc`, `.stylelintrc` and `.lintstagedrc` are formatted as JSON when they are JSON.
@@ -122,7 +110,7 @@ impl Default for Options {
       single_quote: false,
       bracket_spacing: true,
       trailing_comma: true,
-      prose_wrap: ProseWrap::Preserve,
+      wrap: crate::Wrap::Preserve,
       ignore: "prettier-ignore".into(),
       filepath: None,
     }

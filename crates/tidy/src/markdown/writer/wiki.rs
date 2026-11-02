@@ -3,7 +3,7 @@ use std::ops::Range;
 use pulldown_cmark::{Event, Tag, TagEnd};
 
 use super::{Events, Writer, escaped};
-use crate::markdown::Wrap;
+use crate::Wrap;
 
 /// Prettier's `[[wiki link]]` syntax in one paragraph: the links, which never break, and whether
 /// Prettier keeps all the paragraph's text as written. It does that when a text has `[[` and the

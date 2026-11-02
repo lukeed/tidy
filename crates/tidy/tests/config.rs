@@ -61,7 +61,7 @@ fn sets_each_language_on_its_own() {
 }
 
 #[test]
-fn sets_json_and_toml() {
+fn sets_json_yaml_and_toml() {
   let config = Config::toml(
     r#"
       width = 100
@@ -70,6 +70,10 @@ fn sets_json_and_toml() {
       [json]
       quoteProps = "consistent"
       objectWrap = "collapse"
+      bracketSpacing = false
+
+      [yaml]
+      wrap = "never"
       bracketSpacing = false
 
       [toml]
@@ -89,6 +93,9 @@ fn sets_json_and_toml() {
   assert!(options.toml.align_entries && options.toml.reorder_keys);
   assert_eq!((options.toml.allowed_blank_lines, options.toml.tab_width), (1, 4));
   assert_eq!(options.json.tab_width, 2);
+  assert_eq!(options.yaml.wrap, tidy::Wrap::Never);
+  assert!(!options.yaml.bracket_spacing && !options.yaml.trailing_comma);
+  assert_eq!(options.yaml.width, 100);
 }
 
 #[test]
@@ -177,7 +184,7 @@ fn sets_markdown_from_a_preset_and_its_own_options() {
   let markdown = options(&config).markdown;
   assert_eq!(markdown.width, 100);
   assert_eq!(markdown.ignore, "skip");
-  assert_eq!(markdown.wrap, tidy::markdown::Wrap::Always);
+  assert_eq!(markdown.wrap, tidy::Wrap::Always);
   assert_eq!(markdown.bullet, tidy::markdown::Bullet::Plus);
   assert_eq!(markdown.emphasis, tidy::markdown::Emphasis::Keep);
   let preserve =

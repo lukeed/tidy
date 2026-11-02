@@ -1,7 +1,7 @@
 use pulldown_cmark::{Event, Tag};
 
 use super::{Events, Writer};
-use crate::markdown::Wrap;
+use crate::Wrap;
 use crate::markdown::width::width;
 
 /// Where a footnote definition's text starts, as Prettier decides.

@@ -4,7 +4,8 @@
 
 use std::path::{Path, PathBuf};
 
-use tidy::markdown::{Options, Preset, Wrap};
+use tidy::Wrap;
+use tidy::markdown::{Options, Preset};
 
 #[path = "support/events.rs"]
 mod support;

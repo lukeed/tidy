@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::markdown::Wrap;
+use crate::Wrap;
 use crate::markdown::width::width;
 use pulldown_cmark::Alignment;
 

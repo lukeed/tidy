@@ -38,6 +38,7 @@ pub struct Config {
   pub json: Json,
   pub toml: Toml,
   pub xml: Xml,
+  pub yaml: Yaml,
   pub markdown: Markdown,
 }
 
@@ -59,8 +60,6 @@ pub struct Json {
   pub shared: Shared,
   /// `quoteProps`, which only JSON5 follows.
   pub quote_props: Option<json::QuoteProps>,
-  /// `bracketSpacing`
-  pub bracket_spacing: Option<bool>,
   /// `objectWrap`
   pub object_wrap: Option<json::ObjectWrap>,
 }
@@ -89,11 +88,18 @@ pub struct Toml {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Yaml {
+  pub shared: Shared,
+  /// `wrap`: Prettier's `proseWrap`, for flow scalars and folded block scalars.
+  pub wrap: Option<crate::Wrap>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Markdown {
   pub shared: Shared,
   /// Sets every style option first; the others override it.
   pub preset: Option<markdown::Preset>,
-  pub wrap: Option<markdown::Wrap>,
+  pub wrap: Option<crate::Wrap>,
   pub bullet: Option<markdown::Bullet>,
   pub emphasis: Option<markdown::Emphasis>,
   pub strong: Option<markdown::Strong>,
@@ -156,6 +162,7 @@ impl Config {
         "css" => config.css = shared_only(section("css")?, "css")?,
         "json" => config.json = json(section("json")?)?,
         "toml" => config.toml = toml(section("toml")?)?,
+        "yaml" => config.yaml = yaml(section("yaml")?)?,
         "xml" => config.xml = xml(section("xml")?)?,
         "markdown" => config.markdown = markdown(section("markdown")?)?,
         _ if shared(&mut config.shared, key, value, "")? => {}
@@ -182,9 +189,10 @@ impl Config {
     self.css.css(&mut options.css);
     self.json.shared.json(&mut options.json);
     set(&mut options.json.quote_props, self.json.quote_props);
-    set(&mut options.json.bracket_spacing, self.json.bracket_spacing);
     set(&mut options.json.object_wrap, self.json.object_wrap);
     self.toml.apply(&mut options.toml);
+    self.yaml.shared.yaml(&mut options.yaml);
+    set(&mut options.yaml.wrap, self.yaml.wrap);
     self.xml.shared.xml(&mut options.xml);
     set(&mut options.xml.self_closing_space, self.xml.self_closing_space);
     set(&mut options.xml.sort_attributes, self.xml.sort_attributes);
@@ -237,6 +245,7 @@ fn shared(shared: &mut Shared, key: &str, value: &Value, section: &str) -> Resul
       })
     }
     "trailingComma" => shared.trailing_comma = Some(flag(value, &name)?),
+    "bracketSpacing" => shared.bracket_spacing = Some(flag(value, &name)?),
     "bracketSameLine" => shared.bracket_same_line = Some(flag(value, &name)?),
     "singleAttributePerLine" => shared.single_attribute_per_line = Some(flag(value, &name)?),
     "ignore" => match text(value, &name)? {
@@ -309,7 +318,6 @@ fn json(map: &Map<String, Value>) -> Result<Json, String> {
           }
         })
       }
-      "bracketSpacing" => options.bracket_spacing = Some(flag(value, "json.bracketSpacing")?),
       "objectWrap" => {
         options.object_wrap = Some(match text(value, "json.objectWrap")? {
           "preserve" => json::ObjectWrap::Preserve,
@@ -374,6 +382,23 @@ fn toml(map: &Map<String, Value>) -> Result<Toml, String> {
       _ => return Err(format!("unknown option `{name}`")),
     };
     *field = Some(flag(value, &name)?);
+  }
+  Ok(options)
+}
+
+fn yaml(map: &Map<String, Value>) -> Result<Yaml, String> {
+  let mut options = Yaml::default();
+  for (key, value) in map {
+    match key.as_str() {
+      "wrap" => {
+        let wrap = text(value, "yaml.wrap")?
+          .parse()
+          .map_err(|error: String| format!("`yaml.wrap`: {error}"))?;
+        options.wrap = Some(wrap);
+      }
+      _ if shared(&mut options.shared, key, value, "yaml")? => {}
+      _ => return Err(format!("unknown option `yaml.{key}`")),
+    }
   }
   Ok(options)
 }

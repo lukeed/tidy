@@ -1,8 +1,11 @@
+use crate::Wrap;
+
 /// A starting set of style choices. Override any field after picking one.
 ///
 /// # Example
 /// ```
-/// use tidy::markdown::{Options, Preset, Wrap};
+/// use tidy::Wrap;
+/// use tidy::markdown::{Options, Preset};
 /// let options = Options { wrap: Wrap::Always, ..Options::from(Preset::Preserve) };
 /// assert_eq!(options.ignore, "tidy-ignore");
 /// ```
@@ -13,18 +16,6 @@ pub enum Preset {
   Prettier,
   /// Keep every marker as written and only normalize the layout of blocks.
   Preserve,
-}
-
-/// How paragraphs break into lines.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum Wrap {
-  /// Keep the line breaks as written.
-  #[default]
-  Preserve,
-  /// Fill each line up to [`Options::width`].
-  Always,
-  /// Put each paragraph on one line.
-  Never,
 }
 
 /// The marker of bullet list items. Adjacent sibling lists alternate with another marker so they

@@ -1,7 +1,7 @@
 use pulldown_cmark::Parser;
 
 use super::{Gap, Writer, flags, inline};
-use crate::markdown::Wrap;
+use crate::Wrap;
 use crate::markdown::width::width;
 
 impl<'s> Writer<'s, '_> {

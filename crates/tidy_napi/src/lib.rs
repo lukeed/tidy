@@ -29,12 +29,12 @@ type Callback<'a> = Function<'a, EmbedRequest, Option<String>>;
 pub struct FormatOptions {
   /// The language. Default: by `filepath`, and HTML without one.
   #[napi(
-    ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'json' | 'jsonc' | 'json5' | 'json-stringify' | 'toml' | 'xml' | 'markdown'"
+    ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'json' | 'jsonc' | 'json5' | 'json-stringify' | 'yaml' | 'toml' | 'xml' | 'markdown'"
   )]
   pub parser: Option<String>,
   /// The file's path, which decides the language and some details.
   pub filepath: Option<String>,
-  /// Hand embedded code to `embed`, and format the style sheets, JSON and TOML it declines. Default: true.
+  /// Hand embedded code to `embed`, and format the style sheets, JSON, YAML and TOML it declines. Default: true.
   pub embedded: Option<bool>,
   /// The line width. Default: 80.
   pub width: Option<u32>,
@@ -47,11 +47,13 @@ pub struct FormatOptions {
   /// Default: `auto`, and `strict` for XML.
   #[napi(ts_type = "'strict' | 'auto' | 'ignore'")]
   pub whitespace: Option<String>,
-  /// Quotes in Handlebars, style sheets and JSON5. Default: `double`.
+  /// Quotes in Handlebars, style sheets, JSON5 and YAML. Default: `double`.
   #[napi(ts_type = "'double' | 'single'")]
   pub quote: Option<String>,
-  /// Trailing commas in SCSS, JSONC, JSON5 and TOML arrays. Default: true.
+  /// Trailing commas in SCSS, JSONC, JSON5, YAML flow collections and TOML arrays. Default: true.
   pub trailing_comma: Option<bool>,
+  /// Spaces inside the braces of JSON objects and YAML flow mappings. Default: true.
+  pub bracket_spacing: Option<bool>,
   pub bracket_same_line: Option<bool>,
   pub single_attribute_per_line: Option<bool>,
   /// The ignore directive. Default: `prettier-ignore`.
@@ -68,9 +70,12 @@ pub struct FormatOptions {
   /// Options for style sheets only: the shared ones above.
   #[napi(ts_type = "Record<string, unknown>")]
   pub css: Option<Value>,
-  /// Options for JSON only: the shared ones, and `quoteProps`, `bracketSpacing` and `objectWrap`.
+  /// Options for JSON only: the shared ones, and `quoteProps` and `objectWrap`.
   #[napi(ts_type = "Record<string, unknown>")]
   pub json: Option<Value>,
+  /// Options for YAML only: the shared ones, and `wrap` (`preserve`, `always` or `never`).
+  #[napi(ts_type = "Record<string, unknown>")]
+  pub yaml: Option<Value>,
   /// Options for TOML only: the shared ones, and taplo's, in camel case: `alignEntries`, `reorderKeys`, ...
   #[napi(ts_type = "Record<string, unknown>")]
   pub toml: Option<Value>,
@@ -171,6 +176,7 @@ fn language(input: &FormatOptions) -> napi::Result<(Language, Option<tidy::handl
     Some("json5") => (Language::Json(json::Dialect::Json5), None),
     Some("json-stringify") => (Language::Json(json::Dialect::Stringify), None),
     Some("toml") => (Language::Toml, None),
+    Some("yaml") => (Language::Yaml, None),
     Some("xml") => (Language::Xml, None),
     Some("markdown") => (Language::Markdown, None),
     Some(other) => return Err(napi::Error::from_reason(format!("unknown parser: {other}"))),
@@ -196,6 +202,7 @@ fn config(input: &FormatOptions) -> Value {
   put("whitespace", input.whitespace.clone().map(Value::from));
   put("quote", input.quote.clone().map(Value::from));
   put("trailingComma", input.trailing_comma.map(Value::from));
+  put("bracketSpacing", input.bracket_spacing.map(Value::from));
   put("bracketSameLine", input.bracket_same_line.map(Value::from));
   put("singleAttributePerLine", input.single_attribute_per_line.map(Value::from));
   put("ignore", input.ignore.clone().map(Value::from));
@@ -205,6 +212,7 @@ fn config(input: &FormatOptions) -> Value {
   put("css", input.css.clone());
   put("json", input.json.clone());
   put("toml", input.toml.clone());
+  put("yaml", input.yaml.clone());
   put("xml", input.xml.clone());
   put("markdown", input.markdown.clone());
   Value::Object(map)

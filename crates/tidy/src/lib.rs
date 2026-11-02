@@ -36,6 +36,19 @@ pub enum Whitespace {
   Ignore,
 }
 
+/// How prose breaks into lines: the words of Markdown paragraphs, and of YAML's flow scalars and folded block scalars.
+/// Prettier's `proseWrap`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Wrap {
+  /// Keep the line breaks as written.
+  #[default]
+  Preserve,
+  /// Fill each line up to the line width.
+  Always,
+  /// Put each paragraph on one line.
+  Never,
+}
+
 /// Why a text can't be formatted.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {

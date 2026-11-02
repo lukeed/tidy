@@ -1,6 +1,5 @@
-use tidy::markdown::{
-  Bullet, Emphasis, Fence, Heading, Numbering, Options, Preset, Rule, Strong, Wrap,
-};
+use tidy::Wrap;
+use tidy::markdown::{Bullet, Emphasis, Fence, Heading, Numbering, Options, Preset, Rule, Strong};
 
 fn prettier(source: &str) -> String {
   tidy::markdown::format(source, &Options::default())

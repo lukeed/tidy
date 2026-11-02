@@ -19,9 +19,7 @@ mod width;
 mod wrap;
 mod writer;
 
-pub use options::{
-  Bullet, Emphasis, Fence, Heading, Numbering, Options, Preset, Rule, Strong, Wrap,
-};
+pub use options::{Bullet, Emphasis, Fence, Heading, Numbering, Options, Preset, Rule, Strong};
 
 /// A code block or front matter, handed to the caller of [`format_with`] to format.
 #[derive(Clone, Copy, Debug)]
