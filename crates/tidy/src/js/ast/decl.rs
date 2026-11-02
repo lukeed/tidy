@@ -301,7 +301,7 @@ impl<'a> Func<'a> {
         }
       }
       K::ArrowFunctionExpression(_) => Node::Expr(Expr::new(file, id)),
-      K::TSFunctionType(_) | K::TSConstructorType(_) => Node::TypeNode(TypeNode::new(file, id)),
+      K::TSFunctionType(_) | K::TSConstructorType(_) => Node::Type(TypeNode::new(file, id)),
       K::StaticBlock(_)
       | K::TSMethodSignature(_)
       | K::TSCallSignatureDeclaration(_)

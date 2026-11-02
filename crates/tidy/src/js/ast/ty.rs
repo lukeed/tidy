@@ -324,7 +324,7 @@ impl<'a> TypeNode<'a> {
   }
 
   pub(crate) fn parent(self) -> Node<'a> {
-    Node::TypeNode(self).parent()
+    Node::Type(self).parent()
   }
 
   pub(crate) fn is_keyword(self, keyword: Keyword) -> bool {

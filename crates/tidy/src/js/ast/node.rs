@@ -94,13 +94,13 @@ pub(crate) use handle_structs;
 
 /// Declares handles, and [`Node`], which is any of them.
 macro_rules! handles {
-  ($($(#[$doc:meta])* $name:ident,)*) => {
+  ($($(#[$doc:meta])* $variant:ident $name:ident,)*) => {
     handle_structs! { $($(#[$doc])* $name,)* }
 
     $(impl<'a> From<$name<'a>> for Node<'a> {
       #[inline]
       fn from(it: $name<'a>) -> Node<'a> {
-        Node::$name(it)
+        Node::$variant(it)
       }
     })*
 
@@ -109,14 +109,14 @@ macro_rules! handles {
     pub(crate) enum Node<'a> {
       /// The root.
       File(&'a File<'a>),
-      $($name($name<'a>),)*
+      $($variant($name<'a>),)*
     }
 
     impl<'a> Node<'a> {
       pub(crate) fn file(self) -> &'a File<'a> {
         match self {
           Node::File(file) => file,
-          $(Node::$name(it) => it.file,)*
+          $(Node::$variant(it) => it.file,)*
         }
       }
 
@@ -124,7 +124,7 @@ macro_rules! handles {
       pub(crate) fn id(self) -> u32 {
         match self {
           Node::File(_) => 0,
-          $(Node::$name(it) => it.id,)*
+          $(Node::$variant(it) => it.id,)*
         }
       }
     }
@@ -132,24 +132,24 @@ macro_rules! handles {
 }
 
 handles! {
-  Expr,
-  Stmt,
-  TypeNode,
-  Pat,
-  PatProp,
-  PatElem,
-  Func,
-  Param,
-  TypeParam,
-  Class,
-  Member,
-  Prop,
-  VarDecl,
-  Case,
-  EnumMember,
-  ImportSpec,
-  ExportSpec,
-  TupleElem,
+  Expr Expr,
+  Stmt Stmt,
+  Type TypeNode,
+  Pat Pat,
+  PatProp PatProp,
+  PatElem PatElem,
+  Func Func,
+  Param Param,
+  TypeParam TypeParam,
+  Class Class,
+  Member Member,
+  Prop Prop,
+  VarDecl VarDecl,
+  Case Case,
+  EnumMember EnumMember,
+  ImportSpec ImportSpec,
+  ExportSpec ExportSpec,
+  TupleElem TupleElem,
 }
 
 macro_rules! plain_handles {
@@ -478,7 +478,7 @@ impl<'a> Node<'a> {
       | K::TSClassImplements(_)
       | K::JSDocNullableType(_)
       | K::JSDocNonNullableType(_)
-      | K::JSDocUnknownType(_) => Node::TypeNode(TypeNode::new(file, id)),
+      | K::JSDocUnknownType(_) => Node::Type(TypeNode::new(file, id)),
       _ => return None,
     };
     Some(node)
