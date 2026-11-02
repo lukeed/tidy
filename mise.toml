@@ -68,6 +68,11 @@ description = "Compare Dockerfiles with dprint-plugin-dockerfile 0.7.0: mise run
 dir = "tests/oracle/dockerfile"
 run = "cargo run --release --"
 
+[tasks."oracle:js"]
+description = "Compare JS and TS with Prettier: mise run oracle:js -- [dir...] [--show=n] [--list=file]"
+run = "bun tests/oracle/js.ts"
+depends = ["build:napi"]
+
 [tasks."oracle:graphql"]
 description = "Compare GraphQL with Prettier: mise run oracle:graphql -- [dir...] [--show=n]"
 run = "bun tests/oracle/graphql.ts"
