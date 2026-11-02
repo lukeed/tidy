@@ -162,6 +162,9 @@ pub struct Options {
   pub format_embedded: bool,
   /// The ignore directive, Prettier's `prettier-ignore` by default. `{{! name }}` keeps the next node as it is written.
   pub ignore: String,
+  /// How tidy formats the expressions of a tempura template, inside the width and indent of the template.
+  #[cfg(feature = "js")]
+  pub js: crate::js::Options,
 }
 
 impl Default for Options {
@@ -177,6 +180,8 @@ impl Default for Options {
       filepath: None,
       format_embedded: true,
       ignore: "prettier-ignore".into(),
+      #[cfg(feature = "js")]
+      js: crate::js::Options::default(),
     }
   }
 }
@@ -190,6 +195,7 @@ pub(crate) struct Context {
   pub(crate) formats_embedded: bool,
   /// The template is tempura.
   pub(crate) is_tempura: bool,
+  pub(crate) scripts: crate::embed::Scripts,
 }
 
 /// Formats `text`, handing the code of other languages to `embed`.
@@ -278,6 +284,10 @@ impl Formatter {
       tabs: options.tabs,
       formats_embedded: options.format_embedded,
       is_tempura,
+      #[cfg(feature = "js")]
+      scripts: options.js,
+      #[cfg(not(feature = "js"))]
+      scripts: (),
     };
     let mut printer = printer::Printer {
       tree: &self.scratch.tree,

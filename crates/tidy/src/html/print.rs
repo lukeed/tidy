@@ -761,7 +761,7 @@ impl<'p, 'a> Printer<'p, 'a> {
     let options = self.options;
     let mut formatted = self.embed.format(request).or_else(|| {
       let builtin = options.formats_embedded.then_some(request)?;
-      crate::embed::builtin(&builtin, options.tab_width, options.tabs)
+      crate::embed::builtin(&builtin, options.tab_width, options.tabs, options.scripts)
     })?;
     formatted.truncate(formatted.trim_end_matches(['\n', '\r']).len());
     Some(formatted)

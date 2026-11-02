@@ -22,6 +22,7 @@ pub(crate) mod sort_imports;
 pub(crate) mod source_text;
 pub(crate) mod stack;
 pub(crate) mod strings;
+pub(crate) mod template;
 pub(crate) mod text;
 pub(crate) mod trivia;
 pub(crate) mod utils;

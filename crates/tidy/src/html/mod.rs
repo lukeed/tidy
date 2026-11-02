@@ -52,6 +52,7 @@ pub(crate) struct Context<'o> {
   pub(crate) typescript: bool,
   /// `embeddedLanguageFormatting` is `"auto"`.
   pub(crate) formats_embedded: bool,
+  pub(crate) scripts: &'o crate::embed::Scripts,
 }
 
 /// How to format a markup file.
@@ -74,6 +75,9 @@ pub struct Options {
   /// Prettier's `embeddedLanguageFormatting`: `"auto"` if true, `"off"` if false. Off, neither the embed hook nor
   /// tidy's own formatters see the code of other languages, which stays as it is written.
   pub format_embedded: bool,
+  /// How tidy formats scripts and the expressions of templates, inside the width and indent of the markup.
+  #[cfg(feature = "js")]
+  pub js: crate::js::Options,
 }
 
 impl Default for Options {
@@ -91,6 +95,8 @@ impl Default for Options {
       ignore: "prettier-ignore".into(),
       filepath: None,
       format_embedded: true,
+      #[cfg(feature = "js")]
+      js: crate::js::Options::default(),
     }
   }
 }
@@ -218,6 +224,10 @@ fn run<'a>(
     embedded: false,
     typescript,
     formats_embedded: options.format_embedded,
+    #[cfg(feature = "js")]
+    scripts: &options.js,
+    #[cfg(not(feature = "js"))]
+    scripts: &(),
   };
   if !preprocess::preprocess(tree, &context) {
     return Err(Error::TooDeep);

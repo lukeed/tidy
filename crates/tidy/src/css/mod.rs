@@ -340,9 +340,9 @@ fn print_front_matter(raw: &[u8], sink: &mut Sink<'_>, options: &Options, embed:
       module: true,
     };
     let builtin = || {
-      options
-        .format_embedded
-        .then(|| crate::embed::builtin(&request, options.tab_width, options.tabs))?
+      options.format_embedded.then(|| {
+        crate::embed::builtin(&request, options.tab_width, options.tabs, &Default::default())
+      })?
     };
     let formatted = embed.format(request).or_else(builtin)?;
     Some(formatted.trim_end_matches(['\n', '\r']).to_owned())

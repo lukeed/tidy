@@ -417,7 +417,7 @@ impl<'a> Printer<'a, '_> {
       let options = self.options;
       let builtin = || {
         let builtin = options.formats_embedded.then_some(request)?;
-        crate::embed::builtin(&builtin, options.tab_width, options.tabs)
+        crate::embed::builtin(&builtin, options.tab_width, options.tabs, &options.scripts)
       };
       match self.embed.format(request).or_else(builtin) {
         Some(text) => formatted = text.trim_end_matches(['\n', '\r']).to_owned(),
@@ -1049,7 +1049,12 @@ impl<'a> Printer<'a, '_> {
       width: self.options.width.saturating_sub(reserved),
       module: true,
     };
-    let formatted = self.embed.format(request)?;
+    let options = self.options;
+    let builtin = || {
+      let builtin = options.formats_embedded.then_some(request)?;
+      crate::embed::builtin(&builtin, options.tab_width, options.tabs, &options.scripts)
+    };
+    let formatted = self.embed.format(request).or_else(builtin)?;
     Some(formatted.trim_end_matches(['\n', '\r']).to_owned())
   }
 

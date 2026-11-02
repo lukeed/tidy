@@ -64,12 +64,59 @@ pub(crate) fn own(language: &str) -> Option<&'static str> {
   }
 }
 
+/// The options of the JavaScript and TypeScript in other languages: [`crate::js::Options`] with the `js` feature.
+#[cfg(feature = "js")]
+pub(crate) type Scripts = crate::js::Options;
+#[cfg(not(feature = "js"))]
+pub(crate) type Scripts = ();
+
 /// Formats `request` with tidy's own formatter for its language, as a hook would, for the languages that tidy formats as
-/// text: JSON, YAML, TOML, Dockerfile, INI and GraphQL. `None` if it has none, or the code doesn't parse. TOML, Dockerfile and
+/// text: JSON, YAML, TOML, Dockerfile, INI, GraphQL, and with the `js` feature, JavaScript and TypeScript, with
+/// `scripts` but the host's width and indent. `None` if it has none, or the code doesn't parse. TOML, Dockerfile and
 /// INI print at the start of a line only, since indenting their lines would change multi-line strings, heredocs and
 /// values over lines.
-pub(crate) fn builtin(request: &Request<'_>, tab_width: usize, tabs: bool) -> Option<String> {
+pub(crate) fn builtin(
+  request: &Request<'_>,
+  tab_width: usize,
+  tabs: bool,
+  scripts: &Scripts,
+) -> Option<String> {
+  builtin_in(request, tab_width, tabs, scripts, false)
+}
+
+/// [`builtin`] for a Markdown code block, where Prettier prints a statement that is only JSX without a semicolon.
+pub(crate) fn builtin_in_markdown(
+  request: &Request<'_>,
+  tab_width: usize,
+  tabs: bool,
+  scripts: &Scripts,
+) -> Option<String> {
+  builtin_in(request, tab_width, tabs, scripts, true)
+}
+
+fn builtin_in(
+  request: &Request<'_>,
+  tab_width: usize,
+  tabs: bool,
+  scripts: &Scripts,
+  markdown: bool,
+) -> Option<String> {
   use crate::{dockerfile, graphql, ini, json, toml, yaml};
+  #[cfg(feature = "js")]
+  if crate::js::template::formats(request.language) {
+    use crate::js::template::{Host, format};
+    let options = crate::js::Options {
+      width: request.width,
+      tab_width,
+      tabs,
+      eol: crate::doc::Eol::Lf,
+      ..*scripts
+    };
+    let host = if markdown { Host::Markdown } else { Host::Markup };
+    return format(request, &options, host);
+  }
+  #[cfg(not(feature = "js"))]
+  let _ = (scripts, markdown);
   let dialect = match request.language {
     "json" => json::Dialect::Json,
     "jsonc" => json::Dialect::Jsonc,

@@ -213,6 +213,9 @@ pub struct Options {
   /// The ignore directive, Prettier's `prettier-ignore` by default. The content of an element between
   /// `<!-- name-start -->` and `<!-- name-end -->` prints as it is written.
   pub ignore: String,
+  /// How tidy formats scripts, inside the width and indent of the document.
+  #[cfg(feature = "js")]
+  pub js: crate::js::Options,
 }
 
 impl Default for Options {
@@ -230,6 +233,8 @@ impl Default for Options {
       single_attribute_per_line: false,
       format_embedded: true,
       ignore: "prettier-ignore".into(),
+      #[cfg(feature = "js")]
+      js: crate::js::Options::default(),
     }
   }
 }
@@ -304,6 +309,10 @@ impl Formatter {
       stack,
       has_ignored_ranges,
       ignore: (&ignore.0, &ignore.1),
+      #[cfg(feature = "js")]
+      scripts: &options.js,
+      #[cfg(not(feature = "js"))]
+      scripts: &(),
     };
     printer.document();
     if printer.stack.ran_out() {

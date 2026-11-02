@@ -91,7 +91,8 @@ pub struct Options {
   /// For every dialect of INI.
   pub ini: ini::Options,
   pub graphql: graphql::Options,
-  /// For JavaScript and TypeScript.
+  /// For JavaScript and TypeScript, in files and in the scripts, template expressions and code blocks of other
+  /// languages, where the host's width and indent apply.
   #[cfg(feature = "js")]
   pub js: js::Options,
 }
@@ -118,6 +119,16 @@ impl Default for Options {
 }
 
 impl Options {
+  #[cfg(feature = "js")]
+  fn scripts(&self) -> &crate::embed::Scripts {
+    &self.js
+  }
+
+  #[cfg(not(feature = "js"))]
+  fn scripts(&self) -> &crate::embed::Scripts {
+    &()
+  }
+
   /// Applies the choices that are set in `shared` to every language that has them.
   pub fn share(&mut self, shared: &Shared) {
     shared.html(&mut self.html);
@@ -359,11 +370,21 @@ impl Formatter {
     match language {
       Language::Html | Language::Vue => {
         let base = if language == Language::Vue { &options.vue } else { &options.html };
-        let options = html::Options { filepath, ..base.clone() };
+        let options = html::Options {
+          filepath,
+          #[cfg(feature = "js")]
+          js: options.js,
+          ..base.clone()
+        };
         self.html.format(text, &options, embed)
       }
       Language::Handlebars => {
-        let options = handlebars::Options { filepath, ..options.handlebars.clone() };
+        let options = handlebars::Options {
+          filepath,
+          #[cfg(feature = "js")]
+          js: options.js,
+          ..options.handlebars.clone()
+        };
         self.handlebars.format(text, &options, embed)
       }
       Language::Css(dialect) => {
@@ -386,7 +407,13 @@ impl Formatter {
         let options = js::Options { dialect, ..options.js };
         self.js.format(text, path.unwrap_or_default(), &options)
       }
-      Language::Xml => self.xml.format(text, &options.xml, embed),
+      Language::Xml => {
+        #[cfg(feature = "js")]
+        let options = &xml::Options { js: options.js, ..options.xml.clone() };
+        #[cfg(not(feature = "js"))]
+        let options = &options.xml;
+        self.xml.format(text, options, embed)
+      }
       Language::Yaml => {
         let options = yaml::Options { filepath, ..options.yaml.clone() };
         self.yaml.format(text, &options)
@@ -412,7 +439,12 @@ impl Formatter {
                 css::format(code.text, &options, &mut *embed).ok()
               })
               .or_else(|| {
-                crate::embed::builtin(&request, options.yaml.tab_width, options.yaml.tabs)
+                crate::embed::builtin_in_markdown(
+                  &request,
+                  options.yaml.tab_width,
+                  options.yaml.tabs,
+                  options.scripts(),
+                )
               })
           }),
           false => markdown::format(text, &options.markdown),

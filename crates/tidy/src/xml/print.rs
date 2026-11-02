@@ -19,6 +19,7 @@ pub(crate) struct Printer<'p, 'a> {
   pub(crate) has_ignored_ranges: bool,
   /// The comments that start and end an ignored range: `<!-- prettier-ignore-start -->` by default.
   pub(crate) ignore: (&'p str, &'p str),
+  pub(crate) scripts: &'p crate::embed::Scripts,
 }
 
 /// What comes before the `/>` of an element with no content.
@@ -374,10 +375,10 @@ impl<'a> Printer<'_, 'a> {
       width: self.options.width,
       module: true,
     };
-    let options = self.options;
+    let (options, scripts) = (self.options, self.scripts);
     let formatted = self.embed.format(request).or_else(|| {
       let builtin = options.format_embedded.then_some(request)?;
-      crate::embed::builtin(&builtin, options.tab_width, options.tabs)
+      crate::embed::builtin(&builtin, options.tab_width, options.tabs, scripts)
     });
     let document = match &formatted {
       Some(_) => None,

@@ -1,9 +1,10 @@
 // Formats Prettier's own fixtures and compares the output with its snapshots. Embedded code is formatted by Prettier
 // through the hook, so only the markup printing is under test.
 //
-//   bun tests/oracle/conformance.ts [language=html] [filter] [--show=n] [--builtin-css]
+//   bun tests/oracle/conformance.ts [language=html] [filter] [--show=n] [--builtin-css] [--builtin-js]
 //
-// With `--builtin-css`, the hook declines style sheets, so tidy formats them itself.
+// With `--builtin-css`, the hook declines style sheets, so tidy formats them itself. With `--builtin-js`, it declines
+// JavaScript and TypeScript, and the expressions and bindings of templates.
 import { $, Glob } from "bun";
 import { join, relative } from "node:path";
 import * as prettier from "prettier";
@@ -12,6 +13,8 @@ import { format, type EmbedRequest, type FormatOptions } from "../../crates/tidy
 let args = Bun.argv.slice(2).filter((arg) => !arg.startsWith("--"));
 let show = Number(Bun.argv.find((arg) => arg.startsWith("--show="))?.slice(7) ?? 5);
 let builtinCss = Bun.argv.includes("--builtin-css");
+let builtinJs = Bun.argv.includes("--builtin-js");
+let javascript = /^(babel|typescript|babel-ts|__(js|ts|vue|vue_ts)_[a-z_]+)$/;
 let language = args[0] ?? "html";
 let filter = args[1] ?? "";
 let root = join(process.env.HOME!, "repos/oss/prettier/tests/format", language);
@@ -56,6 +59,7 @@ function settings(options: Record<string, unknown>, file: string): FormatOptions
 		parser,
 		quote: options.singleQuote ? "single" : "double",
 		css: { trailingComma: options.trailingComma !== "none" },
+		js: scripts(options),
 		embedded: options.embeddedLanguageFormatting !== "off",
 		width: (options.printWidth as number) ?? 80,
 		indent: (options.tabWidth as number) ?? 2,
@@ -66,6 +70,13 @@ function settings(options: Record<string, unknown>, file: string): FormatOptions
 		vue: { indentBlocks: (options.vueIndentScriptAndStyle as boolean) ?? false },
 		filepath: file,
 	};
+}
+
+/** tidy's options for the scripts it formats itself: Prettier's for the fixture, without prettier-plugin-jsdoc. */
+function scripts(options: Record<string, unknown>) {
+	let names = ["semi", "trailingComma", "bracketSpacing", "arrowParens", "quoteProps"];
+	let set = names.filter((name) => name in options).map((name) => [name, options[name]]);
+	return { jsdoc: false, ...Object.fromEntries(set) };
 }
 
 function key(request: EmbedRequest) {
@@ -170,6 +181,7 @@ for (let test of all) {
 			let missing = new Map<string, EmbedRequest>();
 			actual = format(test.input, options, (request) => {
 				if (off || (builtinCss && ["css", "scss", "less"].includes(request.language))) return undefined;
+				if (builtinJs && javascript.test(request.language)) return undefined;
 				let id = key(request);
 				if (!answers.has(id)) missing.set(id, request);
 				return answers.get(id);

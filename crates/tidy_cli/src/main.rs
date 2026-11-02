@@ -24,8 +24,9 @@ Usage
   Dockerfile.dev and .dockerfile files, for INI files: .ini, .cfg, .editorconfig, .npmrc, .gitconfig,
   .gitmodules, and the others that prettier-plugin-ini formats, and for XML files: .xml, .svg, .plist,
   .csproj, pom.xml, and the others that @prettier/plugin-xml formats. Style sheets in <style> and style=\"\",
-  JSON in scripts and code blocks, YAML and TOML in code blocks and front matter, and Dockerfiles, INI and
-  GraphQL in code blocks are formatted. Scripts in markup and other code blocks are left as written.
+  JSON in scripts and code blocks, YAML and TOML in code blocks and front matter, Dockerfiles, INI and
+  GraphQL in code blocks, and scripts, template expressions and JavaScript and TypeScript code blocks are
+  formatted. Other code blocks are left as written.
 
   Each file takes its options from the nearest tidy.json, tidy.jsonc or tidy.toml, and from .editorconfig.
   Options given here override them.
