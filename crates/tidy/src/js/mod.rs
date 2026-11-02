@@ -346,7 +346,15 @@ fn source_types(
     _ if text.contains("</") || text.contains("/>") => (SourceType::tsx(), Some(SourceType::ts())),
     _ => (SourceType::ts(), Some(SourceType::tsx())),
   };
-  (first.with_commonjs(commonjs), second)
+  let name = lower.rsplit(['/', '\\']).next().unwrap_or_default();
+  let declaration = [".d.ts", ".d.mts", ".d.cts"].iter().any(|end| name.ends_with(end))
+    || name
+      .strip_suffix(".ts")
+      .and_then(|stem| stem.rsplit_once(".d."))
+      .is_some_and(|(_, inner)| !inner.contains('.'));
+  let definition =
+    |it: SourceType| it.with_typescript_definition(it.is_typescript() && declaration);
+  (definition(first.with_commonjs(commonjs)), second.map(definition))
 }
 
 /// Parses `text` as the first source type, or else the second, or fails with the error of the first.
@@ -393,8 +401,11 @@ fn parse<'a>(
   text: &'a str,
   source_type: oxc_span::SourceType,
 ) -> oxc_parser::ParserReturn<'a> {
-  let options =
-    oxc_parser::ParseOptions { preserve_parens: true, ..oxc_parser::ParseOptions::default() };
+  let options = oxc_parser::ParseOptions {
+    preserve_parens: true,
+    allow_return_outside_function: true,
+    ..oxc_parser::ParseOptions::default()
+  };
   oxc_parser::Parser::new(allocator, text, source_type).with_options(options).parse()
 }
 
