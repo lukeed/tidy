@@ -4,13 +4,13 @@
 
 | Tool | Builds | Time | Speed | Against fastest | Rejects |
 | --- | --- | ---: | ---: | ---: | ---: |
-| tidy | tree, comments | 50.17 ms | 330 MB/s | 1.78x | 0 |
-| roxmltree | tree | 61.46 ms | 269 MB/s | 2.18x | 16 |
-| quick-xml | events | 28.17 ms | 588 MB/s | 1.00x | 0 |
+| tidy | tree, comments | 31.15 ms | 532 MB/s | 1.11x | 0 |
+| roxmltree | tree | 59.08 ms | 280 MB/s | 2.10x | 16 |
+| quick-xml | events | 28.11 ms | 589 MB/s | 1.00x | 0 |
 
 ## Setup
 
 - Date: 2026-11-01
-- Commit: 65190ed
+- Commit: 9abb89f
 - Machine: Apple M1 Max, 10 cores, macOS 15.7.9
 - Tools: tidy at the commit above, roxmltree 0.21.2, quick-xml 0.42.0
