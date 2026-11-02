@@ -499,6 +499,13 @@ impl<'l> Lexer<'l> {
         if in_flow && is_flow_indicator(Some(ch)) {
           break;
         }
+        // The bytes up to the next `:`, white space or flow indicator only move the end.
+        let rest = &self.text[i as usize + 1..];
+        let stop = |byte: &u8| {
+          matches!(byte, b':' | b' ' | b'\n' | b'\r' | b'\t')
+            || (in_flow && is_flow_indicator(Some(*byte)))
+        };
+        i += rest.iter().position(stop).unwrap_or(rest.len()) as isize;
         end = i;
       }
     }
