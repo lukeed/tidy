@@ -2,13 +2,13 @@
 
 use std::borrow::Cow;
 
-use super::Parser;
 use super::ast::{Flags, Id};
 use super::print::{Printer, raw_name};
 use super::utilities::{
   dedent_string, html_split, html_trim_preserve_indentation, is_script_like_tag,
   unescape_quote_entities,
 };
+use super::{Parser, angular};
 use crate::doc::{Align, Branch};
 use crate::embed::{Kind as Purpose, Request};
 use crate::strings;
@@ -354,6 +354,8 @@ enum Value<'v> {
   Hug(String),
   /// `v-for`: the formatted aliases, `in` or `of`, and the formatted expression.
   For(String, &'static str, String),
+  /// `printExpand` of Angular's microsyntax: each binding formatted, and whether it follows a space instead of `;`.
+  Microsyntax(Vec<(bool, String)>),
 }
 
 /// `printAttribute` of `embed/attribute.js`. Emits nothing and returns false if no printer applies.
@@ -374,7 +376,8 @@ pub(crate) fn attribute(printer: &mut Printer<'_, '_>, id: Id, index: usize) -> 
   let full = attr.full_name();
   let is_candidate = matches!(&full[..], b"class" | b"srcset" | b"allow" | b"style")
     || is_event_handler(&full)
-    || printer.options.parser == Parser::Vue;
+    || printer.options.parser == Parser::Vue
+    || (printer.options.parser == Parser::Angular && full.starts_with(b"*"));
   if !is_candidate {
     return false;
   }
@@ -448,6 +451,8 @@ fn value_of<'v>(
   } else if printer.options.parser == Parser::Vue {
     let code = text(unescaped);
     vue(printer, id, full, &code, lead)
+  } else if printer.options.parser == Parser::Angular && full.starts_with(b"*") {
+    microsyntax(printer, &text(unescaped), lead)
   } else {
     None
   }
@@ -516,6 +521,19 @@ fn emit_value(printer: &mut Printer<'_, '_>, value: Value<'_>) {
       printer.text_doc(&formatted);
       printer.docs.close(group);
     }
+    Value::Microsyntax(bindings) => expand(printer, |printer| {
+      for (index, (space, binding)) in bindings.iter().enumerate() {
+        match (index, space) {
+          (0, _) => {}
+          (_, true) => printer.docs.text(" "),
+          (_, false) => {
+            printer.docs.text(";");
+            printer.docs.line();
+          }
+        }
+        printer.text_doc(binding);
+      }
+    }),
     Value::For(left, operator, right) => {
       let outer = printer.docs.group();
       let inner = printer.docs.group();
@@ -859,6 +877,52 @@ fn vue<'v>(
     return expression(printer, script, Hug::Literal);
   }
   None
+}
+
+/// `*directive="..."`: Angular's microsyntax, whose expressions the host formats one by one, as `__ng_directive`.
+fn microsyntax<'v>(printer: &mut Printer<'_, '_>, code: &str, lead: usize) -> Option<Value<'v>> {
+  let bindings = angular::parse(code)?;
+  let format = |printer: &mut Printer<'_, '_>, code: &str, prefix: usize, hug: bool| {
+    let (extra, suffix) = if hug { (1, 1) } else { (2, 0) };
+    let kind = Purpose::Attribute;
+    let language = "__ng_directive";
+    printer.embed_text(Embedded { code, language, kind, extra, module: true, prefix, suffix })
+  };
+  let aliased = |formatted: String, alias: Option<&str>| match alias {
+    Some(alias) => format!("{formatted} as {}", angular::key(alias)),
+    None => formatted,
+  };
+  if let [angular::Binding::Expression { code, alias }] = bindings[..] {
+    let expanded = format(printer, code, 0, false)?;
+    if is_literal(expanded.trim(), true) {
+      return Some(Value::Hug(aliased(format(printer, code, lead, true)?, alias)));
+    }
+    return Some(Value::Microsyntax(vec![(false, aliased(expanded, alias))]));
+  }
+  let mut printed = Vec::with_capacity(bindings.len());
+  for (index, binding) in bindings.iter().enumerate() {
+    let (space, colonless) = angular::layout(&bindings, index);
+    let text = match *binding {
+      angular::Binding::Expression { code, alias } => {
+        aliased(format(printer, code, 0, false)?, alias)
+      }
+      angular::Binding::Keyed { key, code, alias } => {
+        let key = angular::key(key);
+        let key = if colonless { format!("{key} ") } else { format!("{key}: ") };
+        let expression = format(printer, code, crate::doc::width(&key), false)?;
+        aliased(key + &expression, alias)
+      }
+      angular::Binding::Let { key, value: Some(value) } => {
+        format!("let {} = {}", angular::key(key), angular::key(value))
+      }
+      angular::Binding::Let { key, value: None } => format!("let {}", angular::key(key)),
+      angular::Binding::As { key, alias } => {
+        format!("{} as {}", angular::key(key), angular::key(alias))
+      }
+    };
+    printed.push((space, text));
+  }
+  Some(Value::Microsyntax(printed))
 }
 
 /// When `formatAttributeValue` hugs the formatted value instead of expanding it.

@@ -5,7 +5,7 @@
 //! widths of the text around it on its lines, the way a hook prints it. A `v-for` value is printed whole, since its
 //! aliases break by the width of what follows them.
 
-use crate::embed::{Kind, Request};
+use crate::embed::{Host, Kind, Request};
 use crate::js::ast_nodes::node_as_ast_nodes;
 use crate::js::base::*;
 use crate::js::context::JsFormatContext;
@@ -73,6 +73,7 @@ impl Root {
       "__ts_expression" => Root::Expression(HtmlRoot::JsExpression, true),
       "__vue_expression" => Root::Expression(HtmlRoot::VueExpression, false),
       "__vue_ts_expression" => Root::Expression(HtmlRoot::VueExpression, true),
+      "__ng_directive" => Root::Expression(HtmlRoot::NgDirective, false),
       "__vue_event_binding" => Root::EventBinding(Syntax::Babel),
       "__vue_ts_event_binding" => Root::EventBinding(Syntax::BabelTs),
       "__vue_bindings" => Root::Binding(Parameters, false),
@@ -104,14 +105,6 @@ impl Root {
 /// True if `language` is the name of one of Prettier's parsers that [`format`] formats.
 pub(crate) fn formats(language: &str) -> bool {
   Root::of(language).is_some()
-}
-
-/// Where the code is.
-#[derive(Copy, Clone, PartialEq, Eq)]
-pub(crate) enum Host {
-  Markup,
-  /// A code block, where Prettier's `parentParser` is `markdown`.
-  Markdown,
 }
 
 /// The allocator and buffers of the last call on this thread.
@@ -173,25 +166,26 @@ fn format_in(
   let file = &parse_root(allocator, request.code, root, request.module)?;
   let mut out = Vec::with_capacity(request.code.len() + 16);
   let written = Cell::new(true);
-  match root {
-    Root::Program(_) => {
-      run::format(file, &options, scratch, &mut out, |file, f| {
-        write_placed(request, f, &|f| write_statements(file, f));
-      })
-      .ok()?;
-    }
+  let document = match root {
+    Root::Program(_) => run::document(file, &options, scratch, |file, f| {
+      write_placed(request, f, &|f| write_statements(file, f));
+    }),
     _ => {
       let context = context_of(file, &options);
-      let document = run::write_with(context, file.text(), scratch, |f| {
+      run::write_with(context, file.text(), scratch, |f| {
         write_placed(request, f, &|f| written.set(write_root(root, file, f)));
       })
-      .ok()?;
-      if !written.get() {
-        return None;
-      }
-      run::print(document, file.text(), &options, scratch, &mut out).ok()?;
     }
   }
+  .ok()?;
+  if !written.get() {
+    return None;
+  }
+  let options = match host {
+    Host::Template => FormatOptions { is_in_markdown: true, ..options },
+    _ => options,
+  };
+  run::print(document, file.text(), &options, scratch, &mut out).ok()?;
   text_of(out, host)
 }
 
@@ -246,7 +240,7 @@ fn text_of(out: Vec<u8>, host: Host) -> Option<String> {
   let out = out.strip_prefix('\n').unwrap_or(&out);
   let out = out.trim_start_matches([' ', '\t']).trim_end();
   Some(match host {
-    Host::Markup => out.to_owned(),
+    Host::Markup | Host::Template => out.to_owned(),
     // The printer marks the line breaks in texts for Markdown, which indents every line alike.
     Host::Markdown => out.replace("\r\n", "\n"),
   })

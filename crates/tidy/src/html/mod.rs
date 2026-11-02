@@ -4,6 +4,7 @@
 //! text ─ lexer ─→ tokens ─ parser, parse ─→ tree ─ preprocess ─→ white space sensitivity ─ printer ─→ doc
 //! ```
 
+mod angular;
 mod ast;
 mod data;
 mod embed;

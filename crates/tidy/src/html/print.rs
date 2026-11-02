@@ -11,7 +11,7 @@ use super::utilities::{
 };
 use super::{Context, Parser};
 use crate::doc::{Align, Branch, Docs};
-use crate::embed::Embed;
+use crate::embed::{Embed, Host};
 use crate::strings;
 
 pub(crate) struct Printer<'p, 'a> {
@@ -664,6 +664,7 @@ impl<'p, 'a> Printer<'p, 'a> {
     let attr = &self.tree.attrs(id)[index];
     let name = &attr.name[..];
     let embeds = self.options.parser == Parser::Vue
+      || (self.options.parser == Parser::Angular && name.starts_with(b"*"))
       || matches!(name, b"srcset" | b"allow" | b"style")
       || embed::is_event_handler(name);
     let written = self.written(attr);
@@ -759,18 +760,57 @@ impl<'p, 'a> Printer<'p, 'a> {
   pub(crate) fn embed_text(&mut self, embedded: Embedded<'_>) -> Option<String> {
     let request = embedded.request(self.indents, self.options);
     let options = self.options;
+    let host = if options.embedded { Host::Template } else { Host::Markup };
+    let (tab_width, tabs) = (options.tab_width, options.tabs);
     let mut formatted = self.embed.format(request).or_else(|| {
       let builtin = options.formats_embedded.then_some(request)?;
-      crate::embed::builtin(&builtin, options.tab_width, options.tabs, options.scripts)
+      crate::embed::builtin_in(&builtin, tab_width, tabs, options.scripts, host)
     })?;
     formatted.truncate(formatted.trim_end_matches(['\n', '\r']).len());
+    if options.embedded {
+      let unit = if tabs { "\t".to_owned() } else { " ".repeat(tab_width) };
+      formatted = unindent(&formatted, &unit.repeat(request.indent));
+    }
     Some(formatted)
   }
 
-  /// Emits a formatted text, its lines joined by literal lines.
+  /// Emits a formatted text, its lines joined by literal lines. In a JavaScript template, the code's lines are joined
+  /// by hard lines instead, which indent them where the JavaScript prints the markup, and only the line breaks in its
+  /// texts, marked as `\r\n`, are literal lines.
   pub(crate) fn text_doc(&mut self, text: &str) {
-    self.lines(text.as_bytes(), Separator::Literal)
+    if !self.options.embedded {
+      return self.lines(text.as_bytes(), Separator::Literal);
+    }
+    let mut separator = None;
+    for line in strings::split(text.as_bytes(), b"\n") {
+      if let Some(separator) = separator {
+        self.separator(separator);
+      }
+      let (line, next) = match line.strip_suffix(b"\r") {
+        Some(line) => (line, Separator::Literal),
+        None => (line, Separator::Hard),
+      };
+      self.bytes(line);
+      separator = Some(next);
+    }
   }
+}
+
+/// `text` without the `indent` that the host puts before each line of code after the first, but not before a line that
+/// follows a line break in a text.
+fn unindent(text: &str, indent: &str) -> String {
+  if indent.is_empty() {
+    return text.to_owned();
+  }
+  let mut out = String::with_capacity(text.len());
+  for (index, line) in text.split('\n').enumerate() {
+    if index > 0 {
+      out.push('\n');
+    }
+    let code = index > 0 && !out[..out.len() - 1].ends_with('\r');
+    out.push_str(if code { line.strip_prefix(indent).unwrap_or(line) } else { line });
+  }
+  out
 }
 
 /// What comes before a child's group in `printChildren`.

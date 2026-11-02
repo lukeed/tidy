@@ -14,6 +14,7 @@ use crate::js::print::template::write_embedded_template_expression;
 use crate::js::strings;
 use crate::js::text;
 use smallvec::SmallVec;
+use std::cell::RefCell;
 
 pub(crate) const PLACEHOLDER_START: &[u8] = b"PRETTIER_HTML_PLACEHOLDER_";
 const PLACEHOLDER_END: &[u8] = b"_IN_JS";
@@ -216,6 +217,28 @@ impl Substitutions<'_> {
       || (self.is_in_html && strings::contains_char(text, b'<'))
   }
 
+  /// The width of `text`, where a placeholder of an outer template counts as wide as its substitution.
+  fn width(text: &[u8], f: &Formatter<'_>) -> u32 {
+    let width = f.string_width(text);
+    if !strings::contains(text, PLACEHOLDER_START) {
+      return width;
+    }
+    OUTER.with_borrow(|outer| {
+      let mut width = width;
+      let mut from = 0;
+      while let Some(start) = text::index_of_from(text, PLACEHOLDER_START, from) {
+        from = start + PLACEHOLDER_START.len();
+        let Some((length, number, counter)) = parse_placeholder(&text[start..]) else { continue };
+        let substitution = outer.iter().rev().find(|(it, _)| *it == counter);
+        if let Some(&Some(substitution)) = substitution.and_then(|(_, widths)| widths.get(number)) {
+          width = width + substitution - length as u32;
+          from = start + length;
+        }
+      }
+      width
+    })
+  }
+
   /// Writes `text`, which is between placeholders: `uncookTemplateElementValue`.
   fn write_text(&self, text: &[u8], f: &mut Formatter<'_>) {
     if text.is_empty() {
@@ -243,8 +266,43 @@ impl Substitutions<'_> {
         &escaped[..]
       }
     };
-    write_string(text, f.string_width(text), f);
+    write_string(text, Self::width(text, f), f);
   }
+}
+
+/// The length, the number and the counter of the placeholder at the start of `text`.
+fn parse_placeholder(text: &[u8]) -> Option<(usize, usize, u32)> {
+  let rest = text.strip_prefix(PLACEHOLDER_START)?;
+  let digits = |text: &[u8]| text.iter().take_while(|byte| byte.is_ascii_digit()).count();
+  let number = digits(rest);
+  let after = rest[number..].strip_prefix(b"_")?;
+  let counter = digits(after);
+  if number == 0 || counter == 0 || !after[counter..].starts_with(PLACEHOLDER_END) {
+    return None;
+  }
+  let length = text.len() - after.len() + counter + PLACEHOLDER_END.len();
+  let number = std::str::from_utf8(&rest[..number]).ok()?.parse().ok()?;
+  let counter = std::str::from_utf8(&after[..counter]).ok()?.parse().ok()?;
+  Some((length, number, counter))
+}
+
+thread_local! {
+  /// The counter of each template whose markup is formatted now, outermost first, and the widths of its
+  /// substitutions: Prettier measures a placeholder of an outer template in the code of an inner one as the document
+  /// that replaces it, once the whole document is put together.
+  static OUTER: RefCell<Vec<(u32, Vec<Option<u32>>)>> = const { RefCell::new(Vec::new()) };
+}
+
+/// The width of each substitution of `template` on one line, as `${` and `}` around the expression's text.
+fn substitution_widths(template: Template<'_>, f: &Formatter<'_>) -> Vec<Option<u32>> {
+  (0..template.quasi_count().saturating_sub(1))
+    .map(|index| {
+      let span = template.quasi_span(index).between(template.quasi_span(index + 1));
+      let code = f.source_text().text_for(&span);
+      let code = strings::trim_js_whitespace(code);
+      (!strings::contains_char(code, b'\n')).then(|| f.string_width(code) + 3)
+    })
+    .collect()
 }
 
 impl<'a> Texts<'a> for Substitutions<'_> {
@@ -324,7 +382,11 @@ pub(crate) fn write_template<'a>(
   let options = markup_options(parser, indent_level, f);
   let bump = bumpalo::Bump::new();
   let mut docs = Docs::new(&bump);
-  let Ok(top_level_count) = crate::html::template(&text, &options, &mut docs) else {
+  let widths = substitution_widths(template, f);
+  OUTER.with_borrow_mut(|outer| outer.push((counter, widths)));
+  let result = crate::html::template(&text, &options, &mut docs);
+  OUTER.with_borrow_mut(Vec::pop);
+  let Ok(top_level_count) = result else {
     return false;
   };
   // Both tools format the HTML with Prettier's options.

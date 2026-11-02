@@ -86,7 +86,7 @@ pub(crate) fn builtin(
   tabs: bool,
   scripts: &Scripts,
 ) -> Option<String> {
-  builtin_in(request, tab_width, tabs, scripts, false)
+  builtin_in(request, tab_width, tabs, scripts, Host::Markup)
 }
 
 /// [`builtin`] for a Markdown code block, where Prettier prints a statement that is only JSX without a semicolon.
@@ -96,7 +96,7 @@ pub(crate) fn builtin_in_markdown(
   tabs: bool,
   scripts: &Scripts,
 ) -> Option<String> {
-  builtin_in(request, tab_width, tabs, scripts, true)
+  builtin_in(request, tab_width, tabs, scripts, Host::Markdown)
 }
 
 /// [`builtin`] for `v-for="left operator right"`, where `left` asks for the aliases: the whole value, formatted as one.
@@ -132,23 +132,33 @@ fn script_options(
   crate::js::Options { width: request.width, tab_width, tabs, eol, ..scripts.clone() }
 }
 
-fn builtin_in(
+/// Where tidy's own formatter prints the code that it formats as text.
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub(crate) enum Host {
+  Markup,
+  /// A code block, where Prettier's `parentParser` is `markdown`.
+  Markdown,
+  /// Markup in a JavaScript template, which indents the code's lines itself: a line break that is part of a text of
+  /// JavaScript is `\r\n`, to tell it apart from the others.
+  Template,
+}
+
+/// [`builtin`] for code that `host` prints.
+pub(crate) fn builtin_in(
   request: &Request<'_>,
   tab_width: usize,
   tabs: bool,
   scripts: &Scripts,
-  markdown: bool,
+  host: Host,
 ) -> Option<String> {
   use crate::{dockerfile, graphql, ini, json, toml, yaml};
   #[cfg(feature = "js")]
   if crate::js::template::formats(request.language) {
-    use crate::js::template::{Host, format};
     let options = script_options(request, tab_width, tabs, scripts);
-    let host = if markdown { Host::Markdown } else { Host::Markup };
-    return format(request, &options, host);
+    return crate::js::template::format(request, &options, host);
   }
   #[cfg(not(feature = "js"))]
-  let _ = (scripts, markdown);
+  let _ = (scripts, host);
   let dialect = match request.language {
     "json" => json::Dialect::Json,
     "jsonc" => json::Dialect::Jsonc,

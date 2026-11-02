@@ -43,16 +43,28 @@ pub(crate) fn format<'a>(
     crate::js::attach::list(file, &cast_parens, attach_options, out);
     return Ok(());
   }
-  let mut root = write_document(file, options, scratch, Vec::new(), &write);
   if options.debug_comments == DebugComments::Unprinted {
+    let _ = write_document(file, options, scratch, Vec::new(), &write);
     out.append(&mut scratch.unprinted_comments);
     return Ok(());
   }
-  if matches!(root, Err(FormatError::InvalidDocument)) {
-    let comments_without_printer = std::mem::take(&mut scratch.unprinted_comment_ids);
-    root = write_document(file, options, scratch, comments_without_printer, &write);
+  let root = document(file, options, scratch, write)?;
+  print(root, file.text(), options, scratch, out)
+}
+
+/// Writes the document of `file` that `write` writes, as [`format`] does, and returns its range.
+pub(crate) fn document<'a>(
+  file: &'a File<'a>,
+  options: &FormatOptions,
+  scratch: &mut Scratch,
+  write: impl Fn(&'a File<'a>, &mut Formatter<'a>),
+) -> Result<Interned, FormatError> {
+  let root = write_document(file, options, scratch, Vec::new(), &write);
+  if !matches!(root, Err(FormatError::InvalidDocument)) {
+    return root;
   }
-  print(root?, file.text(), options, scratch, out)
+  let comments_without_printer = std::mem::take(&mut scratch.unprinted_comment_ids);
+  write_document(file, options, scratch, comments_without_printer, &write)
 }
 
 /// Prints the document `root`, as returned by [`write_with`], and appends the text to `out`.

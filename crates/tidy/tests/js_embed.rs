@@ -6,6 +6,10 @@ fn format(text: &str) -> String {
   js::format(text, "a.js", &Options { jsdoc: false, ..Options::default() }).unwrap()
 }
 
+fn format_ts(text: &str) -> String {
+  js::format(text, "a.ts", &Options { jsdoc: false, ..Options::default() }).unwrap()
+}
+
 #[test]
 fn formats_css_in_styled_components() {
   let text = "const Button = styled.button`\n  color:   ${props => props.color};\n  padding:4px  8px;\n\n\n  &:hover { background:red }\n`;\n";
@@ -52,4 +56,33 @@ fn formats_html_and_its_substitutions() {
 fn leaves_a_template_that_does_not_parse() {
   let text = "const a = css`color: {`;\nconst b = gql`query {`;\n";
   assert_eq!(format(text), text);
+}
+
+#[test]
+fn indents_script_lines_in_html_where_the_template_is() {
+  let text = "function f() {\n  return html`<div><pre>\n  a\n</pre></div><script>\n  const a = \\`x\ny\\`; foo(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb)\n</script>`;\n}\n";
+  let expected = "function f() {\n  return html`<div>\n      <pre>\n  a\n</pre>\n    </div>\n    <script>\n      const a = \\`x\ny\\`;\n      foo(\n        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,\n        bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,\n      );\n    </script>`;\n}\n";
+  assert_eq!(format(text), expected);
+}
+
+#[test]
+fn measures_a_substitution_of_an_outer_template_as_its_code() {
+  let text = "const nestedFun = /* HTML */ `${outerExpr(1)}\n  <script>\n    const tpl = html\\`<div>\\${innerExpr(1)} ${outerExpr(2)}</div>\\`;\n  </script>`;\n";
+  let expected = "const nestedFun = /* HTML */ `${outerExpr(1)}\n  <script>\n    const tpl = html\\`<div>\\${innerExpr(1)} ${outerExpr(2)}</div>\\`;\n  </script>`;\n";
+  assert_eq!(format(text), expected);
+}
+
+#[test]
+fn formats_angular_microsyntax() {
+  let text = "@Component({\n  template: `<ng-container *ngComponentOutlet=\"componentOutlet; injector: componentInjector; content: componentContent\"></ng-container><li *ngFor=\"let item  of items;index as i; let e=even\"></li>`,\n})\nclass A {}\n";
+  let expected = "@Component({\n  template: `<ng-container\n      *ngComponentOutlet=\"\n        componentOutlet;\n        injector: componentInjector;\n        content: componentContent\n      \"\n    ></ng-container>\n    <li *ngFor=\"let item of items; index as i; let e = even\"></li>`,\n})\nclass A {}\n";
+  assert_eq!(format_ts(text), expected);
+}
+
+#[test]
+fn keeps_line_breaks_in_texts_apart_with_crlf() {
+  let text = "function f() {\r\n  return html`<pre>\r\n  a\r\n</pre><script>\r\n  const a = \\`x\r\ny\\`; foo(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb)\r\n</script>`;\r\n}\r\n";
+  let expected = "function f() {\r\n  return html`<pre>\r\n  a\r\n</pre>\r\n    <script>\r\n      const a = \\`x\r\ny\\`;\r\n      foo(\r\n        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,\r\n        bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,\r\n      );\r\n    </script>`;\r\n}\r\n";
+  let options = Options { jsdoc: false, eol: tidy::doc::Eol::Crlf, ..Options::default() };
+  assert_eq!(js::format(text, "a.js", &options).unwrap(), expected);
 }
