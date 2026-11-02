@@ -1,4 +1,4 @@
-//! A fast markup formatter with Prettier's style by default.
+//! A fast formatter for markup, style sheets, data and Markdown, with Prettier's style by default.
 
 #[cfg(feature = "config")]
 pub mod config;

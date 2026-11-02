@@ -59,6 +59,17 @@ description = "Compare TOML with taplo: mise run oracle:toml -- files <dir>... |
 dir = "tests/oracle/toml"
 run = "cargo run --release --"
 
+[tasks."oracle:yaml"]
+description = "Compare YAML with yaml 2.9.0 and Prettier: its syntax tree, what parses, its tree, and the output"
+dir = "tests/oracle/yaml"
+run = [
+  "bun cst.ts > ../../../target/yaml-cst.json",
+  "bun accepts.ts > ../../../target/yaml-accepts.json",
+  "bun ast.ts > ../../../target/yaml-ast.json",
+  "bun format.ts > ../../../target/yaml-format.json",
+  "for mode in cst accepts ast format; do cargo run --release -q -- $mode ../../../target/yaml-$mode.json; done",
+]
+
 [tasks."oracle:markdown:corpus"]
 description = "Copy the Markdown files of git repos into a corpus: mise run oracle:markdown:corpus -- <out> <repo>..."
 run = "bun tests/oracle/markdown/corpus.ts"
