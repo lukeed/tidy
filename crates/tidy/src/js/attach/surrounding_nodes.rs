@@ -7,8 +7,8 @@
 use super::{Options, Owner};
 use crate::js::ast::comments::{self, NodeOrName};
 use crate::js::ast::{
-  Expr, ExprKind, File, FnBody, FnKind, Func, List, Node, Param, Pat, Stmt, StmtKind, StmtTag,
-  TypeKind, TypeNode,
+  Expr, ExprKind, File, FnBody, FnKind, Func, List, ModuleName, Node, Param, Pat, Stmt, StmtKind,
+  StmtTag, TypeKind, TypeNode,
 };
 use crate::js::ast::{Span, Spanned};
 use crate::js::ast_nodes::{
@@ -248,6 +248,27 @@ fn without_keywords_of_specifier<'a>(
   if is_keyword(*following_node) {
     let name = starts.into_iter().find(|start| *start >= comment.end);
     *following_node = name.map(NodeOrName::Name);
+  }
+}
+
+/// `declare /* comment */ global {}`: oxc has no node for `global`, which is the module's name in bun's tree.
+fn with_name_of_global<'a>(
+  enclosing_node: Option<Node<'a>>,
+  following_node: &mut Option<NodeOrName<'a>>,
+  comment: Span,
+) {
+  let Some(module) = enclosing_node.and_then(|node| match node {
+    Node::Stmt(statement) => statement.as_module(),
+    _ => None,
+  }) else {
+    return;
+  };
+  let name = module.name_span();
+  if matches!(module.name(), ModuleName::Global)
+    && following_node.is_none()
+    && comment.end <= name.start
+  {
+    *following_node = Some(NodeOrName::Name(name.start));
   }
 }
 
@@ -760,6 +781,7 @@ impl<'a, 'c> AttachContext<'a, 'c> {
       &mut following_node,
       comment,
     );
+    with_name_of_global(enclosing_node, &mut following_node, comment);
 
     // The `source` of `import.source("a")` is a name for the parser. ESTree has no node for it.
     if let Some(Node::Expr(import)) = enclosing_node

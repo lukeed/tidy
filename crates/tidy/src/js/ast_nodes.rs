@@ -797,12 +797,14 @@ fn owner<'a>(file: &'a File<'a>, parent: u32) -> Node<'a> {
   }
 }
 
+/// The `<..>` of `owner`. An element's is in its opening tag.
 fn type_arguments_id(owner: Node) -> Option<u32> {
   let file = owner.file();
-  file
-    .children(owner.id())
-    .iter()
-    .copied()
+  let id = match file.kind(owner.id()) {
+    Some(K::JSXElement(it)) => it.opening_element.node_id.get().index() as u32,
+    _ => owner.id(),
+  };
+  (file.children(id).iter().copied())
     .find(|&child| matches!(file.kind(child), Some(K::TSTypeParameterInstantiation(_))))
 }
 
