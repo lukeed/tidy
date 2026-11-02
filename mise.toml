@@ -68,6 +68,11 @@ description = "Compare Dockerfiles with dprint-plugin-dockerfile 0.7.0: mise run
 dir = "tests/oracle/dockerfile"
 run = "cargo run --release --"
 
+[tasks."oracle:ini"]
+description = "Compare INI with prettier-plugin-ini 1.3.0: mise run oracle:ini -- files [dir] | fuzz [count] [--seed=n]"
+run = "bun tests/oracle/ini.ts"
+depends = ["build:napi"]
+
 [tasks."oracle:yaml"]
 description = "Compare YAML with yaml 2.9.0 and Prettier: its syntax tree, what parses, its tree, and the output"
 dir = "tests/oracle/yaml"
