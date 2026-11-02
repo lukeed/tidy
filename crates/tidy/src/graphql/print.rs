@@ -61,6 +61,12 @@ impl<'t, 'a> Printer<'t, 'a> {
     self.print(self.tree.root());
   }
 
+  /// The definitions of the document, with no line break at the end.
+  #[cfg(feature = "js")]
+  pub(crate) fn definitions(&mut self) {
+    self.sequence(self.tree.children(self.tree.root()));
+  }
+
   // ───────────────────────────── docs ─────────────────────────────
 
   fn group(&mut self, content: impl FnOnce(&mut Self)) {

@@ -1,9 +1,9 @@
 //! Style sheets in JavaScript templates: Prettier's `language-js/embed/index.js` and `css.js`.
 
-use super::doc::{self, Doc, Line};
-use super::sink::Sink;
+use super::doc::{Texts, Writer, each_text, write_string};
+use crate::doc::Docs;
 use crate::js::base::*;
-use crate::js::ir::element::{Condition, Group, GroupMode, LineMode, PrintMode, TextWidth};
+use crate::js::ir::element::LineMode;
 use crate::js::print::template::write_embedded_template_expression;
 use crate::js::text;
 
@@ -27,269 +27,72 @@ fn find_placeholder(text: &[u8]) -> Option<(usize, usize, usize)> {
   None
 }
 
-/// Counts the placeholders in `doc`'s strings. Returns `None` if a placeholder's number is `count` or more.
-fn count_placeholders(doc: &Doc<'_>, count: usize) -> Option<usize> {
-  let (mut found, mut rest) = (0, vec![doc]);
-  while let Some(doc) = rest.pop() {
-    match doc {
-      Doc::Text(text) => {
-        let mut text = &text[..];
-        while let Some((_, end, number)) = find_placeholder(text) {
-          if number >= count {
-            return None;
-          }
-          found += 1;
-          text = &text[end..];
-        }
-      }
-      Doc::Array(parts) | Doc::Fill(parts) => rest.extend(parts),
-      Doc::Indent(contents)
-      | Doc::Align(_, contents)
-      | Doc::Dedent(contents)
-      | Doc::DedentToRoot(contents)
-      | Doc::MarkAsRoot(contents)
-      | Doc::LineSuffix(contents)
-      | Doc::Group { contents, .. } => rest.push(contents),
-      Doc::IfBreak { break_contents, flat_contents, .. } => {
-        rest.extend([&**break_contents, &**flat_contents])
-      }
-      Doc::LineSuffixBoundary | Doc::BreakParent | Doc::Line(_) | Doc::KeepTrailingWhitespace => {}
+/// Counts the placeholders in the texts of `docs`. Returns `None` if a placeholder's number is `count` or more.
+fn count_placeholders(docs: &Docs<'_>, count: usize) -> Option<usize> {
+  let (mut found, mut is_valid) = (0, true);
+  each_text(docs, |text| {
+    let mut text = text.as_bytes();
+    while let Some((_, end, number)) = find_placeholder(text) {
+      is_valid &= number < count;
+      found += 1;
+      text = &text[end..];
     }
-  }
-  Some(found)
+  });
+  is_valid.then_some(found)
 }
 
-struct Writer<'a> {
+/// Writes the texts of a style sheet, with the substitutions of `template` in place of the placeholders.
+struct Substitutions<'a> {
+  template: Template<'a>,
   has_placeholders: bool,
-  /// The template whose substitutions the placeholders replace.
-  template: Option<Template<'a>>,
-  /// The writer is inside an item of a `fill`, with no group in between.
-  is_directly_in_fill: bool,
-  is_in_line_suffix: bool,
 }
 
-/// True if `doc` has a `breakParent` that isn't inside one of its groups.
-fn has_break_parent_outside_of_groups(doc: &Doc<'_>) -> bool {
-  let mut rest = vec![doc];
-  while let Some(doc) = rest.pop() {
-    match doc {
-      Doc::BreakParent => return true,
-      Doc::Array(parts) | Doc::Fill(parts) => rest.extend(parts),
-      Doc::Indent(contents)
-      | Doc::Align(_, contents)
-      | Doc::Dedent(contents)
-      | Doc::DedentToRoot(contents)
-      | Doc::MarkAsRoot(contents) => rest.push(contents),
-      Doc::IfBreak { break_contents, flat_contents, .. } => {
-        rest.extend([&**break_contents, &**flat_contents])
-      }
-      Doc::Text(_)
-      | Doc::Group { .. }
-      | Doc::LineSuffix(_)
-      | Doc::LineSuffixBoundary
-      | Doc::Line(_)
-      | Doc::KeepTrailingWhitespace => {}
+impl<'a> Texts<'a> for Substitutions<'a> {
+  fn write(&mut self, text: &str, width: u32, f: &mut Formatter<'a>) {
+    let mut rest = text.as_bytes();
+    if !self.has_placeholders || find_placeholder(rest).is_none() {
+      return write_string(rest, width, f);
     }
-  }
-  false
-}
-
-impl<'a> Writer<'a> {
-  /// Writes a string whose line breaks count as zero-width characters, as they do in Prettier.
-  fn write_string(&mut self, text: &[u8], f: &mut Formatter<'a>) {
-    if text.is_empty() {
-      return;
+    while let Some((start, end, number)) = find_placeholder(rest) {
+      write_with_literal_lines(&rest[..start], f);
+      write_embedded_template_expression(self.template, number, f);
+      rest = &rest[end..];
     }
-    let width = match TextWidth::from_text(text, 0) {
-      width if !width.is_multiline() => width,
-      _ => TextWidth::multiline_string(
-        crate::js::strings::split(text, b"\n")
-          .map(|line| TextWidth::from_text(line, 0).value())
-          .sum(),
-      ),
-    };
-    f.write_text(text, Some(width));
-  }
-
-  /// `replaceEndOfLine(text)`
-  fn write_with_literal_lines(&mut self, text: &[u8], f: &mut Formatter<'a>) {
-    if text.is_empty() {
-      return;
-    }
-    f.write_text(text, None);
-    if crate::js::strings::contains_char(text, b'\n') {
-      f.write_element(FormatElement::ExpandParent);
-    }
-  }
-
-  fn write_between(&mut self, start: Tag, contents: &Doc<'_>, end: Tag, f: &mut Formatter<'a>) {
-    f.write_element(FormatElement::Tag(start));
-    self.write(contents, f);
-    f.write_element(FormatElement::Tag(end));
-  }
-
-  fn write(&mut self, doc: &Doc<'_>, f: &mut Formatter<'a>) {
-    if !f.context_mut().has_stack_left() {
-      return;
-    }
-    match doc {
-      // Only a string with a placeholder in it gets split.
-      Doc::Text(text) if !self.has_placeholders || find_placeholder(text).is_none() => {
-        self.write_string(text, f)
-      }
-      Doc::Text(text) => {
-        let mut rest = &text[..];
-        while let Some((start, end, number)) = find_placeholder(rest) {
-          self.write_with_literal_lines(&rest[..start], f);
-          if let Some(template) = self.template {
-            write_embedded_template_expression(template, number, f);
-          }
-          rest = &rest[end..];
-        }
-        self.write_with_literal_lines(rest, f);
-      }
-      Doc::Array(parts) => {
-        let mut index = 0;
-        while let Some(part) = parts.get(index) {
-          // Two line breaks in a row make an empty line.
-          if let [
-            Doc::Line(Line::Hard),
-            Doc::BreakParent,
-            Doc::Line(Line::Hard),
-            Doc::BreakParent,
-            ..,
-          ] = parts[index..]
-          {
-            f.write_element(FormatElement::Line(LineMode::Empty));
-            index += 4;
-            continue;
-          }
-          // The `hardline` breaks the group, so this also prints two line breaks.
-          if let [
-            Doc::Line(Line::Hard),
-            Doc::BreakParent,
-            Doc::Line(Line::Space | Line::Soft),
-            ..,
-          ] = parts[index..]
-          {
-            f.write_element(FormatElement::Line(LineMode::Empty));
-            index += 3;
-            continue;
-          }
-          // The same in the other order: declarations in an HTML `style` attribute with an empty line between
-          // them.
-          if let [
-            Doc::Line(Line::Space | Line::Soft),
-            Doc::Line(Line::Hard),
-            Doc::BreakParent,
-            ..,
-          ] = parts[index..]
-          {
-            f.write_element(FormatElement::Line(LineMode::Empty));
-            index += 3;
-            continue;
-          }
-          // `(` and `)` with nothing in between.
-          if let [Doc::Indent(contents), Doc::Line(Line::Soft), ..] = &parts[index..]
-            && matches!(**contents, Doc::Line(Line::Soft))
-          {
-            f.write_element(FormatElement::Line(LineMode::SoftEmpty));
-            index += 2;
-            continue;
-          }
-          self.write(part, f);
-          index += 1;
-        }
-      }
-      Doc::Indent(contents) => self.write_between(Tag::StartIndent, contents, Tag::EndIndent, f),
-      Doc::Dedent(contents) => {
-        use crate::js::ir::element::DedentMode::Level;
-        self.write_between(Tag::StartDedent(Level), contents, Tag::EndDedent(Level), f);
-      }
-      // Style sheets never produce these.
-      Doc::Align(_, contents) | Doc::DedentToRoot(contents) | Doc::MarkAsRoot(contents) => {
-        self.write(contents, f)
-      }
-      Doc::Group { contents, should_break, .. } => {
-        let mode = if *should_break { GroupMode::Expand } else { GroupMode::Flat };
-        let is_directly_in_fill = std::mem::replace(&mut self.is_directly_in_fill, false);
-        self.write_between(
-          Tag::StartGroup(Group::new().with_mode(mode)),
-          contents,
-          Tag::EndGroup,
-          f,
-        );
-        self.is_directly_in_fill = is_directly_in_fill;
-      }
-      Doc::Fill(parts) => {
-        // In Prettier, a `breakParent` only affects the groups around it. It doesn't affect whether an item
-        // fits.
-        if !self.is_directly_in_fill && parts.iter().any(has_break_parent_outside_of_groups) {
-          f.write_element(FormatElement::ExpandParent);
-        }
-        let is_directly_in_fill = std::mem::replace(&mut self.is_directly_in_fill, true);
-        f.write_element(FormatElement::Tag(Tag::StartFill));
-        for part in parts {
-          self.write_between(Tag::StartEntry, part, Tag::EndEntry, f);
-        }
-        f.write_element(FormatElement::Tag(Tag::EndFill));
-        self.is_directly_in_fill = is_directly_in_fill;
-      }
-      Doc::IfBreak { break_contents, flat_contents, .. } => {
-        for (mode, contents) in
-          [(PrintMode::Expanded, break_contents), (PrintMode::Flat, flat_contents)]
-        {
-          if !contents.is_empty_text() {
-            let start = Tag::StartConditionalContent(Condition::new(mode));
-            self.write_between(start, contents, Tag::EndConditionalContent, f);
-          }
-        }
-      }
-      // A nested line suffix is the same as a single one.
-      Doc::LineSuffix(contents) if self.is_in_line_suffix => self.write(contents, f),
-      Doc::LineSuffix(contents) => {
-        self.is_in_line_suffix = true;
-        self.write_between(Tag::StartLineSuffix, contents, Tag::EndLineSuffix, f);
-        self.is_in_line_suffix = false;
-      }
-      Doc::LineSuffixBoundary => f.write_element(FormatElement::LineSuffixBoundary),
-      Doc::BreakParent if self.is_directly_in_fill => {}
-      Doc::BreakParent => f.write_element(FormatElement::ExpandParent),
-      Doc::Line(Line::Space) => f.write_element(FormatElement::Line(LineMode::SoftOrSpace)),
-      Doc::Line(Line::Soft) => f.write_element(FormatElement::Line(LineMode::Soft)),
-      Doc::Line(Line::Hard) => f.write_element(FormatElement::Line(LineMode::Hard)),
-      Doc::Line(Line::Literal) => f.write_text(b"\n", None),
-      // Style sheets never produce it.
-      Doc::KeepTrailingWhitespace => {}
-    }
+    write_with_literal_lines(rest, f);
   }
 }
 
-/// Writes a style sheet's `document` into the document that `f` is building.
-pub(crate) fn write_document(document: &Doc<'_>, f: &mut Formatter<'_>) {
-  let mut writer = Writer {
-    has_placeholders: false,
-    template: None,
-    is_directly_in_fill: false,
-    is_in_line_suffix: false,
-  };
-  writer.write(document, f);
+/// `replaceEndOfLine(text)`
+fn write_with_literal_lines(text: &[u8], f: &mut Formatter<'_>) {
+  if text.is_empty() {
+    return;
+  }
+  f.write_text(text, None);
+  if crate::js::strings::contains_char(text, b'\n') {
+    f.write_element(FormatElement::ExpandParent);
+  }
 }
 
-/// The action to take on a template's document.
-enum Action<'w, 'a> {
-  /// Only check that the template can be formatted.
-  Check,
-  Write(&'w mut Formatter<'a>),
+/// The options of a style sheet in a script.
+fn sheet_options(options: &FormatOptions) -> crate::css::Options {
+  crate::css::Options {
+    dialect: crate::css::Dialect::Scss,
+    width: options.line_width.value() as usize,
+    tab_width: options.indent_width.value() as usize,
+    tabs: options.indent_style == IndentStyle::Tab,
+    single_quote: options.quote_style == QuoteStyle::Single,
+    trailing_comma: options.trailing_commas != TrailingCommas::None,
+    ..crate::css::Options::default()
+  }
 }
 
-/// Prettier's `printEmbedCss`. Writes nothing and returns `false` if the text doesn't parse as SCSS, or if some
-/// substitution isn't in the document exactly once.
-fn print_embed_css<'a>(
+/// Prettier's `printEmbedCss`: calls `then` with the document of `template`'s text as SCSS, with placeholders for the
+/// substitutions. Returns `None` if the text doesn't parse, or if some substitution isn't in the document exactly once.
+fn with_sheet<'a, R>(
   template: Template<'a>,
   options: &FormatOptions,
-  action: Action<'_, 'a>,
-) -> bool {
+  then: impl FnOnce(&Docs<'_>) -> R,
+) -> Option<R> {
   let count = template.quasi_count().saturating_sub(1);
   let mut text = Vec::new();
   for index in 0..template.quasi_count() {
@@ -300,36 +103,19 @@ fn print_embed_css<'a>(
     }
     text.extend_from_slice(template.raw(index));
   }
-  let text = crate::js::strings::crlf_as_lf(&text);
-  let mut memo = Default::default();
-  let Ok(sink) =
-    super::parse_and_print(&text, super::Parser::Scss, options, Sink::to_document(), &mut memo)
-  else {
-    return false;
-  };
-  let Ok(document) = sink.into_document().and_then(doc::text_to_doc) else {
-    return false;
-  };
-  if document.is_empty_text() || (count > 0 && count_placeholders(&document, count) != Some(count))
-  {
-    return false;
+  let text = String::from_utf8_lossy(&text);
+  let options = sheet_options(options);
+  let sheet =
+    crate::css::document(&text, &options, false, count > 0, &mut crate::embed::Verbatim).ok()?;
+  let bump = bumpalo::Bump::new();
+  let mut docs = Docs::new(&bump);
+  sheet.write(&mut docs);
+  let mut is_empty = true;
+  each_text(&docs, |text| is_empty &= text.is_empty());
+  if is_empty || (count > 0 && count_placeholders(&docs, count) != Some(count)) {
+    return None;
   }
-  if let Action::Write(f) = action {
-    f.write_token("`");
-    f.write_element(FormatElement::Tag(Tag::StartIndent));
-    f.write_element(FormatElement::Line(LineMode::Hard));
-    let mut writer = Writer {
-      has_placeholders: count > 0,
-      template: Some(template),
-      is_directly_in_fill: false,
-      is_in_line_suffix: false,
-    };
-    writer.write(&document, f);
-    f.write_element(FormatElement::Tag(Tag::EndIndent));
-    f.write_element(FormatElement::Line(LineMode::Soft));
-    f.write_token("`");
-  }
-  true
+  Some(then(&docs))
 }
 
 fn is_identifier(e: Expr<'_>, name: &[u8]) -> bool {
@@ -492,7 +278,18 @@ pub(crate) fn write_template<'a>(
     return true;
   }
   let options = f.options().clone();
-  print_embed_css(template, &options, Action::Write(f))
+  let written = with_sheet(template, &options, |docs| {
+    f.write_token("`");
+    f.write_element(FormatElement::Tag(Tag::StartIndent));
+    f.write_element(FormatElement::Line(LineMode::Hard));
+    let has_placeholders = template.quasi_count() > 1;
+    let mut texts = Substitutions { template, has_placeholders };
+    Writer::new(docs, 1, true).write(1, docs.len(), &mut texts, f);
+    f.write_element(FormatElement::Tag(Tag::EndIndent));
+    f.write_element(FormatElement::Line(LineMode::Soft));
+    f.write_token("`");
+  });
+  written.is_some()
 }
 
 /// True if `e`'s document has the label `embed`, which means `e` is a template, tagged or not, that's formatted as its
@@ -507,7 +304,7 @@ pub(crate) fn has_embed_label<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {
   };
   is_candidate(quasi, template, f.options())
     && (tag_alone_decides_template_layout(f)
-      || (!is_blank(template) && print_embed_css(template, f.options(), Action::Check)))
+      || (!is_blank(template) && with_sheet(template, f.options(), |_| ()).is_some()))
 }
 
 /// oxc's `embed_hug`: oxfmt lays out a template with a language's tag in a call or after `=>` as if it were formatted

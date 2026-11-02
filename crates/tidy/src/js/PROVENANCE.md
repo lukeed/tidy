@@ -8,6 +8,7 @@ The files here start as a verbatim copy of bun's JavaScript and TypeScript forma
 | `js/ir` | `ir` |
 | `js/options.rs`, `text.rs`, `sort.rs`, `stack.rs` | the files of the same names |
 | `js/embed/css.rs`, `markdown.rs`, `graphql.rs`, `html.rs` | `css/embed.rs`, `markdown/embed.rs`, `graphql/embed.rs`, `html/in_js.rs` |
+| `js/embed/doc.rs` | not ported: it turns the `crate::doc` stream of tidy's printers into `js::ir`, which bun's printers write directly |
 | `js/template/js.rs` | `html/js.rs`, printing text for `crate::embed`; `html/vue.rs` is `html/embed.rs`'s `vue` |
 
 Not ported: Flow (`print/flow.rs`, `attach/flow.rs`), cursor and range formatting (`cursor.rs`, `range.rs`), and bun's `lib.rs` and `js/mod.rs`, which `js/mod.rs` merges.

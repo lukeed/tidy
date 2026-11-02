@@ -115,6 +115,31 @@ impl Formatter {
   }
 }
 
+/// Writes the definitions of `text`, a part of a template in JavaScript, to `docs`, with no line break at the end.
+#[cfg(feature = "js")]
+pub(crate) fn template<'a>(
+  text: &'a str,
+  options: &Options,
+  docs: &mut crate::doc::Docs<'a>,
+) -> Result<(), Error> {
+  let stack = Stack::new();
+  let mut tree = parse::Tree::default();
+  let parsed = parse::parse(text.as_bytes(), &mut tree, &stack);
+  if stack.ran_out() {
+    return Err(Error::TooDeep);
+  }
+  parsed?;
+  let mut attached = Vec::new();
+  comments::attach(text.as_bytes(), &tree, &mut attached);
+  let mut printer =
+    print::Printer { text, tree: &tree, attached: &attached, docs, stack: &stack, options };
+  printer.definitions();
+  match stack.ran_out() {
+    true => Err(Error::TooDeep),
+    false => Ok(()),
+  }
+}
+
 /// Parses `text` into the tree that prints. For `bench/parse` only.
 #[cfg(tidy_bench)]
 pub fn bench_parse(text: &str) -> bool {

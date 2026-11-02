@@ -68,8 +68,6 @@ pub struct FormatOptions {
   /// The text is `import` and `export` declarations in MDX. Anything else in it is an error: Prettier's
   /// `validateImportExport`.
   pub is_mdx_es_syntax: bool,
-  /// Format HTML in JavaScript templates and in Markdown code blocks.
-  pub embedded_html: bool,
   /// How many JavaScript templates that are printed as HTML the text is nested in.
   pub html_template_depth: u32,
   /// The text is in a file whose name ends with `.html` or `.htm`, where the HTML5 doctype is printed in lowercase.

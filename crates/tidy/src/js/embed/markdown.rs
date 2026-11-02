@@ -1,10 +1,10 @@
 //! Markdown in JavaScript templates: Prettier's `language-js/embed/markdown.js`.
 
-use crate::css::doc::{self, Alignment, Doc, Line};
+use super::doc::{Texts, Writer};
+use crate::doc::Docs;
+use crate::embed::{Kind, Request};
 use crate::js::base::*;
-use crate::js::ir::element::{
-  Align, Condition, DedentMode, Group, GroupMode, LineMode, PrintMode, TextWidth,
-};
+use crate::js::ir::element::{DedentMode, LineMode, TextWidth};
 
 /// Prettier's `isEmbedMarkdown`, plus the checks `embed` runs on every template. `e` is a template.
 fn is_candidate<'a>(e: Expr<'a>, template: Template<'a>, f: &Formatter<'a>) -> bool {
@@ -34,149 +34,26 @@ pub(crate) fn has_embed_label<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {
   is_candidate(quasi, template, f) && !is_blank(template)
 }
 
-/// A part of a document, in print order.
-enum Op<'d> {
-  Text(&'d [u8]),
-  Line(Line),
-  Element(FormatElement),
-}
+/// Writes each text with Prettier's `escapeTemplateCharacters(doc, true)`: a backtick gets a backslash, and the
+/// backslashes before it are doubled.
+struct Escaped;
 
-/// Collects `doc`'s parts. Returns true if all of it can be written as part of a JavaScript document.
-fn flatten<'d>(
-  doc: &'d Doc<'_>,
-  ops: &mut Vec<Op<'d>>,
-  stack_check: crate::js::stack::StackCheck,
-) -> bool {
-  if !stack_check.is_safe_to_recurse() {
-    return false;
-  }
-  let between = |start: Tag, contents: &'d Doc<'_>, end: Tag, ops: &mut Vec<Op<'d>>| {
-    ops.push(Op::Element(FormatElement::Tag(start)));
-    let is_done = flatten(contents, ops, stack_check);
-    ops.push(Op::Element(FormatElement::Tag(end)));
-    is_done
-  };
-  match doc {
-    Doc::Text(text) => {
-      if !text.is_empty() {
-        ops.push(Op::Text(text));
+impl<'a> Texts<'a> for Escaped {
+  fn write(&mut self, text: &str, width: u32, f: &mut Formatter<'a>) {
+    if !text.contains('`') {
+      return super::doc::write_string(text.as_bytes(), width, f);
+    }
+    let mut escaped = Vec::with_capacity(text.len() + 8);
+    let mut backslashes = 0;
+    for &byte in text.as_bytes() {
+      if byte == b'`' {
+        escaped.resize(escaped.len() + backslashes + 1, b'\\');
       }
-      true
+      backslashes = if byte == b'\\' { backslashes + 1 } else { 0 };
+      escaped.push(byte);
     }
-    Doc::Array(parts) => parts.iter().all(|part| flatten(part, ops, stack_check)),
-    Doc::Indent(contents) => between(Tag::StartIndent, contents, Tag::EndIndent, ops),
-    Doc::Align(Alignment::Spaces(0), contents) | Doc::MarkAsRoot(contents) => {
-      flatten(contents, ops, stack_check)
-    }
-    Doc::Align(Alignment::Spaces(width), contents) => {
-      between(Tag::StartAlign(Align(*width)), contents, Tag::EndAlign, ops)
-    }
-    Doc::Group { contents, should_break, .. } => {
-      let mode = if *should_break { GroupMode::Expand } else { GroupMode::Flat };
-      between(Tag::StartGroup(Group::new().with_mode(mode)), contents, Tag::EndGroup, ops)
-    }
-    Doc::Fill(parts) => {
-      ops.push(Op::Element(FormatElement::Tag(Tag::StartFill)));
-      let is_done = parts.iter().all(|part| between(Tag::StartEntry, part, Tag::EndEntry, ops));
-      ops.push(Op::Element(FormatElement::Tag(Tag::EndFill)));
-      is_done
-    }
-    Doc::IfBreak { break_contents, flat_contents, group_id: 0 } => {
-      let start = |mode| Tag::StartConditionalContent(Condition::new(mode));
-      between(start(PrintMode::Expanded), break_contents, Tag::EndConditionalContent, ops)
-        && between(start(PrintMode::Flat), flat_contents, Tag::EndConditionalContent, ops)
-    }
-    Doc::Line(line) => {
-      ops.push(Op::Line(*line));
-      true
-    }
-    Doc::BreakParent => {
-      ops.push(Op::Element(FormatElement::ExpandParent));
-      true
-    }
-    // A block quote's lines start with a text, which the other document format can't express.
-    Doc::Align(Alignment::Text(_) | Alignment::IfBreak { .. }, _)
-    | Doc::Dedent(_)
-    | Doc::DedentToRoot(_)
-    | Doc::IfBreak { .. }
-    | Doc::LineSuffix(_)
-    | Doc::LineSuffixBoundary
-    | Doc::KeepTrailingWhitespace => false,
-  }
-}
-
-/// Line breaks that are written as is, with nothing trimmed before them and nothing added after them.
-fn write_line_breaks(count: usize, f: &mut Formatter<'_>) {
-  f.write_text(&vec![b'\n'; count], Some(TextWidth::multiline(0)));
-}
-
-/// Prettier's `escapeTemplateCharacters(doc, true)`, for one text.
-fn write_escaped(text: &[u8], f: &mut Formatter<'_>) {
-  if !crate::js::strings::contains_char(text, b'`') {
-    return f.write_text(text, None);
-  }
-  let mut escaped = Vec::with_capacity(text.len() + 8);
-  let mut backslashes = 0;
-  for &byte in text {
-    if byte == b'`' {
-      // The backslashes before it are doubled.
-      escaped.resize(escaped.len() + backslashes + 1, b'\\');
-    }
-    backslashes = if byte == b'\\' { backslashes + 1 } else { 0 };
-    escaped.push(byte);
-  }
-  f.write_text(&escaped, None);
-}
-
-fn write_ops(ops: &[Op<'_>], f: &mut Formatter<'_>) {
-  let mut index = 0;
-  while let Some(op) = ops.get(index) {
-    index += 1;
-    match op {
-      Op::Text(text) => write_escaped(text, f),
-      Op::Element(element) => f.write_element(*element),
-      Op::Line(Line::Space) => f.write_element(FormatElement::Line(LineMode::SoftOrSpace)),
-      Op::Line(Line::Soft) => f.write_element(FormatElement::Line(LineMode::Soft)),
-      Op::Line(first @ (Line::Literal | Line::Hard)) => {
-        // A literal line break is written as text so that the whitespace before it isn't trimmed.
-        let is_literal = *first == Line::Literal;
-        // Several in a row, with nothing written between them, are empty lines. The last one determines the
-        // next line's indentation.
-        let run = ops[index..]
-          .iter()
-          .take_while(|op| matches!(op, Op::Line(Line::Hard) | Op::Element(_)))
-          .count();
-        let last =
-          ops[index..index + run].iter().rposition(|op| matches!(op, Op::Line(Line::Hard)));
-        let Some(last) = last else {
-          if is_literal {
-            write_line_breaks(1, f);
-          }
-          f.write_element(FormatElement::Line(LineMode::Hard));
-          continue;
-        };
-        let rest = &ops[index..index + last];
-        let count = 2 + rest.iter().filter(|op| matches!(op, Op::Line(_))).count();
-        // The printer collapses consecutive line breaks into at most one empty line. After a line break written
-        // as text it doesn't even print that one, because the current line is empty.
-        let is_single_empty_line = count == 2 && !is_literal;
-        match is_single_empty_line {
-          true => f.write_element(FormatElement::Line(LineMode::Hard)),
-          false => write_line_breaks(count, f),
-        }
-        for op in rest {
-          if let Op::Element(element) = op {
-            f.write_element(*element);
-          }
-        }
-        f.write_element(FormatElement::Line(if is_single_empty_line {
-          LineMode::Empty
-        } else {
-          LineMode::Hard
-        }));
-        index += last + 1;
-      }
-    }
+    let width = TextWidth::single(f.string_width(&escaped));
+    f.write_text(&escaped, Some(width));
   }
 }
 
@@ -229,33 +106,75 @@ pub(crate) fn write_template<'a>(
     text = dedented;
   }
 
-  let options = f.options().clone();
-  let mut tree = super::ast::Tree::default();
-  let mode = super::Mode { is_in_template: true, is_mdx: false };
-  let is_written = super::with_document(&text, &options, &mut tree, mode, None, |document| {
-    let Ok(document) = doc::text_to_doc(document) else {
-      return false;
-    };
-    let mut ops = Vec::new();
-    if !flatten(&document, &mut ops, crate::js::stack::StackCheck::init()) {
-      return false;
+  let formatted = format(&String::from_utf8_lossy(&text), f.options());
+  let bump = bumpalo::Bump::new();
+  let mut docs = Docs::new(&bump);
+  for (index, line) in formatted.trim_end_matches('\n').split('\n').enumerate() {
+    if index > 0 {
+      docs.hardline();
     }
-    f.write_token("`");
-    if indentation.is_empty() {
-      write_line_breaks(1, f);
-      f.write_element(FormatElement::ExpandParent);
-      f.write_element(FormatElement::Tag(Tag::StartDedent(DedentMode::Root)));
-      write_ops(&ops, f);
-      f.write_element(FormatElement::Tag(Tag::EndDedent(DedentMode::Root)));
-    } else {
-      f.write_element(FormatElement::Tag(Tag::StartIndent));
-      f.write_element(FormatElement::Line(LineMode::Soft));
-      write_ops(&ops, f);
-      f.write_element(FormatElement::Tag(Tag::EndIndent));
-    }
+    docs.text(line);
+  }
+  f.write_token("`");
+  let mut writer = Writer::new(&docs, 1, true);
+  if indentation.is_empty() {
+    f.write_text(b"\n", Some(TextWidth::multiline(0)));
+    f.write_element(FormatElement::Tag(Tag::StartDedent(DedentMode::Root)));
+    writer.write(1, docs.len(), &mut Escaped, f);
+    f.write_element(FormatElement::Tag(Tag::EndDedent(DedentMode::Root)));
+  } else {
+    f.write_element(FormatElement::Tag(Tag::StartIndent));
     f.write_element(FormatElement::Line(LineMode::Soft));
-    f.write_token("`");
-    true
-  });
-  is_written == Ok(true)
+    writer.write(1, docs.len(), &mut Escaped, f);
+    f.write_element(FormatElement::Tag(Tag::EndIndent));
+  }
+  f.write_element(FormatElement::Line(LineMode::Soft));
+  f.write_token("`");
+  true
+}
+
+/// Formats `text` as Markdown in a template, whose code blocks are fenced with `~`, and formats the code in them.
+fn format(text: &str, options: &FormatOptions) -> String {
+  let wrap = match options.prose_wrap {
+    ProseWrap::Always => crate::Wrap::Always,
+    ProseWrap::Never => crate::Wrap::Never,
+    ProseWrap::Preserve => crate::Wrap::Preserve,
+  };
+  let markdown = crate::markdown::Options {
+    width: options.line_width.value() as usize,
+    wrap,
+    fence: crate::markdown::Fence::Tilde,
+    ..crate::markdown::Options::default()
+  };
+  let scripts = super::scripts(options);
+  crate::markdown::format_with(text, &markdown, |code| {
+    let language = crate::languages::parser(code.lang).or(crate::embed::own(code.lang))?;
+    let request = Request {
+      code: code.text,
+      language,
+      kind: Kind::Block,
+      indent: 0,
+      prefix: 0,
+      suffix: 0,
+      width: code.width,
+      module: true,
+    };
+    let dialect = crate::css::Dialect::of_path(&format!("code.{language}"));
+    match dialect {
+      Some(dialect) => {
+        let css = crate::css::Options {
+          dialect,
+          width: code.width,
+          tab_width: scripts.tab_width,
+          tabs: scripts.tabs,
+          single_quote: scripts.single_quote,
+          ..crate::css::Options::default()
+        };
+        crate::css::format(code.text, &css, &mut crate::embed::Verbatim).ok()
+      }
+      None => {
+        crate::embed::builtin_in_markdown(&request, scripts.tab_width, scripts.tabs, &scripts)
+      }
+    }
+  })
 }

@@ -1,10 +1,9 @@
 //! GraphQL in JavaScript templates: Prettier's `language-js/embed/graphql.js`.
 
-use super::comments::{self, Attached};
-use super::parser::{self, Tree};
-use super::printer::Builder;
+use super::doc::{Texts, Writer};
+use crate::doc::Docs;
 use crate::js::base::*;
-use crate::js::ir::element::LineMode;
+use crate::js::ir::element::{LineMode, TextWidth};
 use crate::js::print::template::write_embedded_template_expression;
 use smallvec::SmallVec;
 
@@ -71,7 +70,7 @@ pub(crate) fn is_embed_graphql<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {
 
 /// The text between two substitutions.
 struct Part<'a> {
-  text: &'a [u8],
+  text: &'a str,
   content: Content,
   starts_with_blank_line: bool,
   ends_with_blank_line: bool,
@@ -80,25 +79,29 @@ struct Part<'a> {
 enum Content {
   Nothing,
   Comments,
-  Document(Tree, Vec<Attached>),
+  Document(usize),
 }
 
 fn lines(text: &[u8]) -> impl DoubleEndedIterator<Item = &[u8]> + Clone {
   crate::js::strings::split(text, b"\n").collect::<SmallVec<[&[u8]; 16]>>().into_iter()
 }
 
-/// Returns `None` if Prettier leaves the template as it is.
-fn parse_part<'a>(template: Template<'a>, index: usize) -> Option<Part<'a>> {
+/// Returns `None` if Prettier leaves the template as it is. Adds the document of the part to `docs`.
+fn parse_part<'a: 'x, 'x>(
+  template: Template<'a>,
+  index: usize,
+  options: &crate::graphql::Options,
+  bump: &'x bumpalo::Bump,
+  docs: &mut Vec<Docs<'x>>,
+) -> Option<Part<'a>> {
   let raw = template.raw(index);
   let raw_equals_cooked = crate::js::strings::index_of_any(raw, b"\\\r").is_none();
-  let text = if raw_equals_cooked { raw } else { template.cooked(index)?.bytes() };
+  let bytes = if raw_equals_cooked { raw } else { template.cooked(index)?.bytes() };
   // An escape can produce a lone surrogate, which isn't a valid GraphQL character.
-  if !raw_equals_cooked && std::str::from_utf8(text).is_err() {
-    return None;
-  }
+  let text = std::str::from_utf8(bytes).ok()?;
   let is_last = index + 1 == template.quasi_count();
 
-  let all = lines(text);
+  let all = lines(bytes);
   // A substitution in a comment.
   if !is_last
     && all.clone().next_back().is_some_and(|line| crate::js::strings::contains_char(line, b'#'))
@@ -109,11 +112,11 @@ fn parse_part<'a>(template: Template<'a>, index: usize) -> Option<Part<'a>> {
   let has_only_comments =
     all.clone().all(|line| matches!(crate::js::strings::trim_js_whitespace(line), [] | [b'#', ..]));
   let content = if !has_only_comments {
-    let (mut tree, mut attached) = (Tree::default(), Vec::new());
-    parser::parse(text, &mut tree).ok()?;
-    comments::attach(text, &tree, &mut attached);
-    Content::Document(tree, attached)
-  } else if crate::js::strings::is_all_js_whitespace(text) {
+    let mut document = Docs::new(bump);
+    crate::graphql::template(text, options, &mut document).ok()?;
+    docs.push(document);
+    Content::Document(docs.len() - 1)
+  } else if crate::js::strings::is_all_js_whitespace(bytes) {
     Content::Nothing
   } else {
     Content::Comments
@@ -138,8 +141,30 @@ fn is_blank_template(template: Template<'_>) -> bool {
   template.quasi_count() == 1 && crate::js::strings::is_all_js_whitespace(template.raw(0))
 }
 
-fn parse<'a>(template: Template<'a>) -> Option<SmallVec<[Part<'a>; 2]>> {
-  (0..template.quasi_count()).map(|index| parse_part(template, index)).collect()
+/// The options of GraphQL in a script.
+fn graphql_options(options: &FormatOptions) -> crate::graphql::Options {
+  crate::graphql::Options {
+    width: options.line_width.value() as usize,
+    tab_width: options.indent_width.value() as usize,
+    tabs: options.indent_style == IndentStyle::Tab,
+    bracket_spacing: options.bracket_spacing.value(),
+    ..crate::graphql::Options::default()
+  }
+}
+
+/// Calls `then` with the parts of `template` and the documents they refer to, unless Prettier leaves it as it is.
+fn with_parts<'a, R>(
+  template: Template<'a>,
+  options: &FormatOptions,
+  then: impl FnOnce(&[Part<'a>], &[Docs<'_>]) -> R,
+) -> Option<R> {
+  let options = graphql_options(options);
+  let bump = bumpalo::Bump::new();
+  let mut docs = Vec::new();
+  let parts = (0..template.quasi_count())
+    .map(|index| parse_part(template, index, &options, &bump, &mut docs))
+    .collect::<Option<SmallVec<[Part<'a>; 2]>>>()?;
+  Some(then(&parts, &docs))
 }
 
 /// True if `e` is a template, tagged or not, that's formatted as GraphQL and isn't just ` `` `. In Prettier, its
@@ -154,7 +179,7 @@ pub(crate) fn has_embed_label<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {
   };
   is_candidate(quasi, template, f)
     && (crate::js::embed::css::tag_alone_decides_template_layout(f)
-      || (!is_blank_template(template) && parse(template).is_some()))
+      || (!is_blank_template(template) && with_parts(template, f.options(), |_, _| ()).is_some()))
 }
 
 /// The line breaks between the parts that Prettier's `printEmbedGraphQL` joins.
@@ -187,30 +212,35 @@ pub(crate) fn write_template<'a>(
     f.write_token("``");
     return true;
   }
-  let Some(parts) = parse(template) else {
-    return false;
-  };
+  let options = f.options().clone();
+  let written = with_parts(template, &options, |parts, docs| write_parts(template, parts, docs, f));
+  written.is_some()
+}
 
+/// Prettier's `printEmbedGraphQL`, once the parts parse.
+fn write_parts<'a>(
+  template: Template<'a>,
+  parts: &[Part<'a>],
+  docs: &[Docs<'_>],
+  f: &mut Formatter<'a>,
+) {
   f.write_token("`");
   f.write_element(FormatElement::Tag(Tag::StartIndent));
   f.write_element(FormatElement::Line(LineMode::Hard));
   let mut separator = Separator::default();
-  let empty = Tree::default();
   for (index, part) in parts.iter().enumerate() {
     let (is_first, is_last) = (index == 0, index + 1 == parts.len());
-    let (tree, attached) = match &part.content {
-      Content::Document(tree, attached) => (tree, attached.as_slice()),
-      _ => (&empty, [].as_slice()),
-    };
     if matches!(part.content, Content::Nothing) {
       separator.has_blank_line |= !is_first && !is_last && part.starts_with_blank_line;
     } else {
       separator.has_blank_line |= !is_first && part.starts_with_blank_line;
       separator.write(f);
-      let mut builder = Builder { text: part.text, tree, attached, f, is_in_template: true };
       match part.content {
-        Content::Document(..) => builder.print_definitions(),
-        _ => builder.print_comment_lines(),
+        Content::Document(index) => {
+          let docs = &docs[index];
+          Writer::new(docs, 1, true).write(1, docs.len(), &mut Escaped, f)
+        }
+        _ => write_comment_lines(part.text, f),
       }
       separator.has_blank_line |= !is_last && part.ends_with_blank_line;
     }
@@ -222,5 +252,44 @@ pub(crate) fn write_template<'a>(
   f.write_element(FormatElement::Tag(Tag::EndIndent));
   f.write_element(FormatElement::Line(LineMode::Hard));
   f.write_token("`");
-  true
+}
+
+/// Prettier's `printGraphqlComments`, for a text that's only comments and white space.
+fn write_comment_lines(text: &str, f: &mut Formatter<'_>) {
+  let (mut has_comment, mut is_after_blank_line) = (false, false);
+  for line in text.split('\n') {
+    let comment = line.trim_matches(|c: char| c.is_ascii_whitespace());
+    if !comment.is_empty() {
+      match (has_comment, is_after_blank_line) {
+        (false, _) => {}
+        (true, true) => f.write_element(FormatElement::Line(LineMode::Empty)),
+        (true, false) => f.write_element(FormatElement::Line(LineMode::Hard)),
+      }
+      has_comment = true;
+      let width = f.string_width(comment.as_bytes());
+      Escaped.write(comment, width, f);
+    }
+    is_after_blank_line = comment.is_empty();
+  }
+}
+
+/// Writes texts with Prettier's `uncookTemplateElementValue`: `\\`, `` ` `` and `${` get a backslash.
+struct Escaped;
+
+impl<'a> Texts<'a> for Escaped {
+  fn write(&mut self, text: &str, width: u32, f: &mut Formatter<'a>) {
+    let bytes = text.as_bytes();
+    if crate::js::strings::index_of_any(bytes, b"\\`").is_none() && !text.contains("${") {
+      return super::doc::write_string(bytes, width, f);
+    }
+    let mut escaped = Vec::with_capacity(bytes.len() + 8);
+    for (index, &byte) in bytes.iter().enumerate() {
+      if matches!(byte, b'\\' | b'`') || (byte == b'$' && bytes.get(index + 1) == Some(&b'{')) {
+        escaped.push(b'\\');
+      }
+      escaped.push(byte);
+    }
+    let width = TextWidth::single(f.string_width(&escaped));
+    f.write_text(&escaped, Some(width));
+  }
 }

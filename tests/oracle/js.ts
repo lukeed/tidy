@@ -1,7 +1,8 @@
 // Formats JavaScript and TypeScript files with Prettier and with tidy, and compares the outputs. Both rejecting a file
-// counts as the same. Every output of tidy must read back the same. Embedded code isn't formatted by either.
+// counts as the same. Every output of tidy must read back the same. Embedded code isn't formatted by either, unless
+// `--embedded` is given: then both format the CSS, GraphQL, Markdown and HTML in templates.
 //
-//   bun tests/oracle/js.ts [dir...] [--show=n] [--list=file]
+//   bun tests/oracle/js.ts [dir...] [--show=n] [--list=file] [--embedded]
 //
 // Without folders, it reads Prettier's fixtures of JavaScript, JSX and TypeScript, and the bench corpus of bench/js.ts.
 import { readdirSync, statSync } from "node:fs";
@@ -14,6 +15,7 @@ let args = Bun.argv.slice(2).filter((arg) => !arg.startsWith("--"));
 let option = (name: string) => Bun.argv.find((arg) => arg.startsWith(`--${name}=`))?.slice(name.length + 3);
 let show = Number(option("show") ?? 3);
 let list = option("list");
+let embedded = Bun.argv.includes("--embedded");
 let fixtures = join(homedir(), "repos/oss/prettier/tests/format");
 let dirs = args.length
 	? args
@@ -53,9 +55,9 @@ for (let path of dirs.flatMap(files)) {
 	let text = await Bun.file(path).text();
 	let parser = /\.(ts|tsx|mts|cts)$/i.test(path) ? "typescript" : "babel";
 	let expected = await prettier
-		.format(text, { parser, filepath: path, embeddedLanguageFormatting: "off" })
+		.format(text, { parser, filepath: path, embeddedLanguageFormatting: embedded ? "auto" : "off" })
 		.catch(() => undefined);
-	let tidy = attempt(() => format(text, { filepath: path, formatEmbedded: false, js: { jsdoc: false } }));
+	let tidy = attempt(() => format(text, { filepath: path, embedded, js: { jsdoc: false } }));
 	if (expected === undefined && tidy === undefined) {
 		counts.rejected++;
 	} else if (tidy === undefined) {
@@ -71,7 +73,7 @@ for (let path of dirs.flatMap(files)) {
 		report(`different: ${path}`, expected, tidy);
 	}
 	if (tidy !== undefined) {
-		let again = attempt(() => format(tidy, { filepath: path, formatEmbedded: false, js: { jsdoc: false } }));
+		let again = attempt(() => format(tidy, { filepath: path, embedded, js: { jsdoc: false } }));
 		if (again !== tidy) {
 			counts.unstable++;
 			differing.push(`unstable ${path}`);

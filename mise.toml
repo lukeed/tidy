@@ -69,7 +69,7 @@ dir = "tests/oracle/dockerfile"
 run = "cargo run --release --"
 
 [tasks."oracle:js"]
-description = "Compare JS and TS with Prettier: mise run oracle:js -- [dir...] [--show=n] [--list=file]"
+description = "Compare JS and TS with Prettier: mise run oracle:js -- [dir...] [--show=n] [--list=file] [--embedded]"
 run = "bun tests/oracle/js.ts"
 depends = ["build:napi"]
 

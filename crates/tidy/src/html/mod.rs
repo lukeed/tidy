@@ -256,6 +256,61 @@ fn run<'a>(
   Ok(output)
 }
 
+/// True if `text` parses as markup for `parser`.
+#[cfg(feature = "js")]
+pub(crate) fn parses(text: &str, parser: Parser) -> bool {
+  parse::parse(text.as_bytes(), None, parser, &mut ast::Tree::default()).is_ok()
+}
+
+/// Writes the document of `text`, markup in a template of a script with placeholders for its substitutions, to `docs`:
+/// Prettier's `textToDoc`, with a line break at the end. Returns the number of nodes at the top level. Fails if an
+/// element whose name has a placeholder has no end tag: Prettier would add one, which evaluates the substitution twice.
+#[cfg(feature = "js")]
+pub(crate) fn template<'a>(
+  text: &'a str,
+  options: &Options,
+  docs: &mut crate::doc::Docs<'a>,
+) -> Result<usize, Error> {
+  let mut tree = ast::Tree::default();
+  parse::parse(text.as_bytes(), None, options.parser, &mut tree).map_err(|error| match error {
+    parse::ParseError::Syntax(error) => Error::Syntax {
+      message: String::from_utf8_lossy(&error.message()).into_owned(),
+      at: error.at as usize,
+    },
+    parse::ParseError::NestedTooDeeply => Error::TooDeep,
+  })?;
+  let context = Context {
+    parser: options.parser,
+    original_text: text.as_bytes(),
+    whitespace: options.whitespace,
+    filepath: options.filepath.as_deref().map(str::as_bytes),
+    width: options.width,
+    tab_width: options.tab_width,
+    tabs: options.tabs,
+    single_attribute_per_line: options.single_attribute_per_line,
+    bracket_same_line: options.bracket_same_line,
+    vue_indent_script_and_style: options.vue_indent_script_and_style,
+    ignore: options.ignore.as_bytes(),
+    embedded: true,
+    typescript: false,
+    formats_embedded: options.format_embedded,
+    scripts: &options.js,
+  };
+  if !preprocess::preprocess(&mut tree, &context) {
+    return Err(Error::TooDeep);
+  }
+  let repeats = tree.nodes.iter().any(|node| {
+    node.kind == ast::Kind::Element
+      && !node.flags.intersects(ast::Flags::IS_SELF_CLOSING | ast::Flags::HAS_END_SPAN)
+      && crate::strings::contains(&node.name.to_ascii_uppercase(), b"PRETTIER_HTML_PLACEHOLDER_")
+  });
+  if repeats {
+    return Err(Error::Syntax { message: "a substitution would repeat".into(), at: 0 });
+  }
+  print::Printer::new(text, &tree, &context, docs, &mut crate::embed::Verbatim).print_root();
+  Ok(tree.children(tree.root).count())
+}
+
 /// `isVueSfcWithTypescriptScript`: a root `<script>` with `lang="ts"` or `lang="tsx"`.
 fn has_typescript_script(tree: &ast::Tree<'_>) -> bool {
   tree.children(tree.root).any(|id| {

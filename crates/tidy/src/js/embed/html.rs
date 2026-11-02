@@ -1,19 +1,15 @@
 //! HTML in JavaScript templates: Prettier's `language-js/embed/html.js`.
 //!
-//! The formatted text has a placeholder instead of each substitution. Its document is captured and then written again
-//! with the substitutions in place of the placeholders.
+//! The text has a placeholder instead of each substitution. Its document is written with the substitutions in place of
+//! the placeholders.
 
-use super::Parser;
-use super::ast::{Flags, Kind, Tree};
-use super::js::write_string;
-use super::map_strings::{MapString, write_mapped};
-pub(crate) use super::utilities::is_placeholder_in_js;
+use super::doc::{Texts, Writer, write_string};
+use crate::doc::{Docs, Element, Line};
+use crate::html::Parser;
 use crate::js::base::*;
-use crate::js::context::JsFormatContext;
 use crate::js::embed::css::is_blank;
 use crate::js::ir::element::{Group, Interned, LineMode};
-use crate::js::ir::printer::PrinterOptions;
-use crate::js::options::{HtmlRoot, HtmlWhitespaceSensitivity, LineEnding};
+use crate::js::options::{AttributePosition, HtmlRoot, HtmlWhitespaceSensitivity, IndentStyle};
 use crate::js::print::template::write_embedded_template_expression;
 use crate::js::strings;
 use crate::js::text;
@@ -21,6 +17,20 @@ use smallvec::SmallVec;
 
 pub(crate) const PLACEHOLDER_START: &[u8] = b"PRETTIER_HTML_PLACEHOLDER_";
 const PLACEHOLDER_END: &[u8] = b"_IN_JS";
+
+/// `/^PRETTIER_HTML_PLACEHOLDER_\d+_\d+_IN_JS$/.test(value)`
+pub(crate) fn is_placeholder_in_js(value: &[u8]) -> bool {
+  let digits = |text: &[u8]| text.iter().take_while(|byte| byte.is_ascii_digit()).count();
+  let Some(rest) = value.strip_prefix(PLACEHOLDER_START) else {
+    return false;
+  };
+  let first = digits(rest);
+  let Some(rest) = rest[first..].strip_prefix(b"_") else {
+    return false;
+  };
+  let second = digits(rest);
+  first > 0 && second > 0 && &rest[second..] == PLACEHOLDER_END
+}
 
 /// `isAngularComponentTemplate`: `` @Component({ template: `..` }) ``. `parent` is the template's parent.
 fn is_angular_component_template(parent: AstNodes<'_>) -> bool {
@@ -34,25 +44,9 @@ fn has_html_tag<'a>(e: Expr<'a>, parent: AstNodes<'a>) -> bool {
             if call.callee() != e && matches!(call.callee().kind(), ExprKind::Ident(_)) && call.callee().text() == b"html"))
 }
 
-/// True if the template `e` might be formatted as HTML. Of the comments that mark a template as HTML, this only
-/// recognizes one right before the template.
-pub(crate) fn can_be_html(e: Expr<'_>) -> bool {
-  let mut before =
-    e.file().text().get(..e.span().start as usize).unwrap_or_default().trim_ascii_end();
-  while let Some(outside) = before.strip_suffix(b"(") {
-    before = outside.trim_ascii_end();
-  }
-  let parent = e.ast_parent();
-  has_html_tag(e, parent)
-    || is_angular_component_template(parent)
-    || before.ends_with(b"/* HTML */")
-}
-
 /// Returns the parser for the text of the template `e`, if `embed` treats it as HTML.
 fn parser_of<'a>(e: Expr<'a>, template: Template<'a>, f: &Formatter<'a>) -> Option<Parser> {
-  if !f.options().embedded_html
-    || !matches!(f.options().embedded_language_formatting, EmbeddedLanguageFormatting::Auto)
-  {
+  if !matches!(f.options().embedded_language_formatting, EmbeddedLanguageFormatting::Auto) {
     return None;
   }
   let parent = e.ast_parent();
@@ -75,7 +69,7 @@ fn parser_of<'a>(e: Expr<'a>, template: Template<'a>, f: &Formatter<'a>) -> Opti
 
 /// Returns the text of `template` with placeholders. `counter` distinguishes them from the placeholders of an outer
 /// template whose text contains this one.
-fn text_with_placeholders(template: Template<'_>, counter: u32) -> Vec<u8> {
+fn text_with_placeholders(template: Template<'_>, counter: u32) -> String {
   let mut text = Vec::new();
   for index in 0..template.quasi_count() {
     if index > 0 {
@@ -97,14 +91,28 @@ fn text_with_placeholders(template: Template<'_>, counter: u32) -> Vec<u8> {
     }
     from = at + 1;
   }
-  match strings::contains_char(&text, b'\r') {
+  let text = match strings::contains_char(&text, b'\r') {
     true => crate::js::strings::crlf_as_lf(&text).into_owned(),
     false => text,
-  }
+  };
+  String::from_utf8(text)
+    .unwrap_or_else(|error| String::from_utf8_lossy(error.as_bytes()).into_owned())
+}
+
+/// The first counter from `start` on whose placeholders aren't in the text of `template` already, as those of an outer
+/// template in a script of this one are.
+fn counter_of(template: Template<'_>, start: u32) -> u32 {
+  let has = |counter: u32| {
+    let end = [b"_", counter.to_string().as_bytes(), PLACEHOLDER_END].concat();
+    (0..template.quasi_count())
+      .any(|index| template.cooked(index).is_some_and(|text| strings::contains(text.bytes(), &end)))
+  };
+  (start..).find(|&counter| !has(counter)).unwrap_or(start)
 }
 
 /// Returns the line break between the backticks and the text, or `None` if there's none.
-fn surrounding_line(text: &[u8], options: &FormatOptions) -> Option<LineMode> {
+fn surrounding_line(text: &str, options: &FormatOptions) -> Option<LineMode> {
+  let text = text.as_bytes();
   if options.html_whitespace_sensitivity == HtmlWhitespaceSensitivity::Ignore {
     return Some(LineMode::Hard);
   }
@@ -161,7 +169,7 @@ pub(crate) fn label<'a>(e: Expr<'a>, f: &Formatter<'a>) -> Option<Label> {
   };
   let parser = parser_of(quasi, template, f).filter(|_| !is_blank(template))?;
   let text = text_with_placeholders(template, f.options().html_template_depth);
-  super::can_be_parsed(&text, parser).then(|| match surrounding_line(&text, f.options()) {
+  crate::html::parses(&text, parser).then(|| match surrounding_line(&text, f.options()) {
     Some(_) => Label::Embed,
     None => Label::EmbedWithoutHug,
   })
@@ -209,7 +217,7 @@ impl Substitutions<'_> {
   }
 
   /// Writes `text`, which is between placeholders: `uncookTemplateElementValue`.
-  fn write_text(&self, text: &[u8], is_one_string: bool, f: &mut Formatter<'_>) {
+  fn write_text(&self, text: &[u8], f: &mut Formatter<'_>) {
     if text.is_empty() {
       return;
     }
@@ -235,67 +243,62 @@ impl Substitutions<'_> {
         &escaped[..]
       }
     };
-    match is_one_string {
-      true => write_string(text, f),
-      false => f.write_text(text, None),
-    }
+    write_string(text, f.string_width(text), f);
   }
 }
 
-impl MapString for Substitutions<'_> {
-  fn changes(&self, text: &[u8]) -> bool {
-    self.needs_escapes(text) || strings::contains(text, PLACEHOLDER_START)
-  }
-
-  fn write(&mut self, text: &[u8], is_one_string: bool, f: &mut Formatter<'_>) {
-    let mut rest = text;
+impl<'a> Texts<'a> for Substitutions<'_> {
+  fn write(&mut self, text: &str, width: u32, f: &mut Formatter<'a>) {
+    let mut rest = text.as_bytes();
+    if !self.needs_escapes(rest) && !strings::contains(rest, PLACEHOLDER_START) {
+      return write_string(rest, width, f);
+    }
     while let Some((start, end, number)) = self.find_placeholder(rest) {
-      self.write_text(&rest[..start], is_one_string, f);
+      self.write_text(&rest[..start], f);
       if let Some(&expression) = self.expressions.get(number) {
         f.write_element(FormatElement::Interned(expression));
       }
       rest = &rest[end..];
     }
-    self.write_text(rest, is_one_string, f);
+    self.write_text(rest, f);
   }
 }
 
-/// True if an element of `tree` with a substitution in its name has no end tag. Prettier would add one: it turns
-/// `<${a}>b` into `<${a}>b</${a}>`, which evaluates `a` twice. Such a template is left as it is.
-pub(super) fn would_repeat_substitution(tree: &Tree<'_>) -> bool {
-  tree.nodes.iter().any(|node| {
-    node.kind == Kind::Element
-      && !(node.flags).intersects(Flags::IS_SELF_CLOSING | Flags::HAS_END_SPAN)
-      && node.name.len() > PLACEHOLDER_START.len()
-      && strings::contains(&node.name.to_ascii_uppercase(), PLACEHOLDER_START)
-  })
+/// True if `docs`, the document of `text`, still has the same number of substitutions once printed. If not, oxfmt
+/// leaves the template as it is.
+fn keeps_substitution_count(text: &str, docs: &Docs<'_>, options: &crate::html::Options) -> bool {
+  let print = crate::doc::Options {
+    width: options.width,
+    tab_width: options.tab_width,
+    tabs: options.tabs,
+    eol: crate::doc::Eol::Lf,
+  };
+  let printed = crate::doc::print(docs, &print, String::new());
+  text.matches("PRETTIER_HTML_PLACEHOLDER_").count()
+    == printed.matches("PRETTIER_HTML_PLACEHOLDER_").count()
 }
 
-/// True if `document`, the result of formatting `text`, still has the same number of substitutions. If not, oxfmt
-/// leaves the template as it is.
-fn keeps_substitution_count(
-  text: &[u8],
-  document: Interned,
-  options: &FormatOptions,
-  f: &Formatter<'_>,
-) -> bool {
-  let printer_options = PrinterOptions {
-    line_ending: LineEnding::Lf,
-    marks_line_breaks_in_texts: false,
-    ..PrinterOptions::new(options, text)
-  };
-  let (source, mut printed) = (f.source_text().as_bytes(), Vec::new());
-  crate::js::ir::printer::print(
-    document,
-    &f.storage,
-    source,
-    printer_options,
-    &mut Default::default(),
-    &mut printed,
-  )
-  .is_ok()
-    && strings::split(text, PLACEHOLDER_START).count()
-      == strings::split(&printed, PLACEHOLDER_START).count()
+/// The options of markup in a template, `indent_level` indents deep.
+fn markup_options(parser: Parser, indent_level: u32, f: &Formatter<'_>) -> crate::html::Options {
+  let options = f.options();
+  let tab_width = options.indent_width.value() as usize;
+  crate::html::Options {
+    parser,
+    width: (options.line_width.value() as usize).saturating_sub(indent_level as usize * tab_width),
+    tab_width,
+    tabs: options.indent_style == IndentStyle::Tab,
+    whitespace: match options.html_whitespace_sensitivity {
+      HtmlWhitespaceSensitivity::Css => crate::Whitespace::Auto,
+      HtmlWhitespaceSensitivity::Strict => crate::Whitespace::Strict,
+      HtmlWhitespaceSensitivity::Ignore => crate::Whitespace::Ignore,
+    },
+    single_attribute_per_line: options.attribute_position == AttributePosition::Multiline,
+    bracket_same_line: options.bracket_same_line.value(),
+    vue_indent_script_and_style: options.vue_indent_script_and_style,
+    filepath: options.is_in_html_file.then(|| ".html".into()),
+    js: super::scripts(options),
+    ..crate::html::Options::default()
+  }
 }
 
 /// Writes the template `e` as HTML if Prettier treats it as HTML: `printEmbedHtmlLike`. Returns true if it did, and
@@ -312,41 +315,26 @@ pub(crate) fn write_template<'a>(
     f.write_token("``");
     return true;
   }
-  let counter = f.options().html_template_depth;
+  let counter = counter_of(template, f.options().html_template_depth);
   let text = text_with_placeholders(template, counter);
-  let text = match f.options().tailwind.as_deref() {
-    Some(how) => {
-      let parse = super::js::Parse::new(f.context().parse_javascript, f.options());
-      super::tailwind::with_sorted_classes(&text, parser, how, parse).unwrap_or(text)
-    }
-    None => text,
-  };
-  let options = FormatOptions {
-    html_template_depth: counter.saturating_add(1),
-    parser: None,
-    filepath: Some(f.filepath().into()),
-    ..super::options_of_host(f.options(), parser)
-  };
-  let line = surrounding_line(&text, &options);
+  let line = surrounding_line(&text, f.options());
   // The printer decides where the lines start. But languages that are printed separately (JSON, YAML, ..) need to
   // know the available width up front, so assume the indentation the file would have if it had been formatted before.
-  let indent_level = indent_level_in_source(e, &options, f) + u32::from(line.is_some());
-  let slot = f.start_capture();
-  // The code in the text is written with the formatter's options.
-  let context = JsFormatContext::without_file(options.clone(), &crate::js::comments::NO_COMMENTS);
-  // This is all that's ever checked about the file name.
-  let path = options.is_in_html_file.then_some(&b".html"[..]);
-  let write_result = f.write_embedded(context, &text, |f| {
-    super::write_document(&text, parser, path, &options, true, Some(indent_level), f)
-  });
-  let document = f.end_capture(slot);
-  let Ok(top_level_count) = write_result else {
+  let indent_level = indent_level_in_source(e, f.options(), f) + u32::from(line.is_some());
+  let options = markup_options(parser, indent_level, f);
+  let bump = bumpalo::Bump::new();
+  let mut docs = Docs::new(&bump);
+  let Ok(top_level_count) = crate::html::template(&text, &options, &mut docs) else {
     return false;
   };
   // Both tools format the HTML with Prettier's options.
-  if f.options().flavor.is_oxfmt() && !keeps_substitution_count(&text, document, &options, f) {
+  if f.options().flavor.is_oxfmt() && !keeps_substitution_count(&text, &docs, &options) {
     return false;
   }
+  let end = match docs.element(docs.len() - 1) {
+    Element::Line(Line::Hard) => docs.len() - 1,
+    _ => docs.len(),
+  };
   // Written in source order, whatever the order of the placeholders, because comments are consumed in that order.
   let expressions: SmallVec<[Interned; 8]> = (0..template.quasi_count().saturating_sub(1))
     .map(|index| {
@@ -363,7 +351,7 @@ pub(crate) fn write_template<'a>(
   let is_indented = line.is_some() || top_level_count > 1;
   tag(Tag::StartGroup(Group::new()), f);
   f.write_token("`");
-  if line.is_none() && text::starts_with_white_space(&text) {
+  if line.is_none() && text::starts_with_white_space(text.as_bytes()) {
     f.write_token(" ");
   }
   if is_indented {
@@ -373,14 +361,17 @@ pub(crate) fn write_template<'a>(
     f.write_element(FormatElement::Line(mode));
   }
   tag(Tag::StartGroup(Group::new()), f);
-  write_mapped(document, &mut substitutions, f);
+  let breaks = u32::from(line == Some(LineMode::Hard));
+  Writer::new(&docs, breaks, false).write(1, end, &mut substitutions, f);
   tag(Tag::EndGroup, f);
   if is_indented {
     tag(Tag::EndIndent, f);
   }
   match line {
     Some(mode) => f.write_element(FormatElement::Line(mode)),
-    None if strings::trim_js_whitespace_end(&text).len() < text.len() => f.write_token(" "),
+    None if strings::trim_js_whitespace_end(text.as_bytes()).len() < text.len() => {
+      f.write_token(" ")
+    }
     None => {}
   }
   f.write_token("`");
