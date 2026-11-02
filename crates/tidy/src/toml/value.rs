@@ -35,10 +35,9 @@ fn document(text: &str) -> Result<Value, Error> {
 /// A part of a key, and where it is.
 type Key<'t> = (Cow<'t, str>, u32);
 
-enum Item {
-  Value(Value),
+/// A table, or an array of tables, that more of the document can add to.
+enum Child {
   Table(Table),
-  /// An array of tables.
   Tables(Vec<Table>),
 }
 
@@ -52,26 +51,39 @@ enum Made {
   Dotted,
 }
 
+/// A table: its values as they will be, and its tables apart, with how each came to be.
 struct Table {
   made: Made,
-  items: BTreeMap<String, Item>,
+  values: Map<String, Value>,
+  tables: BTreeMap<String, Child>,
 }
 
 impl Table {
   fn new(made: Made) -> Table {
-    Table { made, items: BTreeMap::new() }
+    Table { made, values: Map::new(), tables: BTreeMap::new() }
   }
 
   fn into_value(self) -> Value {
-    let items = self.items.into_iter().map(|(key, item)| {
-      let value = match item {
-        Item::Value(value) => value,
-        Item::Table(table) => table.into_value(),
-        Item::Tables(tables) => Value::Array(tables.into_iter().map(Table::into_value).collect()),
+    let mut values = self.values;
+    for (key, child) in self.tables {
+      let value = match child {
+        Child::Table(table) => table.into_value(),
+        Child::Tables(tables) => Value::Array(tables.into_iter().map(Table::into_value).collect()),
       };
-      (key, value)
-    });
-    Value::Object(items.collect::<Map<_, _>>())
+      values.insert(key, value);
+    }
+    Value::Object(values)
+  }
+
+  /// The table or array of tables at `key`, which is a new table if there was nothing: `None` if a value is there.
+  fn child(&mut self, key: &str, made: Made) -> Option<&mut Child> {
+    if self.values.contains_key(key) {
+      return None;
+    }
+    if !self.tables.contains_key(key) {
+      self.tables.insert(key.to_owned(), Child::Table(Table::new(made)));
+    }
+    self.tables.get_mut(key)
   }
 }
 
@@ -80,21 +92,24 @@ fn header(root: &mut Table, keys: &[Key], array: bool) -> Result<(), Error> {
   let (last, parents) = keys.split_last().expect("a header has a key");
   let mut table = root;
   for (index, (key, at)) in parents.iter().enumerate() {
-    table = match slot(&mut table.items, key, Made::Implicit) {
-      Item::Table(table) => table,
-      Item::Tables(tables) => tables.last_mut().expect("an array of tables has a table"),
-      Item::Value(_) => return Err(defined(&keys[..=index], *at)),
+    table = match table.child(key, Made::Implicit) {
+      Some(Child::Table(table)) => table,
+      Some(Child::Tables(tables)) => tables.last_mut().expect("an array of tables has a table"),
+      None => return Err(defined(&keys[..=index], *at)),
     };
   }
-  match (table.items.get_mut(&*last.0), array) {
+  if table.values.contains_key(&*last.0) {
+    return Err(defined(keys, last.1));
+  }
+  match (table.tables.get_mut(&*last.0), array) {
     (None, false) => {
-      _ = table.items.insert(last.0.to_string(), Item::Table(Table::new(Made::Header)))
+      _ = table.tables.insert(last.0.to_string(), Child::Table(Table::new(Made::Header)))
     }
     (None, true) => {
-      _ = table.items.insert(last.0.to_string(), Item::Tables(vec![Table::new(Made::Header)]))
+      _ = table.tables.insert(last.0.to_string(), Child::Tables(vec![Table::new(Made::Header)]))
     }
-    (Some(Item::Table(table)), false) if table.made == Made::Implicit => table.made = Made::Header,
-    (Some(Item::Tables(tables)), true) => tables.push(Table::new(Made::Header)),
+    (Some(Child::Table(table)), false) if table.made == Made::Implicit => table.made = Made::Header,
+    (Some(Child::Tables(tables)), true) => tables.push(Table::new(Made::Header)),
     _ => return Err(defined(keys, last.1)),
   }
   Ok(())
@@ -102,10 +117,10 @@ fn header(root: &mut Table, keys: &[Key], array: bool) -> Result<(), Error> {
 
 /// The table that a header defined, where its entries go.
 fn open<'t>(root: &'t mut Table, keys: &[Key]) -> &'t mut Table {
-  keys.iter().fold(root, |table, (key, _)| match table.items.get_mut(&**key) {
-    Some(Item::Table(table)) => table,
-    Some(Item::Tables(tables)) => tables.last_mut().expect("an array of tables has a table"),
-    _ => unreachable!("a header defines its tables"),
+  keys.iter().fold(root, |table, (key, _)| match table.tables.get_mut(&**key) {
+    Some(Child::Table(table)) => table,
+    Some(Child::Tables(tables)) => tables.last_mut().expect("an array of tables has a table"),
+    None => unreachable!("a header defines its tables"),
   })
 }
 
@@ -114,24 +129,16 @@ fn insert(table: &mut Table, keys: &[Key], value: Value) -> Result<(), Error> {
   let (last, parents) = keys.split_last().expect("an entry has a key");
   let mut table = table;
   for (index, (key, at)) in parents.iter().enumerate() {
-    table = match slot(&mut table.items, key, Made::Dotted) {
-      Item::Table(table) if table.made == Made::Dotted => table,
+    table = match table.child(key, Made::Dotted) {
+      Some(Child::Table(table)) if table.made == Made::Dotted => table,
       _ => return Err(defined(&keys[..=index], *at)),
     };
   }
-  if table.items.contains_key(&*last.0) {
+  if table.values.contains_key(&*last.0) || table.tables.contains_key(&*last.0) {
     return Err(defined(keys, last.1));
   }
-  table.items.insert(last.0.to_string(), Item::Value(value));
+  table.values.insert(last.0.to_string(), value);
   Ok(())
-}
-
-/// The item at `key`, which is a new table if there was none.
-fn slot<'i>(items: &'i mut BTreeMap<String, Item>, key: &str, made: Made) -> &'i mut Item {
-  if !items.contains_key(key) {
-    items.insert(key.to_owned(), Item::Table(Table::new(made)));
-  }
-  items.get_mut(key).expect("the item is there")
 }
 
 fn defined(keys: &[Key], at: u32) -> Error {

@@ -66,6 +66,17 @@ pub(crate) fn next(text: &[u8]) -> (Token, usize) {
     }
     _ => {}
   }
+  let glob = |byte: u8| is_ident(byte) || matches!(byte, b'*' | b'?');
+  // A word that starts with a letter can only be these, and logos reads no further than their longest match.
+  if text[0].is_ascii_alphabetic() {
+    let candidates = [
+      (Token::Bool, boolean(text)),
+      (Token::Float, float(text)),
+      (Token::Ident, run(text, is_ident)),
+      (Token::IdentWithGlob, run(text, glob)),
+    ];
+    return longest(candidates);
+  }
   // The patterns of words, by priority: the longest wins, and on a tie, the one listed first.
   let candidates = [
     (Token::DateTimeOffset, date_time(text, true)),
@@ -79,19 +90,24 @@ pub(crate) fn next(text: &[u8]) -> (Token, usize) {
     (Token::Integer, integer(text)),
     (Token::Float, float(text)),
     (Token::Ident, run(text, is_ident)),
-    (Token::IdentWithGlob, run(text, |byte| is_ident(byte) || matches!(byte, b'*' | b'?'))),
+    (Token::IdentWithGlob, run(text, glob)),
   ];
+  match longest(candidates) {
+    (_, 0) => (Token::Error, char_length(text)),
+    (token, length) if reach(text) > length => (backtracked(token, length), length),
+    best => best,
+  }
+}
+
+/// The longest match, and on a tie, the one listed first.
+fn longest<const N: usize>(candidates: [(Token, usize); N]) -> (Token, usize) {
   let mut best = (Token::Error, 0);
   for (token, length) in candidates {
     if length > best.1 {
       best = (token, length);
     }
   }
-  match best {
-    (_, 0) => (Token::Error, char_length(text)),
-    (token, length) if reach(text) > length => (backtracked(token, length), length),
-    best => best,
-  }
+  best
 }
 
 /// How far logos reads before it gives up on a float, a date or a time: the longest prefix of `text` that one of them
