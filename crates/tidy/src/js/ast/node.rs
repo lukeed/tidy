@@ -5,8 +5,8 @@ use super::{File, NONE, Span};
 use oxc_ast::AstKind;
 use oxc_span::GetSpan;
 
-/// Declares handles: a file and the id of a node in it.
-macro_rules! handles {
+/// Declares handles that aren't nodes of their own: a file and the id of a node in it.
+macro_rules! handle_structs {
   ($($(#[$doc:meta])* $name:ident,)*) => {
     $(
       $(#[$doc])*
@@ -73,13 +73,6 @@ macro_rules! handles {
         }
       }
 
-      impl<'a> From<$name<'a>> for Node<'a> {
-        #[inline]
-        fn from(it: $name<'a>) -> Node<'a> {
-          Node::$name(it)
-        }
-      }
-
       impl super::Spanned for $name<'_> {
         #[inline]
         fn span(&self) -> Span {
@@ -87,6 +80,22 @@ macro_rules! handles {
         }
       }
     )*
+  };
+}
+
+pub(crate) use handle_structs;
+
+/// Declares handles, and [`Node`], which is any of them.
+macro_rules! handles {
+  ($($(#[$doc:meta])* $name:ident,)*) => {
+    handle_structs! { $($(#[$doc])* $name,)* }
+
+    $(impl<'a> From<$name<'a>> for Node<'a> {
+      #[inline]
+      fn from(it: $name<'a>) -> Node<'a> {
+        Node::$name(it)
+      }
+    })*
 
     /// Any node of a file.
     #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -167,6 +176,25 @@ plain_handles! {
   TupleElem,
 }
 
+handle_structs! {
+  /// `interface I {}`, by its statement.
+  Interface,
+  /// `type A = T`, by its statement.
+  Alias,
+  /// `enum E {}`, by its statement.
+  Enum,
+  /// `namespace N {}`, `declare module "m" {}`, `declare global {}`, by its statement.
+  Module,
+  /// `import .. from "m"`, by its statement.
+  Import,
+  /// `import a = require("m")`, `import a = b.c`, by its statement.
+  ImportEquals,
+  /// `export { .. }`, with or without `from`, by its statement.
+  Export,
+  /// A decorator.
+  Modifier,
+}
+
 impl PartialEq for File<'_> {
   fn eq(&self, other: &Self) -> bool {
     std::ptr::eq(self, other)
@@ -189,8 +217,26 @@ impl<'a> Node<'a> {
     let kind = file.kind(id)?;
     let parent = || file.kind(file.parent_id(id));
     use AstKind as K;
+    let exported =
+      || matches!(parent(), Some(K::ExportDeclaration(_) | K::ExportDefaultDeclaration(_)));
     let node = match kind {
       K::Program(_) => Node::File(file),
+      K::Function(_) | K::Class(_) if exported() => match kind {
+        K::Function(_) => Node::Func(Func::new(file, id)),
+        _ => Node::Class(Class::new(file, id)),
+      },
+      K::VariableDeclaration(_)
+      | K::TSEnumDeclaration(_)
+      | K::TSTypeAliasDeclaration(_)
+      | K::TSInterfaceDeclaration(_)
+      | K::TSExternalModuleDeclaration(_)
+      | K::TSNamespaceDeclaration(_)
+      | K::TSGlobalDeclaration(_)
+      | K::TSImportEqualsDeclaration(_)
+        if exported() =>
+      {
+        return None;
+      }
       K::Function(function) => match parent() {
         Some(K::MethodDefinition(_)) => Node::Func(Func::new(file, id)),
         _ if function.is_declaration() => Node::Stmt(Stmt::new(file, id)),

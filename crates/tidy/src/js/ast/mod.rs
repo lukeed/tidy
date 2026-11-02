@@ -7,6 +7,7 @@ mod list;
 mod name;
 mod node;
 mod span;
+mod stmt;
 
 pub(crate) use expr::*;
 pub(crate) use hir::*;
@@ -15,6 +16,7 @@ pub(crate) use list::*;
 pub(crate) use name::*;
 pub(crate) use node::*;
 pub(crate) use span::{Span, Spanned};
+pub(crate) use stmt::*;
 
 use oxc_ast::AstKind;
 use oxc_ast::ast::Program;
