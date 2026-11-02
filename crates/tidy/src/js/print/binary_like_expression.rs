@@ -5,8 +5,8 @@ use crate::js::utils::typecast::{
     comments_of_expression, has_comments, has_leading_own_line_comment, is_cast_target,
     is_cast_target_that_hides_its_kind, is_chain_expression_without_comments,
 };
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 use smallvec::SmallVec;
 
 /// ESTree's `BinaryExpression` or `LogicalExpression`. Not `a, b`.

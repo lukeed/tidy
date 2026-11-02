@@ -10,8 +10,8 @@ use crate::js::format::{ExprOptions, format_name, format_node, identifier, write
 use crate::js::utils::suppressed::FormatSuppressedNode;
 use crate::js::utils::tailwindcss::{InTailwindContext, context_of_attribute};
 use crate::js::utils::typecast::{comments_of_expression, has_comments_that_count, is_cast_target};
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 /// `<a>b</a>`, `<a />`, `<>b</>`
 pub(crate) fn write_jsx_element<'a>(e: Expr<'a>, jsx: Jsx<'a>, f: &mut Formatter<'a>) {

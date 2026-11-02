@@ -15,8 +15,8 @@ use super::serialize::{
     strip_default_is_suffix,
 };
 use super::text::{lines, trim_start_matches};
-use bun_core::strings;
-use bun_lint::ast::jsdoc::JSDocTag;
+use crate::js::strings;
+use crate::js::ast::jsdoc::JSDocTag;
 use std::borrow::Cow;
 
 type Bytes<'a> = Cow<'a, [u8]>;

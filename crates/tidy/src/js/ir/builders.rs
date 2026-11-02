@@ -31,7 +31,7 @@ use super::element::{
     PrintMode, Tag, TextWidth,
 };
 use super::formatter::{Format, Formatter};
-use bun_lint::span::Span;
+use crate::js::ast::Span;
 use std::cell::Cell;
 
 /// Nothing if the enclosing group fits on a line, otherwise a line break.

@@ -1,9 +1,9 @@
 use super::FormatJsxName;
 use crate::js::print::type_parameters::type_arguments;
 use crate::js::utils::tailwindcss::loses_line_breaks;
-use crate::prelude::*;
-use crate::text::is_next_line_empty;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::text::is_next_line_empty;
+use crate::js::{format_args, write};
 
 /// `<a b="c">`, `<a b="c" />`
 pub(super) struct FormatOpeningElement<'a> {
@@ -21,7 +21,7 @@ fn as_string_literal_attribute_value(attribute: Prop<'_>) -> Option<Expr<'_>> {
 }
 
 fn has_line_break<'a>(string: Expr<'a>, f: &Formatter<'a>) -> bool {
-    bun_core::strings::index_of_any(string.text(), b"\r\n").is_some()
+    crate::js::strings::index_of_any(string.text(), b"\r\n").is_some()
         && !loses_line_breaks(string, f)
 }
 

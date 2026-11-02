@@ -2,8 +2,8 @@ use crate::js::format::{FormatTypeAnnotation, format_node};
 use crate::js::trivia::comments_stay_between_head_and_body;
 use crate::js::utils::format_node_without_trailing_comments::FormatNodeWithoutTrailingComments;
 use crate::js::utils::statement_body::{write_comments_before_keyword, write_space_before_body};
-use crate::prelude::*;
-use crate::write;
+use crate::js::base::*;
+use crate::js::write;
 
 /// Prints `part`, which is followed by `catch` or `finally`, and the space before that keyword.
 ///

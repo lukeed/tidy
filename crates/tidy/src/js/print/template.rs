@@ -4,16 +4,16 @@
 //! source.
 
 use super::type_parameters::type_arguments;
-use crate::css::embed;
-use crate::cursor::with_node_marks_at;
-use crate::ir::width::string_width_as;
+use crate::js::embed::css;
+use crate::js::cursor::with_node_marks_at;
+use crate::js::ir::width::string_width_as;
 use crate::js::utils::call_expression::is_test_each_pattern;
 use crate::js::utils::tailwindcss::{
     InTailwindContext, context_of_function, has_white_space, sorted_template_text,
 };
 use crate::js::utils::typecast::has_comments;
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 /// True if Prettier's `embed` could apply to the template `e`. For most templates it can't.
 fn may_have_embedded_language<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {
@@ -29,7 +29,7 @@ fn may_have_embedded_language<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {
         {
             true
         }
-        _ => crate::graphql::embed::may_have_language_comment(e, f),
+        _ => crate::js::embed::graphql::may_have_language_comment(e, f),
     }
 }
 
@@ -55,9 +55,9 @@ pub(crate) fn write_template_literal<'a>(
     let content = format_with(|f| {
         if !may_have_embedded_language(e, f)
             || (!embed::write_template(e, template, f)
-                && !crate::graphql::embed::write_template(e, template, f)
-                && !crate::html::in_js::write_template(e, template, f)
-                && !crate::markdown::embed::write_template(e, template, f))
+                && !crate::js::embed::graphql::write_template(e, template, f)
+                && !crate::js::embed::html::write_template(e, template, f)
+                && !crate::js::embed::markdown::write_template(e, template, f))
         {
             TemplateLike::TemplateLiteral(template).fmt(f);
         }
@@ -146,7 +146,7 @@ impl TemplateElementIndention {
 
     /// The indentation of `text`'s last line, or `previous_indention` if `text` is all on one line.
     fn after_last_new_line(text: &[u8], tab_width: u32, previous_indention: Self) -> Self {
-        use bun_core::strings::last_index_of_char;
+        use crate::js::strings::last_index_of_char;
         let Some(new_line) = last_index_of_char(text, b'\n').max(last_index_of_char(text, b'\r'))
         else {
             return previous_indention;
@@ -267,8 +267,8 @@ impl<'a> Format<'a> for TemplateLike<'a> {
             with_node_marks_at(
                 || self.content_span(i),
                 f,
-                |f| match bun_core::strings::contains_char(raw, b'\r') {
-                    true => f.write_built_text(|out| bun_core::strings::push_crlf_as_lf(out, raw)),
+                |f| match crate::js::strings::contains_char(raw, b'\r') {
+                    true => f.write_built_text(|out| crate::js::strings::push_crlf_as_lf(out, raw)),
                     false => write!(f, text(raw)),
                 },
             );
@@ -332,7 +332,7 @@ impl<'a> Format<'a> for FormatTemplateExpression<'a> {
         };
 
         let interpolation = f.source_text().text_for(&self.interpolation);
-        let has_line_break = bun_core::strings::index_of_any(interpolation, b"\r\n").is_some();
+        let has_line_break = crate::js::strings::index_of_any(interpolation, b"\r\n").is_some();
         let layout = match has_line_break || element.will_break(f) {
             true => TemplateElementLayout::Fit,
             false => TemplateElementLayout::SingleLine,
@@ -501,7 +501,7 @@ impl EachTemplateTable {
 
         let header = template.raw(0);
         let header = header.strip_suffix(b"|").unwrap_or(header);
-        for column in bun_core::strings::split(header, b"|") {
+        for column in crate::js::strings::split(header, b"|") {
             table.entry(EachTemplateElement::Column(EachTemplateColumn::new(
                 column.trim_ascii().to_vec(),
                 false,
@@ -515,7 +515,7 @@ impl EachTemplateTable {
             let text = f.print_to_text(&format_with(|f| {
                 f.write_without_soft_lines(&format_expression)
             }));
-            let will_break = bun_core::strings::contains_char(&text, b'\n');
+            let will_break = crate::js::strings::contains_char(&text, b'\n');
             table.entry(EachTemplateElement::Column(EachTemplateColumn::new(
                 text,
                 will_break,
@@ -523,7 +523,7 @@ impl EachTemplateTable {
             )));
 
             if index + 1 < template.quasi_count()
-                && bun_core::strings::index_of_any(template.raw(index + 1), b"\r\n").is_some()
+                && crate::js::strings::index_of_any(template.raw(index + 1), b"\r\n").is_some()
             {
                 table.entry(EachTemplateElement::LineBreak);
             }

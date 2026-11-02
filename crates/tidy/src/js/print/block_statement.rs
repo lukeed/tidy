@@ -1,6 +1,6 @@
 use super::program::FormatStatements;
-use crate::prelude::*;
-use crate::write;
+use crate::js::base::*;
+use crate::js::write;
 
 /// `{ .. }`
 #[inline(never)]

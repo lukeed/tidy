@@ -1,7 +1,7 @@
 use super::expressions::FormatObjectMember;
 use super::parameters::should_hug_function_parameters;
-use crate::prelude::*;
-use crate::write;
+use crate::js::base::*;
+use crate::js::write;
 
 /// `{ .. }`: an object literal or a type literal.
 #[derive(Clone, Copy)]

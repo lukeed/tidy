@@ -1,6 +1,6 @@
 //! Decides which types need parentheses in their position.
 
-use crate::prelude::*;
+use crate::js::base::*;
 
 fn member_count(ty: TypeNode<'_>) -> usize {
     match ty.kind() {

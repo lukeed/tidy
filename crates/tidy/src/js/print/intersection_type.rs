@@ -1,8 +1,8 @@
 use crate::js::utils::typescript::{
     has_leading_own_line_comment, is_object_like_type, without_lone_operator,
 };
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 /// `A & B`
 #[inline(never)]

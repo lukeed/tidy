@@ -18,8 +18,8 @@ use super::element::{
     Group, GroupId, GroupMode, Interned, LineMode, PrintMode, Tag, TextWidth,
 };
 use super::formatter::{END_LINE_SUFFIX, REST_OF_INDENTED_LINE_GROUP, Storage, line_break};
-use crate::FormatError;
-use crate::options::{Flavor, FormatOptions, IndentStyle, LineEnding};
+use crate::js::FormatError;
+use crate::js::options::{Flavor, FormatOptions, IndentStyle, LineEnding};
 use smallvec::SmallVec;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -33,7 +33,7 @@ pub(crate) enum PrintError {
     StaysExpanded,
     /// Fills or variants are nested so deeply that printing them would overflow the stack.
     NestedTooDeeply,
-    /// See [`crate::is_too_long`].
+    /// See [`crate::js::is_too_long`].
     TooLong,
 }
 
@@ -1107,7 +1107,7 @@ impl<'d> Printer<'d> {
 
     #[cold]
     fn print_lines(&mut self, text: &[u8]) {
-        let mut lines = bun_core::strings::split(text, b"\n");
+        let mut lines = crate::js::strings::split(text, b"\n");
         if let Some(first) = lines.next() {
             self.out.bytes(first);
         }

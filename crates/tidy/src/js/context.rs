@@ -2,11 +2,11 @@
 
 use super::comments::{Comments, FileComments};
 use super::utils::tailwindcss::TailwindContext;
-use crate::cursor::CursorRegion;
-use crate::ir::element::FormatElement;
-use crate::options::{FormatOptions, HtmlRoot, JavaScriptParser};
-use bun_lint::ast::{Expr, File};
-use bun_lint::span::{Span, Spanned};
+use crate::js::cursor::CursorRegion;
+use crate::js::ir::element::FormatElement;
+use crate::js::options::{FormatOptions, HtmlRoot, JavaScriptParser};
+use crate::js::ast::{Expr, File};
+use crate::js::ast::{Span, Spanned};
 use rustc_hash::FxHashMap;
 use std::cell::Cell;
 
@@ -45,7 +45,7 @@ pub(crate) struct JsFormatContext<'a> {
     /// Something wasn't written because it's nested too deeply.
     pub(crate) ran_out_of_stack: bool,
     /// Ids of the comments that weren't printed when the file was formatted the first time. See
-    /// [`crate::ir::run::format_with_marks`].
+    /// [`crate::js::ir::run::format_with_marks`].
     pub(crate) comments_without_printer: Vec<u32>,
     /// Caches the last member access nested in many member accesses, and whether it stays on its object's line. The
     /// enclosing member access has the same answer.

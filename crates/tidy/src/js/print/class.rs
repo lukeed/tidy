@@ -20,8 +20,8 @@ use crate::js::utils::suppressed::FormatSuppressedNode;
 use crate::js::utils::typecast::{
     comments_of_expression, has_comments_that_count, is_chain_expression_without_comments,
 };
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 fn has_modifier(member: Member<'_>, flag: Flags) -> bool {
     member.modifiers().iter().any(|it| it.flag() == flag)
@@ -83,7 +83,7 @@ fn has_empty_line_before<'a>(element: Member<'a>, f: &Formatter<'a>) -> bool {
         false => None,
     };
     if let Some(comment) = comment_before_stray_semicolon {
-        return crate::text::is_previous_line_empty(
+        return crate::js::text::is_previous_line_empty(
             f.source_text().as_bytes(),
             comment.span().start as usize,
         );

@@ -1,7 +1,7 @@
 //! Code shared by `print/jsx/` and the code around JSX elements.
 
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 /// JSX treats nothing else as whitespace.
 pub(crate) fn is_jsx_whitespace(byte: u8) -> bool {
@@ -9,7 +9,7 @@ pub(crate) fn is_jsx_whitespace(byte: u8) -> bool {
 }
 
 pub(crate) fn has_line_break(whitespace: &[u8]) -> bool {
-    bun_core::strings::index_of_any(whitespace, b"\r\n").is_some()
+    crate::js::strings::index_of_any(whitespace, b"\r\n").is_some()
 }
 
 /// Prettier's `isMeaningfulJsxText`: false if it's only whitespace with a line break in it.

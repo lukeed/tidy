@@ -1,7 +1,7 @@
 //! Prettier's `getStringWidth`: a text's width in columns.
 
 use super::width_tables::{EMOJI, EMOJI_MODIFIER_BASE, NARROW_EMOJI, OXFMT_ZERO_WIDTH, WIDE};
-use crate::options::Flavor;
+use crate::js::options::Flavor;
 
 fn is_in(table: &[(u32, u32)], c: u32) -> bool {
     let after = table.partition_point(|range| range.0 <= c);
@@ -79,7 +79,7 @@ fn width_of_non_ascii(text: &[u8], flavor: Flavor) -> u32 {
     // ASCII only needs a closer look next to non-ASCII characters. For example, `#` is part of an emoji before a
     // keycap, or when joined to one.
     while !rest.is_empty() {
-        let ascii = bun_core::strings::first_non_ascii(rest).map_or(rest.len(), |at| at as usize);
+        let ascii = crate::js::strings::first_non_ascii(rest).map_or(rest.len(), |at| at as usize);
         let plain = if ascii == rest.len() {
             ascii
         } else {

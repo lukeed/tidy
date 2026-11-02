@@ -1,6 +1,6 @@
 //! Walks down the left edge of an expression.
 
-use crate::prelude::*;
+use crate::js::base::*;
 
 /// The expression that `e` starts with, if any: the `a` in `a.b`, `a()`, `a + b`, `a = b`, `a ? b : c`, `a, b`, `a as
 /// T`, `a!`, `a++`, `` a`b` ``. Prettier's `hasNakedLeftSide` and `getLeftSide`.

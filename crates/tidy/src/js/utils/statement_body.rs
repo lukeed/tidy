@@ -1,7 +1,7 @@
 use super::format_node_without_trailing_comments::FormatNodeWithoutTrailingComments;
 use crate::js::trivia::comments_stay_between_head_and_body;
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 /// Prettier's `printClause`: the body of an `if`, `else`, loop or `with`. A block goes after a space. Anything else
 /// goes on the next line if it doesn't fit.
@@ -135,7 +135,7 @@ fn split_at_first_own_line(comments: CommentList<'_>) -> (CommentList<'_>, Comme
 /// Prints an empty line if there's one before `comment`, which starts its line. Otherwise a line break.
 fn write_line_break_before(comment: Comment<'_>, f: &mut Formatter<'_>) {
     let start = comment.span().start as usize;
-    match crate::text::is_previous_line_empty(f.source_text().as_bytes(), start) {
+    match crate::js::text::is_previous_line_empty(f.source_text().as_bytes(), start) {
         true => write!(f, empty_line()),
         false => write!(f, hard_line_break()),
     }

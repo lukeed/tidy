@@ -4,11 +4,11 @@ use super::super::compare::natord;
 use super::super::sort::stable_sort_by;
 use super::super::{How, SortImports};
 use super::options::{Modifier, Options, Selector};
-use crate::ir::element::{Interned, LineMode};
+use crate::js::ir::element::{Interned, LineMode};
 use crate::pragma::{has_ignore_pragma, has_pragma};
-use crate::prelude::*;
-use crate::write;
-use bun_core::strings;
+use crate::js::base::*;
+use crate::js::write;
+use crate::js::strings;
 use bun_lint::fix::is_file_level_comment;
 use bun_lint::linter::is_flow_file;
 use std::sync::Arc;
@@ -82,7 +82,7 @@ impl<'a> PrintedImport<'a> {
                 .comments_in_span(Span::before(position, source))
                 .iter()
                 .find(|comment| {
-                    is_after_from |= bun_core::strings::contains(
+                    is_after_from |= crate::js::strings::contains(
                         f.file().slice(Span::before(position, comment.span())),
                         b"from",
                     );
@@ -91,7 +91,7 @@ impl<'a> PrintedImport<'a> {
                 });
             if let Some(comment) = comment {
                 let text = f.file().slice(comment.span());
-                printed.source = bun_core::strings::index_of_char_usize(text, b'\n')
+                printed.source = crate::js::strings::index_of_char_usize(text, b'\n')
                     .map_or(text, |end| text[..end].trim_ascii_end());
             }
             let star = import
@@ -141,7 +141,7 @@ fn source_path(raw_source: &[u8]) -> &[u8] {
             source = rest;
         }
     }
-    bun_core::strings::index_of_char_usize(source, b'?').map_or(source, |at| &source[..at])
+    crate::js::strings::index_of_char_usize(source, b'?').map_or(source, |at| &source[..at])
 }
 
 /// True if `Path::new(source).extension()` is a style sheet's.
@@ -154,8 +154,8 @@ fn is_style(source: &[u8]) -> bool {
             .count();
     let path = &source[..trimmed];
     let name =
-        bun_core::strings::last_index_of_char(path, b'/').map_or(path, |slash| &path[slash + 1..]);
-    match bun_core::strings::last_index_of_char(name, b'.') {
+        crate::js::strings::last_index_of_char(path, b'/').map_or(path, |slash| &path[slash + 1..]);
+    match crate::js::strings::last_index_of_char(name, b'.') {
         Some(dot) if dot > 0 && name != b".." => {
             matches!(
                 &name[dot + 1..],
@@ -269,7 +269,7 @@ fn sorted_order(units: &[Unit], options: &Options) -> Vec<usize> {
     let mut sortable: Vec<usize> = (0..units.len())
         .filter(|index| !units[*index].is_ignored)
         .collect();
-    crate::sort::sort_by_key(&mut sortable[..], |index| units[*index].group);
+    crate::js::sort::sort_by_key(&mut sortable[..], |index| units[*index].group);
     let mut start = 0;
     while start < sortable.len() {
         let group = units[sortable[start]].group;

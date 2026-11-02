@@ -6,8 +6,8 @@
 
 use super::ast_nodes::AstNodes;
 use super::comments::{Comment, CommentExt, CommentList};
-use crate::prelude::*;
-use crate::write;
+use crate::js::base::*;
+use crate::js::write;
 
 /// 0 if something is before `comment` on its line, 1 if nothing is, 2 if the previous line is also empty: Prettier's
 /// `hasNewline(.., { backwards: true })` and `isPreviousLineEmpty`.
@@ -15,8 +15,8 @@ fn lines_before(comment: Comment<'_>, f: &Formatter<'_>) -> usize {
     /// Strips `text`'s trailing spaces and tabs and the line break before them. Returns `None` if there's no line break
     /// there.
     fn without_last_line(text: &[u8]) -> Option<&[u8]> {
-        let text = bun_core::strings::trim_right(text, b" \t");
-        match bun_core::strings::js_line_break_len_back(text) {
+        let text = crate::js::strings::trim_right(text, b" \t");
+        match crate::js::strings::js_line_break_len_back(text) {
             0 => None,
             len => Some(&text[..text.len() - len]),
         }
@@ -335,7 +335,7 @@ impl<'a> Format<'a> for Comment<'a> {
             if content.starts_with(b"-->") {
                 write!(f, hard_line_break());
             }
-            return write!(f, text(bun_core::strings::trim_js_whitespace_end(content)));
+            return write!(f, text(crate::js::strings::trim_js_whitespace_end(content)));
         }
         if super::jsdoc::write_comment(*self, f) {
             return;
@@ -345,14 +345,14 @@ impl<'a> Format<'a> for Comment<'a> {
             let is_jsdoc = content.starts_with(b"/**")
                 && (content.get(3) != Some(&b'*') || f.options().flavor.is_oxfmt())
                 && !is_printed_by_prettier_for_oxfmt(f);
-            let mut lines = bun_core::strings::split_crlf_lines(content).peekable();
+            let mut lines = crate::js::strings::split_crlf_lines(content).peekable();
             let first = lines.next().unwrap_or_default();
             // A comment waiting in a line suffix would otherwise be printed at this comment's first line break.
             // Prettier prints `a; /**⏎// b⏎ * c⏎ */` for `a // b⏎; /**⏎ * c⏎ */`.
             write!(f, line_suffix_boundary());
-            write!(f, text(bun_core::strings::trim_js_whitespace_end(first)));
+            write!(f, text(crate::js::strings::trim_js_whitespace_end(first)));
             while let Some(line) = lines.next() {
-                let trimmed = bun_core::strings::trim_js_whitespace(line);
+                let trimmed = crate::js::strings::trim_js_whitespace(line);
                 write!(f, [hard_line_break(), " ", text(trimmed)]);
                 if is_jsdoc && trimmed != b"*" && line.ends_with(b"  ") && lines.peek().is_some() {
                     // A line break inside a text keeps the spaces before it. The hard line break that follows only
@@ -360,11 +360,11 @@ impl<'a> Format<'a> for Comment<'a> {
                     write!(f, text(b"  \n"));
                 }
             }
-        } else if !bun_core::strings::contains_char(content, b'\r') {
+        } else if !crate::js::strings::contains_char(content, b'\r') {
             write!(f, text(content));
         } else {
             f.write_built_text(|out| {
-                for (index, line) in bun_core::strings::split_crlf_lines(content).enumerate() {
+                for (index, line) in crate::js::strings::split_crlf_lines(content).enumerate() {
                     if index > 0 {
                         out.push(b'\n');
                     }

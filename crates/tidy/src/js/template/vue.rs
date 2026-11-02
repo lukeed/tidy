@@ -3,8 +3,8 @@
 use super::ast::{Attribute, Id, Kind};
 use super::js::{self, Binding, Hug, Syntax};
 use super::printer::Printer;
-use crate::options::{HtmlRoot, InHtml};
-use crate::text;
+use crate::js::options::{HtmlRoot, InHtml};
+use crate::js::text;
 
 /// `v-for="left operator right"`
 struct VFor<'v> {
@@ -29,7 +29,7 @@ fn parse_vue_v_for_directive(value: &[u8]) -> Option<VFor<'_>> {
             break (
                 &value[..at],
                 operator,
-                bun_core::strings::trim_js_whitespace(right),
+                crate::js::strings::trim_js_whitespace(right),
             );
         }
         // Skip the whole whitespace run, since a match can't start later in it either.
@@ -39,7 +39,7 @@ fn parse_vue_v_for_directive(value: &[u8]) -> Option<VFor<'_>> {
         return None;
     }
     // `.replaceAll(/^\(|\)$/g, "")`
-    let alias = bun_core::strings::trim_js_whitespace(alias);
+    let alias = crate::js::strings::trim_js_whitespace(alias);
     let alias = alias.strip_prefix(b"(").unwrap_or(alias);
     let alias = alias.strip_suffix(b")").unwrap_or(alias);
     // `/,([^,\]}]*)(?:,([^,\]}]*))?$/`: splits at the last one or two commas that have no `]` or `}` after them.
@@ -54,13 +54,13 @@ fn parse_vue_v_for_directive(value: &[u8]) -> Option<VFor<'_>> {
         (None, _) => [alias, b"", b""],
         (Some(last), None) => [
             &alias[..last],
-            bun_core::strings::trim_js_whitespace(&alias[last + 1..]),
+            crate::js::strings::trim_js_whitespace(&alias[last + 1..]),
             b"",
         ],
         (Some(last), Some(first)) => [
             &alias[..first],
-            bun_core::strings::trim_js_whitespace(&alias[first + 1..last]),
-            bun_core::strings::trim_js_whitespace(&alias[last + 1..]),
+            crate::js::strings::trim_js_whitespace(&alias[first + 1..last]),
+            crate::js::strings::trim_js_whitespace(&alias[last + 1..]),
         ],
     };
     let is_missing = |index: usize| {

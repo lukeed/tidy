@@ -20,7 +20,7 @@ mod trivago;
 pub(crate) use oxfmt::ImportRun;
 pub use settings::Settings;
 
-use bun_lint::ast::File;
+use crate::js::ast::File;
 
 #[derive(Debug)]
 enum How {
@@ -76,7 +76,7 @@ pub fn sorted_text<'a>(file: &'a File<'a>, how: &SortImports) -> Option<Vec<u8>>
     }
     // Prettier's `guessEndOfLine`
     let text = file.text();
-    let end_of_line: &[u8] = match bun_core::strings::index_of_char_usize(text, b'\n') {
+    let end_of_line: &[u8] = match crate::js::strings::index_of_char_usize(text, b'\n') {
         Some(at) if at > 0 && text[at - 1] == b'\r' => b"\r\n",
         _ => b"\n",
     };

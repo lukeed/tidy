@@ -1,6 +1,6 @@
 //! The printer's output buffer.
 
-use crate::ir::element::Token;
+use crate::js::ir::element::Token;
 
 /// Appends to a vector. The vector is kept longer than what's been written, so a short text can be copied as a
 /// fixed-size block along with whatever bytes follow it.
@@ -9,7 +9,7 @@ pub(super) struct Out<'o> {
     len: usize,
     /// The initial `len`.
     start: usize,
-    /// See [`crate::is_too_long`]. Once set, further output overwrites earlier output.
+    /// See [`crate::js::is_too_long`]. Once set, further output overwrites earlier output.
     is_too_long: bool,
 }
 
@@ -30,7 +30,7 @@ impl<'o> Out<'o> {
     }
 
     pub(super) fn is_too_long(&self) -> bool {
-        self.is_too_long || crate::is_too_long(self.len)
+        self.is_too_long || crate::js::is_too_long(self.len)
     }
 
     #[inline]
@@ -56,7 +56,7 @@ impl<'o> Out<'o> {
     #[cold]
     #[inline(never)]
     fn grow(&mut self, additional: usize) {
-        if crate::is_too_long(self.len + additional) {
+        if crate::js::is_too_long(self.len + additional) {
             (self.is_too_long, self.len) = (true, self.start);
             if self.buffer.len() - self.len >= additional {
                 return;
@@ -139,7 +139,7 @@ impl<'o> Out<'o> {
         }
         // Indentation is what makes the output too long. Skipping it lets the rest of the document finish printing
         // quickly.
-        if self.is_too_long || crate::is_too_long(self.len + count) {
+        if self.is_too_long || crate::js::is_too_long(self.len + count) {
             self.is_too_long = true;
             return;
         }

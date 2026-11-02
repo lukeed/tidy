@@ -1,7 +1,7 @@
 use super::return_or_throw_statement::has_argument_leading_comments;
 use crate::js::utils::typecast::is_cast_target;
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 /// ```js
 /// return (          return (

@@ -5,9 +5,9 @@ use super::compare::natural_sort;
 use super::generator::{Piece, PieceKind, Printer, Prologue};
 use super::layout::is_unchanged;
 use super::sort::stable_sort_by;
-use bun_core::strings::locale_compare;
+use crate::js::strings::locale_compare;
 use bun_lint::regex::Regex;
-use bun_lint::span::Span;
+use crate::js::ast::Span;
 use bun_lint::utils::node::is_builtin_module;
 use std::cmp::Ordering;
 
@@ -145,11 +145,11 @@ fn sorted_by_import_order(
     };
     let length = |declaration: &Declaration| {
         declaration.span.map_or(0, |span| {
-            bun_core::strings::wtf8_len_utf16(model.file.slice(span))
+            crate::js::strings::wtf8_len_utf16(model.file.slice(span))
         })
     };
     // `getSortedNodesGroup`, for each group.
-    crate::sort::sort_by_key(&mut grouped[..], |it| it.0);
+    crate::js::sort::sort_by_key(&mut grouped[..], |it| it.0);
     for group in grouped.chunk_by_mut(|a, b| a.0 == b.0) {
         stable_sort_by(group, |a, b| {
             let (a, b) = (
@@ -317,7 +317,7 @@ pub(super) fn preprocess(
                 .map(|it| model.comments[*it as usize].span),
         );
     }
-    crate::sort::sort_by_key(&mut removed[..], |span| span.start);
+    crate::js::sort::sort_by_key(&mut removed[..], |span| span.start);
     let (text, code) = (model.text, printer.code());
     let mut out = Vec::with_capacity(model.rest_start as usize + code.len() + 64);
     let mut pieces: Vec<Piece> = Vec::with_capacity(printer.pieces.len());

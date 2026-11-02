@@ -1,10 +1,10 @@
 //! Markdown in JavaScript templates: Prettier's `language-js/embed/markdown.js`.
 
 use crate::css::doc::{self, Alignment, Doc, Line};
-use crate::ir::element::{
+use crate::js::ir::element::{
     Align, Condition, DedentMode, Group, GroupMode, LineMode, PrintMode, TextWidth,
 };
-use crate::prelude::*;
+use crate::js::base::*;
 
 /// Prettier's `isEmbedMarkdown`, plus the checks `embed` runs on every template. `e` is a template.
 fn is_candidate<'a>(e: Expr<'a>, template: Template<'a>, f: &Formatter<'a>) -> bool {
@@ -19,7 +19,7 @@ fn is_candidate<'a>(e: Expr<'a>, template: Template<'a>, f: &Formatter<'a>) -> b
 }
 
 fn is_blank(template: Template<'_>) -> bool {
-    bun_core::strings::trim_js_whitespace_start(template.raw(0)).is_empty()
+    crate::js::strings::trim_js_whitespace_start(template.raw(0)).is_empty()
 }
 
 /// True if `e` is a template with the tag `md` or `markdown` that's more than ` `` `. In Prettier its document then has
@@ -138,7 +138,7 @@ fn write_line_breaks(count: usize, f: &mut Formatter<'_>) {
 
 /// Prettier's `escapeTemplateCharacters(doc, true)`, for one text.
 fn write_escaped(text: &[u8], f: &mut Formatter<'_>) {
-    if !bun_core::strings::contains_char(text, b'`') {
+    if !crate::js::strings::contains_char(text, b'`') {
         return f.write_text(text, None);
     }
     let mut escaped = Vec::with_capacity(text.len() + 8);
@@ -241,13 +241,13 @@ pub(crate) fn write_template<'a>(
 
     // The indentation of the first non-blank line is stripped from all lines.
     let is_space_but_not_line_break = |byte: &&u8| byte.is_ascii_whitespace() && **byte != b'\n';
-    let indentation = bun_core::strings::split(&text, b"\n")
+    let indentation = crate::js::strings::split(&text, b"\n")
         .find(|line| !line.iter().all(u8::is_ascii_whitespace))
         .map(|line| line[..line.iter().take_while(is_space_but_not_line_break).count()].to_vec())
         .unwrap_or_default();
     if !indentation.is_empty() {
         let mut dedented = Vec::with_capacity(text.len());
-        for (index, line) in bun_core::strings::split(&text, b"\n").enumerate() {
+        for (index, line) in crate::js::strings::split(&text, b"\n").enumerate() {
             if index > 0 {
                 dedented.push(b'\n');
             }

@@ -1,10 +1,10 @@
 //! Formats code and types embedded in comments, each in its own language.
 
 use super::text::trim_end_matches;
-use crate::options::{
+use crate::js::options::{
     EmbeddedLanguageFormatting, FormatOptions, LineEnding, LineWidth, TrailingCommas,
 };
-use bun_core::strings;
+use crate::js::strings;
 
 /// oxfmt's maximum line width.
 const MAX_LINE_WIDTH: usize = 320;

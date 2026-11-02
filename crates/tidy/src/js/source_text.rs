@@ -1,10 +1,10 @@
 //! Queries about the source text around a position.
 
-use bun_core::strings::{
+use crate::js::strings::{
     contains_js_line_break, js_line_break_len, js_line_break_len_back, js_whitespace_len,
     js_whitespace_len_back,
 };
-use bun_lint::span::{Span, Spanned};
+use crate::js::ast::{Span, Spanned};
 
 #[derive(Copy, Clone)]
 pub(crate) struct SourceText<'a> {
@@ -83,7 +83,7 @@ impl<'a> SourceText<'a> {
 
     /// Prettier's `hasNewlineInRange`, which ignores U+2028 and U+2029.
     pub(crate) fn has_newline_in_range(self, span: Span) -> bool {
-        bun_core::strings::index_of_any(self.text_for(&span), b"\n\r").is_some()
+        crate::js::strings::index_of_any(self.text_for(&span), b"\n\r").is_some()
     }
 
     /// The number of line breaks between `end` and the next non-whitespace character. 0 at the end of the file.
@@ -203,7 +203,7 @@ impl<'a> SourceText<'a> {
                     return has_line_terminator(tail);
                 }
                 [b'/', b'*', tail @ ..] => {
-                    let end = bun_core::strings::index_of(tail, b"*/").unwrap_or(tail.len());
+                    let end = crate::js::strings::index_of(tail, b"*/").unwrap_or(tail.len());
                     if has_line_terminator(&tail[..end]) {
                         return true;
                     }

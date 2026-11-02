@@ -1,7 +1,7 @@
 //! `// prettier-ignore`
 
-use crate::ir::element::TextWidth;
-use crate::prelude::*;
+use crate::js::ir::element::TextWidth;
+use crate::js::base::*;
 use std::borrow::Cow;
 
 /// The source text of `span`, unchanged. The comments in it count as printed.
@@ -32,12 +32,12 @@ impl<'a> Format<'a> for FormatTemplateText {
 
 fn write_source(span: Span, is_single_string: bool, f: &mut Formatter<'_>) {
     let source = f.source_text().text_for(&span);
-    let text = match bun_core::strings::contains_char(source, b'\r') {
+    let text = match crate::js::strings::contains_char(source, b'\r') {
         false => Cow::Borrowed(source),
         true => {
             let mut text = Vec::with_capacity(source.len());
             let mut rest = source;
-            while let Some(at) = bun_core::strings::index_of_char_usize(rest, b'\r') {
+            while let Some(at) = crate::js::strings::index_of_char_usize(rest, b'\r') {
                 text.extend_from_slice(&rest[..at]);
                 text.push(b'\n');
                 rest = &rest[at + 1..];
@@ -52,7 +52,7 @@ fn write_source(span: Span, is_single_string: bool, f: &mut Formatter<'_>) {
     let width = match TextWidth::from_text(&text, 0) {
         width if !width.is_multiline() || !is_single_string => width,
         _ => TextWidth::multiline_string(
-            bun_core::strings::split(&text, b"\n")
+            crate::js::strings::split(&text, b"\n")
                 .map(|line| TextWidth::from_text(line, 0).value())
                 .sum(),
         ),

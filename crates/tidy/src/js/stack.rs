@@ -13,7 +13,7 @@ pub(crate) fn check_for_tree() -> bun_core::StackCheck {
 /// Nested input is parsed, walked and printed by recursive functions. Each calls [`Stack::has_room`] before it
 /// recurses. If that returns false, it can continue with any placeholder, because the result is discarded. The
 /// top-level caller checks [`Stack::ran_out`] at the end and returns
-/// [`FormatError::NestedTooDeeply`](crate::FormatError).
+/// [`FormatError::NestedTooDeeply`](crate::js::FormatError).
 pub(crate) struct Stack {
     check: bun_core::StackCheck,
     ran_out: Cell<bool>,

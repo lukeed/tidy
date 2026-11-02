@@ -11,7 +11,7 @@ use super::union_type::{
     type_alias_union_breaks_after_operator, union_breaks_one_per_line, union_prints_itself,
     union_prints_own_comments, write_ts_union_type_in,
 };
-use crate::cursor::with_node_marks;
+use crate::js::cursor::with_node_marks;
 use crate::js::comments::OwnedComments;
 use crate::js::format::{
     format_ignorable_name, format_name, format_node, identifier, name_without_comments,
@@ -21,8 +21,8 @@ use crate::js::utils::assignment_like::AssignmentLikeLayout;
 use crate::js::utils::object::{FormatKey, key_requires_quotes};
 use crate::js::utils::statement_body::write_space_before_body;
 use crate::js::utils::typescript::{should_hug_type, without_lone_operator};
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 fn is_declared(statement: Stmt<'_>) -> bool {
     statement

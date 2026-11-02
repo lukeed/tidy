@@ -7,8 +7,8 @@ use crate::js::utils::call_expression::{
 };
 use crate::js::utils::format_node_without_trailing_comments::FormatNodeWithoutTrailingComments;
 use crate::js::utils::suppressed::FormatSuppressedNode;
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 /// A function's `( .. )`, including the `this` parameter.
 #[derive(Copy, Clone)]

@@ -1,6 +1,6 @@
-use crate::prelude::*;
-use crate::text::{is_next_line_empty, skip_inline_comment, skip_trailing_comment};
-use crate::write;
+use crate::js::base::*;
+use crate::js::text::{is_next_line_empty, skip_inline_comment, skip_trailing_comment};
+use crate::js::write;
 
 /// Prettier's `printArrayElements`: the elements of an array literal or array pattern, each on its own line if they
 /// don't fit on one. `None` is a hole, which is printed as just the comma after it.

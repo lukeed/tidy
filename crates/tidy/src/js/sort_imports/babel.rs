@@ -5,8 +5,8 @@
 //! each comment to, and on which lines the nodes and comments are on. This models only as much of Babel's tree as that
 //! takes: the `#!` line, the directives and the import declarations that aren't in a `declare module`.
 
-use bun_lint::ast::{File, Ident, Import, KeyKind, Prop, Stmt, StmtKind, StmtTag};
-use bun_lint::span::Span;
+use crate::js::ast::{File, Ident, Import, KeyKind, Prop, Stmt, StmtKind, StmtTag};
+use crate::js::ast::Span;
 use bun_lint::tokens::TokenKind;
 
 /// An index into [`Model::comments`].
@@ -287,7 +287,7 @@ impl<'a> Model<'a> {
         self.line_starts.push(0);
         let region = &self.text[..(rest_start as usize).min(self.text.len())];
         let mut at = 0;
-        while let Some(found) = bun_core::strings::index_of_any(&region[at..], b"\n\r\xE2") {
+        while let Some(found) = crate::js::strings::index_of_any(&region[at..], b"\n\r\xE2") {
             at += found;
             at += match &region[at..] {
                 [b'\r', b'\n', ..] => 2,
@@ -304,7 +304,7 @@ impl<'a> Model<'a> {
             let span = self.comments[index].span;
             let lines = self.lines_of(span);
             let line_start = self.line_starts[lines.start as usize - 1].max(self.text_start());
-            let start_column = bun_core::strings::wtf8_len_utf16(
+            let start_column = crate::js::strings::wtf8_len_utf16(
                 &self.text[line_start as usize..span.start as usize],
             );
             let comment = &mut self.comments[index];

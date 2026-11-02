@@ -1,6 +1,6 @@
 use super::parameters::should_hug_function_parameters;
-use crate::prelude::*;
-use crate::write;
+use crate::js::base::*;
+use crate::js::write;
 
 /// A destructuring `{ a, b: c }`: a pattern or an assignment target.
 pub(crate) enum ObjectPatternLike<'a> {

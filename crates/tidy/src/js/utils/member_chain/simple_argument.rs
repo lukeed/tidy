@@ -1,7 +1,7 @@
 //! Prettier's `isSimpleCallArgument`.
 
-use crate::options::Flavor;
-use crate::prelude::*;
+use crate::js::options::Flavor;
+use crate::js::base::*;
 use smallvec::SmallVec;
 
 /// A call argument that can be checked for being "simple": a literal, a name, or something small made of those. A chain
@@ -27,7 +27,7 @@ impl<'a> SimpleArgument<'a> {
 fn is_short_pattern(pattern: &[u8], flavor: Flavor) -> bool {
     match flavor.is_oxfmt() {
         true => pattern.len() <= 5,
-        false => crate::ir::width::string_width(pattern) <= 5,
+        false => crate::js::ir::width::string_width(pattern) <= 5,
     }
 }
 
@@ -122,6 +122,6 @@ fn are_simple<'a>(arguments: List<'a, Expr<'a>>, depth: u8, flavor: Flavor) -> b
 
 /// No text of the template has a line break, and all substitutions are simple.
 fn is_simple_template_literal(template: Template<'_>, depth: u8, flavor: Flavor) -> bool {
-    (0..template.quasi_count()).all(|i| !bun_core::strings::contains_char(template.raw(i), b'\n'))
+    (0..template.quasi_count()).all(|i| !crate::js::strings::contains_char(template.raw(i), b'\n'))
         && template.exprs().iter().all(|e| is_simple(e, depth, flavor))
 }

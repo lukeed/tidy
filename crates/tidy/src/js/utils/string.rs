@@ -1,7 +1,7 @@
 //! String literals: which quotes they get, and what then has to be escaped.
 
-use crate::ir::element::TextWidth;
-use crate::prelude::*;
+use crate::js::ir::element::TextWidth;
+use crate::js::base::*;
 use std::borrow::Cow;
 
 #[derive(Eq, PartialEq, Debug, Clone, Copy)]
@@ -38,7 +38,7 @@ pub(crate) fn is_es5_identifier_name(name: &[u8]) -> bool {
         })
     };
     !name.is_empty()
-        && bun_core::strings::wtf8_codepoints(name).all(|(at, c)| match u8::try_from(c) {
+        && crate::js::strings::wtf8_codepoints(name).all(|(at, c)| match u8::try_from(c) {
             Ok(b) if b.is_ascii() => {
                 b.is_ascii_alphabetic()
                     || matches!(b, b'$' | b'_')
@@ -66,7 +66,7 @@ pub(crate) fn is_name_without_quotes(name: &[u8], flavor: Flavor) -> bool {
 /// Prettier's `isSimpleNumber`: `123` and `2.5`, but not `1_000`, `1e+100` or `0b10`.
 pub(crate) fn is_simple_number(text: &[u8]) -> bool {
     let is_digits = |part: &[u8]| !part.is_empty() && part.iter().all(u8::is_ascii_digit);
-    match bun_core::strings::split_once_char(text, b'.') {
+    match crate::js::strings::split_once_char(text, b'.') {
         Some((integer, fraction)) => is_digits(integer) && is_digits(fraction),
         None => is_digits(text),
     }
@@ -115,9 +115,9 @@ impl<'a> FormatLiteralStringToken<'a> {
     /// Prettier's `getPreferredQuote`.
     fn compute_string_information(&self, chosen_quote: QuoteStyle) -> StringInformation {
         let content = self.raw_content();
-        let chosen_quote_count = bun_core::strings::count_char(content, chosen_quote.as_byte());
+        let chosen_quote_count = crate::js::strings::count_char(content, chosen_quote.as_byte());
         let alternate_quote_count =
-            bun_core::strings::count_char(content, chosen_quote.other().as_byte());
+            crate::js::strings::count_char(content, chosen_quote.other().as_byte());
         StringInformation {
             current_quote: self
                 .string
@@ -182,12 +182,12 @@ impl<'a> FormatLiteralStringToken<'a> {
             false => information.preferred_quote,
         };
         let content = self.raw_content();
-        if quote == information.current_quote && !bun_core::strings::contains_char(content, b'\r') {
+        if quote == information.current_quote && !crate::js::strings::contains_char(content, b'\r') {
             return Cow::Borrowed(self.string);
         }
         let mut text = Vec::with_capacity(self.string.len());
         text.push(quote.as_byte());
-        bun_core::strings::push_crlf_as_lf(&mut text, content);
+        crate::js::strings::push_crlf_as_lf(&mut text, content);
         text.push(quote.as_byte());
         Cow::Owned(text)
     }
@@ -196,7 +196,7 @@ impl<'a> FormatLiteralStringToken<'a> {
     fn normalize_string_literal(&self, information: &StringInformation) -> Cow<'a, [u8]> {
         let content = self.raw_content();
         let quotes_will_change = information.current_quote != information.preferred_quote;
-        if !quotes_will_change && !bun_core::strings::contains_char(content, b'\r') {
+        if !quotes_will_change && !crate::js::strings::contains_char(content, b'\r') {
             return Cow::Borrowed(self.string);
         }
         let preferred_quote = information.preferred_quote.as_byte();
@@ -239,9 +239,9 @@ impl<'a> FormatLiteralStringToken<'a> {
             .unwrap_or_default();
 
         let count = |quote: u8, entity: &[u8]| {
-            let mut count = bun_core::strings::count_char(content, quote);
+            let mut count = crate::js::strings::count_char(content, quote);
             let mut rest = content;
-            while let Some(at) = bun_core::strings::index_of(rest, entity) {
+            while let Some(at) = crate::js::strings::index_of(rest, entity) {
                 count += 1;
                 rest = &rest[at + entity.len()..];
             }
@@ -258,7 +258,7 @@ impl<'a> FormatLiteralStringToken<'a> {
         if single_count == 0
             && double_count == 0
             && current_quote == chosen_quote
-            && !bun_core::strings::contains_char(content, b'\r')
+            && !crate::js::strings::contains_char(content, b'\r')
         {
             return Cow::Borrowed(self.string);
         }
@@ -287,7 +287,7 @@ impl<'a> FormatLiteralStringToken<'a> {
         }
         let mut text = Vec::with_capacity(unescaped.len() + 2);
         text.push(chosen_quote.as_byte());
-        bun_core::strings::push_crlf_as_lf(&mut text, &unescaped);
+        crate::js::strings::push_crlf_as_lf(&mut text, &unescaped);
         text.push(chosen_quote.as_byte());
         Cow::Owned(text)
     }
@@ -358,7 +358,7 @@ impl std::ops::Deref for CleanedStringLiteralText<'_> {
 impl<'a> CleanedStringLiteralText<'a> {
     /// Its width in columns.
     pub(crate) fn width(&self) -> usize {
-        crate::ir::width::string_width(&self.text) as usize
+        crate::js::ir::width::string_width(&self.text) as usize
     }
 
     pub(crate) fn into_text(self) -> Cow<'a, [u8]> {

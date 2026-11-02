@@ -1,15 +1,15 @@
 //! An element's children: Prettier's `printJsxChildren`, plus what `printJsxElementInternal` does with the result.
 
 use super::FormatJsxChild;
-use crate::cursor::with_jsx_children_marks;
-use crate::ir::element::{Group as GroupTag, GroupMode};
+use crate::js::cursor::with_jsx_children_marks;
+use crate::js::ir::element::{Group as GroupTag, GroupMode};
 use crate::js::utils::jsx::{
     JsxRawSpace, JsxSpace, has_line_break, is_jsx_whitespace, is_meaningful_jsx_text,
     is_whitespace_jsx_expression,
 };
 use crate::js::utils::suppressed::FormatSuppressedNode;
-use crate::prelude::*;
-use crate::write;
+use crate::js::base::*;
+use crate::js::write;
 use smallvec::SmallVec;
 
 /// The separators that can appear between two children.
@@ -188,7 +188,7 @@ impl<'a> Children<'a> {
     fn push_text(&mut self, text: &'a [u8], next: Option<Child<'a>>) {
         if !is_meaningful_jsx_text(text) {
             // Keep at most one empty line between two children.
-            if bun_core::strings::split_crlf_lines(text).count() > 2 {
+            if crate::js::strings::split_crlf_lines(text).count() > 2 {
                 self.push_line(Separator::HardLine);
             }
             return;

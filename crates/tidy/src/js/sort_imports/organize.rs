@@ -7,12 +7,12 @@
 
 use super::compare::lowercase;
 use super::sort::stable_sort_by;
-use bun_core::strings;
-use bun_lint::ast::{
+use crate::js::strings;
+use crate::js::ast::{
     Export, ExportSpec, ExprKind, ExprTag, File, Ident, Import, ImportSpec, List, ModuleName, Node,
     Stmt, StmtKind,
 };
-use bun_lint::span::Span;
+use crate::js::ast::Span;
 use bun_lint::tokens::TokenKind;
 use std::cmp::Ordering;
 
@@ -680,7 +680,7 @@ impl<'a> Organizer<'a, '_> {
                 ))
             })
             .collect();
-        crate::sort::sort_by(&mut entries[..], |a, b| a.0.cmp(b.0));
+        crate::js::sort::sort_by(&mut entries[..], |a, b| a.0.cmp(b.0));
         let mut key = [self.file.slice(attributes.keyword_span()), b" "].concat();
         for (name, value) in entries {
             key.extend_from_slice(&[name, b":\"", value, b"\""].concat());
@@ -1573,7 +1573,7 @@ pub(super) fn preprocess<'a>(
         return None;
     }
     let mut changes = organizer.changes;
-    crate::sort::sort_by_key(&mut changes[..], |change| change.0.start);
+    crate::js::sort::sort_by_key(&mut changes[..], |change| change.0.start);
     let mut out = Vec::with_capacity(text.len());
     let mut at = 0;
     for (span, new_text) in changes {

@@ -6,7 +6,7 @@
 //! `hasNewline(text, index, { backwards: true })`, which starts at `index - 1`, is
 //! `has_newline_backwards(text, index)`.
 
-use bun_core::strings;
+use crate::js::strings;
 
 pub(crate) use bun_lint::utils::text::{ends_with_ignore_ascii_case, to_lower_case};
 

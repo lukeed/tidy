@@ -2,8 +2,8 @@ use crate::js::format::write_trailing_comments_of;
 use crate::js::utils::array::{is_line_after_element_empty, write_array_node};
 use crate::js::utils::format_node_without_trailing_comments::FormatNodeWithoutTrailingComments;
 use crate::js::utils::typecast::has_comments;
-use crate::prelude::*;
-use crate::write;
+use crate::js::base::*;
+use crate::js::write;
 
 /// The elements of an array literal.
 pub(crate) struct ArrayElementList<'a> {

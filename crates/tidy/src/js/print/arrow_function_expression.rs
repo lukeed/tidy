@@ -12,8 +12,8 @@ use crate::js::utils::typecast::{
     cast_parentheses, has_leading_own_line_comment, is_cast_target,
     is_cast_target_that_hides_its_kind,
 };
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 use smallvec::SmallVec;
 
 #[derive(Default, Clone, Copy)]
@@ -394,13 +394,13 @@ fn may_break_after_short_prefix<'a>(body: Expr<'a>, f: &Formatter<'a>) -> bool {
         ExprKind::Array(_) | ExprKind::Object(_) | ExprKind::Jsx(_) => true,
         ExprKind::Fn(func) => func.is_arrow(),
         ExprKind::Template(_) | ExprKind::TaggedTemplate(_) => {
-            let html = crate::html::in_js::label(body, f);
-            html != Some(crate::html::in_js::Label::EmbedWithoutHug)
+            let html = crate::js::embed::html::label(body, f);
+            html != Some(crate::js::embed::html::Label::EmbedWithoutHug)
                 && (html.is_some()
                     || is_multiline_and_starts_on_same_line(body, f.source_text())
-                    || crate::css::embed::has_embed_label(body, f)
-                    || crate::graphql::embed::has_embed_label(body, f)
-                    || crate::markdown::embed::has_embed_label(body, f))
+                    || crate::js::embed::css::has_embed_label(body, f)
+                    || crate::js::embed::graphql::has_embed_label(body, f)
+                    || crate::js::embed::markdown::has_embed_label(body, f))
         }
         _ => false,
     }

@@ -4,7 +4,7 @@ use super::ianvs::{self, Matcher};
 use super::organize::{self, TypeOrder};
 use super::trivago::{self, ByLength, Exclude, Group};
 use super::{How, SortImports};
-use bun_core::strings;
+use crate::js::strings;
 use bun_lint::glob::{Minimatch, MinimatchOptions};
 use bun_lint::options::Json;
 use bun_lint::regex::Regex;

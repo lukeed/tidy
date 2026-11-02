@@ -1,6 +1,6 @@
 //! Queries about operators.
 
-use bun_lint::ast::{BinOp, UnOp};
+use crate::js::ast::{BinOp, UnOp};
 
 /// How tightly an operator binds. Only the order matters.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
@@ -65,7 +65,7 @@ impl BinOpExt for BinOp {
 
     #[inline]
     fn as_str(self) -> &'static str {
-        bun_lint::ast::bin_op_text(self)
+        crate::js::ast::bin_op_text(self)
     }
 
     #[inline]
@@ -92,7 +92,7 @@ pub(crate) trait UnOpExt: Copy {
 impl UnOpExt for UnOp {
     #[inline]
     fn as_str(self) -> &'static str {
-        bun_lint::ast::un_op_text(self)
+        crate::js::ast::un_op_text(self)
     }
 
     #[inline]

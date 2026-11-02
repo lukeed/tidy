@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::js::base::*;
 
 /// A keyword, a literal, or a name without type arguments.
 pub(crate) fn is_simple_type(ty: TypeNode<'_>) -> bool {

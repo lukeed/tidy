@@ -20,7 +20,7 @@
 //! | `experimentalTernaries` | `experimental_ternaries` |
 //! | `embeddedLanguageFormatting` | `embedded_language_formatting` |
 
-use crate::ir::prelude::*;
+use crate::js::ir::prelude::*;
 
 #[derive(Debug, Default, Clone)]
 pub struct FormatOptions {
@@ -128,7 +128,7 @@ pub struct Code<'c> {
 }
 
 /// The callback that gets the file parsed from [`Code`], with or without errors.
-pub type Then<'t> = &'t mut dyn for<'b> FnMut(&'b bun_lint::ast::File<'b>);
+pub type Then<'t> = &'t mut dyn for<'b> FnMut(&'b crate::js::ast::File<'b>);
 
 /// Parses JavaScript or TypeScript, which this crate can't do by itself, and passes the result to the callback.
 pub type ParseJavaScript = fn(Code<'_>, Then<'_>);
@@ -160,7 +160,7 @@ pub struct Part {
 /// The callback that gets the file parsed from a [`Part`], and the part's end in that file, including the parentheses
 /// around it. The file's text starts where the part starts, and the part is its only statement. A type is parsed as the
 /// type of an alias.
-pub type ThenWithEnd<'t> = &'t mut dyn for<'b> FnMut(&'b bun_lint::ast::File<'b>, u32);
+pub type ThenWithEnd<'t> = &'t mut dyn for<'b> FnMut(&'b crate::js::ast::File<'b>, u32);
 
 /// Why a [`Part`] can't be parsed.
 #[derive(Debug, Copy, Clone)]
@@ -252,7 +252,7 @@ impl SveltePart {
     /// `options-scripts-markup-styles` and similar: each of the four once.
     fn order(value: &[u8]) -> Option<[SveltePart; 4]> {
         let mut order = Vec::with_capacity(4);
-        for name in bun_core::strings::split(value, b"-") {
+        for name in crate::js::strings::split(value, b"-") {
             let part = match name {
                 b"options" => SveltePart::Options,
                 b"scripts" => SveltePart::Scripts,
@@ -672,7 +672,7 @@ impl LineEnding {
         if self != LineEnding::Auto {
             return self;
         }
-        match bun_core::strings::index_of_char_usize(text, b'\r') {
+        match crate::js::strings::index_of_char_usize(text, b'\r') {
             Some(at) if text.get(at + 1) == Some(&b'\n') => LineEnding::Crlf,
             Some(_) => LineEnding::Cr,
             None => LineEnding::Lf,

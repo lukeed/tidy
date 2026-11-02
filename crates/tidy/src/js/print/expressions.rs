@@ -15,8 +15,8 @@ use crate::js::utils::assignment_like::AssignmentLike;
 use crate::js::utils::conditional::ConditionalLike;
 use crate::js::utils::object::{format_computed_or_property_key, should_preserve_quote};
 use crate::js::utils::typecast::has_comments_that_count;
-use crate::prelude::*;
-use crate::{best_fitting, format_args, write};
+use crate::js::base::*;
+use crate::js::{best_fitting, format_args, write};
 
 /// All of `a?.b.c`.
 pub(crate) fn write_chain_expression<'a>(e: Expr<'a>, f: &mut Formatter<'a>) {

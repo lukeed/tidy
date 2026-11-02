@@ -1,6 +1,6 @@
 //! Attaches every comment to a node before printing starts. This is Prettier's `attachComments`.
 //!
-//! 1. The parser has already recorded the nodes around each comment ([`bun_lint::ast::comments::Comment`]).
+//! 1. The parser has already recorded the nodes around each comment ([`crate::js::ast::comments::Comment`]).
 //!    [`surrounding_nodes`] converts them to the nodes the printers use.
 //! 2. [`rules`] has the special cases from Prettier's `handle-comments.js`.
 //! 3. Any other comment is attached by its position in the line: a comment on its own line becomes a leading comment of
@@ -16,8 +16,8 @@ mod surrounding_nodes;
 
 use super::ast_nodes::AstNodes;
 use super::comments::{Comment, CommentExt};
-use crate::options::Flavor;
-use bun_lint::ast::{Expr, File};
+use crate::js::options::Flavor;
+use crate::js::ast::{Expr, File};
 pub(crate) use debug::list;
 use surrounding_nodes::{AttachContext, SurroundingNodes};
 
@@ -407,6 +407,6 @@ pub(crate) fn attach<'a>(
         .filter(|attachment| cx.is_only_member_of_union(attachment.owner))
         .map(|attachment| cx.start_of(attachment.owner));
     attached.relocated_owner_starts.extend(starts_in_unions);
-    crate::sort::sort(&mut attached.relocated_owner_starts);
+    crate::js::sort::sort(&mut attached.relocated_owner_starts);
     attached
 }

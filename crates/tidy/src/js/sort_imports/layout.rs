@@ -5,7 +5,7 @@
 
 use super::babel::Model;
 use super::generator::{Piece, PieceKind};
-use bun_core::strings;
+use crate::js::strings;
 
 /// How the code on both sides of the whitespace `text[from..to]` is laid out: 0 for one line, 1 for two lines, 2 for an
 /// empty line between. Returns `None` if it isn't all whitespace.
@@ -142,7 +142,7 @@ pub(super) fn is_unchanged(
                     strings::index_of_any(
                         model
                             .file
-                            .slice(bun_lint::span::Span::new(it.braces_span().start, first)),
+                            .slice(crate::js::ast::Span::new(it.braces_span().start, first)),
                         b"\n\r",
                     )
                     .is_some()

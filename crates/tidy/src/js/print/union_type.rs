@@ -5,8 +5,8 @@ use crate::js::parentheses::ts_type::{effective_parent, needs_parentheses};
 use crate::js::utils::format_node_without_trailing_comments::FormatNodeWithoutTrailingComments;
 use crate::js::utils::suppressed::FormatSuppressedNode;
 use crate::js::utils::typescript::{should_hug_type, without_lone_operator};
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 /// `A | B`
 pub(crate) fn write_ts_union_type<'a>(

@@ -11,20 +11,20 @@
 //! TypeScript. [`Walk`] maps our AST handles to those nodes, but only as far as needed here: where each node starts and
 //! ends, what its children are, and in which order Prettier visits them.
 
-use crate::ir::element::{CursorMark, FormatElement};
-use crate::ir::formatter::Formatter;
+use crate::js::ir::element::{CursorMark, FormatElement};
+use crate::js::ir::formatter::Formatter;
 use crate::js::print::binary_like_expression::should_flatten;
 use crate::js::utils::typescript::without_lone_operator;
-use crate::prelude::{Format, if_group_breaks};
-use crate::{FormatError, FormatOptions, Scratch};
-use bun_core::strings;
-use bun_lint::ast::{
+use crate::js::base::{Format, if_group_breaks};
+use crate::js::{FormatError, FormatOptions, Scratch};
+use crate::js::strings;
+use crate::js::ast::{
     BinOp, Class, EntityName, Enum, EnumMember, ExportSpec, Expr, ExprKind, File, FnBody, Func,
     Ident, ImportEqualsTarget, ImportSpec, Interface, Jsx, JsxChild, Key, KeyKind, List, Member,
     MemberKind, Modifier, Module, Param, Pat, PatElem, PatKind, PatProp, Prop, PropKind, Stmt,
     StmtKind, TupleElem, TypeKind, TypeNode, TypeParam, VarDecl,
 };
-use bun_lint::span::Span;
+use crate::js::ast::Span;
 use bun_lint::tokens::{skip_trivia, skip_trivia_back};
 use smallvec::SmallVec;
 
@@ -82,7 +82,7 @@ enum Kind<'a> {
     Declaration(Stmt<'a>),
     Statements(List<'a, Stmt<'a>>),
     CatchClause(Stmt<'a>),
-    Case(bun_lint::ast::Case<'a>),
+    Case(crate::js::ast::Case<'a>),
     VarDecl(VarDecl<'a>),
     /// The flag is `has_name`. It's false for a method, whose name is the key.
     Func(Func<'a>, bool),
@@ -1566,7 +1566,7 @@ pub(crate) fn with_jsx_children_marks<'a>(
     }
     let cursor = f.context().cursor;
     let mark = |mark: CursorMark, f: &mut Formatter<'a>| {
-        let mark = crate::prelude::format_with(move |f: &mut Formatter<'a>| {
+        let mark = crate::js::base::format_with(move |f: &mut Formatter<'a>| {
             f.write_element(FormatElement::Cursor(mark))
         });
         match in_group {
@@ -1767,7 +1767,7 @@ fn resolve(
     let new_text = formatted
         .get(new_span.start as usize..new_span.end as usize)
         .unwrap_or_default();
-    let new_start = bun_core::strings::element_length_utf8_into_utf16(
+    let new_start = crate::js::strings::element_length_utf8_into_utf16(
         formatted.get(..new_span.start as usize).unwrap_or_default(),
     );
     let cursor = (offset.bytes.saturating_sub(old_span.start) as usize).min(old_text.len());
@@ -1793,14 +1793,14 @@ fn resolve(
 /// `normalizeInputAndOptions`, returns `None` if it's outside the text. A byte order mark isn't part of the text.
 fn offset_in(source: &[u8], options: &FormatOptions) -> Option<Offset> {
     let units = options.cursor_offset? as usize;
-    if units > bun_core::strings::element_length_utf8_into_utf16(source)
+    if units > crate::js::strings::element_length_utf8_into_utf16(source)
         || (units == 0 && source.starts_with(b"\xEF\xBB\xBF"))
     {
         return None;
     }
     let offset = strings::wtf8_offset_of_utf16_index(source, units as u32);
     let is_in_character =
-        bun_core::strings::element_length_utf8_into_utf16(source.get(..offset)?) < units;
+        crate::js::strings::element_length_utf8_into_utf16(source.get(..offset)?) < units;
     // Once `\r\n` has become `\n`, an offset between the two ends up after it.
     let is_in_line_break = offset > 0 && source.get(offset - 1..=offset) == Some(b"\r\n");
     Some(Offset {
@@ -1845,7 +1845,7 @@ pub(crate) fn format_with<'a>(
 
     let start = out.len();
     let [mut first, mut second] =
-        crate::ir::run::format_with_marks(file, options, cursor, scratch, out, write)?;
+        crate::js::ir::run::format_with_marks(file, options, cursor, scratch, out, write)?;
     // Without a node on one side, the region extends to that end of the document.
     match items {
         Some((None, Some(_), _)) => first = Some(0),
@@ -1917,9 +1917,9 @@ pub(crate) fn cursor_in_region(
         let up_to_cursor = source
             .get(span.start as usize..offset as usize)
             .unwrap_or_default();
-        return (bun_core::strings::element_length_utf8_into_utf16(
+        return (crate::js::strings::element_length_utf8_into_utf16(
             formatted.get(..start as usize).unwrap_or_default(),
-        ) + bun_core::strings::element_length_utf8_into_utf16(up_to_cursor)) as u32;
+        ) + crate::js::strings::element_length_utf8_into_utf16(up_to_cursor)) as u32;
     }
     let offset = Offset {
         bytes: offset,

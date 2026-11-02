@@ -8,8 +8,8 @@ use crate::js::print::flow::{
     is_directly_in_function_type, is_function_type_param, is_inexact_mark,
     is_match_expression_case, is_unknown_members_mark, is_variance, keyword_of_function_type,
 };
-use bun_lint::ast::comments::NodeOrName;
-use bun_lint::ast::{
+use crate::js::ast::comments::NodeOrName;
+use crate::js::ast::{
     BinOp, EnumMember, Expr, ExprKind, Func, Handle, List, Node, Param, Pat, StmtKind, TypeKind,
     TypeNode,
 };

@@ -38,8 +38,8 @@ pub(super) fn lowercase(text: &[u8]) -> Vec<u8> {
 
 fn utf16(text: &[u8], is_lowercased: bool) -> Vec<u16> {
     match is_lowercased {
-        true => bun_core::strings::wtf8_to_utf16(&crate::text::to_lower_case(text)),
-        false => bun_core::strings::wtf8_to_utf16(text),
+        true => crate::js::strings::wtf8_to_utf16(&crate::js::text::to_lower_case(text)),
+        false => crate::js::strings::wtf8_to_utf16(text),
     }
 }
 
@@ -108,7 +108,7 @@ fn decimal_literal_len<T: Unit>(text: &[T]) -> usize {
 fn parse_float<T: Unit>(text: &[T]) -> Option<f64> {
     let leading_whitespace = text
         .iter()
-        .take_while(|unit| bun_core::strings::is_js_whitespace(unit.code()))
+        .take_while(|unit| crate::js::strings::is_js_whitespace(unit.code()))
         .count();
     let text = &text[leading_whitespace..];
     let sign = usize::from(
@@ -143,13 +143,13 @@ fn is_nan_as_number<T: Unit>(text: &[T]) -> bool {
     }
     let start = text
         .iter()
-        .take_while(|unit| bun_core::strings::is_js_whitespace(unit.code()))
+        .take_while(|unit| crate::js::strings::is_js_whitespace(unit.code()))
         .count();
     let end = text.len()
         - text[start..]
             .iter()
             .rev()
-            .take_while(|unit| bun_core::strings::is_js_whitespace(unit.code()))
+            .take_while(|unit| crate::js::strings::is_js_whitespace(unit.code()))
             .count();
     let text = &text[start..end];
     if text.is_empty() {

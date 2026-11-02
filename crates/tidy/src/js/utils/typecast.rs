@@ -5,8 +5,8 @@
 use super::suppressed::FormatSuppressedNode;
 use crate::js::comments::OwnedComments;
 use crate::js::print::jsx::ignored_jsx_gets_no_parentheses;
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 use smallvec::SmallVec;
 
 /// True if `e` is in parentheses that stay.

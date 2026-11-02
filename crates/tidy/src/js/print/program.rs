@@ -2,13 +2,13 @@
 
 use super::semicolon::OptionalSemicolon;
 use super::statements::{expression_statement_needs_semicolon, follows_type_cast_comment};
-use crate::ir::element::TextWidth;
+use crate::js::ir::element::TextWidth;
 use crate::js::ast_nodes::node_as_ast_nodes;
 use crate::js::sort_imports::ImportRun;
 use crate::js::trivia::comment_before_semicolon_keeps_its_line;
 use crate::js::utils::string::{FormatLiteralStringToken, StringLiteralParentKind};
-use crate::prelude::*;
-use crate::write;
+use crate::js::base::*;
+use crate::js::write;
 
 pub(crate) fn write_program<'a>(file: &'a File<'a>, f: &mut Formatter<'a>) {
     let source = file.text();
@@ -51,11 +51,11 @@ pub(crate) fn write_hashbang(is_last: bool, f: &mut Formatter<'_>) {
     let Some(rest) = source.get(start..).filter(|rest| rest.starts_with(b"#!")) else {
         return;
     };
-    let len = bun_core::strings::index_of_any(rest, b"\n\r").unwrap_or(rest.len());
+    let len = crate::js::strings::index_of_any(rest, b"\n\r").unwrap_or(rest.len());
     // U+2028 and U+2029 also end the line.
     let len = [&b"\xE2\x80\xA8"[..], b"\xE2\x80\xA9"]
         .iter()
-        .filter_map(|separator| bun_core::strings::index_of(&rest[..len], separator))
+        .filter_map(|separator| crate::js::strings::index_of(&rest[..len], separator))
         .min()
         .unwrap_or(len);
     write!(f, text(rest[..len].trim_ascii_end()));
@@ -71,7 +71,7 @@ pub(crate) fn write_hashbang(is_last: bool, f: &mut Formatter<'_>) {
 /// Prettier's `isNextLineEmpty`
 #[inline]
 pub(crate) fn is_next_line_empty(source: SourceText<'_>, position: u32) -> bool {
-    crate::text::is_next_line_empty(source.as_bytes(), position as usize)
+    crate::js::text::is_next_line_empty(source.as_bytes(), position as usize)
 }
 
 /// True if Prettier's `locEnd` of `statement` is before its final `;`.
@@ -191,7 +191,7 @@ fn follows_semicolon_and_spaces<'a>(statement: Stmt<'a>, f: &Formatter<'a>) -> b
             let code = before.trim_ascii_end();
             code.len() < before.len()
                 && code.ends_with(b";")
-                && bun_core::strings::index_of_any(&before[code.len()..], b"\r\n").is_none()
+                && crate::js::strings::index_of_any(&before[code.len()..], b"\r\n").is_none()
         })
 }
 

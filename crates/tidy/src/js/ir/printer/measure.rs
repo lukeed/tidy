@@ -5,7 +5,7 @@ use super::{
     PrintMode, PrintResult, Printer, Run, Tag, TextWidth, first_of, skip_conditional_content,
     take_line_suffix,
 };
-use crate::ir::element::Flat;
+use crate::js::ir::element::Flat;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 enum Fits {

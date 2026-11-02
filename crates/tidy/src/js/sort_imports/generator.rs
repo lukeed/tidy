@@ -5,7 +5,7 @@
 //! `compact`, `concise`, source maps, ..) is omitted.
 
 use super::babel::{CommentId, Model, Node, SpecifierKind, Which, attribute_key_span};
-use bun_core::strings;
+use crate::js::strings;
 
 /// `_buf._last` after a string has been appended.
 const LAST_IS_TEXT: i32 = -1;
@@ -653,7 +653,7 @@ impl<'m, 'a> Printer<'m, 'a> {
     }
 
     /// An `Identifier`, or a `StringLiteral`.
-    fn module_export_name(&mut self, name: bun_lint::ast::Ident<'a>) {
+    fn module_export_name(&mut self, name: crate::js::ast::Ident<'a>) {
         match name.is_string() {
             true => self.token(self.model.file.slice(name.span())),
             false => self.word(name.bytes()),

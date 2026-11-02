@@ -6,11 +6,11 @@ use super::markdown::format_description;
 use super::normalize::normalize_tag_kind;
 use super::param_order::reorder_param_tags;
 use super::text::trim_end_matches;
-use crate::options::{CommentLineStrategy, FormatOptions, IndentStyle, JsdocOptions, QuoteStyle};
-use crate::stack::Stack;
-use bun_core::strings;
-use bun_lint::ast::File;
-use bun_lint::ast::jsdoc::{JSDoc, JSDocTag};
+use crate::js::options::{CommentLineStrategy, FormatOptions, IndentStyle, JsdocOptions, QuoteStyle};
+use crate::js::stack::Stack;
+use crate::js::strings;
+use crate::js::ast::File;
+use crate::js::ast::jsdoc::{JSDoc, JSDocTag};
 use std::borrow::Cow;
 
 pub(crate) enum FormattedJsdoc {
@@ -451,7 +451,7 @@ fn sort_tags_by_groups<'a>(
     for tag in tags {
         let kind = normalize_tag_kind(tag.kind.parsed());
         if is_tags_group_head(kind) && can_group_next_tags && sorted.len() > group_start {
-            crate::sort::sort_by_key(&mut sorted[group_start..], |(_, kind)| {
+            crate::js::sort::sort_by_key(&mut sorted[group_start..], |(_, kind)| {
                 tag_sort_priority(kind)
             });
             group_start = sorted.len();
@@ -460,7 +460,7 @@ fn sort_tags_by_groups<'a>(
         can_group_next_tags |= is_tags_group_condition(kind);
         sorted.push((tag, kind));
     }
-    crate::sort::sort_by_key(&mut sorted[group_start..], |(_, kind)| {
+    crate::js::sort::sort_by_key(&mut sorted[group_start..], |(_, kind)| {
         tag_sort_priority(kind)
     });
     sorted

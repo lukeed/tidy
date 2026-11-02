@@ -1,7 +1,7 @@
 //! Reorders `@param` tags to match the parameters of the function after the comment.
 
-use bun_lint::ast::jsdoc::JSDocTag;
-use bun_lint::ast::{
+use crate::js::ast::jsdoc::JSDocTag;
+use crate::js::ast::{
     Expr, ExprKind, File, Flags, FnKind, Func, Key, KeyKind, List, MemberKind, Modifier, Name,
     Node, PropKind, StmtKind,
 };
@@ -41,7 +41,7 @@ pub(super) fn reorder_param_tags<'a>(
     {
         return;
     }
-    crate::sort::sort_by_key(&mut effective_tags[param_start..param_end], |(tag, _)| {
+    crate::js::sort::sort_by_key(&mut effective_tags[param_start..param_end], |(tag, _)| {
         let name = tag
             .type_name_comment()
             .1
@@ -57,7 +57,7 @@ pub(super) fn reorder_param_tags<'a>(
 fn function_after_comment<'a>(file: &'a File<'a>, comment_end: u32) -> Option<Func<'a>> {
     let after = file.text().get(comment_end as usize..)?;
     let start = comment_end
-        + (after.len() - bun_core::strings::trim_unicode_whitespace_start(after).len()) as u32;
+        + (after.len() - crate::js::strings::trim_unicode_whitespace_start(after).len()) as u32;
     let mut node = Node::File(file);
     loop {
         let mut child_at_start = None;

@@ -17,8 +17,8 @@ use crate::js::utils::typecast::{
     comments_of_expression, comments_of_outermost_node, has_comments, has_comments_that_count,
     is_cast_target,
 };
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 use smallvec::SmallVec;
 
 /// `(a, b)`
@@ -206,7 +206,7 @@ fn is_followed_by_empty_line<'a>(
 fn is_empty_line_between<'a>(end: u32, next: Expr<'a>, f: &Formatter<'a>) -> bool {
     match counts_line_breaks_between_arguments(f) {
         true => {
-            bun_core::strings::count_char(
+            crate::js::strings::count_char(
                 f.source_text().text_for(&Span::before(end, next.span())),
                 b'\n',
             ) >= 2
@@ -330,19 +330,19 @@ fn as_expression(argument: Expr<'_>) -> Option<Expr<'_>> {
 
 /// True if `e` is a template that's formatted as its embedded language.
 pub(super) fn has_embed_label<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {
-    has_non_html_embed_label(e, f) || crate::html::in_js::label(e, f).is_some()
+    has_non_html_embed_label(e, f) || crate::js::embed::html::label(e, f).is_some()
 }
 
 fn has_non_html_embed_label<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {
-    crate::css::embed::has_embed_label(e, f)
-        || crate::graphql::embed::has_embed_label(e, f)
-        || crate::markdown::embed::has_embed_label(e, f)
+    crate::js::embed::css::has_embed_label(e, f)
+        || crate::js::embed::graphql::has_embed_label(e, f)
+        || crate::js::embed::markdown::has_embed_label(e, f)
 }
 
 /// `label?.embed && label?.hug !== false`
 fn has_embed_label_with_hug<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {
     has_non_html_embed_label(e, f)
-        || crate::html::in_js::label(e, f) == Some(crate::html::in_js::Label::Embed)
+        || crate::js::embed::html::label(e, f) == Some(crate::js::embed::html::Label::Embed)
 }
 
 /// Prettier's `shouldGroupFirst` and `shouldGroupLast`.

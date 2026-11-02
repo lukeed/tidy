@@ -13,8 +13,8 @@ use crate::js::utils::statement_body::{
     write_comments_before_token, write_space_before_body,
 };
 use crate::js::utils::typecast::{comments_of_expression, has_comments, is_cast_target};
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 /// `;`, which is only printed where a statement is required: Prettier's `isMeaningfulEmptyStatement`.
 #[inline(never)]
@@ -691,7 +691,7 @@ fn write_up_to_else<'a>(
     }
     if let (Some(first), Some(last)) = (comments.first(), comments.last()) {
         let start = first.span().start as usize;
-        if crate::text::is_previous_line_empty(f.source_text().as_bytes(), start) {
+        if crate::js::text::is_previous_line_empty(f.source_text().as_bytes(), start) {
             write!(f, empty_line());
         } else if !first.has_newline_before() {
             write!(f, " ");

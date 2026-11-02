@@ -9,9 +9,9 @@ use super::width::OddBlocks;
 use crate::js::comments::Comments;
 use crate::js::context::JsFormatContext;
 use crate::js::source_text::SourceText;
-use crate::options::{Flavor, FormatOptions};
-use bun_lint::ast::File;
-use bun_lint::span::Span;
+use crate::js::options::{Flavor, FormatOptions};
+use crate::js::ast::File;
+use crate::js::ast::Span;
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 use std::cell::Cell;
@@ -690,7 +690,7 @@ impl<'a> Formatter<'a> {
     #[inline(never)]
     fn write_odd_source_token(&mut self, span: Span) {
         let text = self.source.get(span.range()).unwrap_or_default();
-        if bun_core::strings::contains_char(text, b'\\') && self.write_name_without_escapes(text) {
+        if crate::js::strings::contains_char(text, b'\\') && self.write_name_without_escapes(text) {
             return;
         }
         self.write_element(FormatElement::SourceText(Text {
@@ -1149,7 +1149,7 @@ impl<'a> Formatter<'a> {
         // and the final print is what marks line breaks in texts for Markdown. Prettier:
         // `printDocToString(.., { endOfLine: "lf" })`.
         let options = PrinterOptions {
-            line_ending: crate::options::LineEnding::Lf,
+            line_ending: crate::js::options::LineEnding::Lf,
             marks_line_breaks_in_texts: false,
             ..PrinterOptions::new(self.options(), source)
         };

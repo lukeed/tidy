@@ -1,6 +1,6 @@
 use super::array_element_list::ArrayElementList;
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 /// `[a, b]`
 pub(crate) fn write_array_expression<'a>(

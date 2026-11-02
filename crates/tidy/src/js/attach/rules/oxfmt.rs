@@ -13,7 +13,7 @@ use crate::js::utils::call_expression::comments_stay_after_callee_for_oxfmt;
 use crate::js::utils::conditional::is_jsx_conditional_chain;
 use crate::js::utils::expression::ExpressionLeftSide;
 use crate::js::utils::operators::BinOpExt;
-use bun_lint::ast::{BinOp, ExprTag, FnKind, assign_op_text};
+use crate::js::ast::{BinOp, ExprTag, FnKind, assign_op_text};
 
 /// One step of [`Rules::has_following_node`]. Returns `node`'s parent if whatever follows the parent also follows
 /// `node`, or else the answer.

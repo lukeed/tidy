@@ -3,9 +3,9 @@
 use super::comments::{self, Attached};
 use super::parser::{self, Tree};
 use super::printer::Builder;
-use crate::ir::element::LineMode;
+use crate::js::ir::element::LineMode;
 use crate::js::print::template::write_embedded_template_expression;
-use crate::prelude::*;
+use crate::js::base::*;
 use smallvec::SmallVec;
 
 fn is_identifier(e: Expr<'_>, names: &[&[u8]]) -> bool {
@@ -51,7 +51,7 @@ pub(crate) fn is_embed_graphql<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {
     let is_marked = match parent {
         AstNodes::TaggedTemplateExpression(tagged) => match tagged.kind() {
             ExprKind::TaggedTemplate(call) if f.options().flavor.is_oxfmt() => matches!(
-                crate::css::embed::root_name_of_tag(call.callee()),
+                crate::js::embed::css::root_name_of_tag(call.callee()),
                 Some(b"gql" | b"graphql")
             ),
             ExprKind::TaggedTemplate(call) => match call.callee().kind() {
@@ -89,7 +89,7 @@ enum Content {
 }
 
 fn lines(text: &[u8]) -> impl DoubleEndedIterator<Item = &[u8]> + Clone {
-    bun_core::strings::split(text, b"\n")
+    crate::js::strings::split(text, b"\n")
         .collect::<SmallVec<[&[u8]; 16]>>()
         .into_iter()
 }
@@ -97,7 +97,7 @@ fn lines(text: &[u8]) -> impl DoubleEndedIterator<Item = &[u8]> + Clone {
 /// Returns `None` if Prettier leaves the template as it is.
 fn parse_part<'a>(template: Template<'a>, index: usize) -> Option<Part<'a>> {
     let raw = template.raw(index);
-    let raw_equals_cooked = bun_core::strings::index_of_any(raw, b"\\\r").is_none();
+    let raw_equals_cooked = crate::js::strings::index_of_any(raw, b"\\\r").is_none();
     let text = if raw_equals_cooked {
         raw
     } else {
@@ -115,20 +115,20 @@ fn parse_part<'a>(template: Template<'a>, index: usize) -> Option<Part<'a>> {
         && all
             .clone()
             .next_back()
-            .is_some_and(|line| bun_core::strings::contains_char(line, b'#'))
+            .is_some_and(|line| crate::js::strings::contains_char(line, b'#'))
     {
         return None;
     }
     let count = all.clone().count();
     let has_only_comments = all
         .clone()
-        .all(|line| matches!(bun_core::strings::trim_js_whitespace(line), [] | [b'#', ..]));
+        .all(|line| matches!(crate::js::strings::trim_js_whitespace(line), [] | [b'#', ..]));
     let content = if !has_only_comments {
         let (mut tree, mut attached) = (Tree::default(), Vec::new());
         parser::parse(text, &mut tree).ok()?;
         comments::attach(text, &tree, &mut attached);
         Content::Document(tree, attached)
-    } else if bun_core::strings::is_all_js_whitespace(text) {
+    } else if crate::js::strings::is_all_js_whitespace(text) {
         Content::Nothing
     } else {
         Content::Comments
@@ -140,12 +140,12 @@ fn parse_part<'a>(template: Template<'a>, index: usize) -> Option<Part<'a>> {
             && all
                 .clone()
                 .take(2)
-                .all(bun_core::strings::is_all_js_whitespace),
+                .all(crate::js::strings::is_all_js_whitespace),
         ends_with_blank_line: count > 2
             && all
                 .rev()
                 .take(2)
-                .all(bun_core::strings::is_all_js_whitespace),
+                .all(crate::js::strings::is_all_js_whitespace),
     })
 }
 
@@ -158,7 +158,7 @@ fn is_candidate<'a>(e: Expr<'a>, template: Template<'a>, f: &Formatter<'a>) -> b
 }
 
 fn is_blank_template(template: Template<'_>) -> bool {
-    template.quasi_count() == 1 && bun_core::strings::is_all_js_whitespace(template.raw(0))
+    template.quasi_count() == 1 && crate::js::strings::is_all_js_whitespace(template.raw(0))
 }
 
 fn parse<'a>(template: Template<'a>) -> Option<SmallVec<[Part<'a>; 2]>> {
@@ -179,7 +179,7 @@ pub(crate) fn has_embed_label<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {
         return false;
     };
     is_candidate(quasi, template, f)
-        && (crate::css::embed::tag_alone_decides_template_layout(f)
+        && (crate::js::embed::css::tag_alone_decides_template_layout(f)
             || (!is_blank_template(template) && parse(template).is_some()))
 }
 

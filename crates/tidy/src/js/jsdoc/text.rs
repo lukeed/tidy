@@ -1,10 +1,10 @@
 //! `str` methods for byte slices that are UTF-8, or nearly so.
 
-use bun_core::strings;
+use crate::js::strings;
 
 /// `str::trim_start_matches`
 pub(super) fn trim_start_matches(mut text: &[u8], matches: impl Fn(char) -> bool) -> &[u8] {
-    while let Some((char, len)) = crate::text::first_char(text).filter(|it| matches(it.0)) {
+    while let Some((char, len)) = crate::js::text::first_char(text).filter(|it| matches(it.0)) {
         let _ = char;
         text = &text[len..];
     }
@@ -13,7 +13,7 @@ pub(super) fn trim_start_matches(mut text: &[u8], matches: impl Fn(char) -> bool
 
 /// `str::trim_end_matches`
 pub(super) fn trim_end_matches(mut text: &[u8], matches: impl Fn(char) -> bool) -> &[u8] {
-    while let Some((_, len)) = crate::text::last_char(text).filter(|it| matches(it.0)) {
+    while let Some((_, len)) = crate::js::text::last_char(text).filter(|it| matches(it.0)) {
         text = &text[..text.len() - len];
     }
     text

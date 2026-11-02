@@ -19,7 +19,7 @@ pub(crate) mod tailwindcss;
 pub(crate) mod typecast;
 pub(crate) mod typescript;
 
-use crate::prelude::*;
+use crate::js::base::*;
 
 /// `connect(a, b, c)(d)`: `call` is the callee of a call that has fewer arguments, but at least one.
 #[inline]

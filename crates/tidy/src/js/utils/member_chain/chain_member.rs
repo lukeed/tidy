@@ -9,8 +9,8 @@ use crate::js::utils::call_expression::{
     FormatCallee, keeps_comments_after_callee, write_comments_after_callee,
 };
 use crate::js::utils::typecast::{comments_of_outermost_node, has_comments};
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 #[derive(Copy, Clone, Debug)]
 pub(crate) enum CallExpressionPosition {

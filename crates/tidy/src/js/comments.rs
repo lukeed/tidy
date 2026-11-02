@@ -11,10 +11,10 @@
 use super::ast_nodes::AstNodes;
 use super::attach::{self, Marker, Owner, Placement};
 use super::owners::Owners;
-use crate::options::{Flavor, FormatOptions};
-pub(crate) use bun_lint::ast::comments::Comment;
-use bun_lint::ast::{File, Node};
-use bun_lint::span::Span;
+use crate::js::options::{Flavor, FormatOptions};
+pub(crate) use crate::js::ast::comments::Comment;
+use crate::js::ast::{File, Node};
+use crate::js::ast::Span;
 use std::cell::Cell;
 
 /// Checks on a comment's text that only the formatter needs.
@@ -39,23 +39,23 @@ impl CommentExt for Comment<'_> {
 
     fn is_ignore_comment(self, flavor: Flavor) -> bool {
         // Like JavaScript's `trim()`, this also strips no-break spaces.
-        let content = bun_core::strings::trim_js_whitespace_start(self.content());
+        let content = crate::js::strings::trim_js_whitespace_start(self.content());
         // Few comments get past this.
         matches!(content.first(), Some(b'p' | b'o'))
-            && flavor.is_ignore_comment(bun_core::strings::trim_js_whitespace(content))
+            && flavor.is_ignore_comment(crate::js::strings::trim_js_whitespace(content))
     }
 }
 
 /// `content` is the text between `/*` and `*/`.
 fn is_indentable_text(content: &[u8]) -> bool {
-    let mut lines = bun_core::strings::split_crlf_lines(content)
+    let mut lines = crate::js::strings::split_crlf_lines(content)
         .skip(1)
         .peekable();
     if lines.peek().is_none() {
         return false;
     }
     while let Some(line) = lines.next() {
-        let line = bun_core::strings::trim_js_whitespace_start(line);
+        let line = crate::js::strings::trim_js_whitespace_start(line);
         // The last line continues with the `*` of `*/`.
         if !line.starts_with(b"*") && !(line.is_empty() && lines.peek().is_none()) {
             return false;
@@ -67,7 +67,7 @@ fn is_indentable_text(content: &[u8]) -> bool {
 /// True if `content` has an `@type` or `@satisfies` tag.
 pub(crate) fn is_type_cast_text(content: &[u8]) -> bool {
     let mut rest = content;
-    while let Some(at) = bun_core::strings::index_of_char_usize(rest, b'@') {
+    while let Some(at) = crate::js::strings::index_of_char_usize(rest, b'@') {
         rest = &rest[at + 1..];
         for tag in [&b"type"[..], b"satisfies"] {
             if let Some(after) = rest.strip_prefix(tag)

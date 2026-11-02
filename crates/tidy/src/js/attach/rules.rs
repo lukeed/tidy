@@ -20,11 +20,11 @@ use crate::js::print::flow::{
     as_declared_predicate, is_declared_class, is_flow_declare_export, is_flow_opaque_type,
     is_flow_record,
 };
-use bun_lint::ast::{
+use crate::js::ast::{
     Case, Expr, ExprKind, Flags, FnBody, Func, List, Member, Node, Param, PatKind, PropKind, Stmt,
     StmtKind, StmtTag, TypeKind, TypeNode,
 };
-use bun_lint::span::Span;
+use crate::js::ast::Span;
 
 mod oxfmt;
 
@@ -985,7 +985,7 @@ impl<'a> Rules<'_, 'a, '_> {
             N::TSMethodSignature(member)
                 if matches!(
                     member.kind(),
-                    bun_lint::ast::MemberKind::Getter | bun_lint::ast::MemberKind::Setter
+                    crate::js::ast::MemberKind::Getter | crate::js::ast::MemberKind::Setter
                 ) =>
             {
                 self.preceding_node.map(Attachment::trailing)

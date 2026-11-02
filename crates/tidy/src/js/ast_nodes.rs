@@ -18,13 +18,13 @@
 //! - `nodes.ancestors()`: the node itself, its parent, and so on up to `Program`.
 
 use super::print::flow::{arrow_after_parameters, is_declared_class, is_flow_declare_export};
-use bun_lint::ast::{
+use crate::js::ast::{
     BinOp, Case, Class, EnumMember, ExportSpec, Expr, ExprKind, File, Flags, FnBody, FnKind, Func,
     ImportSpec, Keyword, Member, MemberKind, ModuleName, Node, Param, Pat, PatKind, PatProp, Prop,
     PropKind, Stmt, StmtKind, StmtTag, TupleElem, TypeKind, TypeNode, TypeParam, UnOp, VarDecl,
 };
-use bun_lint::span::{Span, Spanned};
-use bun_sema::hir::ExprTag;
+use crate::js::ast::{Span, Spanned};
+use crate::js::ast::ExprTag;
 
 /// An expression statement, or an arrow function's expression body, which oxc represents as an `ExpressionStatement` in
 /// a `FunctionBody`.
@@ -1353,7 +1353,7 @@ impl Spanned for AstNodes<'_> {
 
 pub(crate) fn type_arguments_of<'a>(
     owner: Node<'a>,
-) -> Option<bun_lint::ast::List<'a, TypeNode<'a>>> {
+) -> Option<crate::js::ast::List<'a, TypeNode<'a>>> {
     match owner {
         Node::Expr(e) => match e.kind() {
             ExprKind::Call(call) | ExprKind::New(call) | ExprKind::TaggedTemplate(call) => {
@@ -1377,7 +1377,7 @@ pub(crate) fn type_arguments_of<'a>(
 
 pub(crate) fn type_parameters_of<'a>(
     owner: Node<'a>,
-) -> Option<bun_lint::ast::List<'a, TypeParam<'a>>> {
+) -> Option<crate::js::ast::List<'a, TypeParam<'a>>> {
     match owner {
         Node::Func(func) => Some(func.type_params()),
         Node::Class(class) => Some(class.type_params()),

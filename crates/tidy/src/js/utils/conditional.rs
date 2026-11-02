@@ -3,8 +3,8 @@
 use super::typecast::is_cast_target_that_hides_its_kind;
 use crate::js::format::format_node;
 use crate::js::print::binary_like_expression::is_angular_pipe;
-use crate::prelude::*;
-use crate::write;
+use crate::js::base::*;
+use crate::js::write;
 
 #[derive(Copy, Clone)]
 pub(crate) enum ConditionalLike<'a> {

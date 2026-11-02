@@ -1,8 +1,8 @@
 use super::semicolon::OptionalSemicolon;
 use crate::js::utils::assignment_like::AssignmentLike;
 use crate::js::utils::suppressed::FormatSuppressedNode;
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 /// The keyword and the space after it.
 fn var_kind_text(kind: VarKind) -> &'static str {

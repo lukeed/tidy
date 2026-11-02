@@ -19,8 +19,8 @@ use super::print;
 use super::print::program::ends_before_semicolon;
 use super::utils::suppressed::FormatSuppressedNode;
 use super::utils::typecast::write_type_casts;
-use crate::prelude::*;
-use crate::write;
+use crate::js::base::*;
+use crate::js::write;
 
 impl<'a> Formatter<'a> {
     /// True while writing a node that has no comment inside its span, and no node inside it that owns a comment from
@@ -845,7 +845,7 @@ fn format_statement_with_comments<'a>(statement: Stmt<'a>, f: &mut Formatter<'a>
 }
 
 /// Writes the comments inside `span` (a statement or a class member) that weren't printed in the first pass. See
-/// [`crate::ir::run::format_with_marks`].
+/// [`crate::js::ir::run::format_with_marks`].
 #[cold]
 #[inline(never)]
 fn write_comments_without_printer<'a>(span: Span, f: &mut Formatter<'a>) {

@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::js::base::*;
 
 /// Prints a node without the trailing comments it owns. The caller prints them.
 pub(crate) struct FormatNodeWithoutTrailingComments<'b, T>(pub(crate) &'b T);

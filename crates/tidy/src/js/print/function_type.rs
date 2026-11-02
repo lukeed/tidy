@@ -5,8 +5,8 @@ use super::parameters::FormatFormalParameters;
 use super::type_parameters::type_parameters;
 use crate::js::format::{FormatReturnTypeOfFunctionType, FormatTypeAnnotation};
 use crate::js::utils::object::format_computed_or_property_key;
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 /// `(a: A) => R`, `new (a: A) => R`, `abstract new (a: A) => R`
 pub(crate) fn write_ts_function_type<'a>(ty: TypeNode<'a>, func: Func<'a>, f: &mut Formatter<'a>) {

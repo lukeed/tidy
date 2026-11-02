@@ -8,8 +8,8 @@ use crate::js::print::class::dangling_comments_with_marker;
 use crate::js::print::flow::is_match_expression_case;
 use crate::js::utils::jsx::WrapState;
 use crate::js::utils::suppressed::FormatSuppressedNode;
-use crate::prelude::*;
-use crate::{best_fitting, format_args, write};
+use crate::js::base::*;
+use crate::js::{best_fitting, format_args, write};
 
 /// An element or a fragment.
 #[derive(Clone, Copy)]

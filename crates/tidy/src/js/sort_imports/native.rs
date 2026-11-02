@@ -13,9 +13,9 @@
 //! - Nothing merges across a side-effect import, a `prettier-ignore`d import, or any other statement.
 
 use super::compare::natord;
-use bun_core::strings;
-use bun_lint::ast::{File, Import, ImportSpec, Stmt, StmtKind};
-use bun_lint::span::Span;
+use crate::js::strings;
+use crate::js::ast::{File, Import, ImportSpec, Stmt, StmtKind};
+use crate::js::ast::Span;
 use bun_lint::tokens::TokenKind;
 use std::cmp::Ordering;
 
@@ -356,7 +356,7 @@ impl<'a> Tidy<'a> {
     /// Sorts `chunks` and drops exact duplicates. Returns true if anything changed.
     fn sort(&self, chunks: &mut Vec<Chunk<'a>>) -> bool {
         let before: Vec<u32> = chunks.iter().map(|it| it.before_comma.start).collect();
-        crate::sort::sort_by(&mut chunks[..], |a, b| self.compare(a.spec, b.spec));
+        crate::js::sort::sort_by(&mut chunks[..], |a, b| self.compare(a.spec, b.spec));
         chunks.dedup_by(|later, earlier| {
             !self.has_own_comments(later) && self.is_same_name(later.spec, earlier.spec)
         });
@@ -504,7 +504,7 @@ impl<'a> Tidy<'a> {
                 modules.push(import.spec().bytes());
             }
         }
-        crate::sort::sort(&mut modules[..]);
+        crate::js::sort::sort(&mut modules[..]);
         modules
             .iter()
             .zip(modules.iter().skip(1))
@@ -551,7 +551,7 @@ pub(super) fn preprocess<'a>(file: &'a File<'a>) -> Option<Vec<u8>> {
     if changes.is_empty() {
         return None;
     }
-    crate::sort::sort_by_key(&mut changes[..], |it| it.0.start);
+    crate::js::sort::sort_by_key(&mut changes[..], |it| it.0.start);
     let mut out = Vec::with_capacity(text.len());
     let mut from = 0;
     for (span, new) in &changes {
@@ -598,10 +598,10 @@ fn summary<'a>(file: &'a File<'a>) -> (Vec<Vec<u8>>, Vec<&'a [u8]>) {
             );
         }
     }
-    crate::sort::sort(&mut names[..]);
+    crate::js::sort::sort(&mut names[..]);
     names.dedup();
     let mut comments: Vec<&[u8]> = file.comments().map(|it| file.slice(it.span())).collect();
-    crate::sort::sort(&mut comments[..]);
+    crate::js::sort::sort(&mut comments[..]);
     (names, comments)
 }
 

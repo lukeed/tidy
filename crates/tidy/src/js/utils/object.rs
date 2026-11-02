@@ -8,10 +8,10 @@ use super::string::{
 use super::tailwindcss::{
     context_of_string, has_white_space, sorted_string_literal, sorted_template_text,
 };
-use crate::ir::width::string_width;
+use crate::js::ir::width::string_width;
 use crate::js::format::format_name;
-use crate::prelude::*;
-use crate::write;
+use crate::js::base::*;
+use crate::js::write;
 use bun_lint::linter::is_flow_file;
 use std::borrow::Cow;
 
@@ -77,7 +77,7 @@ fn write_key<'a>(key: Key<'a>, parent: KeyParent<'a>, f: &mut Formatter<'a>) -> 
         _ => write!(f, text(&printed)),
     });
     // With a line break in it, it isn't a single string to Prettier, which only measures the width of single strings.
-    match bun_core::strings::contains_char(&printed, b'\n') {
+    match crate::js::strings::contains_char(&printed, b'\n') {
         true => usize::MAX,
         false => string_width(&printed) as usize,
     }
@@ -110,11 +110,11 @@ fn quoted<'a>(text: &[u8], f: &Formatter<'a>) -> Cow<'a, [u8]> {
 
 /// `text` with `\r\n` and `\r` replaced by `\n`, which is what Prettier gets.
 fn with_normalized_newlines(text: Cow<'_, [u8]>) -> Cow<'_, [u8]> {
-    if !bun_core::strings::contains_char(&text, b'\r') {
+    if !crate::js::strings::contains_char(&text, b'\r') {
         return text;
     }
     let mut normalized = Vec::with_capacity(text.len());
-    bun_core::strings::push_crlf_as_lf(&mut normalized, &text);
+    crate::js::strings::push_crlf_as_lf(&mut normalized, &text);
     Cow::Owned(normalized)
 }
 
@@ -223,7 +223,7 @@ fn unquoted<'a>(
                     && !f.file().is_flow()
                     && (f.options().flavor.is_oxfmt()
                         || !is_flow_file(
-                            bun_core::strings::without_utf8_bom(f.file().text()),
+                            crate::js::strings::without_utf8_bom(f.file().text()),
                             f.filepath(),
                         )))
         }

@@ -1,7 +1,7 @@
 use super::semicolon::OptionalSemicolon;
 use crate::js::format::identifier;
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 /// Before a union with each type on its own line, oxfmt prints `K in // comment` and Prettier `K in  // comment`.
 fn one_space_before_line_comment_after_in(f: &Formatter<'_>) -> bool {

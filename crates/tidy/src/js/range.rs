@@ -4,18 +4,18 @@
 //! (`src/main/range.js`). The range is widened to whole statements. Their text is parsed and
 //! formatted as a separate file, indented like the line it starts on, and spliced back in.
 
-use crate::cursor::format_with;
-use crate::ir::element::{Align, FormatElement, Tag};
-use crate::ir::prelude::{Format, Formatter, hard_line_break};
+use crate::js::cursor::format_with;
+use crate::js::ir::element::{Align, FormatElement, Tag};
+use crate::js::ir::prelude::{Format, Formatter, hard_line_break};
 use crate::js::ast_nodes::{
     AstNodes, ExpressionStatement, Program, node_as_ast_nodes, type_parameters_of,
 };
 use crate::js::print::program::ends_before_semicolon;
-use crate::options::LineEnding;
-use crate::text::BOM;
-use crate::{FormatError, FormatOptions, Scratch};
-use bun_lint::ast::{File, FnBody, FnKind, Node, Stmt, StmtKind};
-use bun_lint::span::Span;
+use crate::js::options::LineEnding;
+use crate::js::text::BOM;
+use crate::js::{FormatError, FormatOptions, Scratch};
+use crate::js::ast::{File, FnBody, FnKind, Node, Stmt, StmtKind};
+use crate::js::ast::Span;
 use smallvec::SmallVec;
 
 /// Appends `file`'s text to `out`, with the part selected by `options.range_start` and
@@ -51,7 +51,7 @@ pub fn format_with_cursor<'a>(
         return Ok(options.cursor_offset);
     }
     if start <= first && end >= text.len() {
-        return crate::cursor::format_with_cursor(file, options, scratch, out);
+        return crate::js::cursor::format_with_cursor(file, options, scratch, out);
     }
     if file.has_parse_errors() {
         return Err(FormatError::SyntaxError);
@@ -69,7 +69,7 @@ pub fn format_with_cursor<'a>(
     let mut formatted = Vec::new();
     // The cursor's offset in `formatted`, if it's inside the range.
     let mut cursor_in_formatted = None;
-    if !bun_core::strings::trim_js_whitespace_start(slice).is_empty() {
+    if !crate::js::strings::trim_js_whitespace_start(slice).is_empty() {
         let alignment = alignment_size(
             before.get(first..).unwrap_or_default(),
             options.indent_width.value(),
@@ -81,7 +81,7 @@ pub fn format_with_cursor<'a>(
             range_start: None,
             range_end: None,
             cursor_offset: cursor_in_slice.map(|cursor| {
-                bun_core::strings::wtf8_len_utf16(slice.get(..cursor).unwrap_or(slice))
+                crate::js::strings::wtf8_len_utf16(slice.get(..cursor).unwrap_or(slice))
             }),
             line_ending: LineEnding::Lf,
             ..options.clone()
@@ -100,7 +100,7 @@ pub fn format_with_cursor<'a>(
             );
         });
         cursor_in_formatted = result?.and_then(|cursor| offset_of_utf16_index(&formatted, cursor));
-        formatted.truncate(bun_core::strings::trim_js_whitespace_end(&formatted).len());
+        formatted.truncate(crate::js::strings::trim_js_whitespace_end(&formatted).len());
     }
 
     // Assemble everything with `\n`, and convert the line endings at the end.
@@ -127,14 +127,14 @@ pub fn format_with_cursor<'a>(
     let (up_to_cursor, rest) = whole.split_at(cursor_in_whole.unwrap_or(0));
     write_with_line_ending(up_to_cursor, line_ending, out);
     let cursor_in_out =
-        cursor_in_whole.map(|_| bun_core::strings::wtf8_len_utf16(&out[out_start..]));
+        cursor_in_whole.map(|_| crate::js::strings::wtf8_len_utf16(&out[out_start..]));
     write_with_line_ending(rest, line_ending, out);
     Ok(cursor_in_out)
 }
 
 /// Length of `text` once every `\r\n` is replaced with `\n`.
 pub(crate) fn normalized_len(text: &[u8]) -> usize {
-    text.len() - bun_core::strings::count(text, b"\r\n")
+    text.len() - crate::js::strings::count(text, b"\r\n")
 }
 
 /// `rangeStart`, `rangeEnd` and `cursorOffset`, converted from UTF-16 code units to byte offsets.
@@ -169,19 +169,19 @@ impl Offsets {
 
 /// Returns `None` if `index` is past the end of `text`.
 fn offset_of_utf16_index(text: &[u8], index: u32) -> Option<usize> {
-    use bun_core::strings::{wtf8_len_utf16, wtf8_offset_of_utf16_index};
+    use crate::js::strings::{wtf8_len_utf16, wtf8_offset_of_utf16_index};
     (index <= wtf8_len_utf16(text)).then(|| wtf8_offset_of_utf16_index(text, index))
 }
 
 /// Prettier's `getAlignmentSize` for the leading whitespace of `before`'s last line.
 pub(crate) fn alignment_size(before: &[u8], tab_width: u32) -> usize {
     let last = |line_break| {
-        bun_core::strings::last_index_of_char(before, line_break).map_or(0, |at| at + 1)
+        crate::js::strings::last_index_of_char(before, line_break).map_or(0, |at| at + 1)
     };
     let line_start = last(b'\n').max(last(b'\r'));
     let (mut rest, mut size, tab_width) = (&before[line_start..], 0, tab_width.max(1) as usize);
     loop {
-        match bun_core::strings::js_whitespace_len(rest) {
+        match crate::js::strings::js_whitespace_len(rest) {
             0 => return size,
             len => {
                 size = if rest[0] == b'\t' {
@@ -197,7 +197,7 @@ pub(crate) fn alignment_size(before: &[u8], tab_width: u32) -> usize {
 
 /// Appends `text` with each `\r\n`, `\r` and `\n` replaced by `line_ending`.
 pub(crate) fn write_with_line_ending(mut text: &[u8], line_ending: &[u8], out: &mut Vec<u8>) {
-    while let Some(at) = bun_core::strings::index_of_any(text, b"\r\n") {
+    while let Some(at) = crate::js::strings::index_of_any(text, b"\r\n") {
         out.extend_from_slice(&text[..at]);
         out.extend_from_slice(line_ending);
         let len = if text[at..].starts_with(b"\r\n") {
@@ -492,11 +492,11 @@ fn calculate_range<'a>(file: &'a File<'a>, mut start: u32, mut end: u32) -> Opti
     let text = file.text();
     // Trim whitespace from both ends of the range.
     let selected = text.get(start as usize..end as usize)?;
-    let trimmed = bun_core::strings::trim_js_whitespace_start(selected);
+    let trimmed = crate::js::strings::trim_js_whitespace_start(selected);
     let is_all_white_space = trimmed.is_empty();
     if !is_all_white_space {
         start += (selected.len() - trimmed.len()) as u32;
-        end = start + bun_core::strings::trim_js_whitespace_end(trimmed).len() as u32;
+        end = start + crate::js::strings::trim_js_whitespace_end(trimmed).len() as u32;
     }
 
     let start_path = find_node_at_offset(file, start, Edge::Start)?;

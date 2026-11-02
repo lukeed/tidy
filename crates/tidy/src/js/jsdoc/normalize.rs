@@ -1,10 +1,10 @@
 //! Normalizes tag names, emphasis, capitalization and types.
 
 use super::text::{lines, parse_index, push_number};
-use crate::options::QuoteStyle;
-use crate::stack::Stack;
-use crate::text::{first_char, last_char};
-use bun_core::strings;
+use crate::js::options::QuoteStyle;
+use crate::js::stack::Stack;
+use crate::js::text::{first_char, last_char};
+use crate::js::strings;
 use std::borrow::Cow;
 
 type Bytes<'a> = Cow<'a, [u8]>;

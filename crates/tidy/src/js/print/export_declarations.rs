@@ -6,8 +6,8 @@ use super::semicolon::OptionalSemicolon;
 use crate::js::ast_nodes::inner_of_stmt;
 use crate::js::format::{FormatDeclaration, format_ignorable_name, format_node, write_declaration};
 use crate::js::utils::suppressed::FormatSuppressedNode;
-use crate::prelude::*;
-use crate::write;
+use crate::js::base::*;
+use crate::js::write;
 
 /// `export // comment⏎@a class B {}`: Prettier prints the comment after `export `. oxfmt starts a new line after
 /// `export`, as it always does before decorators.

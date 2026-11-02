@@ -1,8 +1,8 @@
 use crate::js::utils::number::format_number_token;
 use crate::js::utils::string::{FormatLiteralStringToken, StringLiteralParentKind};
 use crate::js::utils::tailwindcss::{context_of_string, sorted_string_literal};
-use crate::prelude::*;
-use crate::write;
+use crate::js::base::*;
+use crate::js::write;
 
 pub(crate) fn write_numeric_literal<'a>(e: Expr<'a>, f: &mut Formatter<'a>) {
     write!(f, format_number_token(f.source_text().text_for(&e)));
@@ -43,7 +43,7 @@ fn write_reg_exp_literal_with_unknown_flags<'a>(
         return write!(f, text(raw));
     };
     let mut characters: Vec<char> = characters.chars().collect();
-    crate::sort::sort_by(&mut characters[..], |a, b| {
+    crate::js::sort::sort_by(&mut characters[..], |a, b| {
         a.encode_utf16(&mut [0; 2])
             .cmp(&b.encode_utf16(&mut [0; 2]))
     });
@@ -68,7 +68,7 @@ pub(crate) fn write_reg_exp_literal<'a>(e: Expr<'a>, regex: Regex<'a>, f: &mut F
         let start = out.len() + raw.len() - flags.len();
         out.extend_from_slice(raw);
         if let Some(flags) = out.get_mut(start..) {
-            crate::sort::sort(flags);
+            crate::js::sort::sort(flags);
         }
     });
 }

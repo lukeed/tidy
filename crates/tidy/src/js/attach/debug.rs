@@ -3,8 +3,8 @@
 use super::surrounding_nodes::AttachContext;
 use super::{Marker, Options, Owner, Placement, attach};
 use crate::js::ast_nodes::AST_KIND_NAMES;
-use bun_lint::ast::comments::NodeOrName;
-use bun_lint::ast::{File, Node};
+use crate::js::ast::comments::NodeOrName;
+use crate::js::ast::{File, Node};
 use std::io::Write;
 
 /// Writes one line per comment with its span and its owner, plus one line per node that's ignored by a comment another
@@ -105,7 +105,7 @@ pub(crate) fn list<'a>(
         let _ = write!(line, "I {name} {} {}", span.start, span.end);
         lines.push((span.start, line));
     }
-    crate::sort::sort_by_key(&mut lines, |line| line.0);
+    crate::js::sort::sort_by_key(&mut lines, |line| line.0);
     for (_, line) in lines {
         out.extend_from_slice(&line);
         out.push(b'\n');

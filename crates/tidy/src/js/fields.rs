@@ -4,8 +4,8 @@
 //! usually a parent: `parent.object() == Some(e)`. Each returns `None`, or an empty list, for a node without that
 //! field.
 
-use bun_lint::ast::{Call, Expr, ExprKind, Func, Stmt, StmtKind, TypeNode};
-use bun_sema::hir::ExprTag;
+use crate::js::ast::{Call, Expr, ExprKind, Func, Stmt, StmtKind, TypeNode};
+use crate::js::ast::ExprTag;
 
 pub(crate) trait ExprFields<'a>: Copy {
     /// `TaggedTemplateExpression.tag`

@@ -1,7 +1,7 @@
 //! Lines stored in one buffer, separated by `\n`.
 
 use super::markers::list_marker;
-use bun_core::strings;
+use crate::js::strings;
 
 #[derive(Default)]
 pub(super) struct LineBuffer {

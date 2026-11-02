@@ -4,7 +4,7 @@ use crate::js::ast_nodes::ExpressionStatement;
 use crate::js::print::binary_like_expression::{is_angular_pipe, should_flatten};
 use crate::js::print::return_or_throw_statement::has_argument_leading_comments;
 use crate::js::utils::typecast::{has_comments, has_comments_that_count, is_cast_target};
-use crate::prelude::*;
+use crate::js::base::*;
 use AstNodes as N;
 
 /// True if `e`, as ESTree's `Expression`, needs parentheses. For a whole optional chain that's the `ChainExpression`.
@@ -56,7 +56,7 @@ pub(crate) fn source_text_needs_its_parentheses<'a>(e: Expr<'a>, f: &Formatter<'
     };
     if !continues_with.is_empty()
         && start_of_token_after(e, f)
-            .is_some_and(|byte| bun_core::strings::contains_char(continues_with, byte))
+            .is_some_and(|byte| crate::js::strings::contains_char(continues_with, byte))
     {
         return true;
     }
@@ -231,7 +231,7 @@ pub(crate) fn needs_parentheses<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {
 /// A cheap necessary condition that only looks at the kind of `e`, its direct parent, and the parent's kind. It's false
 /// for nearly every expression. Each `false` here matches what [`needs_parentheses_in_position`] returns for that pair.
 fn may_need_parentheses<'a>(e: Expr<'a>) -> bool {
-    use bun_sema::hir::ExprTag as T;
+    use crate::js::ast::ExprTag as T;
     let tag = e.tag();
     match tag {
         T::Missing | T::PrivateIdentifier | T::Super | T::Spread => return false,
@@ -239,7 +239,7 @@ fn may_need_parentheses<'a>(e: Expr<'a>) -> bool {
             let text = e.text();
             // `l\u0065t` is `let`.
             return is_name_that_may_need_parentheses(text)
-                || (text.len() >= 8 && bun_core::strings::contains_char(text, b'\\'))
+                || (text.len() >= 8 && crate::js::strings::contains_char(text, b'\\'))
                 || (text.len() >= 35 && text.starts_with(b"PRETTIER_"));
         }
         // `in` in the head of a `for` statement, and a sequence, depend on more than the parent.
@@ -689,7 +689,7 @@ fn identifier_needs_parentheses<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {
     // The name without escapes, which is how it's printed: `(l\u0065t)[0]` is `(let)[0]`.
     let name = e.as_ident().map_or(&b""[..], |name| name.bytes());
     // It's a placeholder for an expression in the template literal that contains this code.
-    if e.is_parenthesized() && crate::html::in_js::is_placeholder_in_js(name) {
+    if e.is_parenthesized() && crate::js::embed::html::is_placeholder_in_js(name) {
         return true;
     }
     if !is_name_that_may_need_parentheses(name) || is_cast_target(e, f) {

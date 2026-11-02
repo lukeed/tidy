@@ -1,10 +1,10 @@
 //! Builders that know about source positions: lists of nodes that keep the empty lines between
 //! them, and lists with separators.
 
-use crate::ir::element::LineMode;
-use crate::options::TrailingSeparator;
-use crate::prelude::*;
-use crate::write;
+use crate::js::ir::element::LineMode;
+use crate::js::options::TrailingSeparator;
+use crate::js::base::*;
+use crate::js::write;
 
 /// oxfmt doesn't see an empty line in `a: 1\n\n, b: 2`.
 fn line_break_search_stops_at_comma(f: &Formatter<'_>) -> bool {

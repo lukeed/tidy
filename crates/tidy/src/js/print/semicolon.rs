@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::js::base::*;
 
 /// A `;`, unless the options turn semicolons off.
 pub(crate) struct OptionalSemicolon;

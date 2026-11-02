@@ -1,13 +1,13 @@
 //! The lookup table from a node to the ids of the comments attached to it.
 //!
 //! Almost every node that's looked up has no comments, so a bitset has one bit per node that tells whether it has any.
-//! Only if the bit is set do we search a list sorted by [`Node::index`](bun_lint::ast::Node::index). The HIR stores
+//! Only if the bit is set do we search a list sorted by [`Node::index`](crate::js::ast::Node::index). The HIR stores
 //! which expressions are parenthesized the same way.
 
 use super::ast_nodes::AstNodes;
 use super::attach::{Attached, Owner, Placement};
-use bun_lint::ast::{File, Node};
-use bun_lint::span::Span;
+use crate::js::ast::{File, Node};
+use crate::js::ast::Span;
 
 const LEADING: u8 = Placement::Leading as u8;
 const TRAILING: u8 = Placement::Trailing as u8;
@@ -31,7 +31,7 @@ struct CommentGroup {
 
 #[derive(Copy, Clone)]
 struct OwnerEntry {
-    /// [`Node::index`](bun_lint::ast::Node::index), or the start offset of a name or a `(`.
+    /// [`Node::index`](crate::js::ast::Node::index), or the start offset of a name or a `(`.
     id: u32,
     first_group: u32,
     groups: u32,
@@ -94,7 +94,7 @@ impl Owners {
             sort_keys.push((sort_key(*owner, IGNORED), u32::MAX));
         }
         if !sort_keys.is_sorted() {
-            crate::sort::sort(&mut sort_keys);
+            crate::js::sort::sort(&mut sort_keys);
         }
         let mut owners = Owners {
             comment_ids: Vec::with_capacity(attached.attachments.len()),

@@ -8,8 +8,8 @@
 //! stack then has a single context, and the nodes around a text decide if it's sorted: [`collapse_by_plugin`].
 
 use super::string::{FormatLiteralStringToken, StringLiteralParentKind};
-use crate::options::HtmlRoot;
-use crate::prelude::*;
+use crate::js::options::HtmlRoot;
+use crate::js::base::*;
 use crate::tailwind::{Ends, Names, Oxc, Tailwind};
 use smallvec::SmallVec;
 use std::borrow::Cow;
@@ -185,14 +185,14 @@ pub(crate) fn context_of_string(source: &[u8], f: &Formatter<'_>) -> Option<Tail
 /// True if the plugin has already joined the string `e` onto one line by the time Prettier sees it.
 pub(crate) fn loses_line_breaks<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {
     (f.context().tailwind_context()).is_some_and(|it| it.follows_plugin && !it.preserves_whitespace)
-        && !bun_core::strings::contains(e.text(), b"{{")
+        && !crate::js::strings::contains(e.text(), b"{{")
         && collapse_by_plugin(e.span(), e.ast_parent(), f).is_some()
 }
 
 /// True if the value of the JSX attribute `name` holds classes.
 fn is_class_attribute(name: &[u8], tailwind: &Tailwind) -> bool {
     matches!(name, b"class" | b"className")
-        || (!bun_core::strings::contains_char(name, b':')
+        || (!crate::js::strings::contains_char(name, b':')
             && has(&tailwind.attributes, name, tailwind))
 }
 

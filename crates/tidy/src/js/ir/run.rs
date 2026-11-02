@@ -2,12 +2,12 @@
 
 use super::element::Interned;
 use super::formatter::Formatter;
-use crate::cursor::CursorRegion;
+use crate::js::cursor::CursorRegion;
 use crate::js::comments;
 use crate::js::context::JsFormatContext;
-use crate::options::DebugComments;
-use crate::{FormatError, FormatOptions};
-use bun_lint::ast::File;
+use crate::js::options::DebugComments;
+use crate::js::{FormatError, FormatOptions};
+use crate::js::ast::File;
 
 /// All the allocations needed to format a file, reused for the next file.
 #[derive(Default)]

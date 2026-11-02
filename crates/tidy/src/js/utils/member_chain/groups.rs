@@ -1,7 +1,7 @@
 use super::chain_member::{CallExpressionPosition, ChainMember};
 use crate::js::print::program::is_next_line_empty;
-use crate::prelude::*;
-use crate::write;
+use crate::js::base::*;
+use crate::js::write;
 
 /// Prettier's `shouldInsertEmptyLineAfter`: true if the line after `e`, or after the `)` following it, is empty.
 pub(super) fn should_insert_empty_line_after<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {

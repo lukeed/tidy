@@ -13,12 +13,12 @@ use crate::js::format::is_in_head_of_for;
 use crate::js::print::expressions::start_of_meta_property_name;
 use crate::js::print::flow::{is_flow_opaque_type, is_interface_type};
 use crate::js::source_text::SourceText;
-use bun_lint::ast::comments::{self, NodeOrName};
-use bun_lint::ast::{
+use crate::js::ast::comments::{self, NodeOrName};
+use crate::js::ast::{
     Expr, ExprKind, File, FnBody, FnKind, Func, List, Node, Param, Pat, Stmt, StmtKind, StmtTag,
     TypeKind, TypeNode,
 };
-use bun_lint::span::{Span, Spanned};
+use crate::js::ast::{Span, Spanned};
 use std::cell::Cell;
 use std::ops::Range;
 
@@ -427,7 +427,7 @@ impl<'a, 'c> AttachContext<'a, 'c> {
         if last_span == span {
             return last_answer;
         }
-        let answer = bun_core::strings::contains_char(self.source.text_for(&span), b'[');
+        let answer = crate::js::strings::contains_char(self.source.text_for(&span), b'[');
         self.last_search_for_bracket.set((span, answer));
         answer
     }

@@ -2,8 +2,8 @@
 
 use super::format_node_without_trailing_comments::FormatNodeWithoutTrailingComments;
 use super::typecast::comments_of_expression;
-use crate::prelude::*;
-use crate::write;
+use crate::js::base::*;
+use crate::js::write;
 
 /// Prettier's `isCallExpression`.
 ///

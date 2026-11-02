@@ -17,8 +17,8 @@ use crate::js::print::class::write_comments_between_modifiers;
 use crate::js::print::decorators::FormatDecorators;
 use crate::js::print::patterns::FormatBindingPropertyValue;
 use crate::js::print::type_parameters::type_arguments;
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 use smallvec::SmallVec;
 
 #[derive(Clone, Copy)]
@@ -1129,7 +1129,7 @@ pub(crate) fn is_short_argument<'a>(
     let is_oxfmt = f.options().flavor.is_oxfmt();
     let len = |text: &[u8]| match is_oxfmt {
         true => text.len(),
-        false => bun_core::strings::wtf8_len_utf16(text) as usize,
+        false => crate::js::strings::wtf8_len_utf16(text) as usize,
     };
     match node {
         AstNodes::IdentifierReference(_) => len(argument.text()) <= threshold,
@@ -1150,7 +1150,7 @@ pub(crate) fn is_short_argument<'a>(
         }
         AstNodes::TemplateLiteral(_) => matches!(argument.kind(), ExprKind::Template(template) if {
             let raw = template.raw(0);
-            template.quasi_count() == 1 && len(raw) <= threshold && bun_core::strings::index_of_any(raw, b"\r\n").is_none()
+            template.quasi_count() == 1 && len(raw) <= threshold && crate::js::strings::index_of_any(raw, b"\r\n").is_none()
         }),
         AstNodes::CallExpression(_) => argument.as_call_like().is_some_and(|call| {
             let callee = call.callee();

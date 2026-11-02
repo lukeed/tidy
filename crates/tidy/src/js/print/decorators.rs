@@ -1,6 +1,6 @@
 use crate::js::format::format_node;
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 use smallvec::SmallVec;
 
 /// The decorators of a class, a member or a parameter, and the space or the line break after them.

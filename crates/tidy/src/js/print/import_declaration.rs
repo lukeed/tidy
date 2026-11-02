@@ -5,8 +5,8 @@ use crate::js::utils::object::FormatKey;
 use crate::js::utils::string::{
     FormatLiteralStringToken, StringLiteralParentKind, is_name_without_quotes,
 };
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 /// A module specifier: a string literal that isn't an expression.
 pub(crate) struct FormatStringLiteral {
@@ -144,7 +144,7 @@ impl<'a, T: Format<'a>> Format<'a> for FormatSpecifier<'a, T> {
             && keeps_empty_line_before_specifier_comments(f)
             && let Some(first) = f.comments().of_node(self.node).leading.first()
             && first.span().start < self.node.span().start
-            && crate::text::is_previous_line_empty(
+            && crate::js::text::is_previous_line_empty(
                 f.source_text().as_bytes(),
                 first.span().start as usize,
             )

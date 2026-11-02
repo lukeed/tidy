@@ -21,8 +21,8 @@ use crate::js::format::{
 use crate::js::utils::format_node_without_trailing_comments::FormatNodeWithoutTrailingComments;
 use crate::js::utils::object::{format_computed_or_property_key, key_requires_quotes};
 use crate::js::utils::typescript::is_simple_type;
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 use smallvec::SmallVec;
 
 // ───────────────────────────── modifiers ─────────────────────────────
@@ -1758,14 +1758,14 @@ impl<'a> Format<'a> for FormatRecordProperty<'a> {
 pub fn is_parsed_by_babel_flow(options: &FormatOptions, path: &[u8]) -> bool {
     let name = options.filepath.as_deref().filter(|it| !it.is_empty());
     let is_flow_by_name =
-        crate::text::ends_with_ignore_ascii_case(name.unwrap_or(path), b".js.flow");
+        crate::js::text::ends_with_ignore_ascii_case(name.unwrap_or(path), b".js.flow");
     options.parser.as_deref() != Some(b"flow") && !is_flow_by_name
 }
 
 /// True if `text` contains something that looks like a comment that [`uncommented`] handles.
 pub fn may_have_comment_types(text: &[u8]) -> bool {
     let mut rest = text;
-    while let Some(at) = bun_core::strings::index_of(rest, b"/*") {
+    while let Some(at) = crate::js::strings::index_of(rest, b"/*") {
         rest = rest.get(at + 2..).unwrap_or_default();
         let indent_len = rest
             .iter()
@@ -1825,7 +1825,7 @@ pub fn uncommented<'a>(file: &'a File<'a>) -> Option<Vec<u8>> {
         // A `/*::` that's alone on its line doesn't leave an empty line behind.
         let whitespace_before = out.get(out.trim_ascii_end().len()..).unwrap_or_default();
         let is_at_start_of_line = whitespace_before.len() == out.len()
-            || bun_core::strings::index_of_any(whitespace_before, b"\r\n").is_some();
+            || crate::js::strings::index_of_any(whitespace_before, b"\r\n").is_some();
         let code = match blank_line(code).filter(|_| is_at_start_of_line) {
             Some(line) => code.get(line..).unwrap_or_default(),
             None => code,
@@ -1839,7 +1839,7 @@ pub fn uncommented<'a>(file: &'a File<'a>) -> Option<Vec<u8>> {
         };
         // A `*/` that starts its line doesn't leave an empty line behind.
         let trailing_whitespace = code.get(code.trim_ascii_end().len()..).unwrap_or_default();
-        let starts_line = bun_core::strings::index_of_any(trailing_whitespace, b"\r\n").is_some();
+        let starts_line = crate::js::strings::index_of_any(trailing_whitespace, b"\r\n").is_some();
         if !starts_line {
             out.extend_from_slice(rest.get(..line).unwrap_or_default());
         }

@@ -7,7 +7,7 @@ use super::function_type::{
 use super::object_like::ObjectLike;
 use super::type_parameters::{FormatDanglingCommentsForInline, type_arguments};
 use super::union_type::union_prints_comments_after_colon;
-use crate::cursor::extend_node;
+use crate::js::cursor::extend_node;
 use crate::js::format::{FormatTypeOfPredicate, format_node, identifier};
 use crate::js::utils::conditional::ConditionalLike;
 use crate::js::utils::format_node_without_trailing_comments::FormatNodeWithoutTrailingComments;
@@ -16,8 +16,8 @@ use crate::js::utils::object::{format_computed_or_property_key, key_requires_quo
 use crate::js::utils::string::{FormatLiteralStringToken, StringLiteralParentKind};
 use crate::js::utils::suppressed::{FormatSuppressedNode, FormatTemplateText};
 use crate::js::utils::typescript::without_lone_operator;
-use crate::prelude::*;
-use crate::{best_fitting, format_args, write};
+use crate::js::base::*;
+use crate::js::{best_fitting, format_args, write};
 
 /// `A.B.C`
 pub(crate) fn entity_name<'a>(name: EntityName<'a>) -> impl Format<'a> {
@@ -250,7 +250,7 @@ fn write_signatures<'a>(members: List<'a, Member<'a>>, is_interface: bool, f: &m
         // there.
         let is_after_empty_line = is_flow
             && previous.replace(signature).is_some_and(|previous| {
-                crate::text::is_next_line_empty(text, previous.span().end as usize)
+                crate::js::text::is_next_line_empty(text, previous.span().end as usize)
             });
         // Prettier has no node for the `...`. A comment before it trails the previous member.
         match super::flow::is_inexact_mark(signature) {

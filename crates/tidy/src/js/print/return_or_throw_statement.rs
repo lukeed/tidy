@@ -6,8 +6,8 @@ use crate::js::utils::typecast::{
     comments_of_outermost_node, has_leading_own_line_comment, is_cast_target,
     is_cast_target_that_hides_its_kind, is_chain_expression_without_comments,
 };
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 pub(crate) fn write_return_statement<'a>(
     statement: Stmt<'a>,

@@ -5,8 +5,8 @@ use crate::js::utils::call_expression::is_test_call_expression_in_flavor;
 use crate::js::utils::typescript::{
     is_object_like_type, is_simple_type, should_hug_type, without_lone_operator,
 };
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 /// `const in out T extends C = D`
 pub(crate) fn write_ts_type_parameter<'a>(param: TypeParam<'a>, f: &mut Formatter<'a>) {

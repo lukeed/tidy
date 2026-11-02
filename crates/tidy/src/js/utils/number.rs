@@ -1,6 +1,6 @@
 //! Prettier's `printNumber`.
 
-use crate::prelude::*;
+use crate::js::base::*;
 use smallvec::SmallVec;
 use std::borrow::Cow;
 
@@ -57,7 +57,7 @@ pub(crate) fn format_trimmed_number(text: &[u8]) -> Cow<'_, [u8]> {
     // matches.
     let next_dot = |out: &[u8], from: usize| {
         out.get(from..)
-            .and_then(|rest| bun_core::strings::index_of_char_usize(rest, b'.'))
+            .and_then(|rest| crate::js::strings::index_of_char_usize(rest, b'.'))
             .map(|at| from + at)
     };
     // `(\.\d+?)0+(?=e|$)` becomes `$1`

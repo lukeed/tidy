@@ -2,8 +2,8 @@
 
 use crate::js::utils::format_node_without_trailing_comments::FormatNodeWithoutTrailingComments;
 use crate::js::utils::typecast::comments_of_expression;
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 /// Prettier 3.9 prints `new (⏎ a as T⏎)()` like `(⏎ a as T⏎)()`. oxfmt follows 3.8, in which only `T` can break.
 fn breaks_around_new_callee(f: &Formatter<'_>) -> bool {

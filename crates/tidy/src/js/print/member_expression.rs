@@ -2,8 +2,8 @@ use crate::js::format::{identifier, name_without_comments};
 use crate::js::utils::call_expression::strip_chain_element_wrappers;
 use crate::js::utils::member_chain::chain_member::FormatComputedMemberExpressionWithoutObject;
 use crate::js::utils::typecast::{is_cast_target, is_cast_target_that_hides_its_kind};
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 /// `a.b`, `a?.b`, `a.#b`, `a[b]`, `a?.[b]`. Prettier's `printMemberExpression`.
 pub(crate) fn write_member_expression<'a>(e: Expr<'a>, f: &mut Formatter<'a>) {

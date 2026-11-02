@@ -2,10 +2,10 @@
 
 use super::doc::{self, Doc, Line};
 use super::sink::Sink;
-use crate::ir::element::{Condition, Group, GroupMode, LineMode, PrintMode, TextWidth};
+use crate::js::ir::element::{Condition, Group, GroupMode, LineMode, PrintMode, TextWidth};
 use crate::js::print::template::write_embedded_template_expression;
-use crate::prelude::*;
-use crate::text;
+use crate::js::base::*;
+use crate::js::text;
 
 const PLACEHOLDER: &[u8] = b"@prettier-placeholder-";
 
@@ -117,7 +117,7 @@ impl<'a> Writer<'a> {
         let width = match TextWidth::from_text(text, 0) {
             width if !width.is_multiline() => width,
             _ => TextWidth::multiline_string(
-                bun_core::strings::split(text, b"\n")
+                crate::js::strings::split(text, b"\n")
                     .map(|line| TextWidth::from_text(line, 0).value())
                     .sum(),
             ),
@@ -131,7 +131,7 @@ impl<'a> Writer<'a> {
             return;
         }
         f.write_text(text, None);
-        if bun_core::strings::contains_char(text, b'\n') {
+        if crate::js::strings::contains_char(text, b'\n') {
             f.write_element(FormatElement::ExpandParent);
         }
     }
@@ -219,7 +219,7 @@ impl<'a> Writer<'a> {
                 self.write_between(Tag::StartIndent, contents, Tag::EndIndent, f)
             }
             Doc::Dedent(contents) => {
-                use crate::ir::element::DedentMode::Level;
+                use crate::js::ir::element::DedentMode::Level;
                 self.write_between(Tag::StartDedent(Level), contents, Tag::EndDedent(Level), f);
             }
             // Style sheets never produce these.
@@ -330,7 +330,7 @@ fn print_embed_css<'a>(
         }
         text.extend_from_slice(template.raw(index));
     }
-    let text = bun_core::strings::crlf_as_lf(&text);
+    let text = crate::js::strings::crlf_as_lf(&text);
     let mut memo = Default::default();
     let Ok(sink) = super::parse_and_print(
         &text,
@@ -512,7 +512,7 @@ fn is_candidate<'a>(e: Expr<'a>, template: Template<'a>, options: &FormatOptions
 
 /// True if `template` is printed as ` `` `.
 pub(crate) fn is_blank(template: Template<'_>) -> bool {
-    template.quasi_count() == 1 && bun_core::strings::trim_js_whitespace(template.raw(0)).is_empty()
+    template.quasi_count() == 1 && crate::js::strings::trim_js_whitespace(template.raw(0)).is_empty()
 }
 
 /// Prettier's `embed`, for the languages that have a formatter here. Returns true if it wrote the template `e`.

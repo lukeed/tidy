@@ -14,8 +14,8 @@ use super::typecast::{comments_of_expression, is_chain_expression_without_commen
 use crate::js::parentheses;
 use crate::js::print::binary_like_expression::is_angular_pipe;
 use crate::js::print::statements::parenthesis_before_needs_semicolon;
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 impl<'a> Operand<'a> {
     /// True if one of its comments is a block comment that spans several lines.
@@ -316,7 +316,7 @@ pub(crate) fn write_ternary<'a>(conditional: ConditionalLike<'a>, f: &mut Format
         true => write!(f, text(b"\t")),
         // A width that's too long for a text is also too long for the consequent's indentation, which the printer
         // rejects.
-        false if crate::is_too_long(indent_width as usize) => {}
+        false if crate::js::is_too_long(indent_width as usize) => {}
         false => write!(
             f,
             text(&b" ".repeat((indent_width as usize).saturating_sub(1)))

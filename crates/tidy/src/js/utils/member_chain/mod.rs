@@ -14,8 +14,8 @@ use super::call_expression::{is_call_expression, is_member_expression};
 use super::is_long_curried_call;
 use super::typecast::is_cast_target;
 use crate::js::parentheses::expression::expression_needs_parentheses;
-use crate::prelude::*;
-use crate::{best_fitting, write};
+use crate::js::base::*;
+use crate::js::{best_fitting, write};
 use smallvec::SmallVec;
 
 type Members<'a> = SmallVec<[ChainMember<'a>; 8]>;
@@ -419,7 +419,7 @@ fn needs_empty_line_before_for_oxfmt<'a>(group: &[ChainMember<'a>], f: &Formatte
     .map_or(name_start, |comment| comment.span().start);
     let mut start = between.start;
     while let Some(line_break) =
-        bun_core::strings::index_of_any(f.source_text().text_for(&Span::new(start, end)), b"\r\n")
+        crate::js::strings::index_of_any(f.source_text().text_for(&Span::new(start, end)), b"\r\n")
     {
         start += line_break as u32;
         if f.source_text().lines_after(start) > 1 {

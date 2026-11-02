@@ -3,8 +3,8 @@ use crate::js::trivia::comments_stay_between_head_and_body;
 use crate::js::utils::format_node_without_trailing_comments::FormatNodeWithoutTrailingComments;
 use crate::js::utils::statement_body::{write_comments_before_token, write_space_before_body};
 use crate::js::utils::typecast::comments_of_expression;
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 #[inline(never)]
 pub(crate) fn write_switch_statement<'a>(

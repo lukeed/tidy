@@ -8,15 +8,15 @@ use super::ast::{Flags, Kind, Tree};
 use super::js::write_string;
 use super::map_strings::{MapString, write_mapped};
 pub(crate) use super::utilities::is_placeholder_in_js;
-use crate::css::embed::is_blank;
-use crate::ir::element::{Group, Interned, LineMode};
-use crate::ir::printer::PrinterOptions;
+use crate::js::embed::css::is_blank;
+use crate::js::ir::element::{Group, Interned, LineMode};
+use crate::js::ir::printer::PrinterOptions;
 use crate::js::context::JsFormatContext;
 use crate::js::print::template::write_embedded_template_expression;
-use crate::options::{HtmlRoot, HtmlWhitespaceSensitivity, LineEnding};
-use crate::prelude::*;
-use crate::text;
-use bun_core::strings;
+use crate::js::options::{HtmlRoot, HtmlWhitespaceSensitivity, LineEnding};
+use crate::js::base::*;
+use crate::js::text;
+use crate::js::strings;
 use smallvec::SmallVec;
 
 pub(crate) const PLACEHOLDER_START: &[u8] = b"PRETTIER_HTML_PLACEHOLDER_";
@@ -24,7 +24,7 @@ const PLACEHOLDER_END: &[u8] = b"_IN_JS";
 
 /// `isAngularComponentTemplate`: `` @Component({ template: `..` }) ``. `parent` is the template's parent.
 fn is_angular_component_template(parent: AstNodes<'_>) -> bool {
-    crate::css::embed::is_angular_component_property(parent, b"template")
+    crate::js::embed::css::is_angular_component_property(parent, b"template")
 }
 
 /// `` html`..` ``. `e` is a template and `parent` is its parent.
@@ -64,7 +64,7 @@ fn parser_of<'a>(e: Expr<'a>, template: Template<'a>, f: &Formatter<'a>) -> Opti
     }
     let parent = e.ast_parent();
     let parser = if has_html_tag(e, parent)
-        || crate::graphql::embed::has_language_comment(e, parent, b" HTML ", f)
+        || crate::js::embed::graphql::has_language_comment(e, parent, b" HTML ", f)
     {
         Parser::Html
     } else if is_angular_component_template(parent) {
@@ -74,7 +74,7 @@ fn parser_of<'a>(e: Expr<'a>, template: Template<'a>, f: &Formatter<'a>) -> Opti
     };
     // CSS and GraphQL take precedence.
     let is_in_another_language =
-        crate::css::embed::is_embed_css(e) || crate::graphql::embed::is_embed_graphql(e, f);
+        crate::js::embed::css::is_embed_css(e) || crate::js::embed::graphql::is_embed_graphql(e, f);
     (!is_in_another_language
         && (0..template.quasi_count()).all(|index| template.cooked(index).is_some()))
     .then_some(parser)
@@ -109,7 +109,7 @@ fn text_with_placeholders(template: Template<'_>, counter: u32) -> Vec<u8> {
         from = at + 1;
     }
     match strings::contains_char(&text, b'\r') {
-        true => bun_core::strings::crlf_as_lf(&text).into_owned(),
+        true => crate::js::strings::crlf_as_lf(&text).into_owned(),
         false => text,
     }
 }
@@ -312,7 +312,7 @@ fn keeps_substitution_count(
         ..PrinterOptions::new(options, text)
     };
     let (source, mut printed) = (f.source_text().as_bytes(), Vec::new());
-    crate::ir::printer::print(
+    crate::js::ir::printer::print(
         document,
         &f.storage,
         source,

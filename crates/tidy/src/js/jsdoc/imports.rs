@@ -2,9 +2,9 @@
 
 use super::line_buffer::LineBuffer;
 use super::text::{join, lines, trim_end_matches};
-use crate::options::QuoteStyle;
-use bun_core::strings;
-use bun_lint::ast::jsdoc::JSDocTag;
+use crate::js::options::QuoteStyle;
+use crate::js::strings;
+use crate::js::ast::jsdoc::JSDocTag;
 use std::cmp::Ordering;
 
 struct ImportInfo {
@@ -98,12 +98,12 @@ fn merge_and_sort_imports(imports: Vec<ImportInfo>) -> Vec<ImportInfo> {
         }
     }
     for import in &mut groups {
-        crate::sort::sort_by(&mut import.named_imports[..], |a, b| {
+        crate::js::sort::sort_by(&mut import.named_imports[..], |a, b| {
             cmp_ascii_case_insensitive(import_specifier_sort_key(a), import_specifier_sort_key(b))
         });
     }
     // Packages come before relative paths.
-    crate::sort::sort_by(&mut groups[..], |a, b| {
+    crate::js::sort::sort_by(&mut groups[..], |a, b| {
         let is_relative = |import: &ImportInfo| import.module_path.starts_with(b".");
         is_relative(a)
             .cmp(&is_relative(b))

@@ -8,7 +8,7 @@ use super::generator::{Piece, PieceKind, Printer, Prologue};
 use super::layout::is_unchanged;
 use super::sort::stable_sort_by;
 use bun_lint::regex::Regex;
-use bun_lint::span::Span;
+use crate::js::ast::Span;
 use bun_lint::utils::node::is_builtin_module;
 use std::cmp::Ordering;
 
@@ -71,7 +71,7 @@ impl Options {
     fn compare(&self, a: &[u8], b: &[u8]) -> Ordering {
         match self.is_case_sensitive {
             true => natural_sort_case_sensitive(a, b),
-            false => bun_core::strings::locale_compare_numeric_base(a, b),
+            false => crate::js::strings::locale_compare_numeric_base(a, b),
         }
     }
 
@@ -107,7 +107,7 @@ impl Options {
 /// `hasIgnoreNextNode`
 fn has_ignore_next_node(model: &Model, comments: &[CommentId]) -> bool {
     comments.iter().any(|comment| {
-        bun_core::strings::trim_js_whitespace(model.comment_value(*comment)) == b"prettier-ignore"
+        crate::js::strings::trim_js_whitespace(model.comment_value(*comment)) == b"prettier-ignore"
     })
 }
 
@@ -300,7 +300,7 @@ fn sorted_by_import_order(
             index,
         ));
     }
-    crate::sort::sort_by_key(&mut grouped[..], |it: &(usize, u32)| it.0);
+    crate::js::sort::sort_by_key(&mut grouped[..], |it: &(usize, u32)| it.0);
     for group in grouped.chunk_by_mut(|a, b| a.0 == b.0) {
         let source = |index: u32| model.source_of(&model.declarations[index as usize]);
         stable_sort_by(group, |a, b| options.compare(source(a.1), source(b.1)));
@@ -436,7 +436,7 @@ fn comment_registry(model: &Model, output: &[u32]) -> Vec<Entry> {
         }
     }
     let mut deferred = std::mem::take(&mut registry.deferred);
-    crate::sort::sort_by_key(&mut deferred[..], |entry| entry.processing_priority);
+    crate::js::sort::sort_by_key(&mut deferred[..], |entry| entry.processing_priority);
     // The first specifier on a line.
     let specifier_on = |line: i32| {
         (output
@@ -469,7 +469,7 @@ fn comment_registry(model: &Model, output: &[u32]) -> Vec<Entry> {
             ..entry
         });
     }
-    crate::sort::sort_by_key(&mut registry.entries[..], |entry| entry.processing_priority);
+    crate::js::sort::sort_by_key(&mut registry.entries[..], |entry| entry.processing_priority);
     registry.entries
 }
 
@@ -696,7 +696,7 @@ pub(super) fn preprocess(
         .for_each(|it| remove_comments(&it.1));
     removed.extend(model.directives.iter().map(|it| it.span));
     removed.extend(model.interpreter.iter().map(|it| it.0));
-    crate::sort::sort_by_key(&mut removed[..], |span| span.start);
+    crate::js::sort::sort_by_key(&mut removed[..], |span| span.start);
 
     let printer = Printer::new(model, b"with", end_of_line).generate(Prologue::Included, &nodes);
     if printer.has_failed {
@@ -723,7 +723,7 @@ pub(super) fn preprocess(
         let mut at = at;
         if out.len() == header_end {
             let trimmed =
-                retained.len() - bun_core::strings::trim_js_whitespace_start(retained).len();
+                retained.len() - crate::js::strings::trim_js_whitespace_start(retained).len();
             (retained, at) = (&retained[trimmed..], at + trimmed as u32);
         }
         while let Some((id, comment)) = comments.next_if(|it| it.1.span.start < to) {
@@ -760,7 +760,7 @@ pub(super) fn preprocess(
         return None;
     }
     out.extend_from_slice(&text[rest_start as usize..]);
-    let trimmed = header_end + bun_core::strings::trim_js_whitespace_end(&out[header_end..]).len();
+    let trimmed = header_end + crate::js::strings::trim_js_whitespace_end(&out[header_end..]).len();
     out.truncate(trimmed);
     Some(out)
 }

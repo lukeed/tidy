@@ -18,11 +18,11 @@ mod wrap;
 
 use self::serialize::{FormattedJsdoc, format_jsdoc_comment};
 use super::comments::Comment;
-use crate::prelude::*;
-use crate::stack::Stack;
-use crate::write;
-use bun_core::strings;
-use bun_lint::ast::jsdoc::JSDoc;
+use crate::js::base::*;
+use crate::js::stack::Stack;
+use crate::js::write;
+use crate::js::strings;
+use crate::js::ast::jsdoc::JSDoc;
 
 /// Writes the formatted `comment` if the `jsdoc` option is set and it's a JSDoc comment that formatting changes.
 /// Returns true if it wrote it.

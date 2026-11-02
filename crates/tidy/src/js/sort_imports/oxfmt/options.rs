@@ -90,13 +90,13 @@ struct GroupName {
 
 impl GroupName {
     fn parse(name: &[u8]) -> Option<GroupName> {
-        let mut parts: Vec<&[u8]> = bun_core::strings::split(name, b"-").collect();
+        let mut parts: Vec<&[u8]> = crate::js::strings::split(name, b"-").collect();
         let selector = Selector::parse(parts.pop()?)?;
         let mut modifiers = parts
             .into_iter()
             .map(Modifier::parse)
             .collect::<Option<Vec<Modifier>>>()?;
-        crate::sort::sort(&mut modifiers[..]);
+        crate::js::sort::sort(&mut modifiers[..]);
         modifiers.dedup();
         Some(GroupName {
             selector,
@@ -382,7 +382,7 @@ pub(crate) fn compile(
             None => {}
         }
     }
-    crate::sort::sort_by(&mut predefined[..], |a, b| {
+    crate::js::sort::sort_by(&mut predefined[..], |a, b| {
         (a.0.selector.cmp(&b.0.selector))
             .then_with(|| b.0.modifiers.len().cmp(&a.0.modifiers.len()))
             .then_with(|| a.0.modifiers.cmp(&b.0.modifiers))

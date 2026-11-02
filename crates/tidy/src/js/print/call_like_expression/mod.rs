@@ -12,8 +12,8 @@ use crate::js::utils::call_expression::{
 use crate::js::utils::member_chain::write_member_chain;
 use crate::js::utils::tailwindcss::{InTailwindContext, TailwindContext, context_of_function};
 use crate::js::utils::typecast::{comments_of_outermost_node, has_comments, is_cast_target};
-use crate::prelude::*;
-use crate::{format_args, write};
+use crate::js::base::*;
+use crate::js::{format_args, write};
 
 pub(crate) fn write_call_expression<'a>(e: Expr<'a>, call: Call<'a>, f: &mut Formatter<'a>) {
     let context = context_of_function(call.callee(), f);

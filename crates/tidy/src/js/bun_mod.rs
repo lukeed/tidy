@@ -16,7 +16,7 @@ pub(crate) mod source_text;
 pub(crate) mod trivia;
 pub(crate) mod utils;
 
-use crate::prelude::*;
+use crate::js::base::*;
 
 pub(crate) mod prelude {
     pub(crate) use super::ast_nodes::{AsAstNodes, AstNodes, ChainElement};

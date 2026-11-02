@@ -4,19 +4,19 @@
 //! line breaks depend on where it is.
 
 use super::map_strings::{MapString, write_mapped};
-use crate::ir::element::{Interned, TextWidth};
+use crate::js::ir::element::{Interned, TextWidth};
 use crate::js::ast_nodes::node_as_ast_nodes;
 use crate::js::comments::{self, NO_COMMENTS};
 use crate::js::context::JsFormatContext;
 use crate::js::print::program::{FormatStatements, write_hashbang};
 use crate::js::sort_imports::{SortImports, sorted_text};
 use crate::js::utils::tailwindcss::{Collapse, Texts, collapse_among, ends_in_template};
-use crate::options::{Code, Flavor, HtmlRoot, InHtml, JavaScriptParser, ParseJavaScript, Then};
-use crate::prelude::*;
+use crate::js::options::{Code, Flavor, HtmlRoot, InHtml, JavaScriptParser, ParseJavaScript, Then};
+use crate::js::base::*;
 use crate::tailwind::{Tailwind, Tidies};
-use crate::{format_args, write};
-use bun_core::strings;
-use bun_lint::ast::walk::{Visitor, walk};
+use crate::js::{format_args, write};
+use crate::js::strings;
+use crate::js::ast::walk::{Visitor, walk};
 use bun_lint::linter::{TypesInJavaScript, rejected_by_prettier_with};
 
 /// Prettier's parsers for programs.
@@ -425,7 +425,7 @@ pub(crate) fn with_sorted_classes(
     }
     let mut changes = changes.filter(|it| !it.is_empty())?;
     // A template's texts are visited before the expressions between them.
-    crate::sort::sort_by_key(&mut changes[..], |it| it.0.start);
+    crate::js::sort::sort_by_key(&mut changes[..], |it| it.0.start);
     let (mut sorted, mut from) = (Vec::with_capacity(code.len()), BEFORE.len());
     for (span, text) in changes {
         sorted.extend_from_slice(source.get(from..span.start as usize)?);

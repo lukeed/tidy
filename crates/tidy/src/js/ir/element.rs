@@ -4,7 +4,7 @@
 //! element is 16 bytes and `Copy`, so it never owns anything. Text is a range of the source or of the formatter's own
 //! text buffer, and a sub-document that's written in more than one place is a range of the formatter's pool.
 
-use crate::options::Flavor;
+use crate::js::options::Flavor;
 use std::num::NonZeroU32;
 
 const _: () = assert!(size_of::<FormatElement>() == 16);
@@ -250,7 +250,7 @@ impl TextWidth {
         let mut width = 0;
         let mut rest = text;
         loop {
-            let Some(at) = bun_core::strings::index_of_any(rest, b"\t\n") else {
+            let Some(at) = crate::js::strings::index_of_any(rest, b"\t\n") else {
                 return Self::single(width + super::width::string_width_as(rest, flavor));
             };
             width += super::width::string_width_as(&rest[..at], flavor);

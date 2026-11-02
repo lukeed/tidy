@@ -4,8 +4,8 @@ use super::object_pattern_like::ObjectPatternLike;
 use crate::js::format::format_node;
 use crate::js::utils::array::write_array_node;
 use crate::js::utils::assignment_like::AssignmentLike;
-use crate::prelude::*;
-use crate::write;
+use crate::js::base::*;
+use crate::js::write;
 
 pub(crate) fn write_binding_pattern<'a>(pat: Pat<'a>, f: &mut Formatter<'a>) {
     match pat.kind() {

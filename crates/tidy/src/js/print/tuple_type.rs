@@ -1,6 +1,6 @@
 use crate::js::format::identifier;
-use crate::prelude::*;
-use crate::write;
+use crate::js::base::*;
+use crate::js::write;
 
 /// `[A, B]`
 pub(crate) fn write_ts_tuple_type<'a>(
