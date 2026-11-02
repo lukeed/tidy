@@ -136,6 +136,37 @@ handles! {
   TupleElem,
 }
 
+macro_rules! plain_handles {
+  ($($name:ident,)*) => {
+    $(impl<'a> super::Handle<'a> for $name<'a> {
+      #[inline]
+      fn from_raw(file: &'a File<'a>, id: u32) -> Self {
+        $name::new(file, id)
+      }
+    })*
+  };
+}
+
+plain_handles! {
+  Stmt,
+  TypeNode,
+  Pat,
+  PatProp,
+  PatElem,
+  Func,
+  Param,
+  TypeParam,
+  Class,
+  Member,
+  Prop,
+  VarDecl,
+  Case,
+  EnumMember,
+  ImportSpec,
+  ExportSpec,
+  TupleElem,
+}
+
 impl PartialEq for File<'_> {
   fn eq(&self, other: &Self) -> bool {
     std::ptr::eq(self, other)
@@ -214,6 +245,17 @@ impl<'a> Node<'a> {
       | K::TSNonNullExpression(_)
       | K::TSInstantiationExpression(_)
       | K::PrivateIdentifier(_) => Node::Expr(Expr::new(file, id)),
+      K::JSXIdentifier(_) | K::JSXMemberExpression(_) | K::JSXNamespacedName(_) => match parent() {
+        Some(K::JSXOpeningElement(_) | K::JSXClosingElement(_) | K::JSXMemberExpression(_)) => {
+          Node::Expr(Expr::new(file, id))
+        }
+        _ => return None,
+      },
+      K::JSXSpreadChild(_) => Node::Expr(Expr::new(file, id)),
+      K::JSXAttribute(_) | K::JSXSpreadAttribute(_) => Node::Prop(Prop::new(file, id)),
+      K::AssignmentTargetRest(_) if matches!(parent(), Some(K::ObjectAssignmentTarget(_))) => {
+        Node::Prop(Prop::new(file, id))
+      }
       K::SpreadElement(_) => match parent() {
         Some(K::ObjectExpression(_)) => Node::Prop(Prop::new(file, id)),
         _ => Node::Expr(Expr::new(file, id)),

@@ -17,6 +17,8 @@ pub(crate) struct List<'a, T> {
   file: &'a File<'a>,
   start: u32,
   len: u32,
+  /// Elements that bun's tree doesn't have, which every operation skips: JSX text of only white space and line breaks.
+  skip: Option<fn(&File, u32) -> bool>,
   of: PhantomData<T>,
 }
 
@@ -25,20 +27,28 @@ impl<'a, T: Handle<'a>> List<'a, T> {
   pub(crate) fn run(file: &'a File<'a>, first: Option<u32>, len: usize) -> Self {
     match first {
       Some(first) if len > 0 => {
-        List { file, start: file.position(first), len: len as u32, of: PhantomData }
+        List { file, start: file.position(first), len: len as u32, skip: None, of: PhantomData }
       }
       _ => List::empty(file),
     }
   }
 
   pub(crate) fn empty(file: &'a File<'a>) -> Self {
-    List { file, start: 0, len: 0, of: PhantomData }
+    List { file, start: 0, len: 0, skip: None, of: PhantomData }
+  }
+
+  /// The list without the elements for which `skip` is true.
+  pub(crate) fn without(self, skip: fn(&File, u32) -> bool) -> Self {
+    List { skip: Some(skip), ..self }
+  }
+
+  fn id_at(self, i: u32) -> u32 {
+    self.file.children_at(self.start + i, 1).first().copied().unwrap_or(super::NONE)
   }
 
   #[inline]
   fn at(self, i: u32) -> T {
-    let id = self.file.children_at(self.start + i, 1).first().copied().unwrap_or(super::NONE);
-    T::from_raw(self.file, id)
+    T::from_raw(self.file, self.id_at(i))
   }
 
   pub(crate) fn iter(self) -> Iter<'a, T> {
@@ -46,15 +56,21 @@ impl<'a, T: Handle<'a>> List<'a, T> {
   }
 
   pub(crate) fn len(self) -> usize {
-    self.len as usize
+    match self.skip {
+      Some(_) => self.iter().count(),
+      None => self.len as usize,
+    }
   }
 
   pub(crate) fn is_empty(self) -> bool {
-    self.len == 0
+    self.len() == 0
   }
 
   pub(crate) fn get(self, i: usize) -> Option<T> {
-    (i < self.len as usize).then(|| self.at(i as u32))
+    match self.skip {
+      Some(_) => self.iter().nth(i),
+      None => (i < self.len as usize).then(|| self.at(i as u32)),
+    }
   }
 
   pub(crate) fn first(self) -> Option<T> {
@@ -62,7 +78,7 @@ impl<'a, T: Handle<'a>> List<'a, T> {
   }
 
   pub(crate) fn last(self) -> Option<T> {
-    self.len.checked_sub(1).map(|i| self.at(i))
+    self.iter().next_back()
   }
 }
 
@@ -142,28 +158,38 @@ impl<'a, T: Handle<'a>> Iterator for Iter<'a, T> {
   type Item = T;
 
   fn next(&mut self) -> Option<T> {
-    (self.front < self.back).then(|| {
+    while self.front < self.back {
       self.front += 1;
-      self.list.at(self.front - 1)
-    })
+      if !self.list.skips(self.front - 1) {
+        return Some(self.list.at(self.front - 1));
+      }
+    }
+    None
   }
 
   fn size_hint(&self) -> (usize, Option<usize>) {
     let rest = (self.back - self.front) as usize;
-    (rest, Some(rest))
+    (if self.list.skip.is_some() { 0 } else { rest }, Some(rest))
   }
 }
 
 impl<'a, T: Handle<'a>> DoubleEndedIterator for Iter<'a, T> {
   fn next_back(&mut self) -> Option<T> {
-    (self.front < self.back).then(|| {
+    while self.front < self.back {
       self.back -= 1;
-      self.list.at(self.back)
-    })
+      if !self.list.skips(self.back) {
+        return Some(self.list.at(self.back));
+      }
+    }
+    None
   }
 }
 
-impl<'a, T: Handle<'a>> ExactSizeIterator for Iter<'a, T> {}
+impl<'a, T: Handle<'a>> List<'a, T> {
+  fn skips(self, i: u32) -> bool {
+    self.skip.is_some_and(|skip| skip(self.file, self.id_at(i)))
+  }
+}
 
 /// The id in the tables of an expression: parentheses and a chain around it are skipped.
 pub(crate) fn expression_id(mut expression: &Expression) -> u32 {
