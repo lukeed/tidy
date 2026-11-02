@@ -82,6 +82,8 @@ Most entries come from bun's ports, which correct the places where Prettier's ou
 | [ini-empty-section](#ini-empty-section) | ini | proposed |
 | [ini-empty-list](#ini-empty-list) | ini | proposed |
 | [ini-embedded](#ini-embedded) | markdown | proposed |
+| [graphql-block-string-padding](#graphql-block-string-padding) | graphql | proposed |
+| [graphql-block-string-trailing-space](#graphql-block-string-trailing-space) | graphql | proposed |
 | [the rule in step 2](#process) | all | proposed |
 | [tempura and text mode](#beyond-prettier) | handlebars | approved 2026-10-31 |
 
@@ -1031,6 +1033,36 @@ tidy:   "a =\n\nb = 1\n"
 input:    "```ini\na=1\n```\n"
 Prettier: "```ini\na=1\n```\n"
 tidy:     "```ini\na = 1\n```\n"
+```
+
+## GraphQL
+
+tidy's GraphQL is a port of bun's, which corrects the two places where Prettier changes the value of a block string. `tests/oracle/graphql.ts` compares tidy with Prettier on its fixtures and on a corpus: GitLab's queries and five public schemas. Apart from these entries, tidy prints what Prettier prints there.
+
+### graphql-block-string-padding
+
+- Status: proposed
+- Why: The value of a block string of one line keeps its leading and trailing white space. Prettier trims the line, which changes the value. tidy keeps such a string as it is written.
+- Where: crates/tidy/src/graphql/print.rs (`block_string`)
+- Parser: graphql
+
+```
+input:    "\"\"\" padded \"\"\"\nscalar A\n"
+Prettier: "\"\"\"\npadded\n\"\"\"\nscalar A\n"
+tidy:     "\"\"\" padded \"\"\"\nscalar A\n"
+```
+
+### graphql-block-string-trailing-space
+
+- Status: proposed
+- Why: The spaces and tabs at the end of a line of a block string are part of its value. Prettier's line breaks drop them. tidy keeps them. In the corpus, Saleor's schema has such lines.
+- Where: crates/tidy/src/graphql/print.rs (`block_string`)
+- Parser: graphql
+
+```
+input:    "\"\"\"\nends in a space \nlast\n\"\"\"\nscalar A\n"
+Prettier: "\"\"\"\nends in a space\nlast\n\"\"\"\nscalar A\n"
+tidy:     "\"\"\"\nends in a space \nlast\n\"\"\"\nscalar A\n"
 ```
 
 ## Beyond Prettier

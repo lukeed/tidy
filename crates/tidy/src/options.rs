@@ -4,7 +4,8 @@
 use crate::embed::Embed;
 use crate::embed::{Kind, Request};
 use crate::{
-  Error, Whitespace, css, doc, dockerfile, handlebars, html, ini, json, markdown, toml, xml, yaml,
+  Error, Whitespace, css, doc, dockerfile, graphql, handlebars, html, ini, json, markdown, toml,
+  xml, yaml,
 };
 
 /// A language that tidy formats.
@@ -21,6 +22,7 @@ pub enum Language {
   Markdown,
   Dockerfile,
   Ini(ini::Dialect),
+  Graphql,
 }
 
 impl Language {
@@ -37,6 +39,9 @@ impl Language {
     }
     if dockerfile::is_dockerfile_path(path) {
       return Some(Language::Dockerfile);
+    }
+    if graphql::is_graphql_path(path) {
+      return Some(Language::Graphql);
     }
     if let Some(dialect) = ini::Dialect::of_path(path) {
       return Some(Language::Ini(dialect));
@@ -77,6 +82,7 @@ pub struct Options {
   pub dockerfile: dockerfile::Options,
   /// For every dialect of INI.
   pub ini: ini::Options,
+  pub graphql: graphql::Options,
 }
 
 impl Default for Options {
@@ -93,6 +99,7 @@ impl Default for Options {
       markdown: markdown::Options::default(),
       dockerfile: dockerfile::Options::default(),
       ini: ini::Options::default(),
+      graphql: graphql::Options::default(),
     }
   }
 }
@@ -111,6 +118,7 @@ impl Options {
     shared.markdown(&mut self.markdown);
     shared.dockerfile(&mut self.dockerfile);
     shared.ini(&mut self.ini);
+    shared.graphql(&mut self.graphql);
   }
 }
 
@@ -238,6 +246,15 @@ impl Shared {
     set(&mut options.eol, self.eol);
   }
 
+  pub fn graphql(&self, options: &mut graphql::Options) {
+    set(&mut options.width, self.width);
+    set(&mut options.tab_width, self.indent);
+    set(&mut options.tabs, self.tabs);
+    set(&mut options.eol, self.eol);
+    set(&mut options.bracket_spacing, self.bracket_spacing);
+    set(&mut options.ignore, self.ignore.clone());
+  }
+
   pub fn xml(&self, options: &mut xml::Options) {
     set(&mut options.width, self.width);
     set(&mut options.tab_width, self.indent);
@@ -287,6 +304,7 @@ pub struct Formatter {
   yaml: yaml::Formatter,
   dockerfile: dockerfile::Formatter,
   ini: ini::Formatter,
+  graphql: graphql::Formatter,
   markdown: String,
 }
 
@@ -325,6 +343,7 @@ impl Formatter {
         let options = ini::Options { dialect, ..options.ini.clone() };
         self.ini.format(text, &options)
       }
+      Language::Graphql => self.graphql.format(text, &options.graphql),
       Language::Xml => self.xml.format(text, &options.xml, embed),
       Language::Yaml => {
         let options = yaml::Options { filepath, ..options.yaml.clone() };

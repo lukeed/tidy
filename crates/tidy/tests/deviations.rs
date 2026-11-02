@@ -5,7 +5,7 @@
 
 use serde_json::Value;
 use tidy::embed::Verbatim;
-use tidy::{Language, css, dockerfile, handlebars, html, ini, toml, xml};
+use tidy::{Language, css, dockerfile, graphql, handlebars, html, ini, toml, xml};
 
 fn format(parser: &str, input: &str, option: Option<&str>) -> String {
   let whitespace = match option {
@@ -33,6 +33,9 @@ fn format(parser: &str, input: &str, option: Option<&str>) -> String {
     "toml" => toml::format(input, &toml::Options::default()).map_err(|error| error.to_string()),
     "dockerfile" => {
       dockerfile::format(input, &dockerfile::Options::default()).map_err(|error| error.to_string())
+    }
+    "graphql" => {
+      graphql::format(input, &graphql::Options::default()).map_err(|error| error.to_string())
     }
     "ini" | "gitconfig" => {
       let dialect = if parser == "gitconfig" { ini::Dialect::Git } else { ini::Dialect::Ini };

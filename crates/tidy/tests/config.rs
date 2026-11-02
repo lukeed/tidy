@@ -72,6 +72,13 @@ fn sets_dockerfile() {
 }
 
 #[test]
+fn sets_graphql() {
+  let config = Config::json(r#"{ "width": 100, "graphql": { "bracketSpacing": false } }"#).unwrap();
+  let options = options(&config).graphql;
+  assert_eq!((options.width, options.bracket_spacing), (100, false));
+}
+
+#[test]
 fn sets_ini() {
   let config =
     Config::json(r#"{ "indent": 4, "ini": { "spaceAroundEquals": false, "tabs": true } }"#)

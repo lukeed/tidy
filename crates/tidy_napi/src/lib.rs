@@ -29,7 +29,7 @@ type Callback<'a> = Function<'a, EmbedRequest, Option<String>>;
 pub struct FormatOptions {
   /// The language. Default: by `filepath`, and HTML without one.
   #[napi(
-    ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'json' | 'jsonc' | 'json5' | 'json-stringify' | 'yaml' | 'toml' | 'dockerfile' | 'ini' | 'gitconfig' | 'xml' | 'markdown'"
+    ts_type = "'html' | 'vue' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'json' | 'jsonc' | 'json5' | 'json-stringify' | 'yaml' | 'toml' | 'dockerfile' | 'ini' | 'gitconfig' | 'graphql' | 'xml' | 'markdown'"
   )]
   pub parser: Option<String>,
   /// The file's path, which decides the language and some details.
@@ -86,6 +86,9 @@ pub struct FormatOptions {
   /// Options for INI only: the shared ones, and `spaceAroundEquals`.
   #[napi(ts_type = "Record<string, unknown>")]
   pub ini: Option<Value>,
+  /// Options for GraphQL only: the shared ones.
+  #[napi(ts_type = "Record<string, unknown>")]
+  pub graphql: Option<Value>,
   /// Options for XML only: the shared ones, and `selfClosingSpace`, `sortAttributes` and `attributeQuotes`.
   #[napi(ts_type = "Record<string, unknown>")]
   pub xml: Option<Value>,
@@ -186,6 +189,7 @@ fn language(input: &FormatOptions) -> napi::Result<(Language, Option<tidy::handl
     Some("dockerfile") => (Language::Dockerfile, None),
     Some("ini") => (Language::Ini(ini::Dialect::Ini), None),
     Some("gitconfig") => (Language::Ini(ini::Dialect::Git), None),
+    Some("graphql") => (Language::Graphql, None),
     Some("yaml") => (Language::Yaml, None),
     Some("xml") => (Language::Xml, None),
     Some("markdown") => (Language::Markdown, None),
@@ -224,6 +228,7 @@ fn config(input: &FormatOptions) -> Value {
   put("toml", input.toml.clone());
   put("dockerfile", input.dockerfile.clone());
   put("ini", input.ini.clone());
+  put("graphql", input.graphql.clone());
   put("yaml", input.yaml.clone());
   put("xml", input.xml.clone());
   put("markdown", input.markdown.clone());

@@ -42,6 +42,7 @@ pub struct Config {
   pub markdown: Markdown,
   pub dockerfile: Dockerfile,
   pub ini: Ini,
+  pub graphql: Shared,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -178,6 +179,7 @@ impl Config {
         "toml" => config.toml = toml(section("toml")?)?,
         "dockerfile" => config.dockerfile = dockerfile(section("dockerfile")?)?,
         "ini" => config.ini = ini(section("ini")?)?,
+        "graphql" => config.graphql = shared_only(section("graphql")?, "graphql")?,
         "yaml" => config.yaml = yaml(section("yaml")?)?,
         "xml" => config.xml = xml(section("xml")?)?,
         "markdown" => config.markdown = markdown(section("markdown")?)?,
@@ -212,6 +214,7 @@ impl Config {
     set(&mut options.dockerfile.healthcheck_cmd_new_line, self.dockerfile.healthcheck_cmd_new_line);
     self.ini.shared.ini(&mut options.ini);
     set(&mut options.ini.spaces, self.ini.space_around_equals);
+    self.graphql.graphql(&mut options.graphql);
     self.yaml.shared.yaml(&mut options.yaml);
     set(&mut options.yaml.wrap, self.yaml.wrap);
     self.xml.shared.xml(&mut options.xml);

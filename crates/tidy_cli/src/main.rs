@@ -19,12 +19,12 @@ Usage
   With one file, prints the result unless --check or --write is set.
   Folders are searched for .html, .htm, .vue, .hbs, .handlebars, .css, .scss, .less, .md, and .markdown
   files, for JSON files: .json, .jsonc, .json5, package.json, and the others that Prettier formats, for .yml,
-  .yaml and .toml files, for Dockerfile, Containerfile, Dockerfile.dev and .dockerfile files, for INI files:
-  .ini, .cfg, .editorconfig, .npmrc, .gitconfig, .gitmodules, and the others that prettier-plugin-ini
-  formats, and for XML files: .xml, .svg, .plist, .csproj, pom.xml, and the others that
-  @prettier/plugin-xml formats. Style
-  sheets in <style> and style=\"\", JSON in scripts and code blocks, YAML and TOML in code blocks and front
-  matter, and Dockerfiles in code blocks are formatted. Other scripts and code blocks are left as written.
+  .yaml, .toml, .graphql, .gql and .graphqls files, for Dockerfile, Containerfile, Dockerfile.dev and
+  .dockerfile files, for INI files: .ini, .cfg, .editorconfig, .npmrc, .gitconfig, .gitmodules, and the
+  others that prettier-plugin-ini formats, and for XML files: .xml, .svg, .plist, .csproj, pom.xml, and the
+  others that @prettier/plugin-xml formats. Style sheets in <style> and style=\"\", JSON in scripts and code
+  blocks, YAML and TOML in code blocks and front matter, and Dockerfiles, INI and GraphQL in code blocks are
+  formatted. Other scripts and code blocks are left as written.
 
   Each file takes its options from the nearest tidy.json, tidy.jsonc or tidy.toml, and from .editorconfig.
   Options given here override them.
@@ -33,8 +33,8 @@ Options
   --check                         List files that aren't formatted, and exit 1 if any
   -w, --write                     Rewrite files in place
   --parser <name>                 html, vue, handlebars, tempura, css, scss, less, json, jsonc, json5,
-                                  json-stringify, yaml, toml, dockerfile, ini, gitconfig, xml, or markdown
-                                  (default: by file name)
+                                  json-stringify, yaml, toml, dockerfile, ini, gitconfig, graphql, xml, or
+                                  markdown (default: by file name)
   --stdin-filepath <path>         The path of the text on stdin, for its language and its config files
   --config <path>                 Use this config for every file instead of the nearest one
   --no-config                     Read no config files and no .editorconfig
@@ -104,6 +104,7 @@ fn run() -> Result<ExitCode, String> {
         "dockerfile" => (Language::Dockerfile, None),
         "ini" => (Language::Ini(ini::Dialect::Ini), None),
         "gitconfig" => (Language::Ini(ini::Dialect::Git), None),
+        "graphql" => (Language::Graphql, None),
         "yaml" => (Language::Yaml, None),
         "xml" => (Language::Xml, None),
         "markdown" => (Language::Markdown, None),

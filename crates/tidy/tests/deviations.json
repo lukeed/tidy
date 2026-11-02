@@ -2612,5 +2612,31 @@
         "tidy": "```ini\na = 1\n```\n"
       }
     ]
+  },
+  {
+    "id": "graphql-block-string-padding",
+    "rows": [
+      {
+        "parsers": [
+          "graphql"
+        ],
+        "input": "\"\"\" padded \"\"\"\nscalar A\n",
+        "prettier": "\"\"\"\npadded\n\"\"\"\nscalar A\n",
+        "tidy": "\"\"\" padded \"\"\"\nscalar A\n"
+      }
+    ]
+  },
+  {
+    "id": "graphql-block-string-trailing-space",
+    "rows": [
+      {
+        "parsers": [
+          "graphql"
+        ],
+        "input": "\"\"\"\nends in a space \nlast\n\"\"\"\nscalar A\n",
+        "prettier": "\"\"\"\nends in a space\nlast\n\"\"\"\nscalar A\n",
+        "tidy": "\"\"\"\nends in a space \nlast\n\"\"\"\nscalar A\n"
+      }
+    ]
   }
 ]

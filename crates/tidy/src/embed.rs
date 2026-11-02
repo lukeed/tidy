@@ -65,11 +65,11 @@ pub(crate) fn own(language: &str) -> Option<&'static str> {
 }
 
 /// Formats `request` with tidy's own formatter for its language, as a hook would, for the languages that tidy formats as
-/// text: JSON, YAML, TOML, Dockerfile and INI. `None` if it has none, or the code doesn't parse. TOML, Dockerfile and
+/// text: JSON, YAML, TOML, Dockerfile, INI and GraphQL. `None` if it has none, or the code doesn't parse. TOML, Dockerfile and
 /// INI print at the start of a line only, since indenting their lines would change multi-line strings, heredocs and
 /// values over lines.
 pub(crate) fn builtin(request: &Request<'_>, tab_width: usize, tabs: bool) -> Option<String> {
-  use crate::{dockerfile, ini, json, toml, yaml};
+  use crate::{dockerfile, graphql, ini, json, toml, yaml};
   let dialect = match request.language {
     "json" => json::Dialect::Json,
     "jsonc" => json::Dialect::Jsonc,
@@ -91,6 +91,11 @@ pub(crate) fn builtin(request: &Request<'_>, tab_width: usize, tabs: bool) -> Op
       let options = dockerfile::Options { width: request.width, ..dockerfile::Options::default() };
       let formatted = dockerfile::format(request.code, &options).ok()?;
       return Some(formatted.trim_end().to_owned());
+    }
+    "graphql" => {
+      let options =
+        graphql::Options { width: request.width, tab_width, tabs, ..graphql::Options::default() };
+      return graphql::Formatter::default().embedded(request.code, &options).map(str::to_owned);
     }
     "ini" | "gitconfig" if request.indent == 0 => {
       let dialect = if request.language == "ini" { ini::Dialect::Ini } else { ini::Dialect::Git };
