@@ -12,8 +12,13 @@ tidy ports code from these projects, all under the MIT license:
 - [dprint-plugin-dockerfile](https://github.com/dprint/dprint-plugin-dockerfile) 0.7.0: the Dockerfile parser and generator, with the parts of [dprint-core](https://github.com/dprint/dprint)'s printer that they use. Copyright (c) 2021 David Sherret.
 - [graphql-js](https://github.com/graphql/graphql-js) 17: the GraphQL lexer and parser, through bun's port. Copyright (c) GraphQL Contributors.
 - [prettier-plugin-ini](https://github.com/kddnewton/prettier-plugin-ini) 1.3.0: the INI parser and printer. Copyright (c) 2020-present Kevin Newton.
-- [Bun](https://github.com/oven-sh/bun): the Rust ports of the above that the HTML, Handlebars and CSS modules start from, and the tables of string widths. Copyright (c) Oven-sh.
+- [oxc](https://github.com/oxc-project/oxc)'s `oxc_formatter`: the JavaScript and TypeScript printer, its JSDoc formatting and oxfmt's import sorting, through bun's port. Copyright (c) 2024-present VoidZero Inc. & Contributors.
+- [Biome](https://github.com/biomejs/biome): the formatter that `oxc_formatter` ports, and its intermediate representation and printer. Copyright (c) 2023-present Biome Developers and Contributors, and Copyright (c) 2020-2023 Rome Tools, Inc. and its affiliates.
+- [prettier-plugin-jsdoc](https://github.com/hosseinmd/prettier-plugin-jsdoc): how JSDoc comments are formatted, through bun's port. Copyright (c) 2020 Hossein Mohammadi.
+- [Bun](https://github.com/oven-sh/bun): the Rust ports of the above that the HTML, Handlebars, CSS and JavaScript modules start from, and the tables of string widths. Copyright (c) Oven-sh.
 
 It also ports the lexer, the concrete syntax tree parser and the composer of [yaml](https://github.com/eemeli/yaml) 2.9.0, under the [ISC License](https://opensource.org/license/isc-license-txt). Copyright Eemeli Aro.
+
+It also ports [@trivago/prettier-plugin-sort-imports](https://github.com/trivago/prettier-plugin-sort-imports), [@ianvs/prettier-plugin-sort-imports](https://github.com/ianvs/prettier-plugin-sort-imports) and `organizeImports.ts` of [TypeScript](https://github.com/microsoft/TypeScript) (Copyright (c) Microsoft Corporation), through bun's port, under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). They sort imports when `js.sortImports` or `js.plugins` asks for it.
 
 It also ports the lexer and grammar of [@xml-tools/parser](https://github.com/SAP/xml-tools) 1.0.12, under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). Copyright (c) SAP SE or an SAP affiliate company. The port, in `crates/tidy/src/xml`, is a hand-written lexer and parser instead of chevrotain's, rejects the same input instead of recovering from errors, and reads a hexadecimal character reference whole.
