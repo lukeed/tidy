@@ -160,10 +160,13 @@ fn inside(text: &[u8], at: usize) -> Option<(Option<Kind>, usize, Mode)> {
     b'/' => token(Kind::Slash, 1),
     b'=' => token(Kind::Equals, 1),
     quote @ (b'"' | b'\'') => {
-      let len = rest[1..].iter().position(|&byte| byte == quote || byte == b'<')?;
+      let len = memchr::memchr2(quote, b'<', &rest[1..])?;
       (rest[1 + len] == quote).then_some((Some(Kind::String), at + len + 2, Mode::Stay))
     }
-    b' ' | b'\t' | b'\r' | b'\n' => Some((None, at + 1, Mode::Stay)),
+    b' ' | b'\t' | b'\r' | b'\n' => {
+      let len = rest.iter().position(|byte| !matches!(byte, b' ' | b'\t' | b'\r' | b'\n'));
+      Some((None, at + len.unwrap_or(rest.len()), Mode::Stay))
+    }
     _ => name(rest).map(|len| (Some(Kind::Name), at + len, Mode::Stay)),
   }
 }
@@ -219,6 +222,9 @@ fn line_end(text: &[u8], from: usize) -> usize {
 /// The length of the name that `text` starts with.
 pub(crate) fn name(text: &[u8]) -> Option<usize> {
   let mut len = start_char(text)?;
+  let ascii =
+    |byte: &u8| matches!(byte, b':' | b'_' | b'-' | b'.' | b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9');
+  len += text[len..].iter().position(|byte| !ascii(byte)).unwrap_or(text.len() - len);
   while let Some(&byte) = text.get(len) {
     let more = match byte {
       b':' | b'_' | b'-' | b'.' | b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' => 1,

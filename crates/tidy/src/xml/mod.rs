@@ -325,11 +325,10 @@ impl Formatter {
       return Err(Abort::Syntax(rejection.note(Message::TooLarge, 0)));
     }
     self.tokens.clear();
+    self.tokens.reserve(text.len() / 8);
     self.pending.clear();
     self.tree.clear();
-    let bytes = text.as_bytes();
-    self.tree.breaks.extend(memchr::memchr_iter(b'\n', bytes).map(|at| at as u32));
-    lexer::lex(bytes, &mut self.tokens, rejection).map_err(Abort::Syntax)?;
+    lexer::lex(text.as_bytes(), &mut self.tokens, rejection).map_err(Abort::Syntax)?;
     let mut parser = parser::Parser {
       text,
       tokens: &self.tokens,
@@ -346,12 +345,17 @@ impl Formatter {
 /// Parses `text` into the tree that prints. For `bench/parse` only.
 #[cfg(tidy_bench)]
 pub fn bench_parse(text: &str) -> bool {
-  let text = crate::strings::lf(crate::without_bom(text).1.as_bytes());
-  if crate::strings::trim_js_whitespace(&text).is_empty() {
+  let text = crate::without_bom(text).1;
+  let text = match crate::strings::lf(text.as_bytes()) {
+    std::borrow::Cow::Borrowed(_) => std::borrow::Cow::Borrowed(text),
+    std::borrow::Cow::Owned(bytes) => {
+      std::borrow::Cow::Owned(String::from_utf8_lossy(&bytes).into_owned())
+    }
+  };
+  if crate::strings::trim_js_whitespace(text.as_bytes()).is_empty() {
     return true;
   }
   let mut formatter = Formatter::default();
-  let result =
-    formatter.parse(&String::from_utf8_lossy(&text), &Rejection::default(), &Stack::new());
+  let result = formatter.parse(&text, &Rejection::default(), &Stack::new());
   std::hint::black_box((result.is_ok(), formatter)).0
 }

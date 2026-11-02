@@ -104,8 +104,6 @@ pub(crate) struct Tree {
   pub(crate) elements: Vec<Element>,
   pub(crate) attributes: Vec<Attribute>,
   pub(crate) top: Vec<Top>,
-  /// The offset of each `\n`.
-  pub(crate) breaks: Vec<u32>,
 }
 
 impl Tree {
@@ -114,7 +112,6 @@ impl Tree {
     self.elements.clear();
     self.attributes.clear();
     self.top.clear();
-    self.breaks.clear();
   }
 
   pub(crate) fn content(&self, range: Range) -> &[Item] {
@@ -123,15 +120,5 @@ impl Tree {
 
   pub(crate) fn attributes(&self, range: Range) -> &[Attribute] {
     &self.attributes[range.0 as usize..range.1 as usize]
-  }
-
-  /// The line that the character at `offset` is on, from 1, as chevrotain counts it: a `\n` is on the line it ends.
-  pub(crate) fn line(&self, offset: u32) -> usize {
-    self.breaks.partition_point(|&at| at < offset) + 1
-  }
-
-  /// chevrotain's `startLine` and `endLine` of a span: the lines of its first and last characters.
-  pub(crate) fn lines(&self, span: Span) -> (usize, usize) {
-    (self.line(span.start), self.line(span.end.saturating_sub(1).max(span.start)))
   }
 }

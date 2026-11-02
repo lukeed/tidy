@@ -175,9 +175,11 @@ impl<'a> Printer<'_, 'a> {
         self.docs.hardline();
         let mut last = 0;
         for (index, &fragment) in fragments.iter().enumerate() {
-          let (start, end) = self.tree.lines(fragment.span(self.tree));
+          let span = fragment.span(self.tree);
           if index > 0 {
-            if start >= last + 2 {
+            // chevrotain's lines: a fragment starts two lines after the last character of the one before.
+            let between = &self.text.as_bytes()[last as usize..span.start as usize];
+            if memchr::memchr_iter(b'\n', between).nth(1).is_some() {
               self.docs.hardline();
               self.docs.hardline();
             } else if spaced {
@@ -187,7 +189,7 @@ impl<'a> Printer<'_, 'a> {
             }
           }
           self.fragment(fragment);
-          last = end;
+          last = span.end.saturating_sub(1).max(span.start);
         }
         self.docs.close(indent);
         self.docs.hardline();
