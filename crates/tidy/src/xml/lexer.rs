@@ -80,36 +80,37 @@ fn outside(text: &[u8], at: usize) -> Option<(Option<Kind>, usize, Mode)> {
   let token = |kind, len| Some((Some(kind), at + len, Mode::Stay));
   let push = |kind, len| Some((Some(kind), at + len, Mode::Push));
   match rest[0] {
-    b'<' => {
-      if let Some(end) = comment(text, at) {
-        return Some((Some(Kind::Comment), end, Mode::Stay));
+    // The patterns that start with `<`, in order, by the character after it.
+    b'<' => match rest.get(1) {
+      Some(b'!') => {
+        if let Some(end) = comment(text, at) {
+          return Some((Some(Kind::Comment), end, Mode::Stay));
+        }
+        if rest.starts_with(b"<![CDATA[")
+          && let Some(end) = lazy(text, at + 9, b"]]>")
+        {
+          return Some((Some(Kind::CData), end, Mode::Stay));
+        }
+        if rest.starts_with(b"<!DOCTYPE") {
+          return push(Kind::DocType, 9);
+        }
+        match skipped(text, at + 2) {
+          Some(end) => Some((None, end, Mode::Stay)),
+          None => push(Kind::Open, 1),
+        }
       }
-      if rest.starts_with(b"<![CDATA[")
-        && let Some(end) = lazy(text, at + 9, b"]]>")
-      {
-        return Some((Some(Kind::CData), end, Mode::Stay));
+      Some(b'?') => {
+        if rest.starts_with(b"<?xml") && matches!(rest.get(5), Some(b' ' | b'\t' | b'\r' | b'\n')) {
+          return push(Kind::Declaration, 6);
+        }
+        match instruction(text, at) {
+          Some(end) => Some((Some(Kind::Instruction), end, Mode::Stay)),
+          None => push(Kind::Open, 1),
+        }
       }
-      if rest.starts_with(b"<!DOCTYPE") {
-        return push(Kind::DocType, 9);
-      }
-      if rest.starts_with(b"<!")
-        && let Some(end) = skipped(text, at + 2)
-      {
-        return Some((None, end, Mode::Stay));
-      }
-      if rest.starts_with(b"<?xml") && matches!(rest.get(5), Some(b' ' | b'\t' | b'\r' | b'\n')) {
-        return push(Kind::Declaration, 6);
-      }
-      if rest.starts_with(b"</") {
-        return push(Kind::SlashOpen, 2);
-      }
-      if rest.starts_with(b"<?")
-        && let Some(end) = instruction(text, at)
-      {
-        return Some((Some(Kind::Instruction), end, Mode::Stay));
-      }
-      push(Kind::Open, 1)
-    }
+      Some(b'/') => push(Kind::SlashOpen, 2),
+      _ => push(Kind::Open, 1),
+    },
     b'&' => {
       if let Some(len) = name(&rest[1..])
         && rest.get(1 + len) == Some(&b';')
@@ -222,9 +223,7 @@ fn line_end(text: &[u8], from: usize) -> usize {
 /// The length of the name that `text` starts with.
 pub(crate) fn name(text: &[u8]) -> Option<usize> {
   let mut len = start_char(text)?;
-  let ascii =
-    |byte: &u8| matches!(byte, b':' | b'_' | b'-' | b'.' | b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9');
-  len += text[len..].iter().position(|byte| !ascii(byte)).unwrap_or(text.len() - len);
+  len += text[len..].iter().position(|byte| !NAME[*byte as usize]).unwrap_or(text.len() - len);
   while let Some(&byte) = text.get(len) {
     let more = match byte {
       b':' | b'_' | b'-' | b'.' | b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' => 1,
@@ -238,6 +237,18 @@ pub(crate) fn name(text: &[u8]) -> Option<usize> {
   }
   Some(len)
 }
+
+/// The ASCII characters of a name after its first.
+const NAME: [bool; 256] = {
+  let mut table = [false; 256];
+  let mut byte = 0;
+  while byte < 128 {
+    table[byte] =
+      matches!(byte as u8, b':' | b'_' | b'-' | b'.' | b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9');
+    byte += 1;
+  }
+  table
+};
 
 /// The three-character texts that the name patterns mean as ranges.
 const TRIPLES: [(char, char); 5] = [
