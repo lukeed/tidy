@@ -11,7 +11,6 @@ pub(crate) mod embed;
 pub(crate) mod fields;
 pub(crate) mod format;
 pub(crate) mod ir;
-#[path = "detached/jsdoc.rs"]
 pub(crate) mod jsdoc;
 pub(crate) mod options;
 pub(crate) mod owners;
@@ -196,6 +195,8 @@ pub struct Options {
   pub experimental_operator_position: OperatorPosition,
   /// `embeddedLanguageFormatting`: format the code in templates, such as `css` and `graphql` tags.
   pub format_embedded: bool,
+  /// Format JSDoc comments as prettier-plugin-jsdoc does.
+  pub jsdoc: bool,
 }
 
 impl Default for Options {
@@ -218,6 +219,7 @@ impl Default for Options {
       experimental_ternaries: false,
       experimental_operator_position: OperatorPosition::End,
       format_embedded: true,
+      jsdoc: true,
     }
   }
 }
@@ -271,6 +273,7 @@ impl From<&Options> for FormatOptions {
         true => EmbeddedLanguageFormatting::Auto,
         false => EmbeddedLanguageFormatting::Off,
       },
+      jsdoc: options.jsdoc.then(crate::js::options::JsdocOptions::default),
       ..FormatOptions::default()
     }
   }

@@ -55,7 +55,7 @@ for (let path of dirs.flatMap(files)) {
 	let expected = await prettier
 		.format(text, { parser, filepath: path, embeddedLanguageFormatting: "off" })
 		.catch(() => undefined);
-	let tidy = attempt(() => format(text, { filepath: path, formatEmbedded: false }));
+	let tidy = attempt(() => format(text, { filepath: path, formatEmbedded: false, js: { jsdoc: false } }));
 	if (expected === undefined && tidy === undefined) {
 		counts.rejected++;
 	} else if (tidy === undefined) {
@@ -71,7 +71,7 @@ for (let path of dirs.flatMap(files)) {
 		report(`different: ${path}`, expected, tidy);
 	}
 	if (tidy !== undefined) {
-		let again = attempt(() => format(tidy, { filepath: path, formatEmbedded: false }));
+		let again = attempt(() => format(tidy, { filepath: path, formatEmbedded: false, js: { jsdoc: false } }));
 		if (again !== tidy) {
 			counts.unstable++;
 			differing.push(`unstable ${path}`);

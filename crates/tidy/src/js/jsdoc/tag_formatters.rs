@@ -14,9 +14,9 @@ use super::serialize::{
   should_preserve_description_verbatim, should_skip_description_formatting,
   strip_default_is_suffix,
 };
+use super::strings;
 use super::text::{lines, trim_start_matches};
 use crate::js::ast::jsdoc::JSDocTag;
-use crate::js::strings;
 use std::borrow::Cow;
 
 type Bytes<'a> = Cow<'a, [u8]>;

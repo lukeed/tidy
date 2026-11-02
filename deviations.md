@@ -84,6 +84,7 @@ Most entries come from bun's ports, which correct the places where Prettier's ou
 | [ini-embedded](#ini-embedded) | markdown | proposed |
 | [graphql-block-string-padding](#graphql-block-string-padding) | graphql | approved 2026-11-02 |
 | [graphql-block-string-trailing-space](#graphql-block-string-trailing-space) | graphql | approved 2026-11-02 |
+| [js-jsdoc](#js-jsdoc) | babel/typescript | approved 2026-11-02 |
 | [the rule in step 2](#process) | all | proposed |
 | [tempura and text mode](#beyond-prettier) | handlebars | approved 2026-10-31 |
 
@@ -1063,6 +1064,21 @@ tidy:     "\"\"\" padded \"\"\"\nscalar A\n"
 input:    "\"\"\"\nends in a space \nlast\n\"\"\"\nscalar A\n"
 Prettier: "\"\"\"\nends in a space\nlast\n\"\"\"\nscalar A\n"
 tidy:     "\"\"\"\nends in a space \nlast\n\"\"\"\nscalar A\n"
+```
+
+## JavaScript and TypeScript
+
+### js-jsdoc
+
+- Status: approved 2026-11-02
+- Why: Luke decided JSDoc comments are formatted by default, as prettier-plugin-jsdoc does; `js.jsdoc: false` turns it off. The output is oxfmt's with `jsdoc: true`, which follows prettier-plugin-jsdoc. Prettier without the plugin keeps the comments as written.
+- Where: crates/tidy/src/js/jsdoc/ (`write_comment`), crates/tidy/src/js/mod.rs (`Options::jsdoc`)
+- Parser: babel, typescript
+
+```
+input:    "/**\n * @param {string}   a   the thing\n */\nfunction f(a) {}\n"
+Prettier: "/**\n * @param {string}   a   the thing\n */\nfunction f(a) {}\n"
+tidy:     "/** @param {string} a The thing */\nfunction f(a) {}\n"
 ```
 
 ## Beyond Prettier

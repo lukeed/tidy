@@ -1,12 +1,13 @@
 //! `@import` tags: merges the ones for the same module and sorts them.
 
 use super::line_buffer::LineBuffer;
+use super::strings;
 use super::text::{join, lines, trim_end_matches};
 use crate::js::ast::jsdoc::JSDocTag;
 use crate::js::options::QuoteStyle;
-use crate::js::strings;
 use std::cmp::Ordering;
 
+#[derive(Clone)]
 struct ImportInfo {
   default_import: Option<Vec<u8>>,
   named_imports: Vec<Vec<u8>>,

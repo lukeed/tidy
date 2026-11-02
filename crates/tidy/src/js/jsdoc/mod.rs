@@ -2,16 +2,18 @@
 //! [prettier-plugin-jsdoc](https://github.com/hosseinmd/prettier-plugin-jsdoc) does.
 //!
 //! This follows `oxc_formatter`'s `formatter/jsdoc`, which is under the MIT license. `File::jsdoc` parses the comments,
-//! and this crate's Markdown parser parses the descriptions.
+//! and `mdast` reads the descriptions with pulldown-cmark.
 
 mod embedded;
 mod imports;
 mod line_buffer;
 mod markdown;
 mod markers;
+mod mdast;
 mod normalize;
 mod param_order;
 mod serialize;
+pub(crate) mod strings;
 mod tag_formatters;
 mod text;
 mod wrap;
@@ -21,7 +23,6 @@ use super::comments::Comment;
 use crate::js::ast::jsdoc::JSDoc;
 use crate::js::base::*;
 use crate::js::stack::Stack;
-use crate::js::strings;
 use crate::js::write;
 
 /// Writes the formatted `comment` if the `jsdoc` option is set and it's a JSDoc comment that formatting changes.

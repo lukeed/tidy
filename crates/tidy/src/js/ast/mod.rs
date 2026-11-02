@@ -4,6 +4,7 @@ pub(crate) mod comments;
 mod decl;
 mod expr;
 mod hir;
+pub(crate) mod jsdoc;
 mod key;
 mod list;
 mod name;

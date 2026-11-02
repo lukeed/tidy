@@ -5,6 +5,7 @@ use super::line_buffer::LineBuffer;
 use super::markdown::format_description;
 use super::normalize::normalize_tag_kind;
 use super::param_order::reorder_param_tags;
+use super::strings;
 use super::text::trim_end_matches;
 use crate::js::ast::File;
 use crate::js::ast::jsdoc::{JSDoc, JSDocTag};
@@ -12,7 +13,6 @@ use crate::js::options::{
   CommentLineStrategy, FormatOptions, IndentStyle, JsdocOptions, QuoteStyle,
 };
 use crate::js::stack::Stack;
-use crate::js::strings;
 use std::borrow::Cow;
 
 pub(crate) enum FormattedJsdoc {

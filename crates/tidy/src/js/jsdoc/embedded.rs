@@ -1,10 +1,11 @@
 //! Formats code and types embedded in comments, each in its own language.
 
+use super::strings;
 use super::text::trim_end_matches;
 use crate::js::options::{
-  EmbeddedLanguageFormatting, FormatOptions, LineEnding, LineWidth, TrailingCommas,
+  EmbeddedLanguageFormatting, Expand, FormatOptions, IndentStyle, LineEnding, LineWidth, ProseWrap,
+  QuoteStyle, TrailingCommas,
 };
-use crate::js::strings;
 
 /// oxfmt's maximum line width.
 const MAX_LINE_WIDTH: usize = 320;
@@ -31,11 +32,22 @@ pub(super) fn embedded_options(options: &FormatOptions, print_width: usize) -> F
 
 /// Formats `code` as if it were the file at `path`, and trims trailing whitespace. Returns `None` on a syntax error.
 fn parse_and_build(path: &[u8], code: &[u8], options: &FormatOptions) -> Option<Vec<u8>> {
-  let format_javascript = options.format_javascript?;
+  let text = std::str::from_utf8(code).ok()?;
+  let name = std::str::from_utf8(path).ok()?;
+  let dialect = match name.ends_with(".tsx") {
+    true => crate::js::Dialect::Ts,
+    false => crate::js::Dialect::Js,
+  };
+  let allocator = oxc_allocator::Allocator::default();
+  let types = crate::js::source_types(dialect, name, text);
+  let parsed = crate::js::parse_any(&allocator, text, types).ok()?;
+  let source_type = parsed.program.source_type;
+  let program = allocator.alloc(parsed.program);
+  let file = crate::js::ast::File::new(text, path, source_type, program, &allocator);
   let mut out = Vec::new();
-  if !format_javascript(path, code, options, &mut out) {
-    return None;
-  }
+  let mut scratch = crate::js::Scratch::default();
+  crate::js::ir::run::format(&file, options, &mut scratch, &mut out, crate::js::format_file)
+    .ok()?;
   out.truncate(strings::trim_unicode_whitespace_end(&out).len());
   Some(out)
 }
@@ -60,29 +72,62 @@ pub(super) fn format_embedded_language(
   if matches!(options.embedded_language_formatting, EmbeddedLanguageFormatting::Off) {
     return None;
   }
-  let options = FormatOptions {
-    line_width: LineWidth(u32::try_from(print_width).unwrap_or(u32::MAX)),
-    ..embedded_options(options, print_width)
+  let text = std::str::from_utf8(code).ok()?;
+  let tabs = options.indent_style == IndentStyle::Tab;
+  let tab_width = options.indent_width.value() as usize;
+  let trailing_comma = options.trailing_commas != TrailingCommas::None;
+  let css = |dialect| {
+    let css = crate::css::Options {
+      dialect,
+      width: print_width,
+      tab_width,
+      tabs,
+      single_quote: options.quote_style == QuoteStyle::Single,
+      trailing_comma,
+      ..Default::default()
+    };
+    crate::css::format(text, &css, &mut crate::embed::Verbatim)
   };
-  let mut out = Vec::new();
-  let css = |parser, out: &mut Vec<u8>| {
-    crate::css::format(code, parser, &options, &mut Default::default(), out)
-  };
-  match &lang.to_ascii_lowercase()[..] {
-    b"css" => css(crate::css::Parser::Css, &mut out),
-    b"less" => css(crate::css::Parser::Less, &mut out),
-    b"scss" => css(crate::css::Parser::Scss, &mut out),
-    b"json" => crate::json::format(
-      code,
-      crate::json::Parser::Json,
-      &options,
-      &mut Default::default(),
-      &mut out,
-    ),
-    b"yaml" => crate::yaml::format(code, &options, &mut Default::default(), &mut out),
+  let out = match &lang.to_ascii_lowercase()[..] {
+    b"css" => css(crate::css::Dialect::Css),
+    b"less" => css(crate::css::Dialect::Less),
+    b"scss" => css(crate::css::Dialect::Scss),
+    b"json" => {
+      let json = crate::json::Options {
+        width: print_width,
+        tab_width,
+        tabs,
+        bracket_spacing: options.bracket_spacing.value(),
+        object_wrap: match options.expand {
+          Expand::Never => crate::json::ObjectWrap::Collapse,
+          _ => crate::json::ObjectWrap::Preserve,
+        },
+        ..Default::default()
+      };
+      crate::json::format(text, &json)
+    }
+    b"yaml" => {
+      let yaml = crate::yaml::Options {
+        width: print_width,
+        tab_width,
+        tabs,
+        single_quote: options.quote_style == QuoteStyle::Single,
+        bracket_spacing: options.bracket_spacing.value(),
+        trailing_comma,
+        wrap: match options.prose_wrap {
+          ProseWrap::Always => crate::Wrap::Always,
+          ProseWrap::Never => crate::Wrap::Never,
+          ProseWrap::Preserve => crate::Wrap::Preserve,
+        },
+        ..Default::default()
+      };
+      crate::yaml::format(text, &yaml)
+    }
     _ => return None,
   }
-  .ok()?;
+  .ok()?
+  .into_bytes();
+  let mut out = out;
   out.truncate(strings::trim_unicode_whitespace_end(&out).len());
   Some(out)
 }

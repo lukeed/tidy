@@ -1,6 +1,6 @@
 //! `str` methods for byte slices that are UTF-8, or nearly so.
 
-use crate::js::strings;
+use super::strings;
 
 /// `str::trim_start_matches`
 pub(super) fn trim_start_matches(mut text: &[u8], matches: impl Fn(char) -> bool) -> &[u8] {

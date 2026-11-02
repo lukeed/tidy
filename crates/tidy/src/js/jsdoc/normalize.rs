@@ -1,9 +1,9 @@
 //! Normalizes tag names, emphasis, capitalization and types.
 
+use super::strings;
 use super::text::{lines, parse_index, push_number};
 use crate::js::options::QuoteStyle;
 use crate::js::stack::Stack;
-use crate::js::strings;
 use crate::js::text::{first_char, last_char};
 use std::borrow::Cow;
 
@@ -625,7 +625,7 @@ fn unquote_object_property_names(type_str: &[u8]) -> Bytes<'_> {
     let content = &type_str[start..end];
     if strings::trim_unicode_whitespace_start(&type_str[i..]).starts_with(b":")
       && content.is_ascii()
-      && bun_core::lexer::is_identifier(content)
+      && strings::is_identifier(content)
     {
       result.extend_from_slice(content);
     } else {

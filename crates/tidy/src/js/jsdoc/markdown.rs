@@ -3,14 +3,14 @@
 use super::embedded::{format_embedded_js, format_embedded_language, is_js_ts_lang};
 use super::line_buffer::LineBuffer;
 use super::markers::{ListMarker, list_marker};
+use super::mdast::{Kind, Node, NodeId, ReferenceType, Str, Tree};
 use super::normalize::{append_trailing_dot, capitalize_first};
+use super::strings;
 use super::text::{lines, parse_index, push_number, push_spaces, trim_start_matches};
 use super::wrap::{format_table_block, wrap_paragraph, wrap_plain_paragraphs};
 use crate::js::options::{FormatOptions, LineWrappingStyle};
 use crate::js::stack::Stack;
-use crate::js::strings;
 use crate::js::text::first_char;
-use crate::markdown::ast::{Kind, Node, NodeId, ReferenceType, Tree};
 use std::borrow::Cow;
 
 type Bytes<'a> = Cow<'a, [u8]>;
@@ -277,8 +277,8 @@ impl<'a> Serializer<'a> {
     self.tree.get(id)
   }
 
-  fn str(&self, string: crate::markdown::ast::Str) -> &'a [u8] {
-    self.tree.str(self.source, string)
+  fn str(&self, string: Str) -> &'a [u8] {
+    self.tree.str(string)
   }
 
   fn collect_children(&self, id: NodeId, out: &mut Vec<u8>, inside_link: bool) {
@@ -909,7 +909,7 @@ pub(super) fn format_description(
   let text = convert_star_list_markers(&text);
   let (protected, placeholders) = protect_jsdoc_links(&text);
   let mut tree = Tree::default();
-  let Some(root) = crate::markdown::parse_plain(&protected, &mut tree) else {
+  let Some(root) = super::mdast::parse(&protected, &mut tree) else {
     return super::text::join(lines(&text).map(strings::trim_unicode_whitespace), b"\n");
   };
   let serializer = Serializer {

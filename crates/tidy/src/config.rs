@@ -109,8 +109,8 @@ pub struct Ini {
   pub space_around_equals: Option<bool>,
 }
 
-/// Prettier's options for JavaScript and TypeScript. `trailingComma` is `"all"`, `"es5"` or `"none"` here, or the
-/// shared true or false.
+/// Prettier's options for JavaScript and TypeScript, in files and embedded in other languages. `trailingComma` is
+/// `"all"`, `"es5"` or `"none"` here, or the shared true or false.
 #[cfg(feature = "js")]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Js {
@@ -130,6 +130,8 @@ pub struct Js {
   pub experimental_ternaries: Option<bool>,
   /// `experimentalOperatorPosition`
   pub experimental_operator_position: Option<crate::js::OperatorPosition>,
+  /// Format JSDoc comments as prettier-plugin-jsdoc does.
+  pub jsdoc: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -412,6 +414,7 @@ fn js(map: &Map<String, Value>) -> Result<Js, String> {
       }
       "objectWrap" => options.object_wrap = Some(object_wrap(value, &name)?),
       "experimentalTernaries" => options.experimental_ternaries = Some(flag(value, &name)?),
+      "jsdoc" => options.jsdoc = Some(flag(value, &name)?),
       "experimentalOperatorPosition" => {
         options.experimental_operator_position = Some(match text(value, &name)? {
           "start" => OperatorPosition::Start,
@@ -438,6 +441,7 @@ impl Js {
     set(&mut options.object_wrap, self.object_wrap);
     set(&mut options.experimental_ternaries, self.experimental_ternaries);
     set(&mut options.experimental_operator_position, self.experimental_operator_position);
+    set(&mut options.jsdoc, self.jsdoc);
   }
 }
 

@@ -2,8 +2,8 @@
 
 use super::line_buffer::LineBuffer;
 use super::markers::is_block_marker_token;
+use super::strings;
 use super::text::{lines, push_spaces, trim_end_matches, trim_start_matches};
-use crate::js::strings;
 
 fn without_outer_pipes(line: &[u8]) -> &[u8] {
   trim_end_matches(trim_start_matches(strings::trim_unicode_whitespace(line), |c| c == '|'), |c| {

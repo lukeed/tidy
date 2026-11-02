@@ -2,7 +2,7 @@
 
 use crate::js::ast::jsdoc::JSDocTag;
 use crate::js::ast::{
-  Expr, ExprKind, File, Flags, FnKind, Func, Key, KeyKind, List, MemberKind, Modifiers, Name, Node,
+  Expr, ExprKind, File, Flags, FnKind, Func, Key, KeyKind, MemberKind, Modifiers, Name, Node,
   PropKind, StmtKind,
 };
 
@@ -47,8 +47,8 @@ pub(super) fn reorder_param_tags<'a>(
 /// Returns the function whose head starts right after the comment that ends at `comment_end`.
 fn function_after_comment<'a>(file: &'a File<'a>, comment_end: u32) -> Option<Func<'a>> {
   let after = file.text().get(comment_end as usize..)?;
-  let start = comment_end
-    + (after.len() - crate::js::strings::trim_unicode_whitespace_start(after).len()) as u32;
+  let start =
+    comment_end + (after.len() - super::strings::trim_unicode_whitespace_start(after).len()) as u32;
   let mut node = Node::File(file);
   loop {
     let mut child_at_start = None;

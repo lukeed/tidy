@@ -5,6 +5,8 @@
 
 use serde_json::Value;
 use tidy::embed::Verbatim;
+#[cfg(feature = "js")]
+use tidy::js;
 use tidy::{Language, css, dockerfile, graphql, handlebars, html, ini, toml, xml};
 
 fn format(parser: &str, input: &str, option: Option<&str>) -> String {
@@ -65,6 +67,13 @@ fn format(parser: &str, input: &str, option: Option<&str>) -> String {
       let options = xml::Options { whitespace, ..xml::Options::default() };
       xml::format(input, &options, &mut Verbatim).map_err(|error| error.to_string())
     }
+    #[cfg(feature = "js")]
+    "babel" | "typescript" => {
+      let (dialect, path) =
+        if parser == "babel" { (js::Dialect::Js, "a.js") } else { (js::Dialect::Ts, "a.ts") };
+      js::format(input, path, &js::Options { dialect, ..js::Options::default() })
+        .map_err(|error| error.to_string())
+    }
     other => panic!("unknown parser {other}"),
   };
   result.unwrap_or_else(|error| format!("!error {error}"))
@@ -81,6 +90,9 @@ fn every_deviation_holds() {
       let whitespace = row.get("whitespace").and_then(Value::as_str);
       for parser in row["parsers"].as_array().unwrap() {
         let parser = parser.as_str().unwrap();
+        if !cfg!(feature = "js") && matches!(parser, "babel" | "typescript") {
+          continue;
+        }
         let printed = format(parser, input, whitespace);
         if printed != row["tidy"].as_str().unwrap() {
           failures.push(format!(

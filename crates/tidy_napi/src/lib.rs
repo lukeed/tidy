@@ -89,9 +89,9 @@ pub struct FormatOptions {
   /// Options for GraphQL only: the shared ones.
   #[napi(ts_type = "Record<string, unknown>")]
   pub graphql: Option<Value>,
-  /// Options for JavaScript and TypeScript only: the shared ones, `trailingComma` as `all`, `es5` or `none`, and
-  /// `semi`, `jsxSingleQuote`, `quoteProps`, `arrowParens`, `objectWrap`, `experimentalTernaries` and
-  /// `experimentalOperatorPosition`.
+  /// Options for JavaScript and TypeScript, also where tidy formats them in other languages: the shared ones,
+  /// `trailingComma` as `all`, `es5` or `none`, and `semi`, `jsxSingleQuote`, `quoteProps`, `arrowParens`,
+  /// `objectWrap`, `experimentalTernaries`, `experimentalOperatorPosition` and `jsdoc`.
   #[napi(ts_type = "Record<string, unknown>")]
   pub js: Option<Value>,
   /// Options for XML only: the shared ones, and `selfClosingSpace`, `sortAttributes` and `attributeQuotes`.

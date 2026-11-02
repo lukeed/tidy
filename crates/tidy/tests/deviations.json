@@ -2638,5 +2638,19 @@
         "tidy": "\"\"\"\nends in a space \nlast\n\"\"\"\nscalar A\n"
       }
     ]
+  },
+  {
+    "id": "js-jsdoc",
+    "rows": [
+      {
+        "parsers": [
+          "babel",
+          "typescript"
+        ],
+        "input": "/**\n * @param {string}   a   the thing\n */\nfunction f(a) {}\n",
+        "prettier": "/**\n * @param {string}   a   the thing\n */\nfunction f(a) {}\n",
+        "tidy": "/** @param {string} a The thing */\nfunction f(a) {}\n"
+      }
+    ]
   }
 ]
