@@ -514,6 +514,70 @@ impl<'a> Node<'a> {
   pub(crate) fn ancestors(self) -> Ancestors<'a> {
     Ancestors { at: Some(self) }
   }
+
+  /// The innermost function that contains it. A function doesn't contain itself.
+  pub(crate) fn enclosing_function(self) -> Option<Func<'a>> {
+    self.ancestors().find_map(Node::as_func)
+  }
+
+  /// The innermost class that contains it.
+  pub(crate) fn enclosing_class(self) -> Option<Class<'a>> {
+    self.ancestors().find_map(|it| match it {
+      Node::Class(class) => Some(class),
+      _ => None,
+    })
+  }
+
+  /// The `Expr` or `Stmt` with the same id as a function or a class, if there's one. Any other node as it is.
+  pub(crate) fn owner_or_self(self) -> Node<'a> {
+    match self {
+      Node::Func(Func { file, id }) | Node::Class(Class { file, id }) => {
+        Node::of(file, id).unwrap_or(self)
+      }
+      _ => self,
+    }
+  }
+
+  pub(crate) fn as_expr(self) -> Option<Expr<'a>> {
+    match self {
+      Node::Expr(it) => Some(it),
+      _ => None,
+    }
+  }
+
+  pub(crate) fn as_stmt(self) -> Option<Stmt<'a>> {
+    match self {
+      Node::Stmt(it) => Some(it),
+      _ => None,
+    }
+  }
+
+  pub(crate) fn as_type(self) -> Option<TypeNode<'a>> {
+    match self {
+      Node::Type(it) => Some(it),
+      _ => None,
+    }
+  }
+
+  pub(crate) fn as_func(self) -> Option<Func<'a>> {
+    match self {
+      Node::Func(it) => Some(it),
+      _ => None,
+    }
+  }
+
+  /// The program's span for the file.
+  pub(crate) fn span(self) -> Span {
+    match self {
+      Node::File(file) => Span::new(file.program.span.start, file.program.span.end),
+      _ => self.file().span_of(self.id()),
+    }
+  }
+
+  /// The node's source text.
+  pub(crate) fn text(self) -> &'a [u8] {
+    self.file().slice(self.span())
+  }
 }
 
 #[derive(Copy, Clone)]
