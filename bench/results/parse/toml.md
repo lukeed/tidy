@@ -4,16 +4,16 @@
 
 | Tool | Builds | Time | Speed | Against fastest | Rejects |
 | --- | --- | ---: | ---: | ---: | ---: |
-| tidy parse | tree, trivia | 2.24 ms | 187 MB/s | 1.00x | 0 |
-| tidy value | serde_json value | 4.90 ms | 85 MB/s | 2.19x | 17 |
-| taplo | tree, trivia | 5.00 ms | 84 MB/s | 2.23x | 0 |
-| toml_edit | document, trivia | 6.45 ms | 65 MB/s | 2.88x | 17 |
-| toml | value | 4.90 ms | 85 MB/s | 2.18x | 17 |
-| oxc-toml | tree, trivia | 3.70 ms | 113 MB/s | 1.65x | 0 |
+| tidy parse | tree, trivia | 2.19 ms | 191 MB/s | 1.00x | 0 |
+| tidy value | serde_json value | 4.80 ms | 87 MB/s | 2.19x | 17 |
+| taplo | tree, trivia | 4.93 ms | 85 MB/s | 2.26x | 0 |
+| toml_edit | document, trivia | 6.40 ms | 65 MB/s | 2.92x | 17 |
+| toml | value | 4.85 ms | 86 MB/s | 2.22x | 17 |
+| oxc-toml | tree, trivia | 3.64 ms | 115 MB/s | 1.66x | 0 |
 
 ## Setup
 
 - Date: 2026-11-02
-- Commit: e043a18
+- Commit: b843db5
 - Machine: Apple M1 Max, 10 cores, macOS 15.7.9
 - Tools: tidy at the commit above, taplo 0.14.0, toml_edit 0.25.17+spec-1.1.0, toml 1.1.8+spec-1.1.0, oxc-toml 0.15.1

@@ -4,13 +4,13 @@
 
 | Tool | Time | Against tidy |
 | --- | ---: | ---: |
-| tidy | 4.1 ms | 1.00x |
-| tidy (1 thread) | 5.2 ms | 1.28x |
-| prettier | 145.1 ms | 35.45x |
+| tidy | 3.7 ms | 1.00x |
+| tidy (1 thread) | 4.7 ms | 1.29x |
+| prettier | 145.8 ms | 39.95x |
 
 ## Setup
 
 - Date: 2026-11-02
-- Commit: b74b961
+- Commit: b843db5
 - Machine: Apple M1 Max, 10 cores, macOS 15.7.9
 - Tools: tidy at the commit above, Prettier 3.9.9, @prettier/plugin-xml 3.4.2, prettier-plugin-sh 0.20.2, prettier-plugin-ini 1.3.0

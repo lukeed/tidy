@@ -4,17 +4,17 @@
 
 | Tool | Time | Against tidy |
 | --- | ---: | ---: |
-| tidy | 6.7 ms | 1.00x |
-| tidy (1 thread) | 22.7 ms | 3.41x |
-| bun | 30.5 ms | 4.58x |
-| naive | 35.7 ms | 5.37x |
-| dprint | 203.1 ms | 30.53x |
-| oxfmt | 410.6 ms | 61.72x |
-| prettier | 643.7 ms | 96.76x |
+| tidy | 6.8 ms | 1.00x |
+| tidy (1 thread) | 22.4 ms | 3.28x |
+| bun | 30.1 ms | 4.41x |
+| naive | 36.4 ms | 5.33x |
+| dprint | 202.9 ms | 29.71x |
+| oxfmt | 417.2 ms | 61.08x |
+| prettier | 668.1 ms | 97.83x |
 
 ## Setup
 
 - Date: 2026-11-02
-- Commit: b74b961
+- Commit: b843db5
 - Machine: Apple M1 Max, 10 cores, macOS 15.7.9
 - Tools: tidy at the commit above, bun fmt 1.4.4, a naive formatter on @lukeed/html 1.0.2, dprint plugins: markup_fmt 0.25.0, malva 0.16.0, dprint-plugin-json 0.25.2, pretty_yaml 0.6.0, dprint-plugin-toml 0.9.0, dprint-plugin-dockerfile 0.7.0, dprint-plugin-markdown 0.28.2, oxfmt 0.75.0, Prettier 3.9.9, @prettier/plugin-xml 3.4.2, prettier-plugin-sh 0.20.2, prettier-plugin-ini 1.3.0

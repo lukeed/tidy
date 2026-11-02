@@ -4,14 +4,14 @@
 
 | Tool | Builds | Time | Speed | Against fastest | Rejects |
 | --- | --- | ---: | ---: | ---: | ---: |
-| tidy | tree, comments | 0.14 ms | 222 MB/s | 3.39x | 0 |
-| dprint-plugin-dockerfile | tree | 0.14 ms | 215 MB/s | 3.51x | 0 |
-| dockerfile-parser | tree | 1.01 ms | 31 MB/s | 24.42x | 3 |
-| parse-dockerfile | tree | 0.04 ms | 753 MB/s | 1.00x | 0 |
+| tidy | tree, comments | 0.14 ms | 224 MB/s | 3.42x | 0 |
+| dprint-plugin-dockerfile | tree | 0.14 ms | 218 MB/s | 3.52x | 0 |
+| dockerfile-parser | tree | 1.01 ms | 31 MB/s | 24.80x | 3 |
+| parse-dockerfile | tree | 0.04 ms | 768 MB/s | 1.00x | 0 |
 
 ## Setup
 
 - Date: 2026-11-02
-- Commit: e043a18
+- Commit: b843db5
 - Machine: Apple M1 Max, 10 cores, macOS 15.7.9
 - Tools: tidy at the commit above, dprint-plugin-dockerfile 0.7.0, dockerfile-parser 0.9.0, parse-dockerfile 0.1.9

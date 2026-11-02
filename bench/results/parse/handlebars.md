@@ -4,12 +4,12 @@
 
 | Tool | Builds | Time | Speed | Against fastest | Rejects |
 | --- | --- | ---: | ---: | ---: | ---: |
-| tidy | HTML and tags | 0.32 ms | 374 MB/s | 1.00x | 0 |
-| handlebars | tags only | 11.79 ms | 10 MB/s | 36.47x | 0 |
+| tidy | HTML and tags | 0.32 ms | 377 MB/s | 1.00x | 0 |
+| handlebars | tags only | 11.77 ms | 10 MB/s | 36.70x | 0 |
 
 ## Setup
 
 - Date: 2026-11-02
-- Commit: e043a18
+- Commit: b843db5
 - Machine: Apple M1 Max, 10 cores, macOS 15.7.9
 - Tools: tidy at the commit above, handlebars 6.4.4
