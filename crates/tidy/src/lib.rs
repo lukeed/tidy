@@ -12,7 +12,7 @@ pub mod handlebars;
 pub mod html;
 pub mod ini;
 #[cfg(feature = "js")]
-mod js;
+pub mod js;
 pub mod json;
 mod languages;
 pub mod markdown;
