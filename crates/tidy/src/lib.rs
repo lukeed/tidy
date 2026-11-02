@@ -7,6 +7,7 @@ pub mod doc;
 pub mod dockerfile;
 pub mod embed;
 mod front_matter;
+pub mod graphql;
 pub mod handlebars;
 pub mod html;
 pub mod ini;
@@ -112,6 +113,7 @@ pub(crate) fn with_bom(had: bool, output: &mut String) -> &str {
 pub mod bench {
   pub use crate::css::bench_parse as css;
   pub use crate::dockerfile::bench_parse as dockerfile;
+  pub use crate::graphql::bench_parse as graphql;
   pub use crate::handlebars::bench_parse as handlebars;
   pub use crate::html::bench_parse as html;
   pub use crate::ini::bench_parse as ini;

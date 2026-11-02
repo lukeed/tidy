@@ -126,6 +126,13 @@ messages! {
   MultipleTags = "A node can have one tag",
   PropertyWithoutSpace = "A tag or anchor needs white space after it",
   TabIndent = "Tabs are not allowed as indentation",
+  // GraphQL
+  EmptyExtension = "This extension is empty",
+  ExpectedClosingBracket = "Expected \"]\"",
+  ExpectedDefinition = "Expected a definition",
+  ExpectedDigit = "Expected a digit",
+  ExpectedDirectiveLocation = "Expected a directive location",
+  ExpectedOpeningBrace = "Expected \"{\"",
   // XML
   ExpectedClose = "Expected \">\"",
   ExpectedDeclarationEnd = "Expected \"?>\"",
