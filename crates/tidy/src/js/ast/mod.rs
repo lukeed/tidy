@@ -1,7 +1,13 @@
 //! The syntax tree as bun's printer reads it: the handles of bun's `bun_lint::ast`, over oxc's tree. See `../readme.md`.
 
+mod list;
+mod name;
+mod node;
 mod span;
 
+pub(crate) use list::*;
+pub(crate) use name::*;
+pub(crate) use node::*;
 pub(crate) use span::{Span, Spanned};
 
 use oxc_ast::AstKind;
