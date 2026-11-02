@@ -4,7 +4,8 @@ use std::borrow::Cow;
 
 use serde_json::{Map, Number, Value};
 
-use super::ast::{Kind, NodeId, Tree};
+use super::ast::{Comment, Kind, Span};
+use super::parse::Build;
 use super::{cook, number};
 use crate::Error;
 
@@ -14,95 +15,119 @@ pub fn value(text: &str) -> Result<Value, Error> {
 }
 
 fn document(text: &str) -> Result<Value, Error> {
-  let tree = super::parse(text)?;
-  let Some(root) = tree.root() else { return Ok(Value::Null) };
-  Reader { text, tree: &tree }.value(root)
+  let mut values = Values { text, pairs: Vec::new(), elements: Vec::new() };
+  Ok(super::read(text, &mut values)?.unwrap_or(Value::Null))
 }
 
-struct Reader<'r> {
-  text: &'r str,
-  tree: &'r Tree,
+/// Builds the value as it parses, with the pairs and elements of the objects and arrays that are open, innermost last.
+struct Values<'v> {
+  text: &'v str,
+  pairs: Vec<(String, Value)>,
+  elements: Vec<Value>,
 }
 
-impl Reader<'_> {
-  fn value(&self, id: NodeId) -> Result<Value, Error> {
-    let node = self.tree.node(id);
-    let raw = node.span.of(self.text);
-    Ok(match node.kind {
-      Kind::Object(items) => {
-        let mut map = Map::new();
-        for property in self.tree.items(items).iter().flatten() {
-          let Kind::Property { key, value } = self.tree.node(*property).kind else { continue };
-          map.insert(self.key(key), self.value(value)?);
-        }
-        Value::Object(map)
-      }
-      Kind::Array(items) => {
-        let mut values = Vec::with_capacity(items.len());
-        for item in self.tree.items(items) {
-          let Some(item) = item else {
-            return Err(error("An array can't have holes", node.span.start));
-          };
-          values.push(self.value(*item)?);
-        }
-        Value::Array(values)
-      }
+impl Build for Values<'_> {
+  type Node = Value;
+  type Key = String;
+
+  fn leaf(&mut self, kind: Kind, span: Span) -> Value {
+    let raw = span.of(self.text);
+    match kind {
       Kind::String => Value::String(string(raw, cook::string)),
       Kind::Template => Value::String(string(raw, cook::template)),
-      Kind::Number => number(raw, false),
-      Kind::Sign { minus, argument } => {
-        let argument = self.tree.node(argument);
-        match argument.kind {
-          Kind::Number => number(argument.span.of(self.text), minus),
-          _ => Value::Null,
-        }
-      }
-      Kind::Identifier | Kind::Null => Value::Null,
+      Kind::Number => number(raw),
       Kind::True => Value::Bool(true),
       Kind::False => Value::Bool(false),
-      Kind::Property { .. } => unreachable!("a property is only in an object"),
-    })
+      _ => Value::Null,
+    }
   }
 
-  fn key(&self, id: NodeId) -> String {
-    let node = self.tree.node(id);
-    let raw = node.span.of(self.text);
-    match node.kind {
+  fn key(&mut self, kind: Kind, span: Span) -> String {
+    let raw = span.of(self.text);
+    match kind {
       Kind::String => string(raw, cook::string),
       Kind::Number => number::string(float(&raw.replace('_', ""))),
       _ => cook::identifier(raw.as_bytes()).into_owned(),
     }
   }
+
+  fn sign(&mut self, minus: bool, argument: Value, _: Span) -> Value {
+    match (minus, argument) {
+      (true, Value::Number(number)) => negate(&number),
+      (_, argument) => argument,
+    }
+  }
+
+  fn open(&self, object: bool) -> usize {
+    if object { self.pairs.len() } else { self.elements.len() }
+  }
+
+  fn property(&mut self, key: String, value: Value, _: Span) {
+    self.pairs.push((key, value));
+  }
+
+  fn element(&mut self, value: Value) {
+    self.elements.push(value);
+  }
+
+  fn hole(&mut self) -> bool {
+    false
+  }
+
+  fn object(&mut self, open: usize, _: Span) -> Value {
+    let mut map = Map::new();
+    for (key, value) in self.pairs.drain(open..) {
+      map.insert(key, value);
+    }
+    Value::Object(map)
+  }
+
+  fn array(&mut self, open: usize, _: Span) -> Value {
+    Value::Array(self.elements.drain(open..).collect())
+  }
+
+  fn comment(&mut self, _: Comment) {}
+}
+
+/// `-number`, where zero is `-0` and a whole number past `i64` a float.
+fn negate(number: &Number) -> Value {
+  let negated = match number.as_u64() {
+    Some(0) => Number::from_f64(-0.0),
+    Some(whole) => i64::try_from(whole)
+      .ok()
+      .map(|whole| Number::from(-whole))
+      .or_else(|| Number::from_f64(-(whole as f64))),
+    None => number.as_f64().and_then(|value| Number::from_f64(-value)),
+  };
+  negated.map_or(Value::Null, Value::Number)
 }
 
 /// A whole number as an integer, any other as a float, and an infinite one as null, as `JSON.stringify` writes it.
-fn number(raw: &str, minus: bool) -> Value {
+fn number(raw: &str) -> Value {
   let digits = match raw.contains('_') {
     true => Cow::Owned(raw.replace('_', "")),
     false => Cow::Borrowed(raw),
   };
   let whole = split(&digits).and_then(|(radix, digits)| u64::from_str_radix(digits, radix).ok());
-  let number = match whole {
-    Some(whole) if !minus => Some(Number::from(whole)),
-    Some(0) => None,
-    Some(whole) => i64::try_from(whole).ok().map(|whole| Number::from(-whole)),
-    None => None,
-  };
-  let float = || Number::from_f64(if minus { -float(&digits) } else { float(&digits) });
-  number.or_else(float).map_or(Value::Null, Value::Number)
+  let number = whole.map(Number::from).or_else(|| Number::from_f64(float(&digits)));
+  number.map_or(Value::Null, Value::Number)
 }
 
 /// The radix and digits of a whole number, without `_`: `0x1F`, `017`, `42`. None for a fraction or an exponent.
 fn split(digits: &str) -> Option<(u32, &str)> {
-  let legacy = digits.len() > 1 && digits.bytes().all(|byte| matches!(byte, b'0'..=b'7'));
-  match digits.get(..2).map(str::to_ascii_lowercase).as_deref() {
-    Some("0x") => Some((16, &digits[2..])),
-    Some("0o") => Some((8, &digits[2..])),
-    Some("0b") => Some((2, &digits[2..])),
-    _ if legacy && digits.starts_with('0') => Some((8, &digits[1..])),
-    _ if digits.bytes().all(|byte| byte.is_ascii_digit()) => Some((10, digits)),
-    _ => None,
-  }
+  let radix = match digits.as_bytes() {
+    [b'0', b'x' | b'X', ..] => 16,
+    [b'0', b'o' | b'O', ..] => 8,
+    [b'0', b'b' | b'B', ..] => 2,
+    [b'0', rest @ ..]
+      if !rest.is_empty() && rest.iter().all(|byte| matches!(byte, b'0'..=b'7')) =>
+    {
+      return Some((8, &digits[1..]));
+    }
+    bytes if bytes.iter().all(u8::is_ascii_digit) => return Some((10, digits)),
+    _ => return None,
+  };
+  Some((radix, &digits[2..]))
 }
 
 fn float(digits: &str) -> f64 {
@@ -121,8 +146,4 @@ fn string(raw: &str, cook: fn(&[u8]) -> Vec<u16>) -> String {
     Some(_) => String::from_utf16_lossy(&cook(content.as_bytes())),
     None => content.to_owned(),
   }
-}
-
-fn error(message: &str, at: u32) -> Error {
-  Error::Syntax { message: message.to_owned(), at: at as usize }
 }

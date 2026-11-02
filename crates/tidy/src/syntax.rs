@@ -96,6 +96,7 @@ messages! {
   // JSON
   CommentInJson = "Comments are not allowed in JSON",
   DuplicateProto = "Redefinition of __proto__ property",
+  ArrayHole = "An array can't have holes",
   InvalidEscape = "Invalid escape sequence",
   InvalidNumber = "Invalid number",
   NotJson = "This is not allowed in JSON",

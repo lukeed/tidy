@@ -209,21 +209,23 @@ pub fn parse(text: &str) -> Result<Tree, Error> {
 }
 
 fn parse_into(text: &str, tree: &mut Tree, pending: &mut Vec<Option<NodeId>>) -> Result<(), Error> {
+  tree.clear();
+  pending.clear();
+  let mut trees = parse::Trees { tree, pending };
+  let root = read(text, &mut trees)?;
+  trees.tree.root = root;
+  Ok(())
+}
+
+/// Parses `text` into what `build` builds.
+fn read<B: parse::Build>(text: &str, build: &mut B) -> Result<Option<B::Node>, Error> {
   let rejection = Rejection::default();
   if text.len() > u32::MAX as usize {
     return Err(syntax(rejection.note(Message::TooLarge, 0), &rejection));
   }
-  tree.clear();
-  pending.clear();
   let stack = Stack::new();
-  let mut parser = parse::Parser {
-    text: text.as_bytes(),
-    tree,
-    pending,
-    rejection: &rejection,
-    stack: &stack,
-    at: 0,
-  };
+  let mut parser =
+    parse::Parser { text: text.as_bytes(), build, rejection: &rejection, stack: &stack, at: 0 };
   parser.document().map_err(|abort| match abort {
     Abort::Syntax(rejected) => syntax(rejected, &rejection),
     Abort::TooDeep => Error::TooDeep,

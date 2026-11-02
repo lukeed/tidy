@@ -9,32 +9,113 @@ use crate::stack::Stack;
 use crate::strings;
 use crate::syntax::{Message, Rejection};
 
-pub(crate) struct Parser<'p> {
-  pub(crate) text: &'p [u8],
-  pub(crate) tree: &'p mut Tree,
+/// What the parser builds from what it reads: the tree that formats, or the value of a config.
+pub(crate) trait Build {
+  type Node;
+  type Key;
+  /// A string, number, template literal, identifier, `null`, `true` or `false`.
+  fn leaf(&mut self, kind: Kind, span: Span) -> Self::Node;
+  fn key(&mut self, kind: Kind, span: Span) -> Self::Key;
+  fn sign(&mut self, minus: bool, argument: Self::Node, span: Span) -> Self::Node;
+  /// Where the items of an object or array that opens start.
+  fn open(&self, object: bool) -> usize;
+  fn property(&mut self, key: Self::Key, value: Self::Node, span: Span);
+  fn element(&mut self, value: Self::Node);
+  /// Adds a hole to an array, if it can have one.
+  fn hole(&mut self) -> bool;
+  fn object(&mut self, open: usize, span: Span) -> Self::Node;
+  fn array(&mut self, open: usize, span: Span) -> Self::Node;
+  fn comment(&mut self, comment: Comment);
+}
+
+/// Builds the tree that formats.
+pub(crate) struct Trees<'t> {
+  pub(crate) tree: &'t mut Tree,
   /// The items of the objects and arrays that are open, innermost last.
-  pub(crate) pending: &'p mut Vec<Option<NodeId>>,
+  pub(crate) pending: &'t mut Vec<Option<NodeId>>,
+}
+
+impl Trees<'_> {
+  fn items(&mut self, open: usize) -> Items {
+    let start = self.tree.items.len() as u32;
+    self.tree.items.extend(self.pending.drain(open..));
+    Items { start, end: self.tree.items.len() as u32 }
+  }
+}
+
+impl Build for Trees<'_> {
+  type Node = NodeId;
+  type Key = NodeId;
+
+  fn leaf(&mut self, kind: Kind, span: Span) -> NodeId {
+    self.tree.push(kind, span)
+  }
+
+  fn key(&mut self, kind: Kind, span: Span) -> NodeId {
+    self.tree.push(kind, span)
+  }
+
+  fn sign(&mut self, minus: bool, argument: NodeId, span: Span) -> NodeId {
+    self.tree.push(Kind::Sign { minus, argument }, span)
+  }
+
+  fn open(&self, _: bool) -> usize {
+    self.pending.len()
+  }
+
+  fn property(&mut self, key: NodeId, value: NodeId, span: Span) {
+    let property = self.tree.push(Kind::Property { key, value }, span);
+    self.pending.push(Some(property));
+  }
+
+  fn element(&mut self, value: NodeId) {
+    self.pending.push(Some(value));
+  }
+
+  fn hole(&mut self) -> bool {
+    self.pending.push(None);
+    true
+  }
+
+  fn object(&mut self, open: usize, span: Span) -> NodeId {
+    let items = self.items(open);
+    self.tree.push(Kind::Object(items), span)
+  }
+
+  fn array(&mut self, open: usize, span: Span) -> NodeId {
+    let items = self.items(open);
+    self.tree.push(Kind::Array(items), span)
+  }
+
+  fn comment(&mut self, comment: Comment) {
+    self.tree.comments.push(comment);
+  }
+}
+
+pub(crate) struct Parser<'p, B: Build> {
+  pub(crate) text: &'p [u8],
+  pub(crate) build: &'p mut B,
   pub(crate) rejection: &'p Rejection,
   pub(crate) stack: &'p Stack,
   pub(crate) at: usize,
 }
 
-impl Parser<'_> {
-  pub(crate) fn document(&mut self) -> Result<(), Abort> {
+impl<B: Build> Parser<'_, B> {
+  /// The value of the text, or `None` if it only has comments.
+  pub(crate) fn document(&mut self) -> Result<Option<B::Node>, Abort> {
     self.trivia()?;
     if self.at == self.text.len() {
-      return Ok(());
+      return Ok(None);
     }
     let root = self.value()?;
-    self.tree.root = Some(root);
     self.trivia()?;
     match self.at == self.text.len() {
-      true => Ok(()),
+      true => Ok(Some(root)),
       false => Err(self.error(Message::UnexpectedToken)),
     }
   }
 
-  fn value(&mut self) -> Result<NodeId, Abort> {
+  fn value(&mut self) -> Result<B::Node, Abort> {
     if !self.stack.has_room() {
       return Err(Abort::TooDeep);
     }
@@ -59,23 +140,33 @@ impl Parser<'_> {
           }
           _ => return Err(self.error_at(Message::NotJson, start)),
         };
-        Ok(self.tree.push(kind, span(start, end)))
+        Ok(self.build.leaf(kind, span(start, end)))
       }
       Some(_) => Err(self.error(Message::UnexpectedToken)),
       None => Err(self.error(Message::UnexpectedEnd)),
     }
   }
 
-  fn object(&mut self) -> Result<NodeId, Abort> {
+  fn object(&mut self) -> Result<B::Node, Abort> {
     let start = self.at;
     self.at += 1;
-    let first = self.pending.len();
+    let open = self.build.open(true);
+    let mut proto = None;
     loop {
       self.trivia()?;
       if self.peek() == Some(b'}') {
         break;
       }
+      let key_start = self.at;
       let key = self.key()?;
+      // Babel's `checkProto`: `__proto__` can only be a key once.
+      if self.is_proto(key_start, self.at) {
+        proto = match proto {
+          None => Some(None),
+          Some(None) => Some(Some(key_start)),
+          twice => twice,
+        };
+      }
       self.trivia()?;
       if self.peek() != Some(b':') {
         return Err(self.error(Message::ExpectedColon));
@@ -83,10 +174,7 @@ impl Parser<'_> {
       self.at += 1;
       self.trivia()?;
       let value = self.value()?;
-      let property = Kind::Property { key, value };
-      let property =
-        self.tree.push(property, span(self.tree.node(key).span.start as usize, self.at));
-      self.pending.push(Some(property));
+      self.build.property(key, value, span(key_start, self.at));
       self.trivia()?;
       match self.peek() {
         Some(b',') => self.at += 1,
@@ -96,28 +184,31 @@ impl Parser<'_> {
       }
     }
     self.at += 1;
-    let items = self.items(first);
-    self.check_proto(items)?;
-    Ok(self.tree.push(Kind::Object(items), span(start, self.at)))
+    if let Some(Some(at)) = proto {
+      return Err(self.error_at(Message::DuplicateProto, at));
+    }
+    Ok(self.build.object(open, span(start, self.at)))
   }
 
-  fn array(&mut self) -> Result<NodeId, Abort> {
+  fn array(&mut self) -> Result<B::Node, Abort> {
     let start = self.at;
     self.at += 1;
-    let first = self.pending.len();
+    let open = self.build.open(false);
     loop {
       self.trivia()?;
       match self.peek() {
         Some(b']') => break,
         Some(b',') => {
+          if !self.build.hole() {
+            return Err(self.error_at(Message::ArrayHole, start));
+          }
           self.at += 1;
-          self.pending.push(None);
           continue;
         }
         _ => {}
       }
       let value = self.value()?;
-      self.pending.push(Some(value));
+      self.build.element(value);
       self.trivia()?;
       match self.peek() {
         Some(b',') => self.at += 1,
@@ -127,61 +218,52 @@ impl Parser<'_> {
       }
     }
     self.at += 1;
-    let items = self.items(first);
-    Ok(self.tree.push(Kind::Array(items), span(start, self.at)))
+    Ok(self.build.array(open, span(start, self.at)))
   }
 
-  fn items(&mut self, first: usize) -> Items {
-    let start = self.tree.items.len() as u32;
-    self.tree.items.extend(self.pending.drain(first..));
-    Items { start, end: self.tree.items.len() as u32 }
-  }
-
-  /// Babel's `checkProto`: `__proto__` can only be a key once.
-  fn check_proto(&self, items: Items) -> Result<(), Abort> {
-    let text = self.text;
-    let mut seen = false;
-    for property in self.tree.items(items).iter().flatten() {
-      let Kind::Property { key, .. } = self.tree.node(*property).kind else { continue };
-      let key = self.tree.node(key);
-      let raw = &text[key.span.start as usize..key.span.end as usize];
-      let content = match key.kind {
-        Kind::Identifier => raw,
-        Kind::String => &raw[1..raw.len() - 1],
-        _ => continue,
-      };
-      // Only a key with an escape needs reading to be `__proto__`.
-      let proto = match (content.contains(&b'\\'), key.kind) {
-        (false, _) => content == b"__proto__",
-        (true, Kind::Identifier) => cook::identifier(content) == "__proto__",
-        (true, _) => char::decode_utf16(cook::string(content))
-          .map(|it| it.ok())
-          .eq("__proto__".chars().map(Some)),
-      };
-      if proto && seen {
-        return Err(self.error_at(Message::DuplicateProto, key.span.start as usize));
-      }
-      seen |= proto;
+  /// The key from `start` to `end` is `__proto__`. Only a key with an escape needs reading to tell.
+  fn is_proto(&self, start: usize, end: usize) -> bool {
+    let raw = &self.text[start..end];
+    let (content, string) = match raw[0] {
+      b'"' | b'\'' => (&raw[1..raw.len() - 1], true),
+      b'0'..=b'9' | b'.' => return false,
+      _ => (raw, false),
+    };
+    match (content.contains(&b'\\'), string) {
+      (false, _) => content == b"__proto__",
+      (true, false) => cook::identifier(content) == "__proto__",
+      (true, true) => char::decode_utf16(cook::string(content))
+        .map(|it| it.ok())
+        .eq("__proto__".chars().map(Some)),
     }
-    Ok(())
   }
 
-  fn key(&mut self) -> Result<NodeId, Abort> {
+  fn key(&mut self) -> Result<B::Key, Abort> {
     let start = self.at;
-    match self.peek() {
-      Some(b'"' | b'\'') => self.string(),
-      Some(b'0'..=b'9') => self.number(),
-      Some(b'.') if self.text.get(start + 1).is_some_and(u8::is_ascii_digit) => self.number(),
-      Some(_) if self.identifier_length(start).is_some() => {
-        let end = self.identifier()?;
-        Ok(self.tree.push(Kind::Identifier, span(start, end)))
+    let kind = match self.peek() {
+      Some(b'"' | b'\'') => {
+        self.string_end()?;
+        Kind::String
       }
-      Some(_) => Err(self.error(Message::UnexpectedToken)),
-      None => Err(self.error(Message::UnexpectedEnd)),
-    }
+      Some(b'0'..=b'9') => {
+        self.number_end()?;
+        Kind::Number
+      }
+      Some(b'.') if self.text.get(start + 1).is_some_and(u8::is_ascii_digit) => {
+        self.number_end()?;
+        Kind::Number
+      }
+      Some(_) if self.identifier_length(start).is_some() => {
+        self.identifier()?;
+        Kind::Identifier
+      }
+      Some(_) => return Err(self.error(Message::UnexpectedToken)),
+      None => return Err(self.error(Message::UnexpectedEnd)),
+    };
+    Ok(self.build.key(kind, span(start, self.at)))
   }
 
-  fn sign(&mut self) -> Result<NodeId, Abort> {
+  fn sign(&mut self) -> Result<B::Node, Abort> {
     let start = self.at;
     let minus = self.text[start] == b'-';
     self.at += 1;
@@ -199,34 +281,45 @@ impl Parser<'_> {
         if !matches!(&*cook::identifier(raw), "Infinity" | "NaN") {
           return Err(self.error_at(Message::NotJson, at));
         }
-        self.tree.push(Kind::Identifier, span(at, end))
+        self.build.leaf(Kind::Identifier, span(at, end))
       }
       Some(_) => return Err(self.error_at(Message::NotJson, at)),
       None => return Err(self.error(Message::UnexpectedEnd)),
     };
-    Ok(self.tree.push(Kind::Sign { minus, argument }, span(start, self.at)))
+    Ok(self.build.sign(minus, argument, span(start, self.at)))
   }
 
-  fn string(&mut self) -> Result<NodeId, Abort> {
+  fn string(&mut self) -> Result<B::Node, Abort> {
+    let start = self.at;
+    self.string_end()?;
+    Ok(self.build.leaf(Kind::String, span(start, self.at)))
+  }
+
+  /// Reads a string, from its opening quote to after its closing one.
+  fn string_end(&mut self) -> Result<(), Abort> {
     let start = self.at;
     let quote = self.text[start];
     self.at += 1;
     loop {
-      let Some(&byte) = self.text.get(self.at) else {
+      let rest = &self.text[self.at..];
+      let Some(length) = memchr::memchr3(quote, b'\\', b'\n', rest) else {
         return Err(self.error_at(Message::UnclosedString, start));
       };
-      match byte {
-        _ if byte == quote => break,
+      if memchr::memchr(b'\r', &rest[..length]).is_some() {
+        return Err(self.error_at(Message::UnclosedString, start));
+      }
+      self.at += length;
+      match rest[length] {
         b'\\' => self.escape(false)?,
-        b'\n' | b'\r' => return Err(self.error_at(Message::UnclosedString, start)),
-        _ => self.at += 1,
+        b'\n' => return Err(self.error_at(Message::UnclosedString, start)),
+        _ => break,
       }
     }
     self.at += 1;
-    Ok(self.tree.push(Kind::String, span(start, self.at)))
+    Ok(())
   }
 
-  fn template(&mut self) -> Result<NodeId, Abort> {
+  fn template(&mut self) -> Result<B::Node, Abort> {
     let start = self.at;
     self.at += 1;
     loop {
@@ -239,7 +332,7 @@ impl Parser<'_> {
       }
     }
     self.at += 1;
-    Ok(self.tree.push(Kind::Template, span(start, self.at)))
+    Ok(self.build.leaf(Kind::Template, span(start, self.at)))
   }
 
   /// Babel's `readEscapedChar`, from the backslash. A template can't have octal escapes.
@@ -298,8 +391,14 @@ impl Parser<'_> {
     true
   }
 
+  fn number(&mut self) -> Result<B::Node, Abort> {
+    let start = self.at;
+    self.number_end()?;
+    Ok(self.build.leaf(Kind::Number, span(start, self.at)))
+  }
+
   /// Babel's `readNumber` and `readRadixNumber`. A BigInt isn't JSON.
-  fn number(&mut self) -> Result<NodeId, Abort> {
+  fn number_end(&mut self) -> Result<(), Abort> {
     let start = self.at;
     let text = self.text;
     let radix = match text.get(start..start + 2) {
@@ -341,7 +440,7 @@ impl Parser<'_> {
     if self.peek() == Some(b'n') || self.identifier_length(self.at).is_some() {
       return Err(self.error_at(Message::InvalidNumber, start));
     }
-    Ok(self.tree.push(Kind::Number, span(start, self.at)))
+    Ok(())
   }
 
   /// Babel's `readInt`: digits of `radix`, with single `_` between them. False if there are none.
@@ -428,6 +527,11 @@ impl Parser<'_> {
           Some(end) => self.comment(end + 4, true),
           None => return Err(self.error(Message::UnclosedComment)),
         },
+        [b' ' | b'\t' | b'\n' | b'\r', ..] => {
+          let length = rest.iter().position(|byte| !matches!(byte, b' ' | b'\t' | b'\n' | b'\r'));
+          self.at += length.unwrap_or(rest.len());
+        }
+        [] | [0x0E..=0x1F | 0x21..=0x7F, ..] => return Ok(()),
         _ => match strings::js_whitespace_len(rest) {
           0 => return Ok(()),
           length => self.at += length,
@@ -438,7 +542,7 @@ impl Parser<'_> {
 
   fn comment(&mut self, length: usize, block: bool) {
     let span = span(self.at, self.at + length);
-    self.tree.comments.push(Comment { span, block });
+    self.build.comment(Comment { span, block });
     self.at += length;
   }
 
