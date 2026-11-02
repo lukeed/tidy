@@ -336,6 +336,8 @@ fn print_front_matter(raw: &[u8], sink: &mut Sink<'_>, options: &Options, embed:
       language,
       kind: Purpose::FrontMatter,
       indent: 0,
+      prefix: 0,
+      suffix: 0,
       width: options.width,
       module: true,
     };

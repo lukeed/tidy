@@ -50,6 +50,12 @@ function files(path: string): string[] {
 
 let javascript = /^(babel|typescript|babel-ts|__(js|ts|vue|vue_ts)_[a-z_]+)$/;
 
+/** How many parameters the function in `code` has. */
+async function parameters(code: string, parser: string) {
+	let { ast } = await prettier.__debug.parse(code, { parser });
+	return (ast as { program: { body: { params: unknown[] }[] } }).program.body[0].params.length;
+}
+
 /** What Prettier prints for `request`, inside its indents. */
 async function prettierHook(request: EmbedRequest): Promise<string | undefined> {
 	let tab = "  ";
@@ -70,7 +76,8 @@ async function prettierHook(request: EmbedRequest): Promise<string | undefined> 
 			let formatted = (await prettier.format(code, { parser, printWidth: 2 ** 31 - 1 })).trim();
 			if (!formatted.startsWith(start) || !formatted.endsWith(end)) return undefined;
 			let inner = formatted.slice(start.length, -end.length);
-			return indent(binding[2] === "for_left" && inner.includes(",") ? `(${inner})` : inner);
+			let many = binding[2] === "for_left" && (await parameters(code, parser)) !== 1;
+			return indent(many ? `(${inner})` : inner);
 		}
 		let settings = {
 			parser: request.language,
@@ -81,7 +88,9 @@ async function prettierHook(request: EmbedRequest): Promise<string | undefined> 
 			...(request.module ? {} : { filepath: "script.cjs" }),
 		};
 		let { builders, printer } = prettier.doc;
-		let doc: prettier.Doc = [builders.hardline, await prettier.__debug.printToDoc(request.code, settings)];
+		let code = await prettier.__debug.printToDoc(request.code, settings);
+		// The text around the code on its lines, as spaces that the trimming below removes.
+		let doc: prettier.Doc = [builders.hardline, " ".repeat(request.prefix), code, " ".repeat(request.suffix)];
 		for (let level = 0; level < request.indent; level++) doc = builders.indent(doc);
 		let formatted = printer.printDocToString(doc, settings as prettier.doc.printer.Options).formatted;
 		formatted = formatted.replace(/^\n[\t ]*/, "").replace(/\s+$/, "");

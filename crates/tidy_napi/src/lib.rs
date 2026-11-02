@@ -15,6 +15,11 @@ pub struct EmbedRequest {
   pub kind: String,
   /// How many indents the code starts at. Indent the lines after the first by this much.
   pub indent: u32,
+  /// The width of the text before the code on its first line, after the indents, as `name="` before an attribute
+  /// value. Print the code after this much.
+  pub prefix: u32,
+  /// The width of the text after the code on its last line, as the `"` that closes such a value.
+  pub suffix: u32,
   pub width: u32,
   /// JavaScript that is a module, not a classic script.
   pub module: bool,
@@ -141,6 +146,8 @@ pub fn format(
       language: request.language.to_string(),
       kind: kind.to_string(),
       indent: request.indent as u32,
+      prefix: request.prefix as u32,
+      suffix: request.suffix as u32,
       width: request.width as u32,
       module: request.module,
     };

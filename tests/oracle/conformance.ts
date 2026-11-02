@@ -80,7 +80,7 @@ function scripts(options: Record<string, unknown>) {
 }
 
 function key(request: EmbedRequest) {
-	return JSON.stringify([request.code, request.language, request.kind, request.indent, request.width]);
+	return JSON.stringify([request.code, request.language, request.kind, request.indent, request.prefix, request.suffix, request.width]);
 }
 
 /** Parameter lists, which Prettier formats with options that only its HTML printer can pass. */
@@ -90,10 +90,12 @@ async function parameters(request: EmbedRequest, extra: Record<string, unknown>,
 		? (code: string) => [`type T<${code}> = any`, "type T<", "> = any;"]
 		: (code: string) => [`function _(${code}) {}`, "function _(", ") {}"];
 	let [code, start, end] = wrap(request.code);
-	let formatted = (await prettier.format(code, { ...extra, parser: ts || request.language.endsWith("generic") ? "babel-ts" : "babel", printWidth: 2 ** 31 - 1 })).trim();
+	let parser = ts || request.language.endsWith("generic") ? "babel-ts" : "babel";
+	let formatted = (await prettier.format(code, { ...extra, parser, printWidth: 2 ** 31 - 1 })).trim();
 	if (!formatted.startsWith(start) || !formatted.endsWith(end)) return undefined;
 	let inner = formatted.slice(start.length, -end.length);
-	let many = inner.includes(",");
+	let { ast } = await prettier.__debug.parse(code, { parser });
+	let many = (ast as { program: { body: { params?: unknown[] }[] } }).program.body[0].params?.length !== 1;
 	let text = request.language.includes("for_left") && many ? `(${inner})` : inner;
 	return indent(text, request);
 }
@@ -130,7 +132,9 @@ async function embedded(request: EmbedRequest, options: FormatOptions, extra: Re
 		};
 		// The doc printed inside the indents, as Prettier prints it, so that literal lines stay where they are.
 		let { builders, printer } = prettier.doc;
-		let doc: prettier.Doc = [builders.hardline, await prettier.__debug.printToDoc(request.code, settings)];
+		let code = await prettier.__debug.printToDoc(request.code, settings);
+		// The text around the code on its lines, as spaces that the trimming below removes.
+		let doc: prettier.Doc = [builders.hardline, " ".repeat(request.prefix), code, " ".repeat(request.suffix)];
 		for (let level = 0; level < request.indent; level++) doc = builders.indent(doc);
 		let formatted = printer.printDocToString(doc, settings as prettier.doc.printer.Options).formatted;
 		formatted = formatted.replace(/^\n[\t ]*/, "").replace(/\s+$/, "");

@@ -22,6 +22,10 @@ pub(crate) struct Embedded<'c> {
   /// Indents beyond the printer's own, where the code is printed in an `indent`.
   extra: usize,
   module: bool,
+  /// See [`Request::prefix`].
+  prefix: usize,
+  /// See [`Request::suffix`].
+  suffix: usize,
 }
 
 impl<'c> Embedded<'c> {
@@ -31,6 +35,8 @@ impl<'c> Embedded<'c> {
       language: self.language,
       kind: self.kind,
       indent: indents + self.extra,
+      prefix: self.prefix,
+      suffix: self.suffix,
       width: options.width,
       module: self.module,
     }
@@ -118,6 +124,8 @@ pub(crate) fn element(printer: &mut Printer<'_, '_>, id: Id) -> bool {
       kind: Purpose::Block,
       extra: 0,
       module: true,
+      prefix: 0,
+      suffix: 0,
     }) {
       Some(text) => formatted = text,
       None => return false,
@@ -153,7 +161,15 @@ pub(crate) fn script(printer: &mut Printer<'_, '_>, id: Id, parent: Id) -> bool 
     text(value).into_owned()
   };
   let module = is_module(printer, parent, language);
-  let embedded = Embedded { code: &code, language, kind: Purpose::Block, extra: 0, module };
+  let embedded = Embedded {
+    code: &code,
+    language,
+    kind: Purpose::Block,
+    extra: 0,
+    module,
+    prefix: 0,
+    suffix: 0,
+  };
   // `</script` would end the element. Prettier only prints one in a template of HTML in JavaScript, where it escapes it.
   let formatted = printer.embed_text(embedded).map(|formatted| match &tree[parent].name[..] {
     b"script" => escape_script_end(formatted),
@@ -249,12 +265,17 @@ pub(crate) fn interpolation(printer: &mut Printer<'_, '_>, id: Id, parent: Id) -
     kind: Purpose::Expression,
     extra: 1,
     module: true,
+    prefix: 0,
+    suffix: 0,
   }) else {
     return false;
   };
   let indent = printer.docs.indent();
   printer.docs.line();
   printer.text_doc(&formatted);
+  if ends_in_line_comment(&formatted) {
+    printer.docs.break_parent();
+  }
   printer.docs.close(indent);
   let tags = printer.tags();
   if tree.next(parent).is_some_and(|next| tags.needs_to_borrow_prev_closing_tag_end_marker(next)) {
@@ -288,6 +309,8 @@ pub(crate) fn front_matter(printer: &mut Printer<'_, '_>, raw: &[u8]) -> bool {
       kind: Purpose::FrontMatter,
       extra: 0,
       module: true,
+      prefix: 0,
+      suffix: 0,
     });
     printer.indents = saved;
     match result {
@@ -357,7 +380,8 @@ pub(crate) fn attribute(printer: &mut Printer<'_, '_>, id: Id, index: usize) -> 
   }
   let embedded = !printer.options.embedded && !strings::contains(value, b"{{");
   let unescaped = unescape_quote_entities(value);
-  let Some(plan) = value_of(printer, id, &full, &unescaped, embedded) else { return false };
+  let lead = crate::doc::width(&text(&raw)) + 2;
+  let Some(plan) = value_of(printer, id, &full, &unescaped, embedded, lead) else { return false };
   printer.bytes(&raw);
   printer.docs.text("=\"");
   let group = printer.docs.group();
@@ -370,13 +394,14 @@ pub(crate) fn attribute(printer: &mut Printer<'_, '_>, id: Id, index: usize) -> 
   true
 }
 
-/// The printers of `embed/attribute.js` for one value, in their order.
+/// The printers of `embed/attribute.js` for one value, in their order. `lead` is the width of `name="`.
 fn value_of<'v>(
   printer: &mut Printer<'_, '_>,
   id: Id,
   full: &[u8],
   unescaped: &'v [u8],
   embedded: bool,
+  lead: usize,
 ) -> Option<Value<'v>> {
   let tree = printer.tree;
   if full == b"class" && embedded {
@@ -399,6 +424,8 @@ fn value_of<'v>(
       language: "css",
       kind: Purpose::Attribute,
       indent: 0,
+      prefix: 0,
+      suffix: 0,
       width,
       module: true,
     };
@@ -408,12 +435,19 @@ fn value_of<'v>(
     }
   } else if embedded && is_event_handler(full) {
     let code = text(unescaped);
-    let embedded =
-      Embedded { code: &code, language: "babel", kind: Purpose::Attribute, extra: 2, module: true };
+    let embedded = Embedded {
+      code: &code,
+      language: "babel",
+      kind: Purpose::Attribute,
+      extra: 2,
+      module: true,
+      prefix: 0,
+      suffix: 0,
+    };
     printer.embed_text(embedded).map(Value::Expand)
   } else if printer.options.parser == Parser::Vue {
     let code = text(unescaped);
-    vue(printer, id, full, &code)
+    vue(printer, id, full, &code, lead)
   } else {
     None
   }
@@ -471,7 +505,12 @@ fn emit_value(printer: &mut Printer<'_, '_>, value: Value<'_>) {
     }
     Value::Style(formatted) => expand(printer, |printer| style(printer, &formatted)),
     Value::Css(document) => expand(printer, |printer| document.write(printer.docs)),
-    Value::Expand(formatted) => expand(printer, |printer| printer.text_doc(&formatted)),
+    Value::Expand(formatted) => expand(printer, |printer| {
+      printer.text_doc(&formatted);
+      if ends_in_line_comment(&formatted) {
+        printer.docs.break_parent();
+      }
+    }),
     Value::Hug(formatted) => {
       let group = printer.docs.group();
       printer.text_doc(&formatted);
@@ -778,14 +817,22 @@ fn srcset(value: &[u8]) -> Option<Value<'_>> {
 // ───────────────────────────── Vue ─────────────────────────────
 
 /// `embed/vue-attributes.js`: the value of a directive or binding of a Vue file.
-fn vue<'v>(printer: &mut Printer<'_, '_>, id: Id, name: &[u8], code: &str) -> Option<Value<'v>> {
+fn vue<'v>(
+  printer: &mut Printer<'_, '_>,
+  id: Id,
+  name: &[u8],
+  code: &str,
+  lead: usize,
+) -> Option<Value<'v>> {
   let ts = printer.options.typescript;
   let tree = printer.tree;
   if name == b"v-for" {
-    return v_for(printer, code);
+    return v_for(printer, code, lead);
   }
+  let expression =
+    |printer: &mut Printer<'_, '_>, language, hug| expression(printer, code, language, hug, lead);
   if name == b"generic" && tree.is_vue_script_tag(id, printer.options) {
-    return expression(printer, code, "__vue_generic", Hug::Literal);
+    return expression(printer, "__vue_generic", Hug::Literal);
   }
   let is_slot = name.starts_with(b"#")
     || name == b"slot-scope"
@@ -796,20 +843,20 @@ fn vue<'v>(printer: &mut Printer<'_, '_>, id: Id, name: &[u8], code: &str) -> Op
       || (tree[id].is_full_name(b"style") && name == b"vars"));
   if is_slot || is_bindings {
     let language = if ts { "__vue_ts_bindings" } else { "__vue_bindings" };
-    return expression(printer, code, language, Hug::Always);
+    return expression(printer, language, Hug::Always);
   }
   let script = if ts { "__ts_expression" } else { "__js_expression" };
   if name.starts_with(b"@") || name.starts_with(b"v-on:") {
     let binding = if ts { "__vue_ts_event_binding" } else { "__vue_event_binding" };
-    return expression(printer, code, script, Hug::Literal)
-      .or_else(|| expression(printer, code, binding, Hug::Literal));
+    return expression(printer, script, Hug::Literal)
+      .or_else(|| expression(printer, binding, Hug::Literal));
   }
   if name.starts_with(b":") || name.starts_with(b".") || name.starts_with(b"v-bind:") {
     let language = if ts { "__vue_ts_expression" } else { "__vue_expression" };
-    return expression(printer, code, language, Hug::Literal);
+    return expression(printer, language, Hug::Literal);
   }
   if name.starts_with(b"v-") {
-    return expression(printer, code, script, Hug::Literal);
+    return expression(printer, script, Hug::Literal);
   }
   None
 }
@@ -823,23 +870,26 @@ enum Hug {
   Literal,
 }
 
-/// `formatAttributeValue`
+/// `formatAttributeValue`. A hugged value follows `name="`, `lead` wide, and is followed by `"`.
 fn expression<'v>(
   printer: &mut Printer<'_, '_>,
   code: &str,
   language: &str,
   hug: Hug,
+  lead: usize,
 ) -> Option<Value<'v>> {
-  let request = |extra| Embedded { code, language, kind: Purpose::Attribute, extra, module: true };
+  let kind = Purpose::Attribute;
+  let hugged = Embedded { code, language, kind, extra: 1, module: true, prefix: lead, suffix: 1 };
   if hug == Hug::Always {
-    return printer.embed_text(request(1)).map(Value::Hug);
+    return printer.embed_text(hugged).map(Value::Hug);
   }
-  let expanded = printer.embed_text(request(2))?;
+  let expanded = Embedded { code, language, kind, extra: 2, module: true, prefix: 0, suffix: 0 };
+  let expanded = printer.embed_text(expanded)?;
   let strings = matches!(language, "__vue_expression" | "__vue_ts_expression");
   if !is_literal(expanded.trim(), strings) {
     return Some(Value::Expand(expanded));
   }
-  printer.embed_text(request(1)).map(Value::Hug)
+  printer.embed_text(hugged).map(Value::Hug)
 }
 
 /// Whether `text`, a formatted expression, is one object or array literal, or with `strings`, one string or template
@@ -867,6 +917,9 @@ fn end_of_literal(bytes: &[u8], close: u8) -> Option<usize> {
       match bytes[at] {
         b'\\' => at += 2,
         byte if byte == close => return Some(at),
+        b'$' if close == b'`' && bytes.get(at + 1) == Some(&b'{') => {
+          at += 1 + end_of_literal(&bytes[at + 1..], b'}')? + 1;
+        }
         _ => at += 1,
       }
     }
@@ -897,26 +950,86 @@ fn end_of_literal(bytes: &[u8], close: u8) -> Option<usize> {
   None
 }
 
-/// `printVueVForDirective`
-fn v_for<'v>(printer: &mut Printer<'_, '_>, code: &str) -> Option<Value<'v>> {
+/// Whether `code`, formatted JavaScript on one line, ends in a line comment, whose `breakParent` breaks the groups
+/// around it.
+fn ends_in_line_comment(code: &str) -> bool {
+  let bytes = code.as_bytes();
+  if bytes.contains(&b'\n') {
+    return false;
+  }
+  let mut regex = true;
+  let mut at = 0;
+  while at < bytes.len() {
+    let byte = bytes[at];
+    let skipped = match (byte, bytes.get(at + 1)) {
+      (b'/', Some(b'/')) => return true,
+      (b'/', Some(b'*')) => strings::index_of(&bytes[at + 2..], b"*/").map(|end| end + 4),
+      (b'"' | b'\'' | b'`', _) => end_of_literal(&bytes[at..], byte).map(|end| end + 1),
+      (b'/', _) if regex => end_of_regex(&bytes[at..]),
+      _ => Some(1),
+    };
+    let Some(skipped) = skipped else { return false };
+    if byte != b' ' {
+      regex = !(byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'$' | b')' | b']'));
+    }
+    at += skipped;
+  }
+  false
+}
+
+/// The length of the regular expression at the start of `bytes`, without its flags.
+fn end_of_regex(bytes: &[u8]) -> Option<usize> {
+  let mut is_in_class = false;
+  let mut at = 1;
+  while at < bytes.len() {
+    match bytes[at] {
+      b'\\' => at += 1,
+      b'[' => is_in_class = true,
+      b']' => is_in_class = false,
+      b'/' if !is_in_class => return Some(at + 1),
+      _ => {}
+    }
+    at += 1;
+  }
+  None
+}
+
+/// `printVueVForDirective`. The host formats the aliases and the expression apart; without it, they are formatted as
+/// one, as Prettier does.
+fn v_for<'v>(printer: &mut Printer<'_, '_>, code: &str, lead: usize) -> Option<Value<'v>> {
   let (left, operator, right) = parse_v_for(code)?;
   let ts = printer.options.typescript;
   let language = if ts { "__vue_ts_for_left" } else { "__vue_for_left" };
-  let left = printer.embed_text(Embedded {
+  let kind = Purpose::Attribute;
+  let aliases = Embedded {
     code: &left,
     language,
-    kind: Purpose::Attribute,
+    kind,
     extra: 1,
     module: true,
-  })?;
+    prefix: lead,
+    suffix: operator.len() + 2,
+  };
+  let request = aliases.request(printer.indents, printer.options);
+  let Some(left) = printer.embed.format(request) else {
+    let options = printer.options;
+    let request = Request { suffix: 1, ..request };
+    let (tab_width, tabs) = (options.tab_width, options.tabs);
+    let formatted = options.formats_embedded.then(|| {
+      crate::embed::builtin_for(&request, operator, right, tab_width, tabs, options.scripts)
+    })??;
+    return Some(Value::Hug(formatted));
+  };
+  let left = left.trim_end().to_owned();
+  let prefix = match left.rsplit_once('\n') {
+    Some((_, last)) => crate::doc::width(last.trim_start()),
+    None => lead + crate::doc::width(&left),
+  } + operator.len()
+    + 2;
   let script = if ts { "__ts_expression" } else { "__js_expression" };
-  let right = printer.embed_text(Embedded {
-    code: right,
-    language: script,
-    kind: Purpose::Attribute,
-    extra: 1,
-    module: true,
-  })?;
+  let right =
+    Embedded { code: right, language: script, kind, extra: 1, module: true, prefix, suffix: 1 };
+  let right = printer.embed_text(right)?;
   Some(Value::For(left, operator, right))
 }
 

@@ -428,6 +428,8 @@ impl Formatter {
               language,
               kind: Kind::Block,
               indent: 0,
+              prefix: 0,
+              suffix: 0,
               width: code.width,
               module: true,
             };

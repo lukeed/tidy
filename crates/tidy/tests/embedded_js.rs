@@ -22,6 +22,13 @@ fn formats_vue_expressions_and_bindings() {
 }
 
 #[test]
+fn places_vue_attribute_values_after_their_names() {
+  let source = "<template>\n  <div v-for=\"({ a, b, c }, index) of loooooooooooooooooooooooooooooooooooooooongList\" :class=\"['aaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbbbbbbbbbbbbb', 'cccccc']\" :key=\"index // hello\">{{ a // b\n }}</div>\n</template>\n";
+  let expected = "<template>\n  <div\n    v-for=\"(\n      { a, b, c }, index\n    ) of loooooooooooooooooooooooooooooooooooooooongList\"\n    :class=\"[\n      'aaaaaaaaaaaaaaaaaaaaaaaaaa',\n      'bbbbbbbbbbbbbbbbbbbbbbbbbbb',\n      'cccccc',\n    ]\"\n    :key=\"\n      index // hello\n    \"\n  >\n    {{\n      a // b\n    }}\n  </div>\n</template>\n";
+  assert_eq!(format(source, Language::Vue), expected);
+}
+
+#[test]
 fn formats_code_blocks_in_markdown() {
   let source = "```js\nconst a = {b:1}\n```\n\n- item\n\n  ```tsx\n  const x = <div className=\"a\">{y}</div>\n  ```\n\n```jsx\n<Foo bar=\"baz\" />\n```\n";
   let expected = "```js\nconst a = { b: 1 };\n```\n\n- item\n\n  ```tsx\n  const x = <div className=\"a\">{y}</div>;\n  ```\n\n```jsx\n<Foo bar=\"baz\" />\n```\n";

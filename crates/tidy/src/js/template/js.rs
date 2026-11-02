@@ -1,8 +1,9 @@
 //! JavaScript and TypeScript in markup and Markdown: Prettier's `textToDoc` for the parsers of `language-js`.
 //!
 //! bun writes the code into the document of the HTML around it. tidy's markup printers take text from
-//! [`crate::embed`] instead, so the code is printed alone, inside as many indents as it starts at, the way a hook
-//! prints it.
+//! [`crate::embed`] instead, so the code is printed alone, inside as many indents as it starts at and between the
+//! widths of the text around it on its lines, the way a hook prints it. A `v-for` value is printed whole, since its
+//! aliases break by the width of what follows them.
 
 use crate::embed::{Kind, Request};
 use crate::js::ast_nodes::node_as_ast_nodes;
@@ -132,10 +133,29 @@ pub(crate) fn format(
   host: Host,
 ) -> Option<String> {
   let root = Root::of(request.language)?;
+  with_buffers(|buffers| format_in(request, options, host, root, buffers))
+}
+
+/// Formats `v-for="left operator right"`, where `left` asks for the aliases, as `printVueVForDirective` prints them: in
+/// one group, so that the aliases break when the line can't hold them with the rest.
+pub(crate) fn format_for(
+  left: &Request<'_>,
+  operator: &str,
+  right: &str,
+  options: &crate::js::Options,
+) -> Option<String> {
+  let root = Root::of(left.language)?;
+  let Root::Binding(Binding::ForLeft, ts) = root else { return None };
+  let language = if ts { "__ts_expression" } else { "__js_expression" };
+  let right = Request { code: right, language, ..*left };
+  with_buffers(|buffers| format_for_in(left, root, operator, &right, options, buffers))
+}
+
+fn with_buffers(run: impl FnOnce(&mut Buffers) -> Option<String>) -> Option<String> {
   BUFFERS.with(|buffers| match buffers.try_borrow_mut() {
-    Ok(mut buffers) => format_in(request, options, host, root, &mut buffers),
+    Ok(mut buffers) => run(&mut buffers),
     // Formatting code can format other code, as in an HTML template in a script in HTML.
-    Err(_) => format_in(request, options, host, root, &mut Buffers::default()),
+    Err(_) => run(&mut Buffers::default()),
   })
 }
 
@@ -149,55 +169,21 @@ fn format_in(
   let Buffers { allocator, scratch } = buffers;
   allocator.reset();
   let options = options_for(request, options, host, root);
-  let code = request.code;
-  let (text, paths, source_type) = match root {
-    Root::Program(syntax) => {
-      let source_type = match request.module || syntax != Syntax::Babel {
-        true => SourceType::Unknown,
-        false => SourceType::Script,
-      };
-      (code.to_owned(), paths_of(syntax, code), source_type)
-    }
-    Root::Expression(_, ts) => {
-      let path = if ts { EXPRESSION_TS } else { EXPRESSION_JSX };
-      (format!("({code}\n)"), &[path][..], SourceType::Module)
-    }
-    Root::EventBinding(syntax) => (code.to_owned(), paths_of(syntax, code), SourceType::Unknown),
-    Root::Binding(binding, ts) => {
-      let text = match binding {
-        Binding::Parameters | Binding::ForLeft => format!("function _({code}) {{}}"),
-        Binding::TypeParameters => format!("type T<{code}> = any"),
-      };
-      let syntax = if ts { Syntax::BabelTs } else { Syntax::Babel };
-      let paths = paths_of(syntax, &text);
-      (text, paths, SourceType::Unknown)
-    }
-  };
-  let kinds: &[bool] = match source_type {
-    SourceType::Script => &[true],
-    SourceType::Module => &[false],
-    SourceType::Unknown => &[false, true],
-  };
   let allocator = &*allocator;
-  let file = paths.iter().find_map(|path| {
-    kinds.iter().find_map(|&is_script| parse(allocator, &text, path, is_script, source_type))
-  })?;
-  let file = &file;
-  let mut out = Vec::with_capacity(text.len() + 16);
-  let levels = request.indent;
+  let file = &parse_root(allocator, request.code, root, request.module)?;
+  let mut out = Vec::with_capacity(request.code.len() + 16);
   let written = Cell::new(true);
   match root {
     Root::Program(_) => {
       run::format(file, &options, scratch, &mut out, |file, f| {
-        write_indented(levels, f, &|f| write_statements(file, f));
+        write_placed(request, f, &|f| write_statements(file, f));
       })
       .ok()?;
     }
     _ => {
-      let comments = crate::js::comments::for_file(file, &options);
-      let context = JsFormatContext::new(file, options.clone(), comments);
+      let context = context_of(file, &options);
       let document = run::write_with(context, file.text(), scratch, |f| {
-        write_indented(levels, f, &|f| written.set(write_root(root, file, f)));
+        write_placed(request, f, &|f| written.set(write_root(root, file, f)));
       })
       .ok()?;
       if !written.get() {
@@ -206,6 +192,56 @@ fn format_in(
       run::print(document, file.text(), &options, scratch, &mut out).ok()?;
     }
   }
+  text_of(out, host)
+}
+
+fn format_for_in(
+  left: &Request<'_>,
+  root: Root,
+  operator: &str,
+  right: &Request<'_>,
+  options: &crate::js::Options,
+  buffers: &mut Buffers,
+) -> Option<String> {
+  let Buffers { allocator, scratch } = buffers;
+  allocator.reset();
+  let Root::Binding(binding, ts) = root else { return None };
+  let expression = Root::Expression(HtmlRoot::JsExpression, ts);
+  let (options, inner) = (
+    options_for(left, options, Host::Markup, root),
+    options_for(right, options, Host::Markup, expression),
+  );
+  let allocator = &*allocator;
+  let file = &parse_root(allocator, left.code, root, true)?;
+  let other = &parse_root(allocator, right.code, expression, true)?;
+  let e = expression_of(other)?;
+  let written = Cell::new(true);
+  let document = run::write_with(context_of(file, &options), file.text(), scratch, |f| {
+    write_placed(left, f, &|f| {
+      let content = format_with(|f| {
+        written.set(write_binding(binding, ts, file, f));
+        write!(f, [" ", text(operator.as_bytes()), " "]);
+        f.write_embedded(context_of(other, &inner), other.text(), |f| write!(f, group(&e)));
+      });
+      write!(f, group(&content));
+    });
+  })
+  .ok()?;
+  if !written.get() {
+    return None;
+  }
+  let mut out = Vec::with_capacity(left.code.len() + right.code.len() + 16);
+  run::print(document, file.text(), &options, scratch, &mut out).ok()?;
+  text_of(out, Host::Markup)
+}
+
+fn context_of<'a>(file: &'a File<'a>, options: &FormatOptions) -> JsFormatContext<'a> {
+  let comments = crate::js::comments::for_file(file, options);
+  JsFormatContext::new(file, options.clone(), comments)
+}
+
+/// The printed text, without the line break and indents before it.
+fn text_of(out: Vec<u8>, host: Host) -> Option<String> {
   let out = String::from_utf8(out).ok()?;
   let out = out.strip_prefix('\n').unwrap_or(&out);
   let out = out.trim_start_matches([' ', '\t']).trim_end();
@@ -213,6 +249,48 @@ fn format_in(
     Host::Markup => out.to_owned(),
     // The printer marks the line breaks in texts for Markdown, which indents every line alike.
     Host::Markdown => out.replace("\r\n", "\n"),
+  })
+}
+
+/// Parses `code` as what `root` reads, or returns `None` if it has errors.
+fn parse_root<'a>(
+  allocator: &'a oxc_allocator::Allocator,
+  code: &str,
+  root: Root,
+  module: bool,
+) -> Option<File<'a>> {
+  let (text, paths, source_type) = match root {
+    Root::Program(syntax) => {
+      let source_type = match module || syntax != Syntax::Babel {
+        true => SourceType::Unknown,
+        false => SourceType::Script,
+      };
+      (allocator.alloc_str(code), paths_of(syntax, code), source_type)
+    }
+    Root::Expression(_, ts) => {
+      let path = if ts { EXPRESSION_TS } else { EXPRESSION_JSX };
+      (allocator.alloc_str(&format!("({code}\n)")), &[path][..], SourceType::Module)
+    }
+    Root::EventBinding(syntax) => {
+      (allocator.alloc_str(code), paths_of(syntax, code), SourceType::Unknown)
+    }
+    Root::Binding(binding, ts) => {
+      let text = match binding {
+        Binding::Parameters | Binding::ForLeft => format!("function _({code}) {{}}"),
+        Binding::TypeParameters => format!("type T<{code}> = any"),
+      };
+      let syntax = if ts { Syntax::BabelTs } else { Syntax::Babel };
+      let paths = paths_of(syntax, &text);
+      (allocator.alloc_str(&text), paths, SourceType::Unknown)
+    }
+  };
+  let kinds: &[bool] = match source_type {
+    SourceType::Script => &[true],
+    SourceType::Module => &[false],
+    SourceType::Unknown => &[false, true],
+  };
+  paths.iter().find_map(|path| {
+    kinds.iter().find_map(|&is_script| parse(allocator, text, path, is_script, source_type))
   })
 }
 
@@ -323,6 +401,24 @@ fn write_indented<'a>(levels: usize, f: &mut Formatter<'a>, content: &dyn Fn(&mu
     }
     _ => write!(f, indent(&format_with(|f| write_indented(levels - 1, f, content)))),
   }
+}
+
+/// Writes `content` where `request` places it: after its indents and `prefix`, and before its `suffix`.
+fn write_placed<'a>(
+  request: &Request<'_>,
+  f: &mut Formatter<'a>,
+  content: &dyn Fn(&mut Formatter<'a>),
+) {
+  let pad = |f: &mut Formatter<'a>, width: usize| {
+    if width > 0 {
+      f.write_built_text(|text| text.resize(text.len() + width, b' '));
+    }
+  };
+  write_indented(request.indent, f, &|f| {
+    pad(f, request.prefix);
+    content(f);
+    pad(f, request.suffix);
+  });
 }
 
 /// Writes what Prettier prints for a `Program`, without the final line break.

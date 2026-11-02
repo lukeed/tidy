@@ -372,6 +372,8 @@ impl<'a> Printer<'_, 'a> {
       language,
       kind: Purpose::Block,
       indent: 0,
+      prefix: 0,
+      suffix: 0,
       width: self.options.width,
       module: true,
     };

@@ -285,7 +285,7 @@ impl Formatter {
       formats_embedded: options.format_embedded,
       is_tempura,
       #[cfg(feature = "js")]
-      scripts: options.js,
+      scripts: options.js.clone(),
       #[cfg(not(feature = "js"))]
       scripts: (),
     };

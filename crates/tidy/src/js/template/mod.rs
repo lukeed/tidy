@@ -2,4 +2,4 @@
 
 mod js;
 
-pub(crate) use js::{Host, format, formats};
+pub(crate) use js::{Host, format, format_for, formats};

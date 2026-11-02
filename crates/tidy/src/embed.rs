@@ -22,6 +22,11 @@ pub struct Request<'a> {
   pub kind: Kind,
   /// How many indents the code starts at. Lines after the first are indented by the host.
   pub indent: usize,
+  /// The width of the text before the code on its first line, after the indents, as `name="` before an attribute
+  /// value that the code follows on its line.
+  pub prefix: usize,
+  /// The width of the text after the code on its last line, as the `"` that closes such a value.
+  pub suffix: usize,
   /// The line width.
   pub width: usize,
   /// JavaScript that is a module, not a classic script: Prettier's `__babelSourceType`. Only a `<script>` in HTML is
@@ -94,6 +99,39 @@ pub(crate) fn builtin_in_markdown(
   builtin_in(request, tab_width, tabs, scripts, true)
 }
 
+/// [`builtin`] for `v-for="left operator right"`, where `left` asks for the aliases: the whole value, formatted as one.
+pub(crate) fn builtin_for(
+  left: &Request<'_>,
+  operator: &str,
+  right: &str,
+  tab_width: usize,
+  tabs: bool,
+  scripts: &Scripts,
+) -> Option<String> {
+  #[cfg(feature = "js")]
+  {
+    let options = script_options(left, tab_width, tabs, scripts);
+    crate::js::template::format_for(left, operator, right, &options)
+  }
+  #[cfg(not(feature = "js"))]
+  {
+    let _ = (left, operator, right, tab_width, tabs, scripts);
+    None
+  }
+}
+
+/// `scripts` with the host's width and indent.
+#[cfg(feature = "js")]
+fn script_options(
+  request: &Request<'_>,
+  tab_width: usize,
+  tabs: bool,
+  scripts: &Scripts,
+) -> crate::js::Options {
+  let eol = crate::doc::Eol::Lf;
+  crate::js::Options { width: request.width, tab_width, tabs, eol, ..scripts.clone() }
+}
+
 fn builtin_in(
   request: &Request<'_>,
   tab_width: usize,
@@ -105,13 +143,7 @@ fn builtin_in(
   #[cfg(feature = "js")]
   if crate::js::template::formats(request.language) {
     use crate::js::template::{Host, format};
-    let options = crate::js::Options {
-      width: request.width,
-      tab_width,
-      tabs,
-      eol: crate::doc::Eol::Lf,
-      ..*scripts
-    };
+    let options = script_options(request, tab_width, tabs, scripts);
     let host = if markdown { Host::Markdown } else { Host::Markup };
     return format(request, &options, host);
   }

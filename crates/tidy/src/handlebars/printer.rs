@@ -411,6 +411,8 @@ impl<'a> Printer<'a, '_> {
         language,
         kind: Purpose::FrontMatter,
         indent: 0,
+        prefix: 0,
+        suffix: 0,
         width: self.options.width,
         module: true,
       };
@@ -466,6 +468,8 @@ impl<'a> Printer<'a, '_> {
       language: "css",
       kind: Purpose::Block,
       indent: self.indents,
+      prefix: 0,
+      suffix: 0,
       width: self.options.width,
       module: true,
     };
@@ -1046,6 +1050,8 @@ impl<'a> Printer<'a, '_> {
       language: "__js_expression",
       kind,
       indent: self.indents + extra,
+      prefix: 0,
+      suffix: 0,
       width: self.options.width.saturating_sub(reserved),
       module: true,
     };
