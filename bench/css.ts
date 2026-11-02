@@ -3,12 +3,15 @@
 // has the files that Prettier can parse. For each tool it shows the time, with all cores and with one, and how many
 // files it prints exactly as Prettier does.
 //
+// The results go to bench/results/css.md.
+//
 //   bun bench/css.ts [--runs <n>] [--oss <dir>]
 import { $ } from "bun";
 import { cpSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, extname, join, relative } from "node:path";
 import * as prettier from "prettier";
+import { crates, record, type Section, version } from "./results";
 
 let args = Bun.argv.slice(2);
 let option = (name: string) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
@@ -106,6 +109,7 @@ async function matches(tool: string, dir: string): Promise<number | undefined> {
 type Result = { command: string; mean: number; user: number; system: number };
 
 let rows: string[] = [];
+let sections: Section[] = [];
 for (let name of Object.keys(sources)) {
 	let dir = join(corpus, name);
 	let [files, bytes] = size(dir);
@@ -120,6 +124,9 @@ for (let name of Object.keys(sources)) {
 	}
 	let average = (values: number[]) => (values.reduce((sum, value) => sum + value, 0) / values.length) * 1000;
 	rows.push(`\n${name}: ${files} files, ${(bytes / 1024).toFixed(0)} KB`);
+	let summary = `${files} files, ${(bytes / 1024).toFixed(0)} KB. A time is the mean of ${runs} runs in each order. The last column counts the files that a tool prints exactly as Prettier does.`;
+	let section: Section = { title: name, summary, head: ["Tool", "Wall", "CPU", "User", "Same as Prettier"], rows: [] };
+	sections.push(section);
 	rows.push(`  ${"tool".padEnd(24)} ${"wall".padStart(9)} ${"cpu".padStart(9)} ${"user".padStart(9)}  same as Prettier`);
 	for (let [tool, list] of Object.entries(results)) {
 		let wall = average(list.map((it) => it.mean));
@@ -130,6 +137,15 @@ for (let name of Object.keys(sources)) {
 		rows.push(
 			`  ${tool.padEnd(24)} ${wall.toFixed(1).padStart(6)} ms ${cpu.toFixed(1).padStart(6)} ms ${user.toFixed(1).padStart(6)} ms  ${column}`,
 		);
+		let times = [wall, cpu, user].map((time) => `${time.toFixed(1)} ms`);
+		section.rows.push([tool, ...times, column || "—"]);
 	}
 }
 console.log(rows.join("\n"));
+let tools = [
+	"tidy at the commit above",
+	...(await crates("bench/css/Cargo.lock", ["oxc_formatter_css", "malva", "lightningcss"])),
+	`bun fmt ${await version(["bun", "--version"])}`,
+	`Prettier ${prettier.version}`,
+];
+await record("css.md", "CSS formatters", sections, tools);

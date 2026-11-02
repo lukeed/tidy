@@ -18,6 +18,8 @@
 // "all" is every corpus in one tree, and "all-but-xml" leaves out XML, which bun fmt doesn't format. Prettier skips
 // the TOML files in both, and there is no Prettier row for TOML.
 //
+// Each corpus's results go to bench/results/format/<corpus>.md.
+//
 //   mise run bench -- [--runs <n>] [--oss <dir>] [--only <corpus,...>]
 import { $ } from "bun";
 import { cpSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
@@ -25,6 +27,7 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, extname, join } from "node:path";
 import * as prettierApi from "prettier";
 import { format as tidyFormat } from "../crates/tidy_napi/index.js";
+import { crates, language, record, version } from "./results";
 
 let args = Bun.argv.slice(2);
 let option = (name: string) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
@@ -144,6 +147,21 @@ let commands = (dir: string): Record<string, string> => ({
 	prettier: `${prettier} --check ${dir} ${off} --log-level silent --plugin @prettier/plugin-xml`,
 });
 
+/** What each tool is, with its version. */
+let versions: Record<string, string> = {
+	tidy: "tidy at the commit above",
+	bun: `bun fmt ${await version(["bun", "--version"])}`,
+	dprint: `dprint plugins: ${(await crates("bench/dprint/Cargo.lock", ["markup_fmt", "malva", "dprint-plugin-json", "pretty_yaml", "dprint-plugin-toml", "dprint-plugin-markdown"])).join(", ")}`,
+	oxc: (await crates("bench/css/Cargo.lock", ["oxc_formatter_css"]))[0],
+	lightningcss: (await crates("bench/css/Cargo.lock", ["lightningcss"]))[0],
+	naive: `a naive formatter on @lukeed/html ${(await import("@lukeed/html/package.json")).version}`,
+	biome: `Biome ${await version([join(root, "node_modules/.bin/biome"), "--version"])}`,
+	taplo: `taplo ${await version([taplo, "--version"])}`,
+	tombi: `tombi ${await version([join(root, "node_modules/@tombi-toml/cli-darwin-arm64/tombi"), "--version"])}`,
+	yamlfmt: `yamlfmt ${await version([yamlfmt, "-version"])}`,
+	prettier: `Prettier ${prettierApi.version}, @prettier/plugin-xml ${(await import("@prettier/plugin-xml/package.json")).version}`,
+};
+
 /** The corpora that each tool formats; the others leave them out. */
 let markup = ["html", "vue", "pages"];
 let sheets = ["css", "scss", "less"];
@@ -206,5 +224,9 @@ for (let name of names.filter((name) => !only || only.includes(name))) {
 		rows.push(`  ${tool.padEnd(16)} ${mean.toFixed(1).padStart(9)} ms  ${(mean / ours).toFixed(2).padStart(7)}x`);
 	}
 	console.log(rows.slice(-sorted.length - 1).join("\n"));
+	let summary = `${files} files, ${(bytes / 1024 / 1024).toFixed(1)} MB. Each tool checks every file. A time is the mean of ${runs} runs in each order, or ${Math.min(runs, 3)} for Prettier.`;
+	let head = ["Tool", "Time", "Against tidy"];
+	let table = sorted.map(([tool, values]) => [tool, `${average(values).toFixed(1)} ms`, `${(average(values) / ours).toFixed(2)}x`]);
+	let used = sorted.map(([tool]) => tool).filter((tool) => !tool.includes("(1 thread)"));
+	await record(`format/${name}.md`, `${language(name)} formatters`, [{ summary, head, rows: table }], used.map((tool) => versions[tool] ?? tool));
 }
-await Bun.write(join(target, "bench.txt"), rows.join("\n"));
