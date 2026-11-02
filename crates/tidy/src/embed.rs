@@ -96,7 +96,53 @@ pub(crate) fn builtin_in_markdown(
   tabs: bool,
   scripts: &Scripts,
 ) -> Option<String> {
+  #[cfg(feature = "js")]
+  let scripts = &crate::js::Options {
+    sort_imports: crate::js::sort_imports::in_markdown(scripts.sort_imports.as_ref()),
+    ..scripts.clone()
+  };
   builtin_in(request, tab_width, tabs, scripts, Host::Markdown)
+}
+
+/// Formats the code of a Markdown code block, as Prettier's Markdown does: with `embed`, then with tidy's own
+/// formatters.
+pub(crate) fn code_block(
+  code: crate::markdown::Code<'_>,
+  css: &crate::css::Options,
+  tab_width: usize,
+  tabs: bool,
+  scripts: &Scripts,
+  embed: &mut dyn Embed,
+) -> Option<String> {
+  let language = crate::languages::parser(code.lang).or(own(code.lang))?;
+  let request = Request {
+    code: code.text,
+    language,
+    kind: Kind::Block,
+    indent: 0,
+    prefix: 0,
+    suffix: 0,
+    width: code.width,
+    module: true,
+  };
+  embed
+    .format(request)
+    .or_else(|| {
+      let dialect = crate::css::Dialect::of_path(&format!("code.{language}"))?;
+      let options = crate::css::Options { dialect, width: code.width, ..css.clone() };
+      crate::css::format(code.text, &options, &mut *embed).ok()
+    })
+    .or_else(|| builtin_in_markdown(&request, tab_width, tabs, scripts))
+}
+
+/// Formats Markdown in markup, and the code blocks in it with tidy's own formatters.
+fn markdown(request: &Request<'_>, tab_width: usize, tabs: bool, scripts: &Scripts) -> String {
+  let options =
+    crate::markdown::Options { width: request.width, ..crate::markdown::Options::default() };
+  let css = crate::css::Options { tab_width, tabs, ..crate::css::Options::default() };
+  crate::markdown::format_with(request.code, &options, |code| {
+    code_block(code, &css, tab_width, tabs, scripts, &mut Verbatim)
+  })
 }
 
 /// [`builtin`] for `v-for="left operator right"`, where `left` asks for the aliases: the whole value, formatted as one.
@@ -118,6 +164,50 @@ pub(crate) fn builtin_for(
     let _ = (left, operator, right, tab_width, tabs, scripts);
     None
   }
+}
+
+/// The markup parser of a code block's language.
+fn markup(language: &str) -> Option<crate::html::Parser> {
+  use crate::html::Parser;
+  Some(match language {
+    "html" => Parser::Html,
+    "vue" => Parser::Vue,
+    "angular" => Parser::Angular,
+    "lwc" => Parser::Lwc,
+    "mjml" => Parser::Mjml,
+    _ => return None,
+  })
+}
+
+/// Formats a code block of markup, as Prettier's Markdown formats it.
+fn markup_block(
+  request: &Request<'_>,
+  parser: crate::html::Parser,
+  tab_width: usize,
+  tabs: bool,
+  scripts: &Scripts,
+) -> Option<String> {
+  #[cfg(feature = "js")]
+  let js = {
+    // oxfmt leaves Markdown to Prettier, where only a plugin sorts the imports of a Vue file.
+    let vue = parser == crate::html::Parser::Vue;
+    let sort_imports =
+      scripts.sort_imports.clone().filter(|how| !vue || !how.is_applied_by_format());
+    crate::js::Options { sort_imports, ..scripts.clone() }
+  };
+  #[cfg(not(feature = "js"))]
+  let _ = scripts;
+  let options = crate::html::Options {
+    parser,
+    width: request.width,
+    tab_width,
+    tabs,
+    #[cfg(feature = "js")]
+    js,
+    ..crate::html::Options::default()
+  };
+  let formatted = crate::html::format(request.code, &options, &mut Verbatim).ok()?;
+  Some(formatted.trim_end().to_owned())
 }
 
 /// `scripts` with the host's width and indent.
@@ -159,6 +249,14 @@ pub(crate) fn builtin_in(
   }
   #[cfg(not(feature = "js"))]
   let _ = (scripts, host);
+  if host == Host::Markdown
+    && let Some(parser) = markup(request.language)
+  {
+    return markup_block(request, parser, tab_width, tabs, scripts);
+  }
+  if request.language == "markdown" && request.indent == 0 {
+    return Some(markdown(request, tab_width, tabs, scripts).trim_end().to_owned());
+  }
   let dialect = match request.language {
     "json" => json::Dialect::Json,
     "jsonc" => json::Dialect::Jsonc,

@@ -151,20 +151,12 @@ impl Formatter {
     } else {
       text.into()
     };
-    let source = text.as_bytes();
-    let matter = crate::front_matter::parse(&text).map(|matter| matter.len);
-    let content: std::borrow::Cow<[u8]> = match matter {
-      Some(len) => {
-        let mut blanked = source.to_vec();
-        for byte in &mut blanked[..len] {
-          if *byte != b'\n' {
-            *byte = b' ';
-          }
-        }
-        blanked.into()
-      }
-      None => source.into(),
+    #[cfg(feature = "js")]
+    let text = match with_sorted_scripts(&text, options) {
+      Some(sorted) => sorted.into(),
+      None => text,
     };
+    let (content, matter) = without_front_matter(&text);
     self.bump.reset();
     let Self { bump, docs: scratch, nodes, attrs, tokens, output: buffer } = self;
     let mut tree = ast::Tree {
@@ -176,7 +168,7 @@ impl Formatter {
     tree.nodes.reserve(content.len() / 32);
     tree.attrs.reserve(content.len() / 32);
     let mut docs = crate::doc::Docs::reuse(bump, scratch);
-    docs.reserve(source.len());
+    docs.reserve(text.len());
     let output =
       run(&text, &content, matter, options, embed, &mut tree, &mut docs, std::mem::take(buffer));
     *scratch = docs.into_scratch();
@@ -210,6 +202,8 @@ fn run<'a>(
   })?;
   let parsed = clock.elapsed();
   let typescript = options.parser == Parser::Vue && has_typescript_script(tree);
+  #[cfg(feature = "js")]
+  let scripts = scripts_in(options);
   let context = Context {
     parser: options.parser,
     original_text: source,
@@ -226,7 +220,7 @@ fn run<'a>(
     typescript,
     formats_embedded: options.format_embedded,
     #[cfg(feature = "js")]
-    scripts: &options.js,
+    scripts: &scripts,
     #[cfg(not(feature = "js"))]
     scripts: &(),
   };
@@ -257,6 +251,66 @@ fn run<'a>(
   Ok(output)
 }
 
+/// `text` with its front matter, if any, blanked out, and the length of the front matter.
+fn without_front_matter(text: &str) -> (std::borrow::Cow<'_, [u8]>, Option<usize>) {
+  let matter = crate::front_matter::parse(text).map(|matter| matter.len);
+  let Some(len) = matter else { return (text.as_bytes().into(), None) };
+  let mut blanked = text.as_bytes().to_vec();
+  for byte in &mut blanked[..len] {
+    if *byte != b'\n' {
+      *byte = b' ';
+    }
+  }
+  (blanked.into(), matter)
+}
+
+/// The options for the scripts in markup parsed with `options.parser`, with the imports sorted as they are there.
+#[cfg(feature = "js")]
+fn scripts_in(options: &Options) -> crate::js::Options {
+  let how = options.js.sort_imports.as_ref();
+  let sort_imports = crate::js::sort_imports::in_markup(how, options.parser == Parser::Vue);
+  crate::js::Options { sort_imports, ..options.js.clone() }
+}
+
+/// `text`, a Vue file, with the imports of its first `<script>` and its first `<script setup>` sorted, as
+/// `@trivago/prettier-plugin-sort-imports` and `@ianvs/prettier-plugin-sort-imports` sort them before the file is
+/// parsed. `None` if nothing changes.
+#[cfg(feature = "js")]
+fn with_sorted_scripts(text: &str, options: &Options) -> Option<String> {
+  let how = options.js.sort_imports.as_deref().filter(|how| {
+    options.parser == Parser::Vue && !how.is_applied_by_format() && how.applies_to_embedded_code()
+  })?;
+  let (content, matter) = without_front_matter(text);
+  let mut tree = ast::Tree::default();
+  parse::parse(&content, matter, Parser::Vue, &mut tree).ok()?;
+  let (mut sorted, mut from) = (String::new(), 0);
+  let mut found = [false; 2];
+  for id in tree.children(tree.root) {
+    let node = &tree[id];
+    if node.kind != ast::Kind::Element || !node.is_full_name(b"script") {
+      continue;
+    }
+    let Some(end) = node.end_span() else { continue };
+    let (start, end) = (node.start_span.end as usize, end.start as usize);
+    let code = text.get(start..end)?;
+    if code.trim().is_empty() && tree.attribute(id, b"src").is_none() {
+      continue;
+    }
+    let setup = tree.attribute(id, b"setup").is_some();
+    if std::mem::replace(&mut found[usize::from(setup)], true) {
+      continue;
+    }
+    if let Some(code) = crate::js::template::sorted_script(code, how) {
+      sorted.push_str(text.get(from..start)?);
+      sorted.push('\n');
+      sorted.push_str(&code);
+      sorted.push('\n');
+      from = end;
+    }
+  }
+  (from > 0).then(|| sorted + &text[from..])
+}
+
 /// True if `text` parses as markup for `parser`.
 #[cfg(feature = "js")]
 pub(crate) fn parses(text: &str, parser: Parser) -> bool {
@@ -280,6 +334,7 @@ pub(crate) fn template<'a>(
     },
     parse::ParseError::NestedTooDeeply => Error::TooDeep,
   })?;
+  let scripts = scripts_in(options);
   let context = Context {
     parser: options.parser,
     original_text: text.as_bytes(),
@@ -295,7 +350,7 @@ pub(crate) fn template<'a>(
     embedded: true,
     typescript: false,
     formats_embedded: options.format_embedded,
-    scripts: &options.js,
+    scripts: &scripts,
   };
   if !preprocess::preprocess(&mut tree, &context) {
     return Err(Error::TooDeep);

@@ -2,7 +2,6 @@
 
 use super::doc::{Texts, Writer};
 use crate::doc::Docs;
-use crate::embed::{Kind, Request};
 use crate::js::base::*;
 use crate::js::ir::element::{DedentMode, LineMode, TextWidth};
 
@@ -147,34 +146,14 @@ fn format(text: &str, options: &FormatOptions) -> String {
     ..crate::markdown::Options::default()
   };
   let scripts = super::scripts(options);
+  let css = crate::css::Options {
+    tab_width: scripts.tab_width,
+    tabs: scripts.tabs,
+    single_quote: scripts.single_quote,
+    ..crate::css::Options::default()
+  };
   crate::markdown::format_with(text, &markdown, |code| {
-    let language = crate::languages::parser(code.lang).or(crate::embed::own(code.lang))?;
-    let request = Request {
-      code: code.text,
-      language,
-      kind: Kind::Block,
-      indent: 0,
-      prefix: 0,
-      suffix: 0,
-      width: code.width,
-      module: true,
-    };
-    let dialect = crate::css::Dialect::of_path(&format!("code.{language}"));
-    match dialect {
-      Some(dialect) => {
-        let css = crate::css::Options {
-          dialect,
-          width: code.width,
-          tab_width: scripts.tab_width,
-          tabs: scripts.tabs,
-          single_quote: scripts.single_quote,
-          ..crate::css::Options::default()
-        };
-        crate::css::format(code.text, &css, &mut crate::embed::Verbatim).ok()
-      }
-      None => {
-        crate::embed::builtin_in_markdown(&request, scripts.tab_width, scripts.tabs, &scripts)
-      }
-    }
+    let (tab_width, tabs) = (scripts.tab_width, scripts.tabs);
+    crate::embed::code_block(code, &css, tab_width, tabs, &scripts, &mut crate::embed::Verbatim)
   })
 }

@@ -285,7 +285,10 @@ impl Formatter {
       formats_embedded: options.format_embedded,
       is_tempura,
       #[cfg(feature = "js")]
-      scripts: options.js.clone(),
+      scripts: crate::js::Options {
+        sort_imports: crate::js::sort_imports::in_markup(options.js.sort_imports.as_ref(), false),
+        ..options.js.clone()
+      },
       #[cfg(not(feature = "js"))]
       scripts: (),
     };

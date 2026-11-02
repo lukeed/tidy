@@ -125,3 +125,56 @@ fn reads_the_config_keys() {
   assert!(tidy::config::Config::json(invalid).is_err());
   assert!(tidy::config::Config::json(r#"{ "js": { "tsconfig.jsx": "react" } }"#).is_err());
 }
+
+/// Formats the Vue, HTML, Markdown and other files of `fixtures/sort_imports/hosts.json` (bun's tests) with the config
+/// of `name`, except the files in `skips`.
+fn matches_hosts(name: &str, skips: &[&str]) {
+  let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sort_imports/hosts.json");
+  let all: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+  let (config, files) = (&all[name]["config"][1], all[name]["files"].as_object().unwrap());
+  let mut js = serde_json::Map::from_iter([("jsdoc".to_owned(), Value::from(false))]);
+  let mut shared = serde_json::Map::new();
+  for (key, value) in config.as_object().unwrap() {
+    match key.as_str() {
+      "printWidth" => drop(shared.insert("width".to_owned(), value.clone())),
+      _ => drop(js.insert(key.clone(), value.clone())),
+    }
+  }
+  shared.insert("js".to_owned(), Value::Object(js));
+  let mut options = tidy::Options::default();
+  tidy::config::Config::from_value(&Value::Object(shared)).unwrap().apply(&mut options);
+  let mut failures = Vec::new();
+  for (file, case) in files.iter().filter(|(file, _)| !skips.contains(&file.as_str())) {
+    let (input, expected) = (case[0].as_str().unwrap(), case[1].as_str().unwrap());
+    let Some(language) = tidy::Language::of_path(file) else { continue };
+    let mut formatter = tidy::Formatter::default();
+    let printed =
+      formatter.format(input, language, &options, Some(file), &mut tidy::embed::Verbatim).unwrap();
+    if printed != expected {
+      failures.push(format!("{file}\n--- expected\n{expected}--- printed\n{printed}"));
+    }
+  }
+  assert!(failures.is_empty(), "{} of {}:\n{}", failures.len(), files.len(), failures.join("\n"));
+}
+
+#[test]
+fn matches_trivago_in_hosts() {
+  matches_hosts("@trivago/prettier-plugin-sort-imports", &[]);
+}
+
+#[test]
+fn matches_ianvs_in_hosts() {
+  matches_hosts("@ianvs/prettier-plugin-sort-imports", &[]);
+}
+
+#[test]
+fn matches_oxfmt_in_hosts() {
+  matches_hosts("oxfmt, sortImports", &[]);
+}
+
+#[test]
+fn matches_oxfmt_with_jsdoc_in_hosts() {
+  // oxfmt leaves HTML to Prettier, without prettier-plugin-jsdoc. tidy formats JSDoc in the scripts of HTML as the
+  // plugin does.
+  matches_hosts("oxfmt, sortImports and jsdoc", &["jsdoc.html"]);
+}

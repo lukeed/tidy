@@ -300,6 +300,11 @@ impl Formatter {
     let ignore =
       (format!("<!-- {}-start -->", options.ignore), format!("<!-- {}-end -->", options.ignore));
     let has_ignored_ranges = text.contains(&ignore.0);
+    #[cfg(feature = "js")]
+    let scripts = crate::js::Options {
+      sort_imports: crate::js::sort_imports::in_markup(options.js.sort_imports.as_ref(), false),
+      ..options.js.clone()
+    };
     let mut printer = print::Printer {
       tree: &self.tree,
       text: &text,
@@ -310,7 +315,7 @@ impl Formatter {
       has_ignored_ranges,
       ignore: (&ignore.0, &ignore.1),
       #[cfg(feature = "js")]
-      scripts: &options.js,
+      scripts: &scripts,
       #[cfg(not(feature = "js"))]
       scripts: &(),
     };

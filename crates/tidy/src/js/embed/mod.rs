@@ -44,6 +44,7 @@ pub(crate) fn scripts(options: &FormatOptions) -> crate::js::Options {
       OperatorPosition::End => crate::js::OperatorPosition::End,
     },
     jsdoc: options.jsdoc.is_some(),
+    sort_imports: options.sort_imports.clone(),
     ..crate::js::Options::default()
   }
 }

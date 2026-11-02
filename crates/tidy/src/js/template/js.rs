@@ -12,7 +12,7 @@ use crate::js::context::JsFormatContext;
 use crate::js::ir::run::{self, Scratch};
 use crate::js::options::{HtmlRoot, InHtml};
 use crate::js::print::program::{FormatStatements, write_hashbang};
-use crate::js::{format_args, strings, write};
+use crate::js::{format_args, sort_imports, strings, write};
 use std::cell::{Cell, RefCell};
 
 /// Prettier's parsers for programs.
@@ -144,6 +144,22 @@ pub(crate) fn format_for(
   with_buffers(|buffers| format_for_in(left, root, operator, &right, options, buffers))
 }
 
+/// `code`, the contents of a Vue file's `<script>`, with its imports sorted, as Prettier's plugins sort it before the
+/// file is parsed. `None` if nothing changes or it doesn't parse.
+pub(crate) fn sorted_script(code: &str, how: &sort_imports::SortImports) -> Option<String> {
+  with_buffers(|buffers| {
+    buffers.allocator.reset();
+    let allocator = &buffers.allocator;
+    let text = allocator.alloc_str(code);
+    let paths: [&[u8]; 3] = [b"dummy.tsx", b"dummy.ts", b"dummy.jsx"];
+    let sorted = paths.iter().find_map(|path| {
+      let file = parse(allocator, text, path, false, SourceType::Module)?;
+      Some(sort_imports::sorted_text(&file, how))
+    })??;
+    String::from_utf8(sorted).ok()
+  })
+}
+
 fn with_buffers(run: impl FnOnce(&mut Buffers) -> Option<String>) -> Option<String> {
   BUFFERS.with(|buffers| match buffers.try_borrow_mut() {
     Ok(mut buffers) => run(&mut buffers),
@@ -161,9 +177,16 @@ fn format_in(
 ) -> Option<String> {
   let Buffers { allocator, scratch } = buffers;
   allocator.reset();
-  let options = options_for(request, options, host, root);
+  let is_script = matches!(root, Root::Program(_)) && request.kind == Kind::Block;
+  let sorts = options.sort_imports.clone().filter(|_| is_script);
+  let options =
+    FormatOptions { sort_imports: sorts.clone(), ..options_for(request, options, host, root) };
   let allocator = &*allocator;
-  let file = &parse_root(allocator, request.code, root, request.module)?;
+  let mut file = parse_root(allocator, request.code, root, request.module)?;
+  if let Some(sorted) = sorts.and_then(|how| sort_imports::sorted_text(&file, &how)) {
+    file = parse_root(allocator, std::str::from_utf8(&sorted).ok()?, root, request.module)?;
+  }
+  let file = &file;
   let mut out = Vec::with_capacity(request.code.len() + 16);
   let written = Cell::new(true);
   let document = match root {
@@ -313,6 +336,8 @@ fn options_for(
     // The file name is the host's, so `<T,>() => {}` keeps its comma.
     filepath: Some(Box::default()),
     is_in_markdown: host == Host::Markdown,
+    // prettier-plugin-jsdoc wraps Prettier's parsers of programs, not those of expressions and bindings.
+    jsdoc: options.jsdoc.filter(|_| matches!(root, Root::Program(_))),
     ..options
   }
 }

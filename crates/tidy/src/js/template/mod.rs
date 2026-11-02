@@ -2,4 +2,4 @@
 
 mod js;
 
-pub(crate) use js::{format, format_for, formats};
+pub(crate) use js::{format, format_for, formats, sorted_script};

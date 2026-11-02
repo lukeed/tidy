@@ -2,7 +2,6 @@
 //! own, with its own options: `tidy::css::format(text, &options.css, embed)`.
 
 use crate::embed::Embed;
-use crate::embed::{Kind, Request};
 #[cfg(feature = "js")]
 use crate::js;
 use crate::{
@@ -422,32 +421,8 @@ impl Formatter {
         let (bom, text) = crate::without_bom(text);
         self.markdown = match options.markdown.format_embedded {
           true => markdown::format_with(text, &options.markdown, |code| {
-            let language = crate::languages::parser(code.lang).or(crate::embed::own(code.lang))?;
-            let request = Request {
-              code: code.text,
-              language,
-              kind: Kind::Block,
-              indent: 0,
-              prefix: 0,
-              suffix: 0,
-              width: code.width,
-              module: true,
-            };
-            embed
-              .format(request)
-              .or_else(|| {
-                let dialect = css::Dialect::of_path(&format!("code.{language}"))?;
-                let options = css::Options { dialect, width: code.width, ..options.css.clone() };
-                css::format(code.text, &options, &mut *embed).ok()
-              })
-              .or_else(|| {
-                crate::embed::builtin_in_markdown(
-                  &request,
-                  options.yaml.tab_width,
-                  options.yaml.tabs,
-                  options.scripts(),
-                )
-              })
+            let (tab_width, tabs) = (options.yaml.tab_width, options.yaml.tabs);
+            crate::embed::code_block(code, &options.css, tab_width, tabs, options.scripts(), embed)
           }),
           false => markdown::format(text, &options.markdown),
         };
