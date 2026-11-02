@@ -14,7 +14,7 @@ bun's printer is bun's port of oxc's formatter, corrected until it matches Prett
 
 ## The node tables
 
-oxc's parser numbers every node densely: `Program` is 0, the rest count up as they are built. `ast::File::new` walks the tree once with `oxc_ast_visit::Visit` and fills three tables, indexed by node id:
+oxc's parser numbers every node densely: `Program` is 0, the rest count up as they are built. `ast::File::new` (with the text, its path, oxc's source type, the program and the arena) walks the tree once with `oxc_ast_visit::Visit` and fills three tables, indexed by node id:
 
 - `nodes`: the `AstKind` of each node.
 - `parents`: the id of each node's parent.

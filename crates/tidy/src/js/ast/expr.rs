@@ -3,7 +3,7 @@
 //! Where bun's tree differs from oxc's: `a, b, c` is one [`ExprKind::Sequence`] rather than nested commas, and
 //! `x!!` is two [`ExprKind::NonNull`]s. The `a.b` of `typeof a.b` is a `Dot`.
 
-use super::{Class, Expr, File, Func, Handle, Ident, List, Name, Node, Prop, Span, TypeNode};
+use super::{Class, Expr, File, Func, Handle, Ident, List, Name, Node, Prop, Span, Stmt, TypeNode};
 use super::{argument_id, expression_id, type_id};
 use oxc_ast::AstKind;
 use oxc_ast::ast::{
@@ -628,6 +628,18 @@ impl<'a> Expr<'a> {
     }
   }
 
+  /// The import, export or import type whose attributes are this `{ .. }`: the `with` clause of a declaration, or the
+  /// `{ .. }` of `with: { .. }` in an import type.
+  pub(crate) fn owner_of_import_attributes(self) -> Option<Node<'a>> {
+    let file = self.file;
+    let parent = file.parent_id(self.id);
+    if let Some(AstKind::WithClause(_)) = file.kind(self.id) {
+      return Some(Node::Stmt(Stmt::new(file, parent)));
+    }
+    let ty = TypeNode::new(file, file.parent_id(file.parent_id(parent)));
+    ty.import_attributes().filter(|it| it.object() == self).map(|_| Node::Type(ty))
+  }
+
   pub(crate) fn as_template(self) -> Option<Template<'a>> {
     match self.kind() {
       ExprKind::Template(template) => Some(template),
@@ -922,6 +934,13 @@ impl<'a> Expr<'a> {
         _ => return false,
       }
     }
+  }
+
+  /// bun's ranges of the `NonNull`s inside one `x!!`. Always empty: here each `!` is a `NonNull` of its own.
+  pub(crate) fn inner_non_null_spans(
+    self,
+  ) -> impl DoubleEndedIterator<Item = Span> + ExactSizeIterator + 'a {
+    std::iter::empty()
   }
 
   /// The number of `!` in a chain of `NonNull`s, so 2 for `x!!`. 0 for anything else.

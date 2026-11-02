@@ -1,9 +1,9 @@
 //! Handles, and [`Node`], which is any of them: which handle each of oxc's nodes is, and its parent as bun's tree has
 //! it.
 
-use super::{File, NONE, Span};
+use super::{File, NONE, Span, StmtTag};
 use oxc_ast::AstKind;
-use oxc_ast::ast::TSTypeOperatorOperator;
+use oxc_ast::ast::{ImportAttributeKey, PropertyKey, TSTypeOperatorOperator};
 use oxc_span::GetSpan;
 
 /// Declares handles that aren't nodes of their own: a file and the id of a node in it.
@@ -566,6 +566,45 @@ impl<'a> Node<'a> {
     }
   }
 
+  /// A number below [`File::node_count`] that's unique to oxc's node, to index a per-node table or bit set. A `Func` or
+  /// a `Class` shares it with the `Expr` or `Stmt` that owns it.
+  pub(crate) fn index(self) -> u32 {
+    self.id()
+  }
+
+  /// Calls `visit` with each child, in source order but for a `this` parameter, which comes last. A `Func` or a `Class`
+  /// is the only child of the `Expr` or `Stmt` that owns it. Holes and the empty `{}` of JSX are skipped, and so are
+  /// keys that aren't computed, module specifiers and the names of imports and exports.
+  pub(crate) fn for_each_child(self, mut visit: impl FnMut(Node<'a>)) {
+    self.children_into(None, &mut visit);
+  }
+
+  /// Calls `visit` with the children that can contain `offset`. In a run of more than 8 siblings of one kind, that's
+  /// only the last one that starts at or before `offset`.
+  pub(crate) fn for_each_child_near(self, offset: u32, mut visit: impl FnMut(Node<'a>)) {
+    self.children_into(Some(offset), &mut visit);
+  }
+
+  fn children_into(self, near: Option<u32>, visit: &mut dyn FnMut(Node<'a>)) {
+    let (file, id) = (self.file(), self.id());
+    if let Node::Expr(_) | Node::Stmt(_) = self {
+      match file.kind(id) {
+        Some(AstKind::Function(_) | AstKind::ArrowFunctionExpression(_)) => {
+          return visit(Node::Func(Func::new(file, id)));
+        }
+        Some(AstKind::Class(_)) => return visit(Node::Class(Class::new(file, id))),
+        _ => {}
+      }
+    }
+    match self {
+      Node::Stmt(statement) if statement.is_wrapper() => visit(Node::Expr(Expr::new(file, id))),
+      Node::Stmt(statement)
+        if matches!(statement.tag(), StmtTag::ImportEquals | StmtTag::ExportAsNamespace) => {}
+      Node::ImportSpec(_) | Node::ExportSpec(_) => {}
+      _ => descend(file, id, near, visit),
+    }
+  }
+
   /// The program's span for the file.
   pub(crate) fn span(self) -> Span {
     match self {
@@ -600,6 +639,73 @@ impl<'a> Iterator for Ancestors<'a> {
         Some(parent)
       }
     }
+  }
+}
+
+/// Visits the handles among the children of the node with `id`, and those inside the children that aren't handles.
+fn descend<'a>(file: &'a File<'a>, id: u32, near: Option<u32>, visit: &mut dyn FnMut(Node<'a>)) {
+  let children = file.children(id);
+  let mut at = 0;
+  while let Some(&child) = children.get(at) {
+    at += 1;
+    if is_field(file, id, child) {
+      continue;
+    }
+    let Some(node) = Node::of(file, child) else {
+      descend(file, child, near, visit);
+      continue;
+    };
+    let node = match near {
+      Some(offset) if same_kind(file, node, &children[at..], 8) == 8 => {
+        let run = &children[at - 1..at + same_kind(file, node, &children[at..], usize::MAX)];
+        at += run.len() - 1;
+        let before = run.partition_point(|&it| file.span_of(it).start <= offset);
+        match before.checked_sub(1).and_then(|last| Node::of(file, run[last])) {
+          Some(last) => last,
+          None => continue,
+        }
+      }
+      _ => node,
+    };
+    if !node.as_expr().is_some_and(Expr::is_missing) {
+      visit(node);
+    }
+  }
+}
+
+/// How many of the first `max` ids of `rest` are handles of the same kind as `node`, before one that isn't.
+fn same_kind(file: &File, node: Node, rest: &[u32], max: usize) -> usize {
+  let kind = std::mem::discriminant(&node);
+  let same = |it: &&u32| Node::of(file, **it).is_some_and(|it| std::mem::discriminant(&it) == kind);
+  rest.iter().take(max).take_while(same).count()
+}
+
+/// True for a child that bun's tree has as a field rather than a node: a key that isn't computed, a module specifier,
+/// the `#b` of `a.#b`.
+fn is_field(file: &File, parent: u32, child: u32) -> bool {
+  use AstKind as K;
+  let key = |key: &PropertyKey, computed: bool| !computed && key.node_id().index() as u32 == child;
+  match file.kind(parent) {
+    Some(K::ObjectProperty(it)) => key(&it.key, it.computed),
+    Some(K::MethodDefinition(it)) => key(&it.key, it.computed),
+    Some(K::PropertyDefinition(it)) => key(&it.key, it.computed),
+    Some(K::AccessorProperty(it)) => key(&it.key, it.computed),
+    Some(K::TSPropertySignature(it)) => key(&it.key, it.computed),
+    Some(K::TSMethodSignature(it)) => key(&it.key, it.computed),
+    Some(K::BindingProperty(it)) => key(&it.key, it.computed),
+    Some(K::AssignmentTargetPropertyProperty(it)) => key(&it.name, it.computed),
+    Some(K::TSEnumMember(it)) => file.span_of(child).start == it.id.span().start,
+    Some(K::ImportAttribute(it)) => {
+      matches!(&it.key, ImportAttributeKey::StringLiteral(key) if key.node_id.get().index() as u32 == child)
+    }
+    Some(K::PrivateFieldExpression(_)) => matches!(file.kind(child), Some(K::PrivateIdentifier(_))),
+    Some(
+      K::ImportDeclaration(_)
+      | K::ExportFromDeclaration(_)
+      | K::ExportAllDeclaration(_)
+      | K::TSExternalModuleDeclaration(_),
+    ) => matches!(file.kind(child), Some(K::StringLiteral(_))),
+    _ => false,
   }
 }
 

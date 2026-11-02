@@ -1,6 +1,6 @@
 //! The syntax tree as bun's printer reads it: the handles of bun's `bun_lint::ast`, over oxc's tree. See `../readme.md`.
 
-mod comments;
+pub(crate) mod comments;
 mod decl;
 mod expr;
 mod hir;
@@ -29,6 +29,7 @@ pub(crate) use ty::*;
 use oxc_ast::AstKind;
 use oxc_ast::ast::Program;
 use oxc_ast_visit::Visit;
+use oxc_span::SourceType;
 
 /// No node: the parent of the program.
 pub(crate) const NONE: u32 = u32::MAX;
@@ -36,6 +37,9 @@ pub(crate) const NONE: u32 = u32::MAX;
 /// A parsed file, with tables of its nodes by id.
 pub(crate) struct File<'a> {
   pub(crate) text: &'a str,
+  /// Starts with a NUL byte for an expression in HTML.
+  path: &'a [u8],
+  source_type: SourceType,
   /// For the names that the source doesn't spell out, such as `1000` for the key `1e3`.
   allocator: &'a oxc_allocator::Allocator,
   pub(crate) program: &'a Program<'a>,
@@ -49,11 +53,15 @@ pub(crate) struct File<'a> {
   positions: Vec<u32>,
   /// The parentheses around each node that has some, by node id and then innermost first.
   parens: Vec<(u32, Span)>,
+  /// The comments, in source order.
+  records: Vec<Record>,
 }
 
 impl<'a> File<'a> {
   pub(crate) fn new(
     text: &'a str,
+    path: &'a [u8],
+    source_type: SourceType,
     program: &'a Program<'a>,
     allocator: &'a oxc_allocator::Allocator,
   ) -> File<'a> {
@@ -79,7 +87,41 @@ impl<'a> File<'a> {
       children[at as usize] = child;
       positions[child as usize] = at;
     }
-    File { text, allocator, program, kinds, parents, children, ranges, positions, parens }
+    let mut file = File {
+      text,
+      path,
+      source_type,
+      allocator,
+      program,
+      kinds,
+      parents,
+      children,
+      ranges,
+      positions,
+      parens,
+      records: Vec::new(),
+    };
+    file.records = file.decorate(source_type.is_typescript());
+    file
+  }
+
+  pub(crate) fn path(&self) -> &'a [u8] {
+    self.path
+  }
+
+  /// `.js`, `.jsx`, `.mjs`, `.cjs`
+  pub(crate) fn is_javascript(&self) -> bool {
+    !self.source_type.is_typescript()
+  }
+
+  /// The top-level statements, with the directives first.
+  pub(crate) fn body(&'a self) -> List<'a, Stmt<'a>> {
+    decl::block(self, &self.program.directives, &self.program.body)
+  }
+
+  /// The size of the tables: every [`Node::index`] is below it.
+  pub(crate) fn node_count(&self) -> u32 {
+    self.kinds.len() as u32
   }
 
   /// The node with `id`, unless it's skipped: parentheses, a chain, or no node at all.

@@ -9,8 +9,9 @@
 //! - A directive is an `Expr` statement of a string, before the other statements of its body.
 
 use super::{
-  Alias, Case, Class, Enum, Export, Expr, Flags, Func, Ident, Import, ImportEquals, Interface,
-  List, Module, Name, Node, Span, Stmt, VarDecl, VarKind, expression_id, skip_trivia,
+  Alias, Case, Class, Enum, Export, Expr, Flags, Func, Ident, Import, ImportAttributes,
+  ImportEquals, Interface, List, Modifier, Module, Name, Node, Span, Stmt, VarDecl, VarKind,
+  expression_id, skip_trivia,
 };
 use oxc_ast::AstKind;
 use oxc_ast::ast::{
@@ -342,6 +343,14 @@ impl<'a> Stmt<'a> {
     Node::Stmt(self).parent()
   }
 
+  /// The decorators of a class, in source order. Its keywords are in [`Stmt::flags`].
+  pub(crate) fn modifiers(self) -> List<'a, Modifier<'a>> {
+    match self.kind() {
+      StmtKind::Class(class) => class.modifiers(),
+      _ => List::empty(self.file),
+    }
+  }
+
   /// The modifiers as flags: `export`, `default`, `declare`, `abstract`, `async` and `const` of the declaration.
   pub(crate) fn flags(self) -> Flags {
     let mut flags = Flags::empty();
@@ -458,6 +467,17 @@ impl<'a> Stmt<'a> {
       _ => return None,
     };
     Some(span(source.span))
+  }
+
+  /// `with { type: "json" }` of an `Import`, an `ExportNamed` or an `ExportStar`.
+  pub(crate) fn import_attributes(self) -> Option<ImportAttributes<'a>> {
+    let clause = match self.file.kind(self.id)? {
+      AstKind::ImportDeclaration(it) => it.with_clause.as_deref()?,
+      AstKind::ExportFromDeclaration(it) => it.with_clause.as_deref()?,
+      AstKind::ExportAllDeclaration(it) => it.with_clause.as_deref()?,
+      _ => return None,
+    };
+    Some(ImportAttributes::clause(self.file, clause))
   }
 
   /// The offset of the `*` of an `ExportStar`.

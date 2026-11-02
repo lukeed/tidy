@@ -41,6 +41,20 @@ fn attachable(kind: AstKind) -> bool {
 }
 
 impl<'a> File<'a> {
+  /// The comment with `id`, its index in source order.
+  pub(crate) fn comment(&'a self, id: u32) -> Comment<'a> {
+    Comment { file: self, id, record: self.records[id as usize] }
+  }
+
+  pub(crate) fn comment_count(&self) -> usize {
+    self.records.len()
+  }
+
+  /// All comments in source order.
+  pub(crate) fn comments_by_id(&'a self) -> impl ExactSizeIterator<Item = Comment<'a>> {
+    (0..self.records.len() as u32).map(move |id| self.comment(id))
+  }
+
   /// The records of the comments, in source order.
   pub(crate) fn decorate(&self, typescript: bool) -> Vec<Record> {
     let text = self.text.as_bytes();

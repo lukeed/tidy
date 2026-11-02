@@ -1698,7 +1698,7 @@ fn decorators<'a>(file: &'a File<'a>, list: &[Decorator]) -> List<'a, Modifier<'
 }
 
 /// The statements of a body, with its directives first.
-fn block<'a>(
+pub(super) fn block<'a>(
   file: &'a File<'a>,
   directives: &[Directive],
   statements: &[Statement],
