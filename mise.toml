@@ -41,6 +41,11 @@ depends = ["fmt", "clippy", "test"]
 description = "Compare against other formatters: mise run bench -- <dir>"
 run = "bun bench/run.ts"
 
+[tasks."bench:parse"]
+description = "Compare tidy's parsers with Rust crates: mise run bench:parse -- [--runs <n>] [--only <language,...>] [<corpus>]"
+dir = "bench/parse"
+run = "cargo run --release -q --"
+
 [tasks."bench:ab"]
 description = "Time the working tree against a git revision: mise run bench:ab -- [--rev <rev>] <dir>..."
 run = "bun bench/ab.ts"
