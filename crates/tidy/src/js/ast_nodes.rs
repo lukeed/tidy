@@ -778,7 +778,11 @@ fn module_block(file: &File, id: u32) -> Option<u32> {
 
 /// The node that has type arguments or parameters, for the `<..>` whose parent is `parent`.
 fn owner<'a>(file: &'a File<'a>, parent: u32) -> Node<'a> {
-  Node::of(file, parent).unwrap_or_else(|| Node::around(file, parent))
+  match file.kind(parent) {
+    Some(K::Class(_)) => Node::Class(Class::new(file, parent)),
+    Some(K::Function(_) | K::ArrowFunctionExpression(_)) => Node::Func(Func::new(file, parent)),
+    _ => Node::of(file, parent).unwrap_or_else(|| Node::around(file, parent)),
+  }
 }
 
 fn type_arguments_id(owner: Node) -> Option<u32> {

@@ -876,8 +876,11 @@ impl<'a> Expr<'a> {
     }
   }
 
-  /// The span of the JSX `{e}` that wraps it.
+  /// The span of the JSX `{e}` that wraps it, or of the `{...e}` that it is.
   pub(crate) fn jsx_container_span(self) -> Option<Span> {
+    if let Some(AstKind::JSXSpreadChild(it)) = self.file.kind(self.id) {
+      return Some(span(it.span));
+    }
     match self.file.kind(self.file.parent_id(self.id))? {
       AstKind::JSXExpressionContainer(it) => Some(span(it.span)),
       _ => None,

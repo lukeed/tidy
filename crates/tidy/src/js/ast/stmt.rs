@@ -11,7 +11,7 @@
 use super::{
   Alias, Case, Class, Enum, Export, Expr, Flags, Func, Ident, Import, ImportAttributes,
   ImportEquals, Interface, List, Modifiers, Module, Name, Node, Span, Stmt, VarDecl, VarKind,
-  expression_id, modifiers, skip_trivia,
+  expression_id, modifiers, skip_trivia, type_id,
 };
 use oxc_ast::AstKind;
 use oxc_ast::ast::{
@@ -456,7 +456,7 @@ impl<'a> Stmt<'a> {
 
   /// The module specifier with its quotes.
   pub(crate) fn module_specifier_span(self) -> Option<Span> {
-    let source = match self.file.kind(self.id)? {
+    let source = match self.declaration()? {
       AstKind::ImportDeclaration(it) => &it.source,
       AstKind::ExportFromDeclaration(it) => &it.source,
       AstKind::ExportAllDeclaration(it) => &it.source,
@@ -736,7 +736,7 @@ impl<'a> VarDecl<'a> {
       AstKind::CatchParameter(it) => it.type_annotation.as_ref()?,
       _ => return None,
     };
-    Some(super::TypeNode::new(self.file, annotation.type_annotation.node_id().index() as u32))
+    Some(super::TypeNode::new(self.file, type_id(&annotation.type_annotation)))
   }
 
   pub(crate) fn init(self) -> Option<Expr<'a>> {

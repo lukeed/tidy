@@ -329,23 +329,24 @@ impl Formatter {
 
 /// The source type to read `text` as, and the one to try if it fails, as Prettier's parsers do: Babel reads JSX, and
 /// TypeScript reads it in `.tsx` and JavaScript files, and when the path doesn't tell, first if the text looks like it
-/// has some.
+/// has some. A `.cjs` or `.cts` file is CommonJS, where `await` is a name.
 fn source_types(
   dialect: Dialect,
   path: &str,
   text: &str,
 ) -> (oxc_span::SourceType, Option<oxc_span::SourceType>) {
   use oxc_span::SourceType;
-  if dialect == Dialect::Js {
-    return (SourceType::jsx(), None);
-  }
   let lower = path.to_ascii_lowercase();
-  match lower.rsplit_once('.').map(|(_, extension)| extension) {
+  let extension = lower.rsplit_once('.').map(|(_, extension)| extension);
+  let commonjs = matches!(extension, Some("cjs" | "cts"));
+  let (first, second) = match extension {
+    _ if dialect == Dialect::Js => (SourceType::jsx(), None),
     Some("ts" | "mts" | "cts") => (SourceType::ts(), None),
     Some("tsx" | "js" | "jsx" | "mjs" | "cjs") => (SourceType::tsx(), None),
     _ if text.contains("</") || text.contains("/>") => (SourceType::tsx(), Some(SourceType::ts())),
     _ => (SourceType::ts(), Some(SourceType::tsx())),
-  }
+  };
+  (first.with_commonjs(commonjs), second)
 }
 
 /// Parses `text` as the first source type, or else the second, or fails with the error of the first.
@@ -366,18 +367,23 @@ fn parse_any<'a>(
   Err(crate::Error::Syntax { message: error.message.to_string(), at })
 }
 
-/// Parses `text` as a module, or else as a script, with the module's errors if both fail.
+/// Parses `text` as a module, or else as a script, with the first one's errors if both fail. CommonJS is tried before a
+/// module, which stands for Prettier's `allowImportExportEverywhere`.
 fn parse_module_or_script<'a>(
   allocator: &'a oxc_allocator::Allocator,
   text: &'a str,
   source_type: oxc_span::SourceType,
 ) -> oxc_parser::ParserReturn<'a> {
-  let module = parse(allocator, text, source_type);
-  match module.diagnostics.is_empty() {
-    true => module,
-    false => match parse(allocator, text, source_type.with_script(true)) {
-      script if script.diagnostics.is_empty() => script,
-      _ => module,
+  let other = match source_type.is_commonjs() {
+    true => source_type.with_module(true),
+    false => source_type.with_script(true),
+  };
+  let first = parse(allocator, text, source_type);
+  match first.diagnostics.is_empty() {
+    true => first,
+    false => match parse(allocator, text, other) {
+      second if second.diagnostics.is_empty() => second,
+      _ => first,
     },
   }
 }

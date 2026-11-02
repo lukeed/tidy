@@ -508,6 +508,9 @@ impl<'a> Node<'a> {
       if id == NONE {
         return Node::File(file);
       }
+      if let Some(AstKind::Class(_)) = file.kind(id) {
+        return Node::Class(Class::new(file, id));
+      }
       if let Some(node) = Node::of(file, id) {
         return node;
       }

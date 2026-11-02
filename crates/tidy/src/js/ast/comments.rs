@@ -2,7 +2,7 @@
 //! records the nodes; here they come from Prettier's `decorateComment` (`src/main/comments/attach.js`) over oxc's nodes,
 //! which are ESTree's but for the ones [`attachable`] skips.
 
-use super::{File, NONE, Node, Span};
+use super::{File, NONE, Node, Span, expression_id};
 use oxc_ast::AstKind;
 use oxc_span::GetSpan;
 
@@ -133,7 +133,7 @@ impl<'a> File<'a> {
       while left < right {
         let middle = (left + right) / 2;
         let child = children[middle];
-        let span = self.span_of(child);
+        let span = self.decorated_span(child);
         if span.start <= comment.start && comment.end <= span.end {
           enclosing = child;
           continue 'descend;
@@ -209,6 +209,53 @@ impl<'a> File<'a> {
     children.push(method.key.node_id().index() as u32);
     children.push(body.node_id.get().index() as u32);
     Some(children)
+  }
+
+  /// Prettier's `locEnd` leaves out the `;` that ends a statement, so a comment before it comes after the statement.
+  fn decorated_span(&self, id: u32) -> Span {
+    let span = self.span_of(id);
+    match self.ends_with_its_semicolon(id) {
+      true => self.without_semicolon(span),
+      false => span,
+    }
+  }
+
+  /// True for a statement that ends with its own `;`, or with that of its last statement: `if (a) b;`.
+  fn ends_with_its_semicolon(&self, mut id: u32) -> bool {
+    loop {
+      match self.kind(id) {
+        Some(
+          AstKind::ExpressionStatement(_)
+          | AstKind::Directive(_)
+          | AstKind::VariableDeclaration(_)
+          | AstKind::ReturnStatement(_)
+          | AstKind::DoWhileStatement(_)
+          | AstKind::ThrowStatement(_)
+          | AstKind::BreakStatement(_)
+          | AstKind::ContinueStatement(_)
+          | AstKind::DebuggerStatement(_)
+          | AstKind::ImportDeclaration(_)
+          | AstKind::ExportNamedDeclaration(_)
+          | AstKind::ExportFromDeclaration(_)
+          | AstKind::ExportAllDeclaration(_)
+          | AstKind::ExportDefaultDeclaration(_),
+        ) => return true,
+        Some(
+          AstKind::IfStatement(_)
+          | AstKind::ForStatement(_)
+          | AstKind::ForInStatement(_)
+          | AstKind::ForOfStatement(_)
+          | AstKind::WhileStatement(_)
+          | AstKind::LabeledStatement(_)
+          | AstKind::WithStatement(_)
+          | AstKind::ExportDeclaration(_),
+        ) => match self.children(id).last() {
+          Some(&last) => id = last,
+          None => return false,
+        },
+        _ => return false,
+      }
+    }
   }
 
   pub(crate) fn span_of(&self, id: u32) -> Span {
@@ -310,9 +357,19 @@ impl<'a> Comment<'a> {
     (some(self.record.enclosing), some(self.record.preceding), some(self.record.following))
   }
 
-  fn node_or_name(self, id: u32) -> Option<NodeOrName<'a>> {
+  /// A decorator and `<..>` aren't bun's nodes. As bun's parser records them, a decorator stands for its expression,
+  /// and `<..>` for its last parameter or argument before the comment and its first after it.
+  fn node_or_name(self, mut id: u32, last: bool) -> Option<NodeOrName<'a>> {
     if id == NONE {
       return None;
+    }
+    match self.file.kind(id) {
+      Some(AstKind::Decorator(it)) => id = expression_id(&it.expression),
+      Some(AstKind::TSTypeParameterDeclaration(_) | AstKind::TSTypeParameterInstantiation(_)) => {
+        let children = self.file.children(id);
+        id = *(if last { children.last() } else { children.first() }).unwrap_or(&id);
+      }
+      _ => {}
     }
     match Node::of(self.file, id) {
       Some(node) => Some(NodeOrName::Node(node)),
@@ -328,11 +385,11 @@ impl<'a> Comment<'a> {
 
   /// The closest child of the enclosing node that ends before it.
   pub(crate) fn preceding_node(self) -> Option<NodeOrName<'a>> {
-    self.node_or_name(self.record.preceding)
+    self.node_or_name(self.record.preceding, true)
   }
 
   /// The closest child of the enclosing node that starts after it.
   pub(crate) fn following_node(self) -> Option<NodeOrName<'a>> {
-    self.node_or_name(self.record.following)
+    self.node_or_name(self.record.following, false)
   }
 }
