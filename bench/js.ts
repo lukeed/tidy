@@ -37,8 +37,8 @@ let commands = (dir: string, write: boolean): Record<string, string> => {
 	let check = write ? "" : "--check";
 	return {
 		prettier: `${bin("prettier")} ${write ? "--write" : "--check"} ${dir} --no-config --embedded-language-formatting off --log-level silent`,
-		oxfmt: `${bin("oxfmt")} ${check} -c ${config} ${dir}`,
-		"oxfmt (1 thread)": `${bin("oxfmt")} ${check} -c ${config} --threads=1 ${dir}`,
+		oxfmt: `${bin("oxfmt")} ${check} -c ${config} --disable-nested-config ${dir}`,
+		"oxfmt (1 thread)": `${bin("oxfmt")} ${check} -c ${config} --disable-nested-config --threads=1 ${dir}`,
 		biome: `${bin("biome")} format ${write ? "--write" : ""} --indent-style=space --max-diagnostics=0 ${dir}`,
 		bun: `bun fmt --cwd=${dir} ${check} --no-editorconfig --no-script --no-config --embedded-language-formatting off`,
 	};
