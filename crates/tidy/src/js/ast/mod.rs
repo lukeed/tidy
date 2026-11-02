@@ -59,6 +59,8 @@ pub(crate) struct File<'a> {
   parens: Vec<(u32, Span)>,
   /// The comments, in source order.
   records: Vec<Record>,
+  /// The elements of each array pattern or target that has holes, by node id, with [`NONE`] for a hole.
+  holey: Vec<(u32, &'a [u32])>,
 }
 
 impl<'a> File<'a> {
@@ -71,7 +73,7 @@ impl<'a> File<'a> {
   ) -> File<'a> {
     let mut walk = Walk::default();
     walk.visit_program(program);
-    let Walk { kinds, parents, edges, mut parens, .. } = walk;
+    let Walk { kinds, parents, edges, mut parens, holey, .. } = walk;
     parens.sort_by_key(|it| it.0);
     let mut ranges = vec![(0, 0); kinds.len()];
     for &(parent, _) in &edges {
@@ -104,11 +106,36 @@ impl<'a> File<'a> {
       positions,
       parens,
       records: Vec::new(),
+      holey: Vec::new(),
       extension: std::cell::OnceCell::new(),
       errors: false,
     };
+    file.holey = holey.into_iter().map(|id| (id, file.slots(id))).collect();
+    file.holey.sort_unstable_by_key(|it| it.0);
     file.records = file.decorate(source_type.is_typescript());
     file
+  }
+
+  /// The elements of the array pattern or target with `id`, with [`NONE`] for a hole, then the rest element.
+  fn slots(&self, id: u32) -> &'a [u32] {
+    let present: Vec<bool> = match self.kind(id) {
+      Some(AstKind::ArrayPattern(it)) => it.elements.iter().map(Option::is_some).collect(),
+      Some(AstKind::ArrayAssignmentTarget(it)) => it.elements.iter().map(Option::is_some).collect(),
+      _ => Vec::new(),
+    };
+    let mut children = self.children(id).iter().copied();
+    let mut ids: Vec<u32> = present
+      .into_iter()
+      .map(|present| if present { children.next().unwrap_or(NONE) } else { NONE })
+      .collect();
+    ids.extend(children);
+    self.keep_ids(&ids)
+  }
+
+  /// The elements of the array pattern or target with `id`, if it has holes. See [`List::ids`].
+  pub(crate) fn holey(&self, id: u32) -> Option<&'a [u32]> {
+    let at = self.holey.binary_search_by_key(&id, |it| it.0).ok()?;
+    Some(self.holey[at].1)
   }
 
   pub(crate) fn path(&self) -> &'a [u8] {
@@ -177,6 +204,11 @@ impl<'a> File<'a> {
     self.allocator.alloc_str(text)
   }
 
+  /// A copy of `ids` that lives as long as the tree.
+  pub(crate) fn keep_ids(&self, ids: &[u32]) -> &'a [u32] {
+    self.allocator.alloc_slice_copy(ids)
+  }
+
   pub(crate) fn slice(&self, span: Span) -> &'a [u8] {
     self.text.as_bytes().get(span.start as usize..span.end as usize).unwrap_or_default()
   }
@@ -211,6 +243,8 @@ struct Walk<'a> {
   parens: Vec<(u32, Span)>,
   /// The parentheses entered since the last node, outermost first: they wrap the next node.
   pending: Vec<Span>,
+  /// The array patterns and targets that have holes.
+  holey: Vec<u32>,
 }
 
 impl<'a> Visit<'a> for Walk<'a> {
@@ -235,6 +269,14 @@ impl<'a> Visit<'a> for Walk<'a> {
     }
     self.kinds[id] = Some(kind);
     let id = id as u32;
+    let has_holes = match kind {
+      AstKind::ArrayPattern(it) => it.elements.iter().any(Option::is_none),
+      AstKind::ArrayAssignmentTarget(it) => it.elements.iter().any(Option::is_none),
+      _ => false,
+    };
+    if has_holes {
+      self.holey.push(id);
+    }
     if let Some(&parent) = self.stack.last() {
       self.parents[id as usize] = parent;
       self.edges.push((parent, id));

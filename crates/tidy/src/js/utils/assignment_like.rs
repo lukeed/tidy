@@ -697,9 +697,7 @@ impl<'a> AssignmentLike<'a> {
                     props.len() > 2
                         && props.iter().any(|property| match property.kind() {
                             PropKind::Spread => false,
-                            PropKind::Shorthand => property
-                                .value()
-                                .is_some_and(|value| value.tag() == ExprTag::Assign),
+                            PropKind::Shorthand => property.default().is_some(),
                             _ => true,
                         })
                 }

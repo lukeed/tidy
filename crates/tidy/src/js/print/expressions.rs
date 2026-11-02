@@ -8,6 +8,7 @@ use super::object_pattern_like::ObjectPatternLike;
 use super::return_or_throw_statement::{
     has_argument_leading_comments, has_comment_right_after_keyword,
 };
+use crate::js::base::*;
 use crate::js::format::{FormatExpr, format_name, format_node};
 use crate::js::parentheses::expression::left_edge_end;
 use crate::js::utils::array::write_array_node;
@@ -15,7 +16,6 @@ use crate::js::utils::assignment_like::AssignmentLike;
 use crate::js::utils::conditional::ConditionalLike;
 use crate::js::utils::object::{format_computed_or_property_key, should_preserve_quote};
 use crate::js::utils::typecast::has_comments_that_count;
-use crate::js::base::*;
 use crate::js::{best_fitting, format_args, write};
 
 /// All of `a?.b.c`.
@@ -109,7 +109,10 @@ pub(crate) fn write_property<'a>(property: Prop<'a>, f: &mut Formatter<'a>) {
             write!(f, ["...", property.value()])
         }
         // `{ a }`, `{ a = 1 }`
-        AstNodes::AssignmentTargetPropertyIdentifier(_) => write!(f, property.value()),
+        AstNodes::AssignmentTargetPropertyIdentifier(_) => match property.default() {
+            Some(default) => write!(f, [property.value(), space(), "=", space(), default]),
+            None => write!(f, property.value()),
+        },
         AstNodes::AssignmentTargetPropertyProperty(_) => {
             write!(f, AssignmentLike::ObjectProperty(property))
         }
@@ -257,6 +260,11 @@ pub(crate) fn write_array_assignment_target<'a>(
             dangling_comments(e.as_ast_nodes()).with_soft_block_indent()
         );
     } else {
+        let dangling_comments = match f.is_quiet() {
+            true => CommentList::empty(),
+            false => f.comments().of_node(e.as_ast_nodes()).dangling,
+        };
+        let has_dangling_line_comment = dangling_comments.iter().any(|comment| comment.is_line());
         let rest = elements
             .last()
             .filter(|it| matches!(it.kind(), ExprKind::Spread(_)));
@@ -275,7 +283,15 @@ pub(crate) fn write_array_assignment_target<'a>(
                     );
                 }
                 write!(f, rest);
+                write!(
+                    f,
+                    FormatDanglingComments::Comments {
+                        comments: dangling_comments,
+                        indent: DanglingIndentMode::None,
+                    }
+                );
             })))
+            .should_expand(has_dangling_line_comment)
         );
     }
     write!(f, "]");

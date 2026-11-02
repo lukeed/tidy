@@ -272,11 +272,13 @@ impl<'a> Expr<'a> {
         });
         ExprKind::Array(self.list(first, it.elements.len()))
       }
-      K::ArrayAssignmentTarget(it) => {
-        let len = it.elements.iter().flatten().count() + usize::from(it.rest.is_some());
-        let first = self.file.children(self.id).first().copied();
-        ExprKind::Array(self.list(first, len))
-      }
+      K::ArrayAssignmentTarget(it) => ExprKind::Array(match self.file.holey(self.id) {
+        Some(ids) => List::ids(self.file, ids),
+        None => {
+          let first = self.file.children(self.id).first().copied();
+          self.list(first, it.elements.len() + usize::from(it.rest.is_some()))
+        }
+      }),
       K::ObjectExpression(it) => {
         let first = it.properties.first().map(|property| property.node_id().index() as u32);
         ExprKind::Object(self.list(first, it.properties.len()))

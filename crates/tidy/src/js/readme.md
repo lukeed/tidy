@@ -18,7 +18,7 @@ oxc's parser numbers every node densely: `Program` is 0, the rest count up as th
 
 - `nodes`: the `AstKind` of each node.
 - `parents`: the id of each node's parent.
-- `children`: each node's children in the order of their fields, grouped by parent. That is source order but in a template literal, whose parts come before its expressions, and in a function with a `this` parameter, which comes after the others; Prettier's `getSortedChildNodes` sorts those. The elements of one list field are a run of siblings, so a `List` is a range of this table, as in bun.
+- `children`: each node's children in the order of their fields, grouped by parent. That is source order but in a template literal, whose parts come before its expressions, and in a function with a `this` parameter, which comes after the others; Prettier's `getSortedChildNodes` sorts those. The elements of one list field are a run of siblings, so a `List` is a range of this table, as in bun. oxc has no node for a hole in an array pattern or target, so the list of such an array is ids kept in the file's arena, with `NONE` for a hole, as bun's indirect lists.
 
 A handle is the file and a node id, `Copy` and two words wide, and compares by identity, as bun's are.
 
@@ -28,7 +28,7 @@ bun's tree is built for its type checker, not ESTree. Where they differ, `js::as
 
 - Parentheses aren't nodes. The parser keeps `ParenthesizedExpression`; the tables skip it, a handle to `(a)` is `a`, and `Expr::is_parenthesized` and `Expr::outer_span` tell about the parentheses.
 - `ChainExpression` isn't a node. `a?.b.c` is `Dot`s and `Call`s with a `Chain` of `Start` or `Continue`.
-- `Missing` is an array hole (`Elision`), the `{}` of JSX (`JSXEmptyExpression`), and a missing argument.
+- `Missing` is an array hole (`Elision`, or no node in a pattern or target), the `{}` of JSX (`JSXEmptyExpression`), and a missing argument.
 - JSX text, a string value of a JSX attribute, and a tag name such as `a-b` are `String` expressions.
 - `Func` is a function declaration or expression, an arrow function, and the function of a method, accessor or constructor.
 - `Member` is an element of a class, an interface or a type literal. `Prop` is a property of an object literal.

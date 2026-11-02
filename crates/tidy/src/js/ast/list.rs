@@ -1,5 +1,6 @@
 //! Lists of nodes: bun's `src/lint/ast/list.rs` (MIT). A list is a run of siblings in the file's table of children,
-//! since the elements of one of oxc's list fields are consecutive children of the node that has the field.
+//! since the elements of one of oxc's list fields are consecutive children of the node that has the field, or ids
+//! kept in the file's arena, as for an array pattern with holes, which have no node.
 
 use super::{File, Spanned};
 use oxc_ast::ast::{Argument, ChainElement, Expression, TSType};
@@ -15,8 +16,8 @@ pub(crate) trait Handle<'a>: Copy {
 #[derive(Copy, Clone)]
 pub(crate) struct List<'a, T> {
   file: &'a File<'a>,
-  start: u32,
-  len: u32,
+  /// A run of the table of children, or ids from [`List::ids`].
+  ids: &'a [u32],
   /// Elements that bun's tree doesn't have, which every operation skips: JSX text of only white space and line breaks.
   skip: Option<fn(&File, u32) -> bool>,
   of: PhantomData<T>,
@@ -26,15 +27,18 @@ impl<'a, T: Handle<'a>> List<'a, T> {
   /// The list whose first element is the child with `first`, if any, and which has `len` elements.
   pub(crate) fn run(file: &'a File<'a>, first: Option<u32>, len: usize) -> Self {
     match first {
-      Some(first) if len > 0 => {
-        List { file, start: file.position(first), len: len as u32, skip: None, of: PhantomData }
-      }
+      Some(first) if len > 0 => List::ids(file, file.children_at(file.position(first), len as u32)),
       _ => List::empty(file),
     }
   }
 
+  /// The list of the nodes with `ids`. [`NONE`](super::NONE) is a node that oxc's tree doesn't have, such as a hole.
+  pub(crate) fn ids(file: &'a File<'a>, ids: &'a [u32]) -> Self {
+    List { file, ids, skip: None, of: PhantomData }
+  }
+
   pub(crate) fn empty(file: &'a File<'a>) -> Self {
-    List { file, start: 0, len: 0, skip: None, of: PhantomData }
+    List::ids(file, &[])
   }
 
   /// The list without the elements for which `skip` is true.
@@ -43,7 +47,11 @@ impl<'a, T: Handle<'a>> List<'a, T> {
   }
 
   fn id_at(self, i: u32) -> u32 {
-    self.file.children_at(self.start + i, 1).first().copied().unwrap_or(super::NONE)
+    self.ids.get(i as usize).copied().unwrap_or(super::NONE)
+  }
+
+  fn count(self) -> u32 {
+    self.ids.len() as u32
   }
 
   #[inline]
@@ -52,13 +60,13 @@ impl<'a, T: Handle<'a>> List<'a, T> {
   }
 
   pub(crate) fn iter(self) -> Iter<'a, T> {
-    Iter { list: self, front: 0, back: self.len }
+    Iter { list: self, front: 0, back: self.count() }
   }
 
   pub(crate) fn len(self) -> usize {
     match self.skip {
       Some(_) => self.iter().count(),
-      None => self.len as usize,
+      None => self.ids.len(),
     }
   }
 
@@ -69,7 +77,7 @@ impl<'a, T: Handle<'a>> List<'a, T> {
   pub(crate) fn get(self, i: usize) -> Option<T> {
     match self.skip {
       Some(_) => self.iter().nth(i),
-      None => (i < self.len as usize).then(|| self.at(i as u32)),
+      None => (i < self.ids.len()).then(|| self.at(i as u32)),
     }
   }
 
@@ -86,7 +94,7 @@ impl<'a, T: Handle<'a>> List<'a, T> {
 impl<'a, T: Handle<'a> + Spanned> List<'a, T> {
   /// The number of elements that start at or before `offset`.
   fn count_until(self, offset: u32) -> u32 {
-    let (mut from, mut to) = (0, self.len);
+    let (mut from, mut to) = (0, self.count());
     while from < to {
       let middle = from + (to - from) / 2;
       match self.at(middle).span().start <= offset {
@@ -128,7 +136,7 @@ impl<'a, T: Handle<'a> + Spanned> List<'a, T> {
   /// The element after the one that starts at `start`.
   pub(crate) fn after(self, start: u32) -> Option<T> {
     let at = self.count_until(start);
-    (at < self.len).then(|| self.at(at))
+    (at < self.count()).then(|| self.at(at))
   }
 }
 
