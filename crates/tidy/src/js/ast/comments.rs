@@ -28,8 +28,8 @@ pub(crate) struct Record {
   pub(crate) following: u32,
 }
 
-/// Prettier's `canAttachComment` for ESTree, and the nodes that oxc has and ESTree doesn't, such as an array's holes. A
-/// `;` is only attachable where a statement is required: `isMeaningfulEmptyStatement`.
+/// Prettier's `canAttachComment` for ESTree, and the nodes that oxc has and bun's tree doesn't, such as an array's holes
+/// and a type annotation's `:`. A `;` is only attachable where a statement is required: `isMeaningfulEmptyStatement`.
 fn attachable(kind: AstKind, parent: Option<AstKind>) -> bool {
   match kind {
     AstKind::EmptyStatement(_) => matches!(
@@ -52,6 +52,7 @@ fn attachable(kind: AstKind, parent: Option<AstKind>) -> bool {
         | AstKind::CatchParameter(_)
         | AstKind::WithClause(_)
         | AstKind::Elision(_)
+        | AstKind::TSTypeAnnotation(_)
     ),
   }
 }
@@ -412,9 +413,9 @@ impl<'a> Comment<'a> {
     self.record.next
   }
 
-  /// A decorator, a `catch` clause, a type annotation and `<..>` aren't bun's nodes. As bun's parser records them, a
-  /// decorator stands for its expression, a `catch` clause for its body, a type annotation for its type, and `<..>` for
-  /// its last parameter or argument before the comment and its first after it. The key of a mapped type is a name. The
+  /// A decorator, a `catch` clause and `<..>` aren't bun's nodes. As bun's parser records them, a decorator stands for
+  /// its expression, a `catch` clause for its body, and `<..>` for its last parameter or argument before the comment and
+  /// its first after it. The key of a mapped type is a name. The
   /// `{ .. }` of a function, a class, an interface, an enum or a module is neither.
   fn node_or_name(self, mut id: u32, last: bool) -> Option<NodeOrName<'a>> {
     if id == NONE {
@@ -430,7 +431,6 @@ impl<'a> Comment<'a> {
       ) => return None,
       Some(AstKind::Decorator(it)) => id = expression_id(&it.expression),
       Some(AstKind::CatchClause(it)) => id = it.body.node_id.get().index() as u32,
-      Some(AstKind::TSTypeAnnotation(it)) => id = it.type_annotation.node_id().index() as u32,
       Some(AstKind::BindingIdentifier(it))
         if matches!(self.file.kind(self.file.parent_id(id)), Some(AstKind::TSMappedType(_))) =>
       {
