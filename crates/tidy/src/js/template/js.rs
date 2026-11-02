@@ -153,7 +153,7 @@ pub(crate) fn sorted_script(code: &str, how: &sort_imports::SortImports) -> Opti
     let text = allocator.alloc_str(code);
     let paths: [&[u8]; 3] = [b"dummy.tsx", b"dummy.ts", b"dummy.jsx"];
     let sorted = paths.iter().find_map(|path| {
-      let file = parse(allocator, text, path, false, SourceType::Module)?;
+      let (file, _) = parse(allocator, text, path, false, SourceType::Module, true)?;
       Some(sort_imports::sorted_text(&file, how))
     })??;
     String::from_utf8(sorted).ok()
@@ -182,9 +182,10 @@ fn format_in(
   let options =
     FormatOptions { sort_imports: sorts.clone(), ..options_for(request, options, host, root) };
   let allocator = &*allocator;
-  let mut file = parse_root(allocator, request.code, root, request.module)?;
+  let (mut file, mut errors) = parse_root(allocator, request.code, root, request.module)?;
   if let Some(sorted) = sorts.and_then(|how| sort_imports::sorted_text(&file, &how)) {
-    file = parse_root(allocator, std::str::from_utf8(&sorted).ok()?, root, request.module)?;
+    let code = std::str::from_utf8(&sorted).ok()?;
+    (file, errors) = parse_root(allocator, code, root, request.module)?;
   }
   let file = &file;
   let mut out = Vec::with_capacity(request.code.len() + 16);
@@ -209,7 +210,14 @@ fn format_in(
     _ => options,
   };
   run::print(document, file.text(), &options, scratch, &mut out).ok()?;
-  text_of(out, host)
+  let text = text_of(out, host)?;
+  if !errors.is_empty() {
+    // Where oxc's tree has no room for what an error is about, the printer drops it. See `js::keeps_errors`.
+    let allocator = oxc_allocator::Allocator::default();
+    let (_, again) = parse_root(&allocator, &text, root, request.module)?;
+    crate::js::same_errors(&errors, &again).then_some(())?;
+  }
+  Some(text)
 }
 
 fn format_for_in(
@@ -229,8 +237,8 @@ fn format_for_in(
     options_for(right, options, Host::Markup, expression),
   );
   let allocator = &*allocator;
-  let file = &parse_root(allocator, left.code, root, true)?;
-  let other = &parse_root(allocator, right.code, expression, true)?;
+  let (file, _) = &parse_root(allocator, left.code, root, true)?;
+  let (other, _) = &parse_root(allocator, right.code, expression, true)?;
   let e = expression_of(other)?;
   let written = Cell::new(true);
   let document = run::write_with(context_of(file, &options), file.text(), scratch, |f| {
@@ -275,7 +283,7 @@ fn parse_root<'a>(
   code: &str,
   root: Root,
   module: bool,
-) -> Option<File<'a>> {
+) -> Option<(File<'a>, Errors)> {
   let (text, paths, source_type) = match root {
     Root::Program(syntax) => {
       let source_type = match module || syntax != Syntax::Babel {
@@ -307,7 +315,10 @@ fn parse_root<'a>(
     SourceType::Unknown => &[false, true],
   };
   paths.iter().find_map(|path| {
-    kinds.iter().find_map(|&is_script| parse(allocator, text, path, is_script, source_type))
+    let is_program = matches!(root, Root::Program(_));
+    kinds
+      .iter()
+      .find_map(|&is_script| parse(allocator, text, path, is_script, source_type, is_program))
   })
 }
 
@@ -349,7 +360,8 @@ fn parse<'a>(
   path: &'a [u8],
   is_script: bool,
   source_type: SourceType,
-) -> Option<File<'a>> {
+  is_program: bool,
+) -> Option<(File<'a>, Errors)> {
   let extension = path.rsplit(|byte| *byte == b'.').next().unwrap_or_default();
   let kind = match extension {
     b"ts" => oxc_span::SourceType::ts(),
@@ -366,7 +378,12 @@ fn parse<'a>(
     ..oxc_parser::ParseOptions::default()
   };
   let parsed = oxc_parser::Parser::new(allocator, text, kind).with_options(options).parse();
-  if !parsed.diagnostics.is_empty() {
+  // Prettier's parsers recover from some errors in programs, as in a whole file.
+  let rejected = match is_program {
+    true => crate::js::rejection(&parsed).is_some(),
+    false => !parsed.diagnostics.is_empty(),
+  };
+  if rejected {
     return None;
   }
   // Babel only treats `<!--` and `-->` as comments in code that's known to be a script.
@@ -376,9 +393,13 @@ fn parse<'a>(
   if source_type != SourceType::Script && parsed.program.comments.iter().any(is_html_like) {
     return None;
   }
+  let errors = parsed.diagnostics.to_vec();
   let program = allocator.alloc(parsed.program);
-  Some(File::new(text, path, kind, program, allocator))
+  Some((File::new(text, path, kind, program, allocator), errors))
 }
+
+/// The errors that a program was parsed with. Prettier's parsers recover from them.
+type Errors = Vec<oxc_diagnostics::OxcDiagnostic>;
 
 fn paths_of(syntax: Syntax, code: &str) -> &'static [&'static [u8]] {
   match syntax {

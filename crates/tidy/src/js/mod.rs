@@ -427,7 +427,19 @@ fn keeps_errors(
   source_type: oxc_span::SourceType,
 ) -> Result<(), crate::Error> {
   let allocator = oxc_allocator::Allocator::default();
-  let again = parse(&allocator, output, source_type);
+  if same_errors(recovered, &parse(&allocator, output, source_type).diagnostics) {
+    return Ok(());
+  }
+  let error = &recovered[0];
+  let at = error.labels.as_ref().first().map_or(0, |label| label.offset() as usize);
+  Err(crate::Error::Syntax { message: error.message.to_string(), at })
+}
+
+/// True if formatting kept the errors of a text: `again` are those of the output.
+pub(crate) fn same_errors(
+  recovered: &[oxc_diagnostics::OxcDiagnostic],
+  again: &[oxc_diagnostics::OxcDiagnostic],
+) -> bool {
   // Printing puts modifiers in order and drops repeated ones, as Prettier does.
   let fixed = |error: &&oxc_diagnostics::OxcDiagnostic| {
     matches!(error.code.number.as_deref(), Some("1029" | "1030"))
@@ -439,18 +451,13 @@ fn keeps_errors(
       .map(|error| error.message.clone())
       .collect::<Vec<_>>()
   };
-  if messages(&again.diagnostics) == messages(recovered) {
-    return Ok(());
-  }
-  let error = &recovered[0];
-  let at = error.labels.as_ref().first().map_or(0, |label| label.offset() as usize);
-  Err(crate::Error::Syntax { message: error.message.to_string(), at })
+  messages(again) == messages(recovered)
 }
 
 /// The first error that Prettier's parser throws for `parsed`, if any. Its `typescript` parser throws on TypeScript's
 /// syntax errors only, and its `babel` parser recovers from some errors (`allowedReasonCodes`), where oxc's tree is
 /// whole.
-fn rejection<'p>(
+pub(crate) fn rejection<'p>(
   parsed: &'p oxc_parser::ParserReturn<'_>,
 ) -> Option<&'p oxc_diagnostics::OxcDiagnostic> {
   let typescript = parsed.program.source_type.is_typescript();
@@ -466,14 +473,15 @@ fn is_recoverable(error: &oxc_diagnostics::OxcDiagnostic, typescript: bool) -> b
   if typescript && code.is_some_and(|code| CHECKER_ONLY.contains(&code)) {
     return true;
   }
-  // `VarRedeclaration`, `DeclarationMissingInitializer`, `allowNewTargetOutsideFunction` and, where TypeScript's
-  // scanner rejects it, `InvalidEscapeSequenceTemplate`.
+  // `VarRedeclaration`, `DuplicateExport`, `DeclarationMissingInitializer`, `allowNewTargetOutsideFunction` and,
+  // where TypeScript's scanner rejects it, `InvalidEscapeSequenceTemplate`.
   matches!(
     message,
     "Missing initializer in const declaration"
       | "Missing initializer in destructuring declaration"
       | "Unexpected new.target expression"
   ) || (message.starts_with("Identifier `") && message.ends_with("` has already been declared"))
+    || message.starts_with("Duplicated export '")
     || (!typescript && message == "Bad escape sequence in untagged template literal")
 }
 

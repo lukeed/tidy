@@ -100,3 +100,10 @@ fn takes_the_js_section_of_a_config() {
   let formatted = tidy::format(source, Language::Html, &options, None, &mut Verbatim);
   assert_eq!(formatted.unwrap(), "<script>\n  let a = 'b'\n</script>\n");
 }
+
+#[test]
+fn formats_code_blocks_that_prettier_recovers() {
+  let source = "```ts\nexport declare const a:string\nexport const b:number\n```\n\n```ts\nclass C { declare accessor a: number }\n```\n";
+  let expected = "```ts\nexport declare const a: string;\nexport const b: number;\n```\n\n```ts\nclass C { declare accessor a: number }\n```\n";
+  assert_eq!(format(source, Language::Markdown), expected);
+}
