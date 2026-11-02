@@ -175,3 +175,29 @@ pub(crate) fn js_string_to_number(text: &[u8]) -> f64 {
     _ => text.parse().unwrap_or(f64::NAN),
   }
 }
+
+/// `name` with each `\uXXXX` and `\u{X}` replaced by its character: bun's `verify::without_unicode_escapes`.
+pub(crate) fn without_unicode_escapes(name: &[u8]) -> Vec<u8> {
+  let mut out = Vec::with_capacity(name.len());
+  let mut rest = name;
+  while let Some((&byte, after)) = rest.split_first() {
+    rest = after;
+    let Some(escape) = after.strip_prefix(b"u").filter(|_| byte == b'\\') else {
+      out.push(byte);
+      continue;
+    };
+    let (digits, after) = match escape.strip_prefix(b"{") {
+      Some(braced) => {
+        let end = index_of_char_usize(braced, b'}').unwrap_or(braced.len());
+        (&braced[..end], braced.get(end + 1..).unwrap_or_default())
+      }
+      None => escape.split_at(escape.len().min(4)),
+    };
+    let code_point =
+      digits.iter().try_fold(0u32, |all, &digit| Some(all.checked_mul(16)? + char::from(digit).to_digit(16)?));
+    let c = code_point.and_then(char::from_u32).unwrap_or(char::REPLACEMENT_CHARACTER);
+    out.extend_from_slice(c.encode_utf8(&mut [0; 4]).as_bytes());
+    rest = after;
+  }
+  out
+}

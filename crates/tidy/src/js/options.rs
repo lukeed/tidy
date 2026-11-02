@@ -84,14 +84,10 @@ pub struct FormatOptions {
     pub in_html: InHtml,
     /// Which tool's output to match where the two differ.
     pub flavor: Flavor,
-    /// How to sort a `package.json`'s keys, if at all: oxfmt's `sortPackageJson`, or `prettier-plugin-packagejson`.
-    pub sort_package_json: Option<crate::json::SortPackageJson>,
     /// How to sort imports, if at all.
-    pub sort_imports: Option<std::sync::Arc<crate::sort_imports::SortImports>>,
+    pub sort_imports: Option<std::sync::Arc<crate::js::sort_imports::SortImports>>,
     /// oxfmt's `jsdoc`: how to format JSDoc comments, if at all.
     pub jsdoc: Option<JsdocOptions>,
-    /// oxfmt's `sortTailwindcss`: how to sort Tailwind CSS classes, if at all.
-    pub tailwind: Option<std::sync::Arc<crate::tailwind::Tailwind>>,
     /// Format TOML even in Prettier's flavor. Only the caller that detects file types reads this.
     pub toml: bool,
     /// For tests: what to output instead of the formatted text.
@@ -443,11 +439,6 @@ impl FormatOptions {
             b"insertPragma" => self.insert_pragma = boolean()?,
             b"requirePragma" => self.require_pragma = boolean()?,
             b"checkIgnorePragma" => self.check_ignore_pragma = boolean()?,
-            // oxfmt's option: `true`, `false` or `{ "sortScripts": true }`.
-            b"sortPackageJson" => self.sort_package_json = boolean()?.then(Default::default),
-            b"sortPackageJson.sortScripts" => {
-                self.sort_package_json.get_or_insert_default().sort_scripts = boolean()?;
-            }
             // oxfmt's option: `true`, `false` or an object, whose properties arrive as `jsdoc.<name>`.
             b"jsdoc" => self.jsdoc = (value == b"{}" || boolean()?).then(Default::default),
             _ if name.starts_with(b"jsdoc.") => {

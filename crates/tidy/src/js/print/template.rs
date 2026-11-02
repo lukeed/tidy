@@ -8,9 +8,6 @@ use crate::js::base::*;
 use crate::js::embed::css;
 use crate::js::ir::width::string_width_as;
 use crate::js::utils::call_expression::is_test_each_pattern;
-use crate::js::utils::tailwindcss::{
-    InTailwindContext, context_of_function, has_white_space, sorted_template_text,
-};
 use crate::js::utils::typecast::has_comments;
 use crate::js::{format_args, write};
 
@@ -50,18 +47,14 @@ pub(crate) fn write_template_literal<'a>(
     if is_jest_each_template_literal(e, template) {
         return EachTemplateTable::from_template(template, f).fmt(f);
     }
-    let context = f.context().tailwind_context();
-    let content = format_with(|f| {
-        if !may_have_embedded_language(e, f)
-            || (!css::write_template(e, template, f)
-                && !crate::js::embed::graphql::write_template(e, template, f)
-                && !crate::js::embed::html::write_template(e, template, f)
-                && !crate::js::embed::markdown::write_template(e, template, f))
-        {
-            TemplateLike::TemplateLiteral(template).fmt(f);
-        }
-    });
-    InTailwindContext(context.map(|it| it.in_template(e, f)), content).fmt(f);
+    if !may_have_embedded_language(e, f)
+        || (!css::write_template(e, template, f)
+            && !crate::js::embed::graphql::write_template(e, template, f)
+            && !crate::js::embed::html::write_template(e, template, f)
+            && !crate::js::embed::markdown::write_template(e, template, f))
+    {
+        TemplateLike::TemplateLiteral(template).fmt(f);
+    }
 }
 
 /// `${e}` at `i` in a template that's printed as its embedded language. Prettier's `printEmbeddedTemplateExpressions`.
@@ -108,11 +101,7 @@ pub(crate) fn write_tagged_template_expression<'a>(
             false => write!(f, space()),
         }
     }
-    let context = context_of_function(call.callee(), f);
-    write!(
-        f,
-        [line_suffix_boundary(), InTailwindContext(context, quasi)]
-    );
+    write!(f, [line_suffix_boundary(), quasi]);
 }
 
 /// `` `a${B}c` `` in a type
@@ -231,36 +220,15 @@ impl<'a> TemplateLike<'a> {
 impl<'a> Format<'a> for TemplateLike<'a> {
     fn fmt(&self, f: &mut Formatter<'a>) {
         write!(f, [line_suffix_boundary(), "`"]);
-        let context = f.context().tailwind_context();
-        // The line breaks between classes are removed, so they can't tell where a `${` ends up.
-        let collapses_line_breaks = context.is_some_and(|it| it.collapses_line_breaks());
-        let mut expressions = self
-            .expressions(false, f)
-            .map(|it| match collapses_line_breaks {
-                true => FormatTemplateExpression {
-                    line_position: LinePosition::After(TemplateElementIndention::default()),
-                    ..it
-                },
-                false => it,
-            });
+        let mut expressions = self.expressions(false, f);
         let count = self.quasi_count();
         for i in 0..count {
-            let source = self.raw(i);
-            let sorted = context
-                .filter(|_| has_white_space(source))
-                .and_then(|context| {
-                    let tailwind = f.options().tailwind.as_deref()?;
-                    let first_and_last = (i == 0, i + 1 == count);
-                    sorted_template_text(source, first_and_last, context, tailwind)
-                });
-            let raw = sorted.as_deref().unwrap_or(source);
+            let raw = self.raw(i);
             match crate::js::strings::contains_char(raw, b'\r') {
                 true => f.write_built_text(|out| crate::js::strings::push_crlf_as_lf(out, raw)),
                 false => write!(f, text(raw)),
             }
-            let inner = (context.filter(|_| i + 1 < count))
-                .map(|it| it.in_template_expression(source, self.raw(i + 1)));
-            write!(f, InTailwindContext(inner, expressions.next()));
+            write!(f, expressions.next());
         }
         write!(f, "`");
     }

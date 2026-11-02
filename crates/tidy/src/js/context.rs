@@ -1,7 +1,6 @@
 //! The state that formatting code can access besides the node it's formatting.
 
 use super::comments::{Comments, FileComments};
-use super::utils::tailwindcss::TailwindContext;
 use crate::js::ast::{Expr, File};
 use crate::js::ast::{Span, Spanned};
 use crate::js::ir::element::FormatElement;
@@ -32,8 +31,6 @@ pub(crate) struct JsFormatContext<'a> {
     cached_elements: FxHashMap<Span, FormatElement>,
     /// With `quoteProps: "consistent"`, one entry per enclosing object: true if its properties are quoted.
     quote_needed_stack: Vec<bool>,
-    /// See `utils/tailwindcss.rs`. The last one is active.
-    tailwind_contexts: Vec<TailwindContext>,
     /// See `Formatter::is_quiet`.
     pub(crate) is_quiet: bool,
     stack_check: crate::js::stack::StackCheck,
@@ -69,9 +66,6 @@ impl<'a> JsFormatContext<'a> {
 
     /// For a document in another language. Nothing that writes it calls [`file`](JsFormatContext::file).
     pub(crate) fn without_file(options: FormatOptions, comments: &'a FileComments) -> Self {
-        let tailwind = options.tailwind.as_deref();
-        let plugin_context =
-            (tailwind.filter(|it| it.follows_plugin)).map(TailwindContext::for_plugin);
         Self {
             file: None,
             has_babel_tree: false,
@@ -80,7 +74,6 @@ impl<'a> JsFormatContext<'a> {
             skip_trailing_comments: false,
             cached_elements: FxHashMap::default(),
             quote_needed_stack: Vec::new(),
-            tailwind_contexts: plugin_context.into_iter().collect(),
             is_quiet: false,
             stack_check: crate::js::stack::StackCheck::init(),
             ran_out_of_stack: false,
@@ -159,26 +152,5 @@ impl<'a> JsFormatContext<'a> {
 
     pub(crate) fn is_quote_needed(&self) -> bool {
         self.quote_needed_stack.last().copied().unwrap_or(false)
-    }
-
-    pub(crate) fn push_tailwind_context(&mut self, context: TailwindContext) {
-        self.tailwind_contexts.push(context);
-    }
-
-    pub(crate) fn pop_tailwind_context(&mut self) {
-        self.tailwind_contexts.pop();
-    }
-
-    #[inline]
-    pub(crate) fn tailwind_context(&self) -> Option<TailwindContext> {
-        self.tailwind_contexts.last().copied()
-    }
-
-    /// Sets whether the content being written is inside a call to a function that doesn't take classes. Returns the
-    /// previous value, if there is a context.
-    #[inline]
-    pub(crate) fn disable_tailwind_context(&mut self, is_disabled: bool) -> Option<bool> {
-        let context = (self.tailwind_contexts.last_mut()).filter(|it| !it.follows_plugin)?;
-        Some(std::mem::replace(&mut context.is_disabled, is_disabled))
     }
 }

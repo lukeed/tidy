@@ -6,11 +6,10 @@ mod opening_element;
 
 use self::element::AnyJsxTagWithChildren;
 pub(crate) use self::element::ignored_jsx_gets_no_parentheses;
+use crate::js::base::*;
 use crate::js::format::{ExprOptions, format_name, format_node, identifier, write_expression};
 use crate::js::utils::suppressed::FormatSuppressedNode;
-use crate::js::utils::tailwindcss::{InTailwindContext, context_of_attribute};
 use crate::js::utils::typecast::{comments_of_expression, has_comments_that_count, is_cast_target};
-use crate::js::base::*;
 use crate::js::{format_args, write};
 
 /// `<a>b</a>`, `<a />`, `<>b</>`
@@ -31,7 +30,9 @@ impl<'a> Format<'a> for FormatJsxName<'a> {
                 obj,
                 name: property,
                 ..
-            } => write!(f, [FormatJsxName(obj), ".", identifier(property)]),
+            } => {
+                write!(f, [FormatJsxName(obj), ".", identifier(property)])
+            }
             _ => write_jsx_identifier(name.span(), f),
         });
     }
@@ -286,16 +287,7 @@ pub(crate) fn write_jsx_attribute<'a>(attribute: Prop<'a>, f: &mut Formatter<'a>
         write_jsx_identifier(span, f);
     }
     if let Some(value) = attribute.value() {
-        let context = attribute
-            .key()
-            .and_then(|key| context_of_attribute(f.source_text().text_for(&key.span(f.file())), f));
-        write!(
-            f,
-            [
-                "=",
-                InTailwindContext(context, FormatJsxAttributeValue(value))
-            ]
-        );
+        write!(f, ["=", FormatJsxAttributeValue(value)]);
     }
 }
 

@@ -16,3 +16,6 @@ impl ImportRun {
 
   pub(crate) fn finish(&mut self, _: &mut Formatter<'_>) {}
 }
+
+#[derive(Debug)]
+pub(crate) struct SortImports;

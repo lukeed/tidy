@@ -1,7 +1,6 @@
+use crate::js::base::*;
 use crate::js::utils::number::format_number_token;
 use crate::js::utils::string::{FormatLiteralStringToken, StringLiteralParentKind};
-use crate::js::utils::tailwindcss::{context_of_string, sorted_string_literal};
-use crate::js::base::*;
 use crate::js::write;
 
 pub(crate) fn write_numeric_literal<'a>(e: Expr<'a>, f: &mut Formatter<'a>) {
@@ -12,12 +11,6 @@ pub(crate) fn write_string_literal<'a>(e: Expr<'a>, f: &mut Formatter<'a>) {
     let is_jsx = matches!(e.parent(), Node::Prop(property) if property.is_jsx_attribute())
         && matches!(e.ast_parent(), AstNodes::JSXAttribute(_));
     let source = f.source_text().text_for(&e);
-    if let Some(context) = context_of_string(source, f)
-        && let location = (e.span(), e.ast_parent())
-        && let Some(printed) = sorted_string_literal(source, is_jsx, location, context, f)
-    {
-        return write!(f, text(&printed));
-    }
     write!(
         f,
         FormatLiteralStringToken::new(source, is_jsx, StringLiteralParentKind::Expression)

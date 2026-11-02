@@ -5,37 +5,16 @@ pub(crate) mod arguments;
 use self::arguments::FormatArguments;
 use super::arrow_function_expression::is_multiline_template_starting_on_same_line;
 use super::type_parameters::type_arguments;
+use crate::js::base::*;
 use crate::js::parentheses::expression::chain_expression_needs_parentheses;
 use crate::js::utils::call_expression::{
     FormatCallee, is_call_expression, is_test_call_expression_in_flavor,
 };
 use crate::js::utils::member_chain::write_member_chain;
-use crate::js::utils::tailwindcss::{InTailwindContext, TailwindContext, context_of_function};
 use crate::js::utils::typecast::{comments_of_outermost_node, has_comments, is_cast_target};
-use crate::js::base::*;
 use crate::js::{format_args, write};
 
 pub(crate) fn write_call_expression<'a>(e: Expr<'a>, call: Call<'a>, f: &mut Formatter<'a>) {
-    let context = context_of_function(call.callee(), f);
-    // Inside a class list, the strings in a call to some other function aren't classes:
-    // `cn(a.includes("b c") && "d e")`.
-    let was_disabled = match context {
-        Some(_) => None,
-        None => f.context_mut().disable_tailwind_context(true),
-    };
-    write_call(e, call, context, f);
-    if let Some(was_disabled) = was_disabled {
-        f.context_mut().disable_tailwind_context(was_disabled);
-    }
-}
-
-/// `context` applies to the arguments. As in oxfmt, it isn't applied in a member chain.
-fn write_call<'a>(
-    e: Expr<'a>,
-    call: Call<'a>,
-    context: Option<TailwindContext>,
-    f: &mut Formatter<'a>,
-) {
     let callee = call.callee();
     let head = format_args!(
         FormatCallee {
@@ -49,7 +28,7 @@ fn write_call<'a>(
     );
 
     if keeps_arguments_on_one_line(e, call, f) {
-        let arguments = InTailwindContext(context, FormatArgumentsOnOneLine(call.args()));
+        let arguments = FormatArgumentsOnOneLine(call.args());
         return write!(f, [head, arguments]);
     }
 
@@ -57,7 +36,7 @@ fn write_call<'a>(
         return write_member_chain(e, f);
     }
 
-    let arguments = InTailwindContext(context, FormatArguments::from_call(e, call));
+    let arguments = FormatArguments::from_call(e, call);
     let content = format_args!(head, arguments);
     match is_call_expression(callee, f) {
         true => write!(f, group(&content)),

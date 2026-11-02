@@ -710,7 +710,7 @@ impl<'a> Formatter<'a> {
         ) {
             return false;
         }
-        let name = crate::verify::without_unicode_escapes(text);
+        let name = crate::js::strings::without_unicode_escapes(text);
         let width = TextWidth::single(self.string_width(&name));
         self.write_owned_text(&name, width);
         true
