@@ -40,6 +40,10 @@ pub(crate) struct File<'a> {
   /// Starts with a NUL byte for an expression in HTML.
   path: &'a [u8],
   source_type: SourceType,
+  /// The parser reported errors. The entry point sets it.
+  pub(crate) errors: bool,
+  /// Values computed once per file, such as its attached comments.
+  extension: std::cell::OnceCell<Box<dyn std::any::Any>>,
   /// For the names that the source doesn't spell out, such as `1000` for the key `1e3`.
   allocator: &'a oxc_allocator::Allocator,
   pub(crate) program: &'a Program<'a>,
@@ -100,6 +104,8 @@ impl<'a> File<'a> {
       positions,
       parens,
       records: Vec::new(),
+      extension: std::cell::OnceCell::new(),
+      errors: false,
     };
     file.records = file.decorate(source_type.is_typescript());
     file
@@ -155,6 +161,15 @@ impl<'a> File<'a> {
     let first = self.parens.partition_point(|it| it.0 < id);
     let count = self.parens[first..].iter().take_while(|it| it.0 == id).count();
     &self.parens[first..first + count]
+  }
+
+  pub(crate) fn has_parse_errors(&self) -> bool {
+    self.errors
+  }
+
+  /// The value that `init` computes, computed once for the file. `None` if another type was computed first.
+  pub(crate) fn extension<T: 'static>(&'a self, init: impl FnOnce() -> T) -> Option<&'a T> {
+    self.extension.get_or_init(|| Box::new(init())).downcast_ref()
   }
 
   /// A copy of `text` that lives as long as the tree.

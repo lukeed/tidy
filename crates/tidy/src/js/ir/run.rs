@@ -2,12 +2,11 @@
 
 use super::element::Interned;
 use super::formatter::Formatter;
-use crate::js::cursor::CursorRegion;
+use crate::js::ast::File;
 use crate::js::comments;
 use crate::js::context::JsFormatContext;
 use crate::js::options::DebugComments;
 use crate::js::{FormatError, FormatOptions};
-use crate::js::ast::File;
 
 /// All the allocations needed to format a file, reused for the next file.
 #[derive(Default)]
@@ -20,21 +19,19 @@ pub struct Scratch {
     unprinted_comment_ids: Vec<u32>,
 }
 
-/// Formats `file` by printing the document that `write` writes, and appends the text to `out`. Returns the offsets of
-/// both ends of `cursor` in the appended text.
+/// Formats `file` by printing the document that `write` writes, and appends the text to `out`.
 ///
 /// Every comment is owned by a node or a name, and the code that writes the owner has to write the comment. Prettier
 /// throws if a comment is left over. Here the file is formatted a second time, and the statement or class member that
 /// contains such a comment writes it after itself. The comment moves, but the file gets formatted.
 /// `--debug-unprinted-comments` lists these comments.
-pub(crate) fn format_with_marks<'a>(
+pub(crate) fn format<'a>(
     file: &'a File<'a>,
     options: &FormatOptions,
-    cursor: CursorRegion,
     scratch: &mut Scratch,
     out: &mut Vec<u8>,
     write: impl Fn(&'a File<'a>, &mut Formatter<'a>),
-) -> Result<[Option<u32>; 2], FormatError> {
+) -> Result<(), FormatError> {
     if options.debug_comments == DebugComments::Owners {
         let has_babel_tree = crate::js::context::has_babel_tree(file, options);
         let attach_options = crate::js::attach::Options {
@@ -44,33 +41,18 @@ pub(crate) fn format_with_marks<'a>(
         };
         let cast_parens = comments::cast_parens(file, options.flavor, has_babel_tree);
         crate::js::attach::list(file, &cast_parens, attach_options, out);
-        return Ok([None; 2]);
+        return Ok(());
     }
-    let mut root = write_document(file, options, cursor, scratch, Vec::new(), &write);
+    let mut root = write_document(file, options, scratch, Vec::new(), &write);
     if options.debug_comments == DebugComments::Unprinted {
         out.append(&mut scratch.unprinted_comments);
-        return Ok([None; 2]);
+        return Ok(());
     }
     if matches!(root, Err(FormatError::InvalidDocument)) {
         let comments_without_printer = std::mem::take(&mut scratch.unprinted_comment_ids);
-        root = write_document(
-            file,
-            options,
-            cursor,
-            scratch,
-            comments_without_printer,
-            &write,
-        );
+        root = write_document(file, options, scratch, comments_without_printer, &write);
     }
-    print(root?, file.text(), options, scratch, out)?;
-    Ok(scratch.printer.marks)
-}
-
-impl Scratch {
-    /// Returns the offsets of the cursor marks in the last printed text.
-    pub(crate) fn marks(&self) -> [Option<u32>; 2] {
-        self.printer.marks
-    }
+    print(root?, file.text(), options, scratch, out)
 }
 
 /// Prints the document `root`, as returned by [`write_with`], and appends the text to `out`.
@@ -96,7 +78,6 @@ pub(crate) fn print(
 fn write_document<'a>(
     file: &'a File<'a>,
     options: &FormatOptions,
-    cursor: CursorRegion,
     scratch: &mut Scratch,
     comments_without_printer: Vec<u32>,
     write: &impl Fn(&'a File<'a>, &mut Formatter<'a>),
@@ -106,7 +87,6 @@ fn write_document<'a>(
     }
     let comments = comments::for_file(file, options);
     let mut context = JsFormatContext::new(file, options.clone(), comments);
-    context.cursor = cursor;
     context.comments_without_printer = comments_without_printer;
     write_with(context, file.text(), scratch, |f| write(file, f))
 }

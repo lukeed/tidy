@@ -1,14 +1,13 @@
 //! An element's children: Prettier's `printJsxChildren`, plus what `printJsxElementInternal` does with the result.
 
 use super::FormatJsxChild;
-use crate::js::cursor::with_jsx_children_marks;
+use crate::js::base::*;
 use crate::js::ir::element::{Group as GroupTag, GroupMode};
 use crate::js::utils::jsx::{
     JsxRawSpace, JsxSpace, has_line_break, is_jsx_whitespace, is_meaningful_jsx_text,
     is_whitespace_jsx_expression,
 };
 use crate::js::utils::suppressed::FormatSuppressedNode;
-use crate::js::base::*;
 use crate::js::write;
 use smallvec::SmallVec;
 
@@ -83,7 +82,8 @@ impl Child<'_> {
 
 /// Returns `word`'s character if it has exactly one.
 fn single_character(word: &[u8]) -> Option<char> {
-    let mut chars = bstr::ByteSlice::chars(word);
+    let word = String::from_utf8_lossy(word);
+    let mut chars = word.chars();
     chars.next().filter(|_| chars.next().is_none())
 }
 
@@ -392,11 +392,7 @@ pub(super) fn format_children<'a>(
         && let [item] = *children.items_of(part)
         && !is_mdx_block
     {
-        return FormatChildrenResult::SingleChild(FormatSingleChild {
-            item,
-            forced_break,
-            element: jsx.opening_span().start,
-        });
+        return FormatChildrenResult::SingleChild(FormatSingleChild { item, forced_break });
     }
 
     let mut flat = FlatBuilder {
@@ -488,7 +484,7 @@ pub(super) fn format_children<'a>(
     }
 
     let flat_children = flat.finish(f);
-    let expanded_children = multiline.finish(jsx.opening_span().start, f);
+    let expanded_children = multiline.finish(f);
     match forced_break {
         true => FormatChildrenResult::ForceMultiline(expanded_children),
         false => FormatChildrenResult::BestFitting {
@@ -547,7 +543,7 @@ impl MultilineBuilder {
         }
     }
 
-    fn finish(mut self, element: u32, f: &mut Formatter<'_>) -> FormatMultilineChildren {
+    fn finish(mut self, f: &mut Formatter<'_>) -> FormatMultilineChildren {
         if self.is_fill {
             self.result.push(FormatElement::Tag(Tag::EndEntry));
         }
@@ -556,7 +552,6 @@ impl MultilineBuilder {
         FormatMultilineChildren {
             is_fill: self.is_fill,
             elements,
-            element,
         }
     }
 }
@@ -564,8 +559,6 @@ impl MultilineBuilder {
 pub(super) struct FormatMultilineChildren {
     is_fill: bool,
     elements: Option<FormatElement>,
-    /// The start of the element that owns the children.
-    element: u32,
 }
 
 impl FormatMultilineChildren {
@@ -593,9 +586,6 @@ impl<'a> Format<'a> for FormatMultilineChildren {
             return write!(f, [hard_line_break(), empty_line()]);
         }
         let format_inner = format_with(|f| self.fmt_content(f));
-        let format_inner = format_with(|f| {
-            with_jsx_children_marks(self.element, false, f, |f| format_inner.fmt(f))
-        });
         write!(f, block_indent(&format_inner));
     }
 }
@@ -642,17 +632,13 @@ impl<'a> Format<'a> for FormatFlatChildren {
 pub(super) struct FormatSingleChild<'a> {
     item: Item<'a>,
     forced_break: bool,
-    /// The start of the element that owns the child.
-    element: u32,
 }
 
 impl<'a> Format<'a> for FormatSingleChild<'a> {
     fn fmt(&self, f: &mut Formatter<'a>) {
-        let format_inner = format_with(|f| {
-            with_jsx_children_marks(self.element, !self.forced_break, f, |f| match self.item {
-                Item::Word(word) => text_without_whitespace(word).fmt(f),
-                Item::Node(node) => FormatJsxChild(node).fmt(f),
-            });
+        let format_inner = format_with(|f| match self.item {
+            Item::Word(word) => text_without_whitespace(word).fmt(f),
+            Item::Node(node) => FormatJsxChild(node).fmt(f),
         });
         match self.forced_break {
             true => write!(f, block_indent(&format_inner)),

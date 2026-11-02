@@ -281,7 +281,7 @@ fn trailing_ignore_comment_counts_for_oxfmt<'a>(
         // `span_of` returns an empty span for a name.
         Owner::Name(start) => {
             let name = text.get(start as usize..).unwrap_or_default();
-            start as usize + bun_lint::tokens::token_len(name)
+            start as usize + crate::js::strings::name_len(name)
         }
         _ => cx.file.without_semicolon(cx.span_of(owner)).end as usize,
     };

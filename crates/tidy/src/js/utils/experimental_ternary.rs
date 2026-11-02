@@ -476,9 +476,7 @@ fn inner_node_count(e: Expr<'_>, max: u32, is_javascript: bool) -> u32 {
         | ExprKind::Template(_)
         | ExprKind::Array(_)
         | ExprKind::Object(_)
-        | ExprKind::Binary {
-            op: BinOp::Comma, ..
-        } => 0,
+        | ExprKind::Sequence(_) => 0,
         ExprKind::PrivateIdentifier(_) => private_name,
         ExprKind::ImportMeta | ExprKind::NewTarget => 2,
         ExprKind::Dot { obj, name, .. } => child(

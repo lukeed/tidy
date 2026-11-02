@@ -6,7 +6,6 @@ pub(crate) mod attach;
 pub(crate) mod builders;
 pub(crate) mod comments;
 pub(crate) mod context;
-pub(crate) mod cursor;
 #[path = "detached/embed.rs"]
 pub(crate) mod embed;
 pub(crate) mod fields;

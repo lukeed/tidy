@@ -40,18 +40,7 @@ pub(crate) enum FormatElement {
     Interned(Interned),
     /// Several ways to write the same thing. The printer picks the first that fits.
     BestFitting(BestFitting),
-    /// Prettier's `cursor`. The printer records its offset in the output. It has no width and doesn't affect layout.
-    Cursor(CursorMark),
     Tag(Tag),
-}
-
-/// One end of the text region that contains the cursor. See `cursor.rs`.
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub(crate) enum CursorMark {
-    /// If several are printed, the last one wins.
-    RegionStart,
-    /// If several are printed, the first one wins.
-    RegionEnd,
 }
 
 /// See [`FormatElement::Skip`].
@@ -164,7 +153,7 @@ impl Token {
 
 impl std::fmt::Debug for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Debug::fmt(bstr::BStr::new(self.as_bytes()), f)
+        std::fmt::Debug::fmt(&String::from_utf8_lossy(self.as_bytes()), f)
     }
 }
 

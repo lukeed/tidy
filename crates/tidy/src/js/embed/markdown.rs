@@ -44,7 +44,7 @@ enum Op<'d> {
 }
 
 /// Collects `doc`'s parts. Returns true if all of it can be written as part of a JavaScript document.
-fn flatten<'d>(doc: &'d Doc<'_>, ops: &mut Vec<Op<'d>>, stack_check: bun_core::StackCheck) -> bool {
+fn flatten<'d>(doc: &'d Doc<'_>, ops: &mut Vec<Op<'d>>, stack_check: crate::js::stack::StackCheck) -> bool {
     if !stack_check.is_safe_to_recurse() {
         return false;
     }
@@ -267,7 +267,7 @@ pub(crate) fn write_template<'a>(
             return false;
         };
         let mut ops = Vec::new();
-        if !flatten(&document, &mut ops, bun_core::StackCheck::init()) {
+        if !flatten(&document, &mut ops, crate::js::stack::StackCheck::init()) {
             return false;
         }
         f.write_token("`");

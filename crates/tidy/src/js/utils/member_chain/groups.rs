@@ -6,7 +6,7 @@ use crate::js::write;
 /// Prettier's `shouldInsertEmptyLineAfter`: true if the line after `e`, or after the `)` following it, is empty.
 pub(super) fn should_insert_empty_line_after<'a>(e: Expr<'a>, f: &Formatter<'a>) -> bool {
     let (source_text, end) = (f.source_text(), e.span().end);
-    let next = bun_lint::tokens::skip_trivia(source_text.as_bytes(), end);
+    let next = crate::js::ast::skip_trivia(source_text.as_bytes(), end);
     match source_text.byte_at(next) {
         Some(b')') => is_next_line_empty(source_text, next + 1),
         _ => is_next_line_empty(source_text, end),

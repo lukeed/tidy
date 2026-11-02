@@ -4,15 +4,14 @@
 //! source.
 
 use super::type_parameters::type_arguments;
+use crate::js::base::*;
 use crate::js::embed::css;
-use crate::js::cursor::with_node_marks_at;
 use crate::js::ir::width::string_width_as;
 use crate::js::utils::call_expression::is_test_each_pattern;
 use crate::js::utils::tailwindcss::{
     InTailwindContext, context_of_function, has_white_space, sorted_template_text,
 };
 use crate::js::utils::typecast::has_comments;
-use crate::js::base::*;
 use crate::js::{format_args, write};
 
 /// True if Prettier's `embed` could apply to the template `e`. For most templates it can't.
@@ -54,7 +53,7 @@ pub(crate) fn write_template_literal<'a>(
     let context = f.context().tailwind_context();
     let content = format_with(|f| {
         if !may_have_embedded_language(e, f)
-            || (!embed::write_template(e, template, f)
+            || (!css::write_template(e, template, f)
                 && !crate::js::embed::graphql::write_template(e, template, f)
                 && !crate::js::embed::html::write_template(e, template, f)
                 && !crate::js::embed::markdown::write_template(e, template, f))
@@ -184,15 +183,6 @@ impl<'a> TemplateLike<'a> {
         }
     }
 
-    /// The span of the text at `i`, without its delimiters: the range of ESTree's `TemplateElement`.
-    fn content_span(self, i: usize) -> Span {
-        let span = match self {
-            Self::TemplateLiteral(t) => t.quasi_span(i),
-            Self::TSTemplateLiteralType(t) => t.quasi_span(i),
-        };
-        span.shrink(1, if i + 1 == self.quasi_count() { 1 } else { 2 })
-    }
-
     fn expression(self, i: usize) -> Option<TemplateExpression<'a>> {
         match self {
             Self::TemplateLiteral(t) => t.exprs().get(i).map(TemplateExpression::Expression),
@@ -264,14 +254,10 @@ impl<'a> Format<'a> for TemplateLike<'a> {
                     sorted_template_text(source, first_and_last, context, tailwind)
                 });
             let raw = sorted.as_deref().unwrap_or(source);
-            with_node_marks_at(
-                || self.content_span(i),
-                f,
-                |f| match crate::js::strings::contains_char(raw, b'\r') {
-                    true => f.write_built_text(|out| crate::js::strings::push_crlf_as_lf(out, raw)),
-                    false => write!(f, text(raw)),
-                },
-            );
+            match crate::js::strings::contains_char(raw, b'\r') {
+                true => f.write_built_text(|out| crate::js::strings::push_crlf_as_lf(out, raw)),
+                false => write!(f, text(raw)),
+            }
             let inner = (context.filter(|_| i + 1 < count))
                 .map(|it| it.in_template_expression(source, self.raw(i + 1)));
             write!(f, InTailwindContext(inner, expressions.next()));

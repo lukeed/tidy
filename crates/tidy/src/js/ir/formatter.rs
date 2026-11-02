@@ -6,12 +6,12 @@ use super::element::{
     LabelId, LineMode, PrintMode, Skip, Tag, Text, TextWidth,
 };
 use super::width::OddBlocks;
-use crate::js::comments::Comments;
-use crate::js::context::JsFormatContext;
-use crate::js::source_text::SourceText;
-use crate::js::options::{Flavor, FormatOptions};
 use crate::js::ast::File;
 use crate::js::ast::Span;
+use crate::js::comments::Comments;
+use crate::js::context::JsFormatContext;
+use crate::js::options::{Flavor, FormatOptions};
+use crate::js::source_text::SourceText;
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 use std::cell::Cell;
@@ -367,7 +367,7 @@ impl Storage {
         while let Some(element) = elements.next() {
             match element {
                 FormatElement::Skip(it) => skip(&mut elements, it.len),
-                FormatElement::Nop | FormatElement::Cursor(_) => {}
+                FormatElement::Nop => {}
                 FormatElement::Tag(Tag::StartLabelled(actual)) => return *actual == label,
                 FormatElement::Interned(it) => elements = self.interned(*it).iter(),
                 _ => return false,

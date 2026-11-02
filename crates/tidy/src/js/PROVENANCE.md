@@ -6,7 +6,8 @@ The files here start as a verbatim copy of bun's JavaScript and TypeScript forma
 | --- | --- |
 | `js/*` but the rows below | `js/*` (`js/mod.rs` is `bun_mod.rs`) |
 | `js/ir` | `ir` |
-| `js/options.rs`, `text.rs`, `sort.rs`, `stack.rs`, `cursor.rs`, `range.rs` | the files of the same names |
-| `js/bun_lib.rs` | `lib.rs` |
+| `js/options.rs`, `text.rs`, `sort.rs`, `stack.rs` | the files of the same names |
 | `js/embed/css.rs`, `markdown.rs`, `graphql.rs`, `html.rs` | `css/embed.rs`, `markdown/embed.rs`, `graphql/embed.rs`, `html/in_js.rs` |
 | `js/template/js.rs`, `vue.rs` | `html/js.rs`, `html/vue.rs` |
+
+Not ported: Flow (`print/flow.rs`, `attach/flow.rs`), cursor and range formatting (`cursor.rs`, `range.rs`), and bun's `lib.rs` and `js/mod.rs`, which `js/mod.rs` merges.

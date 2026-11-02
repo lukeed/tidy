@@ -105,10 +105,7 @@ impl FitsEndPredicate for SingleEntryPredicate {
                     .ok_or(PrintError::InvalidDocument)?;
                 self.is_done = self.depth == 0;
             }
-            FormatElement::Interned(_)
-            | FormatElement::Skip(_)
-            | FormatElement::Nop
-            | FormatElement::Cursor(_) => {}
+            FormatElement::Interned(_) | FormatElement::Skip(_) | FormatElement::Nop => {}
             _ if self.depth == 0 => return Err(PrintError::InvalidDocument),
             _ => {}
         }
@@ -310,7 +307,7 @@ impl<'d> Printer<'d> {
     ) -> PrintResult<Fits> {
         let mode = measure.mode;
         match element {
-            FormatElement::Nop | FormatElement::Cursor(_) => {}
+            FormatElement::Nop => {}
             FormatElement::Skip(skip) => measure.elements.skip(skip.len),
             FormatElement::Space => {
                 if measure.line_width > 0 {

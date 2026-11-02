@@ -202,6 +202,18 @@ handle_structs! {
   Modifier,
 }
 
+impl super::Spanned for Node<'_> {
+  fn span(&self) -> Span {
+    Node::span(*self)
+  }
+}
+
+impl super::Spanned for File<'_> {
+  fn span(&self) -> Span {
+    Span::new(self.program.span.start, self.program.span.end)
+  }
+}
+
 impl PartialEq for File<'_> {
   fn eq(&self, other: &Self) -> bool {
     std::ptr::eq(self, other)

@@ -134,8 +134,10 @@ fn ends_ligature(before: &[u32], c: u32) -> bool {
 }
 
 fn width_of_characters(text: &[u8], flavor: Flavor) -> u32 {
-    let chars: smallvec::SmallVec<[u32; 64]> =
-        bstr::ByteSlice::chars(text).map(u32::from).collect();
+    let chars: smallvec::SmallVec<[u32; 64]> = String::from_utf8_lossy(text)
+        .chars()
+        .map(u32::from)
+        .collect();
     let (mut width, mut i) = (0, 0);
     // The `unicode-width` crate treats an Arabic lam and the alef after it as one ligature.
     let mut follows_lam = false;
@@ -212,6 +214,11 @@ pub(crate) fn is_all_printable(text: &[u8]) -> bool {
     all_bytes(text, is_printable)
 }
 
+#[inline]
+fn is_even(byte: u8) -> bool {
+    (is_printable(byte) & (byte != b'\\')) | matches!(byte, b'\t' | b'\n' | b'\r')
+}
+
 /// Number of bytes that each bit of [`OddBlocks`] covers.
 const BLOCK: usize = 64;
 
@@ -222,7 +229,15 @@ pub(crate) struct OddBlocks(Vec<u64>);
 
 impl OddBlocks {
     pub(crate) fn mark(&mut self, source: &[u8]) {
-        bun_highway::odd_blocks(source, &mut self.0);
+        self.0.clear();
+        self.0.resize(source.len().div_ceil(BLOCK * 64), 0);
+        for (block, bytes) in source.chunks(BLOCK).enumerate() {
+            if let Some(marks) = self.0.get_mut(block / 64)
+                && !all_bytes(bytes, is_even)
+            {
+                *marks |= 1 << (block % 64);
+            }
+        }
     }
 
     /// True if the text from `start` to `end`, which has no tab or line break, is as many columns wide as it has bytes

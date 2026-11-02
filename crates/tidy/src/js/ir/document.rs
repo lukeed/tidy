@@ -143,7 +143,7 @@ impl Tracker {
                 self.state.is_space_element_pending = true;
             }
             // These print nothing when the enclosing content is flat.
-            FormatElement::TokenIfBreaks(_) | FormatElement::Nop | FormatElement::Cursor(_) => {}
+            FormatElement::TokenIfBreaks(_) | FormatElement::Nop => {}
             FormatElement::Line(mode) => self.line(mode, index),
             FormatElement::IndentedLineGroup(_) => {
                 self.line(LineMode::SoftOrSpace, index);

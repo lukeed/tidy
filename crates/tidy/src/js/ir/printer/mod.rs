@@ -14,8 +14,8 @@ mod output;
 use self::measure::Measure;
 use self::output::Out;
 use super::element::{
-    BestFitting, Condition, CursorMark, DedentMode, Fallback, Flat, FlatFlags, FormatElement,
-    Group, GroupId, GroupMode, Interned, LineMode, PrintMode, Tag, TextWidth,
+    BestFitting, Condition, DedentMode, Fallback, Flat, FlatFlags, FormatElement, Group, GroupId,
+    GroupMode, Interned, LineMode, PrintMode, Tag, TextWidth,
 };
 use super::formatter::{END_LINE_SUFFIX, REST_OF_INDENTED_LINE_GROUP, Storage, line_break};
 use crate::js::FormatError;
@@ -193,8 +193,6 @@ pub(crate) struct PrinterBuffers {
     measure_frames: Vec<Frame>,
     /// The state that [`Printer::try_expanded`] restores.
     before_try: BeforeTry,
-    /// Output offsets of the last document's [`FormatElement::Cursor`]s.
-    pub(crate) marks: [Option<u32>; 2],
 }
 
 /// Copies of the vectors that printing does more than append to, taken before the try. The others are just truncated to
@@ -237,11 +235,9 @@ struct Printer<'d> {
     elements: Elements<'d>,
     /// The mode of the last frame in `buffers.frames`.
     mode: PrintMode,
-    /// `buffers.marks[i]` must move past the pending indentation and space once those are printed.
-    is_mark_pending: [bool; 2],
     /// The length of `out` before anything is printed.
     start: usize,
-    stack_check: bun_core::StackCheck,
+    stack_check: crate::js::stack::StackCheck,
     buffers: &'d mut PrinterBuffers,
 }
 
@@ -267,7 +263,6 @@ pub(crate) fn print(
     buffers.line_suffixes.clear();
     buffers.group_modes.clear();
     buffers.before_try.unstable.clear();
-    buffers.marks = [None; 2];
     let start = out.len();
     let mut printer = Printer {
         options,
@@ -289,13 +284,11 @@ pub(crate) fn print(
         line_width: 0,
         elements: Elements::new(Run::of(root), &storage.pool),
         mode: PrintMode::Expanded,
-        is_mark_pending: [false; 2],
         start,
-        stack_check: bun_core::StackCheck::init(),
+        stack_check: crate::js::stack::StackCheck::init(),
         buffers,
     };
     let result = printer.print_all();
-    printer.pull_marks_back();
     printer.out.finish();
     match printer.out.is_too_long() {
         true => Err(PrintError::TooLong),
@@ -336,7 +329,7 @@ impl<'d> Printer<'d> {
         self.elements = Elements::new(Run::of(elements), self.pool);
     }
 
-    /// Returns the next real element, looking through `Nop`, `Cursor`, `Skip` and `Interned`.
+    /// Returns the next real element, looking through `Nop`, `Skip` and `Interned`.
     fn peek(&self) -> Option<&'d FormatElement> {
         first_of(self.elements.run(), self.pool).or_else(|| {
             self.buffers
@@ -443,7 +436,6 @@ impl<'d> Printer<'d> {
             };
             match element {
                 FormatElement::Nop => {}
-                FormatElement::Cursor(mark) => self.note_mark(*mark),
                 FormatElement::Skip(skip) => self.elements.skip(skip.len),
                 FormatElement::Space => {
                     if self.is_in_line() {
@@ -654,7 +646,6 @@ impl<'d> Printer<'d> {
         // Skip the line break if the current line is empty.
         if self.is_in_line() {
             self.out.trim_trailing_whitespace();
-            self.pull_marks_back();
             self.print_line_break();
             self.has_empty_line = false;
         }
@@ -753,7 +744,6 @@ impl<'d> Printer<'d> {
                     ) => {
                         return Err(PrintError::InvalidDocument);
                     }
-                    FormatElement::Cursor(mark) => self.note_mark(*mark),
                     FormatElement::Nop
                     | FormatElement::TokenIfBreaks(_)
                     | FormatElement::Line(LineMode::Soft | LineMode::SoftEmpty)
@@ -866,7 +856,6 @@ impl<'d> Printer<'d> {
         let line_width = self.line_width;
         let elements = self.elements.clone();
         let mode = self.mode;
-        let marks = (self.buffers.marks, self.is_mark_pending);
         let buffers = &mut *self.buffers;
         let (queue_len, frames_len) = (buffers.queue.len(), buffers.frames.len());
         let before = &mut buffers.before_try;
@@ -893,7 +882,6 @@ impl<'d> Printer<'d> {
         self.line_width = line_width;
         self.elements = elements;
         self.mode = mode;
-        (self.buffers.marks, self.is_mark_pending) = marks;
         let buffers = &mut *self.buffers;
         buffers.queue.truncate(queue_len);
         buffers.frames.truncate(frames_len);
@@ -1025,47 +1013,6 @@ impl<'d> Printer<'d> {
             self.out.byte(b' ');
             self.pending_space = false;
             self.line_width += 1;
-            if self.is_mark_pending != [false; 2] {
-                self.move_pending_marks();
-            }
-        }
-    }
-
-    /// Returns the current end offset of the document's output.
-    #[inline]
-    fn position(&self) -> u32 {
-        self.out.len().saturating_sub(self.start) as u32
-    }
-
-    #[cold]
-    fn note_mark(&mut self, mark: CursorMark) {
-        let index = match mark {
-            CursorMark::RegionStart => 0,
-            CursorMark::RegionEnd if self.buffers.marks[1].is_some() => return,
-            CursorMark::RegionEnd => 1,
-        };
-        self.buffers.marks[index] = Some(self.position());
-        self.is_mark_pending[index] = self.pending_space || !self.pending_indent.is_empty();
-    }
-
-    /// Called once the pending indentation and space have been printed.
-    #[cold]
-    fn move_pending_marks(&mut self) {
-        for index in 0..2 {
-            if std::mem::take(&mut self.is_mark_pending[index]) {
-                self.buffers.marks[index] = Some(self.position());
-            }
-        }
-    }
-
-    /// Prettier's `trim`. Pending or trailing whitespace ended up not being printed, so marks past the end are clamped
-    /// to it.
-    #[inline]
-    fn pull_marks_back(&mut self) {
-        if self.buffers.marks != [None; 2] {
-            let end = self.position();
-            self.buffers.marks = self.buffers.marks.map(|mark| mark.map(|at| at.min(end)));
-            self.is_mark_pending = [false; 2];
         }
     }
 
@@ -1082,9 +1029,6 @@ impl<'d> Printer<'d> {
             self.out.repeat(b' ', align);
         }
         self.line_width += width + align;
-        if !self.pending_space {
-            self.move_pending_marks();
-        }
     }
 
     /// Prints `text[range]`.
@@ -1151,14 +1095,14 @@ impl<'d> Printer<'d> {
     }
 }
 
-/// Returns the first real element of `run`, looking through `Nop`, `Cursor`, `Skip` and `Interned`.
+/// Returns the first real element of `run`, looking through `Nop`, `Skip` and `Interned`.
 fn first_of(run: Run, pool: &[FormatElement]) -> Option<&FormatElement> {
     let mut elements = Elements::new(run, pool);
     // The rest of each run that encloses the current interned content.
     let mut outer = SmallVec::<[Elements<'_>; 4]>::new();
     loop {
         match elements.next() {
-            Some(FormatElement::Nop | FormatElement::Cursor(_)) => {}
+            Some(FormatElement::Nop) => {}
             Some(FormatElement::Skip(skip)) => elements.skip(skip.len),
             Some(FormatElement::Interned(interned)) => outer.push(std::mem::replace(
                 &mut elements,

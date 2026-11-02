@@ -52,11 +52,6 @@ pub struct FormatOptions {
     pub filepath: Option<Box<[u8]>>,
     /// Prettier's `parser`, if it isn't inferred from the file name: `json5`, `babel`, ..
     pub parser: Option<Box<[u8]>>,
-    /// Only the text between the two is formatted. As in Prettier, they count UTF-16 code units.
-    pub range_start: Option<u32>,
-    pub range_end: Option<u32>,
-    /// The cursor's position, in UTF-16 code units. Its new position is part of the result.
-    pub cursor_offset: Option<u32>,
     /// Puts `@format` in a comment at the top of the file.
     pub insert_pragma: bool,
     /// Only format a file with `@format` or `@prettier` in a comment at its top.
@@ -311,22 +306,8 @@ impl FormatOptions {
             b"false" => Ok(false),
             _ => Err(InvalidOption),
         };
-        let number = |max: u32| {
-            let mut n = 0u32;
-            for &digit in value {
-                if !digit.is_ascii_digit() {
-                    return Err(InvalidOption);
-                }
-                n = n.saturating_mul(10).saturating_add(u32::from(digit - b'0'));
-            }
-            if value.is_empty() || n > max {
-                Err(InvalidOption)
-            } else {
-                Ok(n)
-            }
-        };
         // What Prettier accepts as an integer: `Number(value)` of the command line argument, including `Infinity`.
-        let integer = || match bun_core::fmt::js_string_to_number(value) {
+        let integer = || match crate::js::strings::js_string_to_number(value) {
             it if it.is_nan() || (it.is_finite() && it.fract() != 0.0) => Err(InvalidOption),
             it => Ok(it),
         };
@@ -459,11 +440,6 @@ impl FormatOptions {
             }
             b"filepath" => self.filepath = Some(value.into()),
             b"parser" => self.parser = Some(value.into()),
-            b"rangeStart" => self.range_start = Some(number(u32::MAX)?),
-            // `Infinity` is the default.
-            b"rangeEnd" => self.range_end = number(u32::MAX).ok(),
-            // -1 is the default.
-            b"cursorOffset" => self.cursor_offset = number(u32::MAX).ok(),
             b"insertPragma" => self.insert_pragma = boolean()?,
             b"requirePragma" => self.require_pragma = boolean()?,
             b"checkIgnorePragma" => self.check_ignore_pragma = boolean()?,

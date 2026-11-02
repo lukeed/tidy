@@ -108,3 +108,70 @@ pub(crate) fn wtf8_to_utf16(text: &[u8]) -> Vec<u16> {
 pub(crate) fn wtf8_codepoints(text: &[u8]) -> impl Iterator<Item = (usize, u32)> + '_ {
   std::str::from_utf8(text).unwrap_or_default().char_indices().map(|(at, c)| (at, c as u32))
 }
+
+/// The length in bytes of the character that `text` ends with, if `\s` matches it, and 0 if not.
+pub(crate) fn js_whitespace_len_back(text: &[u8]) -> usize {
+  match *text {
+    [.., 0x09..=0x0D | b' '] => 1,
+    [.., 0xC2, 0xA0] => 2,
+    [.., a, b, c] if js_whitespace_len(&[a, b, c]) == 3 => 3,
+    _ => 0,
+  }
+}
+
+/// ECMAScript's `IdentifierStart`: `$`, `_`, and Unicode's `ID_Start`.
+pub(crate) fn is_identifier_start(c: u32) -> bool {
+  char::from_u32(c).is_some_and(|c| c == '$' || c == '_' || unicode_ident::is_xid_start(c))
+}
+
+/// ECMAScript's `IdentifierPart`: `$`, `_`, ZWNJ, ZWJ, and Unicode's `ID_Continue`.
+pub(crate) fn is_type_script_identifier_part(c: i32) -> bool {
+  u32::try_from(c).ok().and_then(char::from_u32).is_some_and(|c| {
+    matches!(c, '$' | '_' | '\u{200C}' | '\u{200D}') || unicode_ident::is_xid_continue(c)
+  })
+}
+
+/// True if `name` is an identifier.
+pub(crate) fn is_identifier(name: &[u8]) -> bool {
+  let mut chars = wtf8_codepoints(name);
+  chars.next().is_some_and(|(_, c)| is_identifier_start(c))
+    && chars.all(|(_, c)| is_type_script_identifier_part(c as i32))
+}
+
+/// The length of the name or string literal that `text` starts with: an identifier, a `#name`, a quoted string or a
+/// number. 1 for anything else, and 0 for an empty text.
+pub(crate) fn name_len(text: &[u8]) -> usize {
+  match text.first() {
+    None => 0,
+    Some(&quote @ (b'"' | b'\'')) => {
+      let mut at = 1;
+      while let Some(&byte) = text.get(at) {
+        at += if byte == b'\\' { 2 } else { 1 };
+        if byte == quote {
+          break;
+        }
+      }
+      at.min(text.len())
+    }
+    Some(_) => {
+      let start = usize::from(text[0] == b'#');
+      let len = std::str::from_utf8(&text[start..])
+        .unwrap_or_default()
+        .char_indices()
+        .find(|&(_, c)| !(c.is_ascii_alphanumeric() || c == '.' || is_type_script_identifier_part(c as i32)))
+        .map_or(text.len() - start, |(at, _)| at);
+      (start + len).max(1)
+    }
+  }
+}
+
+/// JavaScript's `Number(text)`.
+pub(crate) fn js_string_to_number(text: &[u8]) -> f64 {
+  let text = std::str::from_utf8(trim_js_whitespace(text)).unwrap_or("x");
+  match text {
+    "" => 0.0,
+    "Infinity" | "+Infinity" => f64::INFINITY,
+    "-Infinity" => f64::NEG_INFINITY,
+    _ => text.parse().unwrap_or(f64::NAN),
+  }
+}

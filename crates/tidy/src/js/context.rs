@@ -2,11 +2,10 @@
 
 use super::comments::{Comments, FileComments};
 use super::utils::tailwindcss::TailwindContext;
-use crate::js::cursor::CursorRegion;
-use crate::js::ir::element::FormatElement;
-use crate::js::options::{FormatOptions, HtmlRoot, JavaScriptParser};
 use crate::js::ast::{Expr, File};
 use crate::js::ast::{Span, Spanned};
+use crate::js::ir::element::FormatElement;
+use crate::js::options::{FormatOptions, HtmlRoot, JavaScriptParser};
 use rustc_hash::FxHashMap;
 use std::cell::Cell;
 
@@ -37,12 +36,11 @@ pub(crate) struct JsFormatContext<'a> {
     tailwind_contexts: Vec<TailwindContext>,
     /// See `Formatter::is_quiet`.
     pub(crate) is_quiet: bool,
-    pub(crate) cursor: CursorRegion,
-    stack_check: bun_core::StackCheck,
+    stack_check: crate::js::stack::StackCheck,
     /// Something wasn't written because it's nested too deeply.
     pub(crate) ran_out_of_stack: bool,
     /// Ids of the comments that weren't printed when the file was formatted the first time. See
-    /// [`crate::js::ir::run::format_with_marks`].
+    /// [`crate::js::ir::run::format`].
     pub(crate) comments_without_printer: Vec<u32>,
     /// Caches the last member access nested in many member accesses, and whether it stays on its object's line. The
     /// enclosing member access has the same answer.
@@ -84,8 +82,7 @@ impl<'a> JsFormatContext<'a> {
             quote_needed_stack: Vec::new(),
             tailwind_contexts: plugin_context.into_iter().collect(),
             is_quiet: false,
-            cursor: CursorRegion::NONE,
-            stack_check: bun_core::StackCheck::init(),
+            stack_check: crate::js::stack::StackCheck::init(),
             ran_out_of_stack: false,
             comments_without_printer: Vec::new(),
             line_start: Cell::new((0, 0)),

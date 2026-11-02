@@ -29,7 +29,7 @@ mod es5_identifier_tables;
 /// version: Bun's current tables, adjusted by the differences listed in `es5_identifier_tables`. Prettier only unquotes
 /// such names.
 pub(crate) fn is_es5_identifier_name(name: &[u8]) -> bool {
-    use bun_core::lexer::{is_identifier_start, is_type_script_identifier_part};
+    use crate::js::strings::{is_identifier_start, is_type_script_identifier_part};
     use es5_identifier_tables::{PART_LESS, PART_MORE, START_LESS, START_MORE};
     let is_in = |table: &[(u16, u16)], c: u32| {
         u16::try_from(c).is_ok_and(|c| {
@@ -58,7 +58,7 @@ pub(crate) fn is_es5_identifier_name(name: &[u8]) -> bool {
 /// True if a property name doesn't need its quotes. oxfmt accepts anything that's an identifier today: `{ ℘: 1 }`.
 pub(crate) fn is_name_without_quotes(name: &[u8], flavor: Flavor) -> bool {
     match flavor.is_oxfmt() {
-        true => bun_core::lexer::is_identifier(name),
+        true => crate::js::strings::is_identifier(name),
         false => is_es5_identifier_name(name),
     }
 }

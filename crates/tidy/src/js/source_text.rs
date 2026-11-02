@@ -74,7 +74,7 @@ impl<'a> SourceText<'a> {
 
     /// The number of characters in `span`.
     pub(crate) fn span_width(self, span: Span) -> usize {
-        bstr::ByteSlice::chars(self.text_for(&span)).count()
+        String::from_utf8_lossy(self.text_for(&span)).chars().count()
     }
 
     pub(crate) fn contains_newline(self, span: Span) -> bool {

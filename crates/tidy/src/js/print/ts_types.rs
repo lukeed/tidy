@@ -7,7 +7,7 @@ use super::function_type::{
 use super::object_like::ObjectLike;
 use super::type_parameters::type_arguments;
 use super::union_type::union_prints_comments_after_colon;
-use crate::js::cursor::extend_node;
+use crate::js::base::*;
 use crate::js::format::{FormatTypeOfPredicate, format_node, identifier};
 use crate::js::utils::conditional::ConditionalLike;
 use crate::js::utils::format_node_without_trailing_comments::FormatNodeWithoutTrailingComments;
@@ -16,7 +16,6 @@ use crate::js::utils::object::{format_computed_or_property_key, key_requires_quo
 use crate::js::utils::string::{FormatLiteralStringToken, StringLiteralParentKind};
 use crate::js::utils::suppressed::{FormatSuppressedNode, FormatTemplateText};
 use crate::js::utils::typescript::without_lone_operator;
-use crate::js::base::*;
 use crate::js::{best_fitting, format_args, write};
 
 /// `A.B.C`
@@ -255,7 +254,6 @@ impl<'a> Format<'a> for FormatTSSignature<'a> {
         // The separator isn't part of the member. The member's trailing comments go after it.
         write!(f, FormatNodeWithoutTrailingComments(&signature));
         self.write_separator(f);
-        extend_node(signature.span(), f);
         write!(f, trailing_comments(node));
     }
 }
@@ -546,7 +544,7 @@ impl<'a> ImportTypeComments<'a> {
         format_with(move |f: &mut Formatter<'a>| {
             write!(f, FormatLeadingComments::Comments(leading));
             let is_ignored = has_ignore_comment(&[leading], trailing, f);
-            f.track_cursor(source, |f| match is_ignored {
+            match is_ignored {
                 true => write!(f, FormatSuppressedNode(source)),
                 false => write!(
                     f,
@@ -556,7 +554,7 @@ impl<'a> ImportTypeComments<'a> {
                         StringLiteralParentKind::Expression
                     )
                 ),
-            });
+            }
             write!(f, FormatTrailingComments::Comments(trailing));
         })
     }
