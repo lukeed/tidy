@@ -145,12 +145,18 @@ impl Parser<'_> {
       let Kind::Property { key, .. } = self.tree.node(*property).kind else { continue };
       let key = self.tree.node(key);
       let raw = &text[key.span.start as usize..key.span.end as usize];
-      let proto = match key.kind {
-        Kind::Identifier => cook::identifier(raw) == "__proto__",
-        Kind::String => {
-          cook::string(&raw[1..raw.len() - 1]) == "__proto__".encode_utf16().collect::<Vec<_>>()
-        }
-        _ => false,
+      let content = match key.kind {
+        Kind::Identifier => raw,
+        Kind::String => &raw[1..raw.len() - 1],
+        _ => continue,
+      };
+      // Only a key with an escape needs reading to be `__proto__`.
+      let proto = match (content.contains(&b'\\'), key.kind) {
+        (false, _) => content == b"__proto__",
+        (true, Kind::Identifier) => cook::identifier(content) == "__proto__",
+        (true, _) => char::decode_utf16(cook::string(content))
+          .map(|it| it.ok())
+          .eq("__proto__".chars().map(Some)),
       };
       if proto && seen {
         return Err(self.error_at(Message::DuplicateProto, key.span.start as usize));
