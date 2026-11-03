@@ -149,9 +149,6 @@ impl<'a> File<'a> {
     typescript: bool,
     sorted: &mut rustc_hash::FxHashMap<u32, Vec<u32>>,
   ) {
-    if is_ignore(&self.text.as_bytes()[record.span.start as usize..record.span.end as usize]) {
-      return;
-    }
     while record.preceding == NONE
       && let Some(Node::Expr(left)) = Node::of(self, record.following)
       && let Some(Node::Expr(e)) = Node::of(self, record.enclosing)
@@ -162,6 +159,7 @@ impl<'a> File<'a> {
       && let start = self.decorated_span(e.id).start
       && 0 < start
       && start < record.span.start
+      && !is_ignore(&self.text.as_bytes()[record.span.start as usize..record.span.end as usize])
     {
       if is_in_member_chain(e) {
         if is_link(left)
