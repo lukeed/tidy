@@ -86,6 +86,7 @@ Most entries come from bun's ports, which correct the places where Prettier's ou
 | [graphql-block-string-trailing-space](#graphql-block-string-trailing-space) | graphql | approved 2026-11-02 |
 | [js-jsdoc](#js-jsdoc) | babel/typescript | approved 2026-11-02 |
 | [js-markdown-fence-length](#js-markdown-fence-length) | babel/typescript | approved 2026-11-02 |
+| [js-stable-output](#js-stable-output) | babel/typescript | approved 2026-11-02 |
 | [the rule in step 2](#process) | all | proposed |
 | [tempura and text mode](#beyond-prettier) | handlebars | approved 2026-10-31 |
 
@@ -1093,6 +1094,19 @@ tidy:     "/** @param {string} a The thing */\nfunction f(a) {}\n"
 input:    "md`\n\\`\\`\\`js\nmarkdown\\`\n    \\\\\\`\\\\\\`\\\\\\`js\n    console.log('hi');\n    \\\\\\`\\\\\\`\\\\\\`\n\\`\n\\`\\`\\`\n`;\n"
 Prettier: "md`\n~~~js\nmarkdown\\`\n  ~~~js\n  console.log(\"hi\");\n  ~~~\n\\`;\n~~~\n`;\n"
 tidy:     "md`\n~~~~js\nmarkdown\\`\n  ~~~js\n  console.log(\"hi\");\n  ~~~\n\\`;\n~~~~\n`;\n"
+```
+
+### js-stable-output
+
+- Status: approved 2026-11-02
+- Why: Luke decided tidy's output must not change when it is formatted again, so that a formatted file passes `--check` in CI. Where Prettier's output changes when formatted again, tidy prints Prettier's fixed point: what Prettier prints when it formats its own output until that stays the same. A comment after an expression, inside parentheses around it, is printed after the parentheses; there the next formatting finds it before the `)` of the expression around it, or before the `;` of the statement, and moves it on. tidy places it where it ends up, in one pass.
+- Where: crates/tidy/src/js/ast/comments.rs (`decorate`, `keeps_comments_in_parentheses`)
+- Parser: babel, typescript
+
+```
+input:    "x = (a ? b : c /* a */);\n"
+Prettier: "x = a ? b : c /* a */;\n"
+tidy:     "x = a ? b : c; /* a */\n"
 ```
 
 ## Beyond Prettier

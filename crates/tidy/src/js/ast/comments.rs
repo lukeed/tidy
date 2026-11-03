@@ -103,7 +103,24 @@ impl<'a> File<'a> {
         ));
       let after = spans.get(index + 1).map_or(next, |it| it.start.min(next));
       let newline_after = comment.is_line() || breaks(gap(span.end, after));
-      let (enclosing, preceding, following) = self.surrounding(span, typescript, &mut sorted);
+      let (mut enclosing, mut preceding, mut following) =
+        self.surrounding(span, typescript, &mut sorted);
+      // A comment after an expression, inside the parentheses around it, is printed after them, and the next
+      // formatting finds it there. So its nodes are those there, where the output is stable.
+      let (mut next, mut at) = (next, span.end);
+      while following == NONE
+        && !newline_before
+        && preceding != NONE
+        && let Some(Node::Expr(e)) = Node::of(self, preceding)
+        && let Some(paren) = e
+          .parens()
+          .find(|paren| paren.start < span.start && span.end <= paren.end && at < paren.end)
+        && !keeps_comments_in_parentheses(self, e.id)
+      {
+        let after = Span::new(paren.end, paren.end + 1);
+        (next, at) = (self.token_after(paren.end), paren.end);
+        (enclosing, preceding, following) = self.surrounding(after, typescript, &mut sorted);
+      }
       records.push(Record {
         span,
         block: comment.is_block(),
@@ -352,6 +369,30 @@ fn is_space(text: &[u8], at: u32) -> bool {
 
 fn breaks(gap: &[u8]) -> bool {
   gap.iter().any(|&byte| byte == b'\n' || byte == b'\r')
+}
+
+/// True if the expression with `id` keeps a comment after it inside its parentheses when they're printed: an operand
+/// of `!` or `-` (Prettier's `printUnaryExpression`), JSX, which prints its own parentheses, and a sequence or an
+/// assignment that is the body of an arrow function, the value of a declaration or of an assignment, or what a `return`
+/// returns (`handleParenthesizedExpressionTrailingComment`). An assignment to the right of another loses its
+/// parentheses: `a = (b = c)` is `a = b = c`.
+fn keeps_comments_in_parentheses(file: &File, id: u32) -> bool {
+  let parent = file.kind(file.parent_id(id));
+  match (file.kind(id), parent) {
+    (_, Some(AstKind::UnaryExpression(_))) => true,
+    (Some(AstKind::JSXElement(_) | AstKind::JSXFragment(_)), _) => true,
+    (Some(AstKind::AssignmentExpression(_)), Some(AstKind::AssignmentExpression(_))) => false,
+    (Some(AstKind::SequenceExpression(_) | AstKind::AssignmentExpression(_)), _) => matches!(
+      parent,
+      Some(
+        AstKind::ArrowFunctionExpression(_)
+          | AstKind::VariableDeclarator(_)
+          | AstKind::ReturnStatement(_)
+          | AstKind::AssignmentExpression(_)
+      )
+    ),
+    _ => false,
+  }
 }
 
 /// A `//` or `/* */` comment.

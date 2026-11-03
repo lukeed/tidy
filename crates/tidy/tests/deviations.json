@@ -2666,5 +2666,19 @@
         "tidy": "md`\n~~~~js\nmarkdown\\`\n  ~~~js\n  console.log(\"hi\");\n  ~~~\n\\`;\n~~~~\n`;\n"
       }
     ]
+  },
+  {
+    "id": "js-stable-output",
+    "rows": [
+      {
+        "parsers": [
+          "babel",
+          "typescript"
+        ],
+        "input": "x = (a ? b : c /* a */);\n",
+        "prettier": "x = a ? b : c /* a */;\n",
+        "tidy": "x = a ? b : c; /* a */\n"
+      }
+    ]
   }
 ]

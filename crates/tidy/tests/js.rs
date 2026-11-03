@@ -113,3 +113,22 @@ fn rejects_what_the_tree_cannot_hold() {
   assert!(js::format("class C { declare accessor a: number }\n", "a.ts", &options).is_err());
   assert!(js::format("class C { abstract m() {} }\n", "a.ts", &options).is_err());
 }
+
+#[test]
+fn prints_prettier_fixed_point_for_comments_in_parentheses() {
+  let cases = [
+    ("x = (a ? b : c /* a */);\n", "x = a ? b : c; /* a */\n"),
+    (
+      "f((a & (16 /* b */ | 32 /* c */)) !== 32);\n",
+      "f((a & (16 /* b */ | 32)) /* c */ !== 32);\n",
+    ),
+    ("if ((0, 0 /* c */)) {\n}\n", "if ((0, 0) /* c */) {\n}\n"),
+    ("!(x /* c */);\n", "!(x /* c */);\n"),
+    ("const x = (a, b /* c */);\n", "const x = (a, b /* c */);\n"),
+  ];
+  for (text, expected) in cases {
+    let once = format(text, "a.js", &Options::default());
+    assert_eq!(once, expected);
+    assert_eq!(format(&once, "a.js", &Options::default()), once);
+  }
+}
