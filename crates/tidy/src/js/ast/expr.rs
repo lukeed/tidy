@@ -432,6 +432,18 @@ impl<'a> Expr<'a> {
   }
 
   pub(crate) fn tag(self) -> ExprTag {
+    let memo = self.file.tags.get(self.id as usize);
+    if let Some(tag) = memo.and_then(std::cell::Cell::get) {
+      return tag;
+    }
+    let tag = self.tag_of_kind();
+    if let Some(memo) = memo {
+      memo.set(Some(tag));
+    }
+    tag
+  }
+
+  fn tag_of_kind(self) -> ExprTag {
     match self.kind() {
       ExprKind::Missing => ExprTag::Missing,
       ExprKind::Ident(_) => ExprTag::Ident,

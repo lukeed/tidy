@@ -64,6 +64,8 @@ pub(crate) struct File<'a> {
   holey: Vec<(u32, &'a [u32])>,
   /// [`Expr::chain`] of each node once it's known, as `Chain as u8 + 1`, and 0 before.
   pub(crate) chains: Vec<std::cell::Cell<u8>>,
+  /// [`Expr::tag`] of each node once it's known.
+  pub(crate) tags: Vec<std::cell::Cell<Option<ExprTag>>>,
 }
 
 impl<'a> File<'a> {
@@ -111,10 +113,12 @@ impl<'a> File<'a> {
       records: Vec::new(),
       holey: Vec::new(),
       chains: Vec::new(),
+      tags: Vec::new(),
       extension: std::cell::OnceCell::new(),
       errors: false,
     };
     file.chains = vec![std::cell::Cell::new(0); file.kinds.len()];
+    file.tags = vec![std::cell::Cell::new(None); file.kinds.len()];
     file.holey = holey.into_iter().map(|id| (id, file.slots(id))).collect();
     file.holey.sort_unstable_by_key(|it| it.0);
     file.records = file.decorate(source_type.is_typescript());
