@@ -75,7 +75,7 @@ for (let name of Object.keys(extensions).filter((name) => !only || only.includes
 	});
 	console.log(`\n${name}: ${files} files`);
 	for (let row of rows) console.log(`  ${row.join("  ")}`);
-	let summary = `${files} files, ${(bytes / 1024 / 1024).toFixed(1)} MB, from ${repos.join(", ")}: the files that Prettier parses. Each tool checks every file; a time is the mean of ${runs} runs in each order, or ${Math.min(runs, 2)} for Prettier. "Same as Prettier" counts the files that a tool formats to Prettier's output.`;
+	let summary = `${files} files, ${(bytes / 1024 / 1024).toFixed(1)} MB, from ${repos.join(", ")}: the files that Prettier parses. Each tool checks every file; a time is the mean of ${runs} runs in each order, or ${Math.min(runs, 2)} for Prettier. "Same as Prettier" counts the files that a tool formats to Prettier's output. With one thread, tidy reads and formats the files in turn, while oxfmt still reads them on another thread, so its time doesn't include all of its reading.`;
 	let head = ["Tool", "Time", "Against fastest", "Same as Prettier"];
 	let title = `Formatters: ${name === "js" ? "JavaScript" : "TypeScript"}`;
 	await record(`format/${name}.md`, title, [{ summary, head, rows }], Object.values(versions));
