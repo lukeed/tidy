@@ -4,17 +4,17 @@
 
 | Tool | Time | Against tidy |
 | --- | ---: | ---: |
-| tidy | 37.8 ms | 1.00x |
-| bun | 61.3 ms | 1.62x |
-| oxfmt | 66.9 ms | 1.77x |
-| tidy (1 thread) | 96.7 ms | 2.56x |
-| biome | 151.0 ms | 4.00x |
-| dprint | 271.5 ms | 7.19x |
-| prettier | 1972.9 ms | 52.23x |
+| tidy | 37.2 ms | 1.00x |
+| bun | 63.3 ms | 1.70x |
+| oxfmt | 72.4 ms | 1.94x |
+| tidy (1 thread) | 95.0 ms | 2.55x |
+| biome | 157.7 ms | 4.23x |
+| dprint | 270.8 ms | 7.27x |
+| prettier | 1987.5 ms | 53.37x |
 
 ## Setup
 
-- Date: 2026-11-02
-- Commit: b843db5
+- Date: 2026-11-03
+- Commit: 86ff793
 - Machine: Apple M1 Max, 10 cores, macOS 15.7.9
 - Tools: tidy at the commit above, bun fmt 1.4.4, oxfmt 0.75.0, Biome 2.6.4, dprint plugins: markup_fmt 0.25.0, malva 0.16.0, dprint-plugin-json 0.25.2, pretty_yaml 0.6.0, dprint-plugin-toml 0.9.0, dprint-plugin-dockerfile 0.7.0, dprint-plugin-markdown 0.28.2, Prettier 3.9.9, @prettier/plugin-xml 3.4.2, prettier-plugin-sh 0.20.2, prettier-plugin-ini 1.3.0
