@@ -64,5 +64,6 @@ for (let entry of cases) {
 		block("tidy", actual),
 	);
 }
-await Bun.write(join(root, "docs/markdown-divergences.md"), sections.join("\n"));
+let doc = format(sections.join("\n"), { parser: "markdown", embedded: false });
+await Bun.write(join(root, "docs/markdown-divergences.md"), doc);
 console.log(`docs/markdown-divergences.md: ${cases.length} cases, ${stale} stale`);

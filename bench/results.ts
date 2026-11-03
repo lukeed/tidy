@@ -4,6 +4,7 @@ import { $ } from "bun";
 import { mkdirSync } from "node:fs";
 import { cpus, release } from "node:os";
 import { dirname, join } from "node:path";
+import { format } from "../crates/tidy_napi/index.js";
 
 let root = new URL("..", import.meta.url).pathname;
 
@@ -23,7 +24,7 @@ export async function record(path: string, title: string, sections: Section[], t
 	lines.push("## Setup", "", ...(await setup()).map((it) => `- ${it}`), `- Tools: ${tools.join(", ")}`, "");
 	let file = join(root, "bench/results", path);
 	mkdirSync(dirname(file), { recursive: true });
-	await Bun.write(file, lines.join("\n"));
+	await Bun.write(file, format(lines.join("\n"), { parser: "markdown", embedded: false }));
 }
 
 async function setup() {

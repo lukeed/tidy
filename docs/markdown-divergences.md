@@ -12,30 +12,30 @@ Prettier moves the HTML block to the margin, out of the list item, and indents i
 
 Input:
 
-````markdown
+```markdown
 - [ ] a
 
   <div>x
   y</div>
-````
+```
 
 Prettier:
 
-````markdown
+```markdown
 - [ ] a
 
 <div>x
     y</div>
-````
+```
 
 tidy:
 
-````markdown
+```markdown
 - [ ] a
 
   <div>x
   y</div>
-````
+```
 
 ## An indented line that would open a block keeps its indent
 
@@ -72,27 +72,27 @@ Prettier writes the parsed URL. An unbalanced `(` then ends the link, and a back
 
 Input:
 
-````markdown
+```markdown
 [a](a\(b)
 
 [c](<a<b>)
-````
+```
 
 Prettier:
 
-````markdown
+```markdown
 [a](a(b)
 
 [c](<a<b>)
-````
+```
 
 tidy:
 
-````markdown
+```markdown
 [a](a\(b)
 
 [c](<a<b>)
-````
+```
 
 ## An emphasis mark right after `*` is `_`
 
@@ -102,21 +102,21 @@ Prettier writes `*`, which merges into `***` and nests the other way.
 
 Input:
 
-````markdown
+```markdown
 x ***_a_*** y
-````
+```
 
 Prettier:
 
-````markdown
+```markdown
 x _***a***_ y
-````
+```
 
 tidy:
 
-````markdown
+```markdown
 x _**_a_**_ y
-````
+```
 
 ## A code span over two lines keeps its second line as written
 
@@ -126,24 +126,24 @@ Prettier writes it from the parsed value, without the container's indent or `>`,
 
 Input:
 
-````markdown
+```markdown
 - a `x
   y` z
-````
+```
 
 Prettier:
 
-````markdown
+```markdown
 - a `x
 y` z
-````
+```
 
 tidy:
 
-````markdown
+```markdown
 - a `x
   y` z
-````
+```
 
 ## A blank line before a nested list stays when it is all that keeps the list loose
 
@@ -153,29 +153,29 @@ Prettier drops a blank line before a nested list after anything but a paragraph 
 
 Input:
 
-````markdown
+```markdown
 - c
 - > q
 
   - b
-````
+```
 
 Prettier:
 
-````markdown
+```markdown
 - c
 - > q
   - b
-````
+```
 
 tidy:
 
-````markdown
+```markdown
 - c
 - > q
 
   - b
-````
+```
 
 ## Filling never starts a line with a tag that opens an HTML block
 
@@ -185,25 +185,25 @@ Prettier breaks before `<div>`, `<script>`, or `<!--`, which then opens an HTML 
 
 Input:
 
-````markdown
+```markdown
 one two three four <div>x</div> five six.
-````
+```
 
 Prettier:
 
-````markdown
+```markdown
 one two three four
 <div>x</div> five
 six.
-````
+```
 
 tidy:
 
-````markdown
+```markdown
 one two three
 four <div>x</div>
 five six.
-````
+```
 
 ## A paragraph's first line is never a tag alone
 
@@ -213,23 +213,23 @@ A lone complete tag on the first line starts an HTML block (CommonMark type 7), 
 
 Input:
 
-````markdown
+```markdown
 <span title="aaaaaaaa"> <b>x</b> words words
-````
+```
 
 Prettier:
 
-````markdown
+```markdown
 <span title="aaaaaaaa">
 <b>x</b> words words
-````
+```
 
 tidy:
 
-````markdown
+```markdown
 <span title="aaaaaaaa"> <b>x</b>
 words words
-````
+```
 
 ## A line break between Chinese or Japanese and Latin text joins as a space
 
@@ -239,24 +239,24 @@ Prettier joins with nothing when the paragraph mostly has no such spaces, which 
 
 Input:
 
-````markdown
+```markdown
 日本語の文
 English words
-````
+```
 
 Prettier:
 
-````markdown
+```markdown
 日本語の文English
 words
-````
+```
 
 tidy:
 
-````markdown
+```markdown
 日本語の文 English
 words
-````
+```
 
 ## A line break between Chinese or Japanese and an emoji joins with nothing
 
@@ -266,22 +266,22 @@ Both are wide, so CSS renders the break as nothing. Prettier treats the emoji as
 
 Input:
 
-````markdown
+```markdown
 日本語の文
 ✅ 完了
-````
+```
 
 Prettier:
 
-````markdown
+```markdown
 日本語の文 ✅ 完了
-````
+```
 
 tidy:
 
-````markdown
+```markdown
 日本語の文✅ 完了
-````
+```
 
 ## A line break between wide characters in a link label stays
 
@@ -291,28 +291,28 @@ Joining with nothing would change the label so it no longer matches its definiti
 
 Input:
 
-````markdown
+```markdown
 [ウィ
 キペディア]
 
 [ウィ キペディア]: /w
-````
+```
 
 Prettier:
 
-````markdown
+```markdown
 [ウィ キペディア]
 
 [ウィ キペディア]:
   /w
-````
+```
 
 tidy:
 
-````markdown
+```markdown
 [ウィ
 キペディア]
 
 [ウィ キペディア]:
   /w
-````
+```
