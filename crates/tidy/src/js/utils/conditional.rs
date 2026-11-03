@@ -37,6 +37,23 @@ impl<'a> Format<'a> for Operand<'a> {
   }
 }
 
+/// `a ? b : (⏎/* c */⏎d)`: a block comment on its own line before a branch is printed after `? ` or `: `, where the
+/// next formatting finds it on that line and lets the line break after it go. So does this.
+fn write_comment_after_operator<'a>(branch: Operand<'a>, f: &mut Formatter<'a>) {
+  let Operand::Expr(e) = branch else { return };
+  if f.is_quiet() {
+    return;
+  }
+  let Some(comment) = f.comments().of_node(e.as_chain_element()).leading.first() else { return };
+  if comment.is_block()
+    && comment.has_newline_before()
+    && f.source_text().lines_after(comment.span().end) == 1
+    && f.comments_mut().mark_printed(comment)
+  {
+    write!(f, [comment, soft_line_break_or_space()]);
+  }
+}
+
 impl Operand<'_> {
   pub(super) fn is_conditional(self) -> bool {
     match self {
@@ -274,9 +291,13 @@ impl<'a> FormatConditionalLike<'a> {
     };
     let is_space = f.options().indent_style.is_space();
     let format_branch = |branch: Operand<'a>| {
+      let content = format_with(move |f: &mut Formatter<'a>| {
+        write_comment_after_operator(branch, f);
+        write!(f, branch);
+      });
       format_with(move |f: &mut Formatter<'a>| match is_space {
-        true => write!(f, align(2, &branch)),
-        false => write!(f, indent(&branch)),
+        true => write!(f, align(2, &content)),
+        false => write!(f, indent(&content)),
       })
     };
     // `a ? (b ? c : d) : e`

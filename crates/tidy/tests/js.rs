@@ -151,3 +151,11 @@ fn prints_prettier_fixed_point_for_comments_before_links() {
     assert_eq!(format(&once, "a.ts", &ts), once);
   }
 }
+
+#[test]
+fn prints_prettier_fixed_point_for_comments_before_branches() {
+  let text = "y = a ? b : (\n  /* c */\n  d\n);\n";
+  let once = format(text, "a.js", &Options::default());
+  assert_eq!(once, "y = a ? b : /* c */ d;\n");
+  assert_eq!(format(&once, "a.js", &Options::default()), once);
+}
