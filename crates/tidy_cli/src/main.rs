@@ -161,7 +161,7 @@ fn run() -> Result<ExitCode, String> {
   if !check && !write && paths.len() == 1 && paths[0].is_file() {
     let path = &paths[0];
     let source =
-      std::fs::read_to_string(path).map_err(|error| format!("{}: {error}", path.display()))?;
+      std::fs::read_to_string(path).map_err(|error| format!("{}: {error}", shown(path)))?;
     let mut formatter = Formatter::default();
     let output = sources.format(&mut formatter, &source, language, path)?;
     std::io::stdout().write_all(output.as_bytes()).map_err(|error| error.to_string())?;
@@ -188,10 +188,7 @@ fn run() -> Result<ExitCode, String> {
     let source = match std::str::from_utf8(&file.bytes) {
       Ok(source) => source,
       Err(error) => {
-        return Some(Output {
-          value: Err(format!("{}: {error}", file.path.display())),
-          write: None,
-        });
+        return Some(Output { value: Err(format!("{}: {error}", shown(&file.path))), write: None });
       }
     };
     match sources.format(formatter, source, language, &file.path) {
@@ -206,12 +203,12 @@ fn run() -> Result<ExitCode, String> {
   let (mut listed, mut errors) = (String::new(), String::new());
   for (path, outcome) in &report.results {
     match outcome {
-      Ok(()) => listed.push_str(&format!("{}\n", path.display())),
+      Ok(()) => listed.push_str(&format!("{}\n", shown(path))),
       Err(error) => errors.push_str(&format!("tidy: {error}\n")),
     }
   }
   for (path, error) in &report.errors {
-    errors.push_str(&format!("tidy: {}: {error}\n", path.display()));
+    errors.push_str(&format!("tidy: {}: {error}\n", shown(path)));
   }
   std::io::stdout().write_all(listed.as_bytes()).map_err(|error| error.to_string())?;
   std::io::stderr().write_all(errors.as_bytes()).map_err(|error| error.to_string())?;
@@ -219,6 +216,15 @@ fn run() -> Result<ExitCode, String> {
     return Ok(ExitCode::from(2));
   }
   Ok(if check && !report.results.is_empty() { ExitCode::FAILURE } else { ExitCode::SUCCESS })
+}
+
+/// A path as tidy prints it: with `/` between its parts on every system, as Prettier and git print it.
+fn shown(path: &Path) -> String {
+  let text = path.to_string_lossy();
+  match std::path::MAIN_SEPARATOR {
+    '/' => text.into_owned(),
+    separator => text.replace(separator, "/"),
+  }
 }
 
 /// Whether to format a file found in a folder: whether its language is known.
