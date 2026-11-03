@@ -21,9 +21,12 @@ impl Tree {
     self.0.join(path)
   }
 
-  /// The path of `path` relative to the root, as a string.
+  /// The path of `path` relative to the root, as a string with `/` between its parts on every system.
   fn name(&self, path: &Path) -> String {
-    path.strip_prefix(&self.0).unwrap_or(path).to_string_lossy().into_owned()
+    let relative = path.strip_prefix(&self.0).unwrap_or(path);
+    let parts: Vec<_> =
+      relative.components().map(|part| part.as_os_str().to_string_lossy()).collect();
+    parts.join("/")
   }
 }
 
