@@ -44,8 +44,8 @@ fn keeps_comments_that_follow_each_other_directly_apart() {
 
 #[test]
 fn formats_code_in_other_languages() {
-  let input = "/**\n * Styles:\n *\n * ```css\n * a{color:red}\n * ```\n *\n * ```json\n * {\"a\":1,\n * \"b\":[1,2]}\n * ```\n *\n * ```yaml\n * a:   1\n * ```\n */\nlet a;\n";
-  let expected = "/**\n * Styles:\n *\n * ```css\n * a {\n *   color: red;\n * }\n * ```\n *\n * ```json\n * { \"a\": 1, \"b\": [1, 2] }\n * ```\n *\n * ```yaml\n * a: 1\n * ```\n */\nlet a;\n";
+  let input = "/**\n * Styles:\n *\n * ```css\n * a{color:red}\n * ```\n *\n * ```html\n * <img src=a.png>\n * ```\n *\n * ```json\n * {\"a\":1,\n * \"b\":[1,2]}\n * ```\n *\n * ```yaml\n * a:   1\n * ```\n */\nlet a;\n";
+  let expected = "/**\n * Styles:\n *\n * ```css\n * a {\n *   color: red;\n * }\n * ```\n *\n * ```html\n * <img src=\"a.png\" />\n * ```\n *\n * ```json\n * { \"a\": 1, \"b\": [1, 2] }\n * ```\n *\n * ```yaml\n * a: 1\n * ```\n */\nlet a;\n";
   assert_eq!(format(input, "a.js", &Options::default()), expected);
 }
 

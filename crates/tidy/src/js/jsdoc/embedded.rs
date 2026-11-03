@@ -119,6 +119,10 @@ pub(super) fn format_embedded_language(
       };
       crate::yaml::format(text, &yaml)
     }
+    b"html" => {
+      let html = crate::html::Options { width: print_width, tab_width, tabs, ..Default::default() };
+      crate::html::format(text, &html, &mut crate::embed::Verbatim)
+    }
     _ => return None,
   }
   .ok()?
