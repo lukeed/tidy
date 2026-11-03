@@ -283,6 +283,10 @@ pub(crate) enum Fallback {
   ///
   /// When expanded, the flattest variant has a line break before the first such group.
   FlattestIfStable,
+  /// The most expanded variant, unless a [`GroupMode::StaysExpanded`] group in the last part of the flattest variant
+  /// breaks in it. The next formatting finds that group expanded, and then picks the flattest variant if it fits with
+  /// that group expanded. So does this.
+  FlattestOnceExpanded,
 }
 
 impl BestFitting {

@@ -133,6 +133,16 @@ let attempt = async (run: () => string | Promise<string>) => {
 	}
 };
 
+/** What Prettier formats `output`, its own, to when formatted again until it stays the same, if it does. */
+async function fixedPoint(output: string, filepath: string) {
+	for (let round = 0; round < 5; round++) {
+		let again = await attempt(() => prettier.format(output, { filepath }));
+		if (again === undefined || again === output) return again;
+		output = again;
+	}
+	return undefined;
+}
+
 let paths = args.length ? args.flatMap(files) : await corpus();
 let counts: Record<string, { files: number; hook: number; builtin: number }> = {};
 let onlyHook: string[] = [];
@@ -148,8 +158,10 @@ for (let path of paths) {
 	let count = (counts[extname(path)] ??= { files: 0, hook: 0, builtin: 0 });
 	count.files++;
 	if (hooked === expected) count.hook++;
-	if (builtin === expected) count.builtin++;
-	if (builtin === expected || hooked !== expected) continue;
+	// Where Prettier's output changes when formatted again, tidy prints Prettier's fixed point.
+	let matches = builtin === expected || (builtin !== undefined && builtin === (await fixedPoint(expected, path)));
+	if (matches) count.builtin++;
+	if (matches || hooked !== expected) continue;
 	onlyHook.push(path);
 	if (shown++ >= show) continue;
 	console.log(`\n✗ ${path}`);

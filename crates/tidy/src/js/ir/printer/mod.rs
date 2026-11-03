@@ -213,6 +213,12 @@ struct Printer<'d> {
   /// Index of the group that aborted a try. It breaks in the variant printed instead, and so do its enclosing groups,
   /// just as they will when the output is formatted again.
   expanded_group: u32,
+  /// While [`Fallback::FlattestOnceExpanded`] prints its flattest variant: the starts of `expanded_group` and of the
+  /// groups around it, which break, as they will when the output is formatted again.
+  expanded_path: SmallVec<[u32; 8]>,
+  /// With `expanded_path`: each best fitting around `expanded_group`, and its variant that holds the group. Once the
+  /// group breaks, the flatter variants have a forced line break, and the next formatting skips them.
+  expanded_variants: SmallVec<[(u32, Interned); 4]>,
   has_empty_line: bool,
   line_width: usize,
   /// The run being printed.
@@ -258,6 +264,8 @@ pub(crate) fn print(
     measured_group_fits: true,
     is_trying: false,
     expanded_group: u32::MAX,
+    expanded_path: SmallVec::new(),
+    expanded_variants: SmallVec::new(),
     has_empty_line: false,
     line_width: 0,
     elements: Elements::new(Run::of(root), &storage.pool),
@@ -453,7 +461,9 @@ impl<'d> Printer<'d> {
         FormatElement::Interned(content) => self.print_next(*content),
         FormatElement::Tag(tag) => match tag {
           Tag::StartGroup(group) => {
-            let group_mode = if !group.mode().is_flat() {
+            let group_mode = if !group.mode().is_flat()
+              || self.expanded_path.contains(&self.elements.at().saturating_sub(1))
+            {
               self.measured_group_fits = true;
               PrintMode::Expanded
             } else if self.mode.is_flat() && self.measured_group_fits {
@@ -719,6 +729,16 @@ impl<'d> Printer<'d> {
     let Some((&most_expanded, flatter)) = self.variants_of(best_fitting).split_last() else {
       return Err(PrintError::InvalidDocument);
     };
+    let at = self.elements.at().saturating_sub(1);
+    if let Some(&(_, variant)) = self.expanded_variants.iter().find(|(start, _)| *start == at) {
+      return match variant == most_expanded {
+        true => self.print_variant(variant, PrintMode::Expanded),
+        false => {
+          self.print_next(variant);
+          self.print_entry(PrintMode::Flat)
+        }
+      };
+    }
 
     if mode.is_flat() && self.measured_group_fits {
       return self.print_variant(*flatter.first().unwrap_or(&most_expanded), mode);
@@ -738,8 +758,117 @@ impl<'d> Printer<'d> {
       (Fallback::FlattestIfStable, Some(&flattest)) => {
         self.print_flattest_if_stable(best_fitting.first, flattest, most_expanded)
       }
+      (Fallback::FlattestOnceExpanded, Some(&flattest)) if !self.is_trying => {
+        self.print_flattest_once_expanded(flattest, most_expanded)
+      }
       _ => self.print_variant(most_expanded, PrintMode::Expanded),
     }
+  }
+
+  /// See [`Fallback::FlattestOnceExpanded`].
+  #[inline(never)]
+  fn print_flattest_once_expanded(
+    &mut self,
+    flattest: Interned,
+    most_expanded: Interned,
+  ) -> PrintResult<()> {
+    let expanded_group = self.expanded_group;
+    if self.try_expanded(most_expanded)? {
+      return Ok(());
+    }
+    // The group is in the last part when it was written after the part started.
+    let last_part = match self.pool.get((flattest.start + flattest.len) as usize - 2) {
+      Some(FormatElement::Interned(last)) => last.start,
+      _ => u32::MAX,
+    };
+    if self.expanded_group >= last_part {
+      (self.expanded_path, self.expanded_variants) = self.path_to(flattest, self.expanded_group);
+    }
+    let fits = match self.expanded_path.is_empty() {
+      true => Ok(false),
+      false => self.variant_fits_with_expanded_group(flattest),
+    };
+    let result = match fits {
+      Ok(true) => {
+        self.print_next(flattest);
+        self.print_entry(PrintMode::Flat)
+      }
+      Ok(false) => {
+        self.expanded_path.clear();
+        self.expanded_variants.clear();
+        self.print_variant(most_expanded, PrintMode::Expanded)
+      }
+      Err(error) => Err(error),
+    };
+    self.expanded_path.clear();
+    self.expanded_variants.clear();
+    self.expanded_group = expanded_group;
+    result
+  }
+
+  /// The starts of the groups in `content` that enclose the one that starts at `target`, and of that group, outermost
+  /// first, and the best fittings around it with their variants that hold it. Empty if it isn't in `content`.
+  #[allow(clippy::type_complexity)]
+  fn path_to(
+    &self,
+    content: Interned,
+    target: u32,
+  ) -> (SmallVec<[u32; 8]>, SmallVec<[(u32, Interned); 4]>) {
+    let (mut path, mut variants) = (SmallVec::new(), SmallVec::new());
+    match self.find_path(content, target, &mut path, &mut variants) {
+      true => (path, variants),
+      false => (SmallVec::new(), SmallVec::new()),
+    }
+  }
+
+  fn find_path(
+    &self,
+    run: Interned,
+    target: u32,
+    path: &mut SmallVec<[u32; 8]>,
+    variants: &mut SmallVec<[(u32, Interned); 4]>,
+  ) -> bool {
+    let (depth, choices) = (path.len(), variants.len());
+    let mut index = run.start;
+    while index < run.start + run.len {
+      match self.pool.get(index as usize) {
+        // Content interned while this run was written. It's printed where an `Interned` refers to it.
+        Some(FormatElement::Skip(skip)) => index += skip.len,
+        Some(FormatElement::Tag(Tag::StartGroup(_))) => {
+          path.push(index);
+          if index == target {
+            return true;
+          }
+        }
+        Some(FormatElement::Tag(Tag::EndGroup)) if path.len() > depth => {
+          path.pop();
+        }
+        Some(FormatElement::Interned(inner)) => {
+          let (depth, choices) = (path.len(), variants.len());
+          if self.find_path(*inner, target, path, variants) {
+            return true;
+          }
+          path.truncate(depth);
+          variants.truncate(choices);
+        }
+        Some(FormatElement::BestFitting(best_fitting)) => {
+          for &variant in self.variants_of(*best_fitting) {
+            let (depth, choices) = (path.len(), variants.len());
+            variants.push((index, variant));
+            if self.find_path(variant, target, path, variants) {
+              return true;
+            }
+            path.truncate(depth);
+            variants.truncate(choices);
+          }
+        }
+        _ => {}
+      }
+      index += 1;
+    }
+    path.truncate(depth);
+    variants.truncate(choices);
+    false
   }
 
   /// `id` is the [`BestFitting::first`].

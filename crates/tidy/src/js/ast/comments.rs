@@ -115,6 +115,8 @@ impl<'a> File<'a> {
         && let Some(paren) = e
           .parens()
           .find(|paren| paren.start < span.start && span.end <= paren.end && at < paren.end)
+        // The parentheses around an expression of a template aren't in its source.
+        && !(paren.start == 0 && self.path.first() == Some(&0))
         && !keeps_comments_in_parentheses(self, e.id)
       {
         let after = Span::new(paren.end, paren.end + 1);

@@ -172,6 +172,15 @@ impl<'d> Printer<'d> {
     }
   }
 
+  /// [`Printer::variant_fits`] with [`Printer::expanded_path`]: the measurements of flat content would skip the group
+  /// that breaks.
+  pub(super) fn variant_fits_with_expanded_group(
+    &mut self,
+    variant: Interned,
+  ) -> PrintResult<bool> {
+    self.variant_fits_by_elements(variant, false)
+  }
+
   fn variant_fits_by_elements(&mut self, variant: Interned, uses_flat: bool) -> PrintResult<bool> {
     let mut measure = Measure::new(self, uses_flat);
     measure.queue_len += 1;
@@ -345,7 +354,11 @@ impl<'d> Printer<'d> {
       }
       FormatElement::BestFitting(best_fitting) => {
         let variants = self.variants_of(*best_fitting);
+        let at = measure.elements.at().saturating_sub(1);
+        let chosen =
+          self.expanded_variants.iter().find(|(start, _)| *start == at).map(|(_, variant)| variant);
         let variant = match mode {
+          _ if chosen.is_some() => chosen,
           PrintMode::Flat => variants.first(),
           PrintMode::Expanded => variants.last(),
         };
@@ -355,10 +368,11 @@ impl<'d> Printer<'d> {
       FormatElement::Interned(content) => self.measure_content(measure, *content),
       FormatElement::Tag(tag) => match tag {
         Tag::StartGroup(group) => {
-          if measure.must_be_flat && !group.mode().is_flat() {
+          let is_expanded = self.expanded_path.contains(&measure.elements.at().saturating_sub(1));
+          if measure.must_be_flat && (!group.mode().is_flat() || is_expanded) {
             return Ok(Fits::No);
           }
-          let group_mode = match group.mode().is_flat() {
+          let group_mode = match group.mode().is_flat() && !is_expanded {
             true => mode,
             false => PrintMode::Expanded,
           };

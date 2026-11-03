@@ -159,3 +159,15 @@ fn prints_prettier_fixed_point_for_comments_before_branches() {
   assert_eq!(once, "y = a ? b : /* c */ d;\n");
   assert_eq!(format(&once, "a.js", &Options::default()), once);
 }
+
+#[test]
+fn prints_prettier_fixed_point_for_chains_with_objects() {
+  let ts = Options { dialect: Dialect::Ts, ..Options::default() };
+  let text = "model = types\n  .model({ something: mxSomething })\n  .volatile<[foo]>((self) => ({ loading: false, savingStatus: \"idle\", undoDisabled: false, aiFocused: false, online: true }));\n";
+  let expected = "model = types.model({ something: mxSomething }).volatile<[foo]>((self) => ({\n  loading: false,\n  savingStatus: \"idle\",\n  undoDisabled: false,\n  aiFocused: false,\n  online: true,\n}));\n";
+  let once = format(text, "a.ts", &ts);
+  assert_eq!(once, expected);
+  assert_eq!(format(&once, "a.ts", &ts), once);
+  let fits = "a = b.c({ d: 1 }).e((f) => ({ g: 1 }));\n";
+  assert_eq!(format(fits, "a.ts", &ts), fits);
+}

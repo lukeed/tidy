@@ -242,6 +242,24 @@ impl<'a, 'b> MemberChain<'a, 'b> {
       || tail.iter().rev().skip(1).any(will_break)
   }
 
+  /// True if the chain ends with a call and an earlier call has a function argument: then
+  /// [`Self::groups_should_break`] if the last group breaks.
+  fn breaking_last_group_expands(&self, f: &Formatter<'a>) -> bool {
+    let calls: SmallVec<[Call<'a>; 8]> = (self.members.iter())
+      .filter_map(|member| match member {
+        ChainMember::CallExpression { expression, .. } => expression.as_call_like(),
+        ChainMember::Node(expression) if is_call_expression(*expression, f) => {
+          expression.as_call_like()
+        }
+        _ => None,
+      })
+      .collect();
+    let has_function_like_argument = (calls.iter().rev().skip(1))
+      .any(|call| call.args().iter().any(|argument| argument.as_fn().is_some()));
+    has_function_like_argument
+      && matches!(self.members.last(), Some(ChainMember::CallExpression { .. }))
+  }
+
   /// Prettier's `nodeHasComment`.
   fn has_comment(&self, f: &Formatter<'a>) -> bool {
     if f.is_quiet() {
@@ -316,7 +334,13 @@ impl<'a> Format<'a> for MemberChain<'a, '_> {
         if has_empty_line_before_tail || last_group_breaks {
           write!(f, expand_parent());
         }
-        write!(f, best_fitting!(format_one_line, format_expanded));
+        // Once an object in the last group breaks, the next formatting keeps it broken and may then put the chain on
+        // one line, unless the last group breaking expands the chain.
+        let fallback = match !last_group_breaks && !self.breaking_last_group_expands(f) {
+          true => Fallback::FlattestOnceExpanded,
+          false => Fallback::MostExpanded,
+        };
+        write!(f, best_fitting!(format_one_line, format_expanded).with_fallback(fallback));
       }
     });
 
