@@ -687,20 +687,43 @@ impl<'a> Expr<'a> {
 
   /// Its position in an optional chain: it has a `?.`, or a `?.` to its left, not across parentheses, has one.
   pub(crate) fn chain(self) -> Chain {
-    if self.has_question_dot() {
-      return Chain::Start;
+    let known = |e: Expr<'a>| match e.file.chains.get(e.id as usize).map(std::cell::Cell::get) {
+      Some(1) => Some(Chain::No),
+      Some(2) => Some(Chain::Start),
+      Some(3) => Some(Chain::Continue),
+      _ => None,
+    };
+    if let Some(chain) = known(self) {
+      return chain;
     }
-    let mut at = self;
-    loop {
-      let Some(inner) = at.chain_operand() else { return Chain::No };
-      if inner.is_parenthesized() {
-        return Chain::No;
+    // Down the chain to a link whose position is known or doesn't depend on its operand, then back up.
+    let mut links: smallvec::SmallVec<[Expr<'a>; 8]> = smallvec::smallvec![self];
+    let mut chain = loop {
+      let at = *links.last().unwrap_or(&self);
+      if at.has_question_dot() {
+        break Chain::Start;
       }
-      if inner.has_question_dot() {
-        return Chain::Continue;
+      match at.chain_operand() {
+        None => break Chain::No,
+        Some(inner) if inner.is_parenthesized() => break Chain::No,
+        Some(inner) => match known(inner) {
+          Some(Chain::No) => break Chain::No,
+          Some(_) => break Chain::Continue,
+          None => links.push(inner),
+        },
       }
-      at = inner;
+    };
+    // The links above the last one have no `?.` and no parentheses around their operand, so each continues the chain
+    // of the link below it, if that is in one.
+    while let Some(link) = links.pop() {
+      if let Some(memo) = link.file.chains.get(link.id as usize) {
+        memo.set(chain as u8 + 1);
+      }
+      if chain == Chain::Start {
+        chain = Chain::Continue;
+      }
     }
+    known(self).unwrap_or(Chain::No)
   }
 
   fn has_question_dot(self) -> bool {
