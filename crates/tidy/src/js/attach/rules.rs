@@ -941,6 +941,16 @@ impl<'a> Rules<'_, 'a, '_> {
   /// `f( // comment` with the first argument on the next line.
   fn handle_call_expression_comments(&self, e: Expr<'a>) -> Option<Attachment<'a>> {
     let call = e.as_call_like()?;
+    // `foo/* comment */⏎<T>()` prints as `foo /* comment */<T>()`, where the next formatting finds the comment before
+    // `<T>`. So does this.
+    if self.context.comment.is_block()
+      && self.next_token_starts_with(b'<')
+      && self.preceding_node == Some(self.cx.owner_of_expr(call.callee()))
+    {
+      return Some(Attachment::leading(Owner::Node(N::TSTypeParameterInstantiation(Node::Expr(
+        e,
+      )))));
+    }
     let first = call.args().first()?;
     let is_after_paren = self.preceding_node == Some(self.cx.owner_of_expr(call.callee()))
       && self.prev_token_ends_with(b'(');

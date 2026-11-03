@@ -132,3 +132,22 @@ fn prints_prettier_fixed_point_for_comments_in_parentheses() {
     assert_eq!(format(&once, "a.js", &Options::default()), once);
   }
 }
+
+#[test]
+fn prints_prettier_fixed_point_for_comments_before_links() {
+  let ts = Options { dialect: Dialect::Ts, ..Options::default() };
+  let cases = [
+    (
+      "a = b\n  .c()[0]\n  .d\n\n  // e\n  .f(g)\n  .h(i);\n",
+      "a = b\n  .c()[0]\n  .d // e\n  .f(g)\n  .h(i);\n",
+    ),
+    ("foo\n// a\n<string>(1);\n", "foo // a\n<string>(1);\n"),
+    ("foo/* b */\n<string>(1);\n", "foo/* b */ <string>(1);\n"),
+    ("foo\n/* c */\n<string>();\n", "foo/* c */ <string>();\n"),
+  ];
+  for (text, expected) in cases {
+    let once = format(text, "a.ts", &ts);
+    assert_eq!(once, expected);
+    assert_eq!(format(&once, "a.ts", &ts), once);
+  }
+}

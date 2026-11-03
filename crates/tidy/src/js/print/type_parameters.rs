@@ -250,6 +250,19 @@ impl<'a> Format<'a> for FormatTypeArguments<'a> {
       return self.write_without_comments(f);
     }
     let node = AstNodes::TSTypeParameterInstantiation(self.owner);
+    let leading = f.comments().of_node(node).leading;
+    // `foo⏎// comment⏎<T>()`: the next formatting finds a comment after `foo`, and prints it as `foo // comment⏎<T>()`,
+    // or `foo/* comment */ <T>()`. So does this.
+    if matches!(self.owner, Node::Expr(_)) && !leading.is_empty() {
+      for comment in leading {
+        if f.comments_mut().mark_printed(comment) {
+          match comment.is_line() {
+            true => write!(f, [space(), comment, hard_line_break()]),
+            false => write!(f, [comment, space()]),
+          }
+        }
+      }
+    }
     format_node(node, f, |f| self.write_without_comments(f));
   }
 }

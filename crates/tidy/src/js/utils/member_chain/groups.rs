@@ -19,8 +19,19 @@ pub(super) struct FormatMemberChainGroup<'a, 'b>(pub(super) &'b [ChainMember<'a>
 impl<'a> Format<'a> for FormatMemberChainGroup<'a, '_> {
   fn fmt(&self, f: &mut Formatter<'a>) {
     let mut members = self.0.iter().peekable();
+    let mut is_at_line_start = true;
     while let Some(member) = members.next() {
+      // `a.b⏎// comment⏎.c`: the comment comes directly after `.b`, where the next formatting finds it trailing `.b`
+      // and prints a space before it. So does this.
+      if !is_at_line_start
+        && !f.is_quiet()
+        && matches!(member, ChainMember::StaticMember(_) | ChainMember::ComputedMember(_))
+        && member.leading_comments(f).first().is_some_and(|comment| comment.has_newline_before())
+      {
+        write!(f, space());
+      }
       write!(f, member);
+      is_at_line_start = false;
       // Prettier prints a line break after a call that's followed by an empty line, which makes an empty line at
       // the end of a group. It does that in the middle of a group too. oxfmt doesn't.
       if let ChainMember::CallExpression { expression, position: CallExpressionPosition::Middle } =
@@ -30,6 +41,7 @@ impl<'a> Format<'a> for FormatMemberChainGroup<'a, '_> {
         && should_insert_empty_line_after(expression, f)
       {
         write!(f, hard_line_break());
+        is_at_line_start = true;
       }
     }
   }
