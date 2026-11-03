@@ -8,8 +8,11 @@ The files here start as a verbatim copy of bun's JavaScript and TypeScript forma
 | `js/ir` | `ir` |
 | `js/options.rs`, `text.rs`, `sort.rs`, `stack.rs` | the files of the same names |
 | `js/embed/css.rs`, `markdown.rs`, `graphql.rs`, `html.rs` | `css/embed.rs`, `markdown/embed.rs`, `graphql/embed.rs`, `html/in_js.rs` |
+| `js/ast` | not ported: it gives oxc's tree the handles of bun's `bun_lint::ast` (`src/lint/ast`), which bun's printer reads |
+| `js/strings.rs`, `js/jsdoc/strings.rs` | the helpers of bun's `bun_core::strings` that they use, and tidy's own |
+| `js/jsdoc/mdast.rs` | not ported: it builds from pulldown-cmark's events the tree that bun's `markdown::parse_plain` builds |
 | `js/embed/doc.rs` | not ported: it turns the `crate::doc` stream of tidy's printers into `js::ir`, which bun's printers write directly |
-| `js/template/js.rs` | `html/js.rs`, printing text for `crate::embed`; `html/vue.rs` is `html/embed.rs`'s `vue` |
+| `js/template/mod.rs`, `js.rs` | `html/js.rs`, printing text for `crate::embed`; `html/vue.rs` is `html/embed.rs`'s `vue` |
 | `js/sort_imports/node.rs`, `oxfmt/directives.rs`, the V8 sort in `sort.rs` | bun's `src/lint/utils/node.rs`; `is_file_level_comment` in `src/lint/fix.rs` and `has_pragma` in `pragma.rs`; `src/lint/utils/array.rs` |
 | `js/sort_imports/collate.rs`, `regex.rs` | not ported: they stand in for ICU's collator, with the root collation's order of ASCII, and for `bun_lint::regex`, with regress |
 
