@@ -1,5 +1,5 @@
 //! Every known deviation from Prettier 3.9.9, from taplo for TOML, from dprint-plugin-dockerfile for Dockerfiles and
-//! from prettier-plugin-ini for INI, listed in `deviations.md`. Each row holds an
+//! from prettier-plugin-ini for INI, listed in `docs/deviations.md`. Each row holds an
 //! input, what the reference prints and what tidy prints. A row fails if tidy prints something else, or if the
 //! reference's output is now the same.
 

@@ -4,7 +4,7 @@ import { format } from "../../../crates/tidy_napi/index.js";
 
 // Usage: mise run oracle:markdown:divergences
 // Runs each case in tests/oracle/markdown/divergences through Prettier and tidy's Prettier preset, with code blocks
-// left as written, and writes markdown-divergences.md. A case where both now agree is marked, so a stale entry is easy
+// left as written, and writes docs/markdown-divergences.md. A case where both now agree is marked, so a stale entry is easy
 // to find. tidy runs through its Node binding, which the task builds.
 
 const PRETTIER = "prettier@3.9.10";
@@ -64,5 +64,5 @@ for (let entry of cases) {
 		block("tidy", actual),
 	);
 }
-await Bun.write(join(root, "markdown-divergences.md"), sections.join("\n"));
-console.log(`markdown-divergences.md: ${cases.length} cases, ${stale} stale`);
+await Bun.write(join(root, "docs/markdown-divergences.md"), sections.join("\n"));
+console.log(`docs/markdown-divergences.md: ${cases.length} cases, ${stale} stale`);

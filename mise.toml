@@ -150,7 +150,7 @@ env = { TIDY_MARKDOWN_CORPUS = "{{config_root}}/target/corpus/markdown/a:{{confi
 run = "cargo test -p tidy --release --test markdown_semantics"
 
 [tasks."oracle:markdown:divergences"]
-description = "Write markdown-divergences.md from the cases in tests/oracle/markdown/divergences"
+description = "Write docs/markdown-divergences.md from the cases in tests/oracle/markdown/divergences"
 run = "bun tests/oracle/markdown/divergences.ts"
 depends = ["build:napi"]
 

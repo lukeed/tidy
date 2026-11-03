@@ -4,9 +4,9 @@
 //   bun tests/oracle/xml.ts [filter] [--show=n] [--builtin-css] [--oss=<dir>]
 //
 // With `--builtin-css`, the hook declines style sheets, so tidy formats them itself. The plugin's embedding is limited
-// to `<style>` and `<script>`, as tidy's is (`xml-embed-by-name` in deviations.md), unless `--plugin-embed` is set.
+// to `<style>` and `<script>`, as tidy's is (`xml-embed-by-name` in docs/deviations.md), unless `--plugin-embed` is set.
 // The other XML deviations show up as differences: `xml-hex-character-reference` and `xml-ignore-trims-xml-whitespace`,
-// in 76 files of the corpus that deviations.md names, with `ignore` and `preserve` only.
+// in 76 files of the corpus that docs/deviations.md names, with `ignore` and `preserve` only.
 import { $ } from "bun";
 import { createHash } from "node:crypto";
 import { homedir } from "node:os";

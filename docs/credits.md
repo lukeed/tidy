@@ -1,4 +1,4 @@
-# Notice
+# Credits
 
 tidy ports code from these projects, all under the MIT license:
 

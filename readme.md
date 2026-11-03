@@ -111,11 +111,11 @@ The full tables, with one-thread times, Biome, taplo, yamlfmt, lightningcss and 
 
 ## Differences from Prettier
 
-tidy prints something else on purpose in a few places: where Prettier's output changes what your code means, where it would change again on the next run, and a few choices, like formatting JSDoc comments by default, as `prettier-plugin-jsdoc` does. Turn that off with `"js": { "jsdoc": false }`. Each case is listed, with an example, in [`deviations.md`](deviations.md).
+tidy prints something else on purpose in a few places: where Prettier's output changes what your code means, where it would change again on the next run, and a few choices, like formatting JSDoc comments by default, as `prettier-plugin-jsdoc` does. Turn that off with `"js": { "jsdoc": false }`. Each case is listed, with an example, in [`docs/deviations.md`](docs/deviations.md).
 
 ## Credits
 
-tidy ports a lot of great work: Prettier, Biome, oxc, Bun's Rust ports, taplo, dprint, and more. See [`notice.md`](notice.md) for all of them.
+tidy ports a lot of great work: Prettier, Biome, oxc, Bun's Rust ports, taplo, dprint, and more. See [`docs/credits.md`](docs/credits.md) for all of them.
 
 ## License
 

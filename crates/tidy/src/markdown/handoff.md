@@ -17,14 +17,14 @@ The Prettier preset matches Prettier 3.9.10 byte for byte where that keeps the d
 
 ### Divergences
 
-`markdown-divergences.md` (repo root) records each place where the Prettier preset differs from Prettier on purpose. It is generated: `mise run oracle:markdown:divergences` runs every case in `tests/oracle/markdown/divergences/*.md` through Prettier 3.9.10 (`bunx`) and tidy's Node binding, and writes the input and both outputs. The titles, reasons, options, and sign-offs are in the table at the top of `tests/oracle/markdown/divergences.ts`. A case where both outputs now agree is marked "stale", so remove it or fix the case.
+`docs/markdown-divergences.md` records each place where the Prettier preset differs from Prettier on purpose. It is generated: `mise run oracle:markdown:divergences` runs every case in `tests/oracle/markdown/divergences/*.md` through Prettier 3.9.10 (`bunx`) and tidy's Node binding, and writes the input and both outputs. The titles, reasons, options, and sign-offs are in the table at the top of `tests/oracle/markdown/divergences.ts`. A case where both outputs now agree is marked "stale", so remove it or fix the case.
 
 Each entry has a kind:
 
 - **Meaning**: Prettier's output reads differently from its input (another block opens, a link ends, emphasis nests the other way, or rendered text changes). These are signed off by Luke's standing rule: formatting never changes what a document means.
 - **Layout**: two outputs that read the same, where tidy chose differently. Each needs Luke's sign-off, recorded as `signed: "pending"` until he gives it.
 
-To add a divergence: add a minimal case file to `tests/oracle/markdown/divergences/`, add its row to the table, pin the output with a test in `crates/tidy/tests/markdown.rs`, run the task, and ask Luke for a layout entry. tidy's other languages keep their deviations in `deviations.md`, which is written by hand.
+To add a divergence: add a minimal case file to `tests/oracle/markdown/divergences/`, add its row to the table, pin the output with a test in `crates/tidy/tests/markdown.rs`, run the task, and ask Luke for a layout entry. tidy's other languages keep their deviations in `docs/deviations.md`, which is written by hand.
 
 ### Gaps
 
