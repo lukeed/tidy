@@ -1,6 +1,11 @@
 [workspace]
 resolver = "3"
-members = ["crates/*"]
+members = [
+  "crates/tidy",
+  "crates/tidy_cli",
+  "crates/tidy_napi",
+  "crates/tidy_walk",
+]
 exclude = [
   "bench/css",
   "bench/dprint",
