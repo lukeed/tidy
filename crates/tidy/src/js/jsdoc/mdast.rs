@@ -351,10 +351,11 @@ impl Builder<'_> {
         let kind = reference.map_or(Kind::Image, |_| Kind::ImageReference);
         self.inline(&range);
         let image = self.append(kind, range);
-        let alt = self.tree.keep(b"");
-        self.tree.node(image).third = alt;
         self.open.push(image);
         self.link(link_type, &dest_url, &title, &id);
+        // The alt text grows at the end of the strings, after the URL and the label.
+        let alt = self.tree.keep(b"");
+        self.tree.node(image).third = alt;
         self.image = Some(image);
       }
       Tag::Table(_)

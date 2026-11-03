@@ -50,6 +50,15 @@ fn formats_code_in_other_languages() {
 }
 
 #[test]
+fn keeps_the_alt_text_of_images() {
+  let input =
+    "/**\n * Shows ![an image](a.png) and ![Bar `b` *c*][d].\n *\n * [d]: e.png\n */\nlet a;\n";
+  let expected =
+    "/**\n * Shows ![an image](a.png) and ![Bar b c][d].\n *\n * [d]: e.png\n */\nlet a;\n";
+  assert_eq!(format(input, "a.js", &Options::default()), expected);
+}
+
+#[test]
 fn can_be_turned_off() {
   let input = "/**\n * @param {string}   a   the thing\n */\nfunction f(a) {}\n";
   let options = Options { jsdoc: false, ..Options::default() };
