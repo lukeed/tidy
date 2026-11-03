@@ -8,7 +8,7 @@ use crate::js::base::*;
 use crate::js::embed::css;
 use crate::js::ir::width::string_width_as;
 use crate::js::utils::call_expression::is_test_each_pattern;
-use crate::js::utils::typecast::has_comments;
+use crate::js::utils::typecast::{comments_of_expression, has_comments};
 use crate::js::{format_args, write};
 
 /// True if Prettier's `embed` could apply to the template `e`. For most templates it can't.
@@ -92,8 +92,20 @@ pub(crate) fn write_tagged_template_expression<'a>(
       true => write!(f, soft_line_break()),
       false => write!(f, space()),
     }
+  } else if !f.is_quiet()
+    && call.type_args().angle_brackets_span().is_none()
+    && ends_with_block_comment(call.callee(), f)
+  {
+    // Prettier prints no space here, and the next formatting finds the comment before the template.
+    write!(f, space());
   }
   write!(f, [line_suffix_boundary(), quasi]);
+}
+
+/// `a /* comment */⏎`b``: the tag ends with a block comment on its line, which Prettier prints after it.
+fn ends_with_block_comment<'a>(tag: Expr<'a>, f: &Formatter<'a>) -> bool {
+  (comments_of_expression(tag, f).trailing.last())
+    .is_some_and(|comment| comment.is_block() && !comment.has_newline_before())
 }
 
 /// `` `a${B}c` `` in a type
