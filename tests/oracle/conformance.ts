@@ -151,6 +151,16 @@ function indent(text: string, request: EmbedRequest) {
 		.join("\n");
 }
 
+/** Declares the options that only Prettier's HTML printer passes to scripts in attributes, so that they reach them. */
+let internal = {
+	options: Object.fromEntries(
+		["__isInHtmlAttribute", "__embeddedInHtml", "__isHtmlInlineEventHandler"].map((name) => [
+			name,
+			{ type: "boolean", category: "Special", default: false, description: name },
+		]),
+	),
+} as prettier.Plugin;
+
 async function embedded(request: EmbedRequest, options: FormatOptions, extra: Record<string, unknown>) {
 	if (/__vue(_ts)?_(bindings|for_left|generic)$/.test(request.language)) {
 		try {
@@ -159,11 +169,14 @@ async function embedded(request: EmbedRequest, options: FormatOptions, extra: Re
 			return undefined;
 		}
 	}
+	let script = request.kind === "attribute" && request.language in scriptParserSet;
 	let handler = request.kind === "attribute" && request.language === "babel";
 	try {
 		let settings = {
 			...extra,
-			...(request.kind === "attribute" ? { singleQuote: true } : {}),
+			...(request.kind === "attribute" && !script ? { singleQuote: true } : {}),
+			...(script ? { plugins: [internal], __isInHtmlAttribute: true, __embeddedInHtml: true } : {}),
+			...(handler ? { __isHtmlInlineEventHandler: true } : {}),
 			parser: request.language,
 			// Prettier parses a classic script with `__babelSourceType`, which only its HTML printer can pass.
 			...(request.module ? {} : { filepath: "script.cjs" }),
@@ -178,15 +191,7 @@ async function embedded(request: EmbedRequest, options: FormatOptions, extra: Re
 		let doc: prettier.Doc = [builders.hardline, " ".repeat(request.prefix), code, " ".repeat(request.suffix)];
 		for (let level = 0; level < request.indent; level++) doc = builders.indent(doc);
 		let formatted = printer.printDocToString(doc, settings as prettier.doc.printer.Options).formatted;
-		formatted = formatted.replace(/^\n[\t ]*/, "").replace(/\s+$/, "");
-		// Prettier's `__isHtmlInlineEventHandler`, which only the HTML printer can pass: no semicolon after one statement.
-		if (handler) {
-			let { ast } = await prettier.__debug.parse(request.code, { parser: "babel" });
-			let program = (ast as { program: { body: { type: string }[]; directives: unknown[] } }).program;
-			let single = program.body.length === 1 && program.body[0].type === "ExpressionStatement";
-			if (single && program.directives.length === 0) formatted = formatted.replace(/;$/, "").replace(/^;/, "");
-		}
-		return formatted;
+		return formatted.replace(/^\n[\t ]*/, "").replace(/\s+$/, "");
 	} catch {
 		return undefined;
 	}
