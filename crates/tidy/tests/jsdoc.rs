@@ -59,6 +59,13 @@ fn keeps_the_alt_text_of_images() {
 }
 
 #[test]
+fn makes_only_strong_underscores_asterisks() {
+  let input = "/**\n * @param a call __init__, snake__case__name or __x\n */\nlet a;\n";
+  let expected = "/** @param a Call **init**, snake__case__name or __x */\nlet a;\n";
+  assert_eq!(format(input, "a.js", &Options::default()), expected);
+}
+
+#[test]
 fn can_be_turned_off() {
   let input = "/**\n * @param {string}   a   the thing\n */\nfunction f(a) {}\n";
   let options = Options { jsdoc: false, ..Options::default() };

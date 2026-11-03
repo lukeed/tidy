@@ -60,6 +60,37 @@ fn find_emphasis_end(bytes: &[u8], opener: usize) -> Option<usize> {
   None
 }
 
+/// CommonMark's rule for a `__` that opens strong emphasis: left-flanking, and not inside a word.
+fn opens_strong(before: Option<u8>, after: Option<u8>) -> bool {
+  let (before, after) = (Flank::of(before), Flank::of(after));
+  after != Flank::Space && (after == Flank::Word || before != Flank::Word) && before != Flank::Word
+}
+
+/// CommonMark's rule for a `__` that closes strong emphasis: right-flanking, and not inside a word.
+fn closes_strong(before: Option<u8>, after: Option<u8>) -> bool {
+  let (before, after) = (Flank::of(before), Flank::of(after));
+  before != Flank::Space && (before == Flank::Word || after != Flank::Word) && after != Flank::Word
+}
+
+/// What is next to a delimiter run: the start or end of the text counts as white space.
+#[derive(PartialEq, Eq)]
+enum Flank {
+  Space,
+  Punctuation,
+  Word,
+}
+
+impl Flank {
+  fn of(byte: Option<u8>) -> Flank {
+    match byte {
+      None => Flank::Space,
+      Some(byte) if byte.is_ascii_whitespace() => Flank::Space,
+      Some(byte) if byte.is_ascii_punctuation() => Flank::Punctuation,
+      Some(_) => Flank::Word,
+    }
+  }
+}
+
 /// `__text__` becomes `**text**`, `*text*` becomes `_text_`.
 pub(super) fn normalize_markdown_emphasis(text: &[u8]) -> Bytes<'_> {
   if !strings::contains(text, b"__") && !strings::contains_char(text, b'*') {
@@ -69,15 +100,27 @@ pub(super) fn normalize_markdown_emphasis(text: &[u8]) -> Bytes<'_> {
   let len = bytes.len();
   let mut has_changed = false;
   let mut in_code = false;
+  let mut opener = None;
   let mut i = 0;
   while i < len {
     if bytes[i] == b'`' {
       in_code = !in_code;
-    } else if !in_code && bytes[i] == b'_' && bytes.get(i + 1) == Some(&b'_') {
-      bytes[i] = b'*';
-      bytes[i + 1] = b'*';
-      has_changed = true;
-      i += 1;
+    } else if !in_code && bytes[i] == b'_' {
+      let end = i + bytes[i..].iter().take_while(|&&byte| byte == b'_').count();
+      if end - i == 2 {
+        let (before, after) = (i.checked_sub(1).map(|at| bytes[at]), bytes.get(end).copied());
+        if let Some(start) = opener
+          && closes_strong(before, after)
+        {
+          bytes[start..start + 2].copy_from_slice(b"**");
+          bytes[i..end].copy_from_slice(b"**");
+          (opener, has_changed) = (None, true);
+        } else if opens_strong(before, after) {
+          opener = Some(i);
+        }
+      }
+      i = end;
+      continue;
     }
     i += 1;
   }
