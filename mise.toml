@@ -16,13 +16,23 @@ description = "Build the Node addon for this platform"
 dir = "crates/tidy_napi"
 run = "bunx napi build --platform --release --esm"
 
+[vars]
+# The files that tidy formats: all but the test cases, which stay as written.
+tidied = "git ls-files -- '*.ts' '*.js' '*.mjs' '*.cjs' '*.json' '*.jsonc' '*.md' '*.yml' '*.yaml' '*.toml' ':!:crates/tidy/tests/fixtures/**' ':!:crates/tidy/tests/*.json' ':!:tests/oracle/markdown/divergences/**'"
+
 [tasks.fmt]
 description = "Check formatting"
-run = "cargo fmt --all --check"
+run = [
+  "cargo fmt --all --check",
+  "cargo run -q -p tidy_cli -- --check $({{vars.tidied}})",
+]
 
 [tasks."fmt:fix"]
-description = "Format all crates"
-run = "cargo fmt --all"
+description = "Format all crates and the other files with tidy"
+run = [
+  "cargo fmt --all",
+  "cargo run -q -p tidy_cli -- --write $({{vars.tidied}})",
+]
 
 [tasks.clippy]
 description = "Lint with warnings denied"
