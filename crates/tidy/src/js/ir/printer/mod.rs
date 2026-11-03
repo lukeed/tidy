@@ -814,61 +814,101 @@ impl<'d> Printer<'d> {
     content: Interned,
     target: u32,
   ) -> (SmallVec<[u32; 8]>, SmallVec<[(u32, Interned); 4]>) {
-    let (mut path, mut variants) = (SmallVec::new(), SmallVec::new());
-    match self.find_path(content, target, &mut path, &mut variants) {
-      true => (path, variants),
-      false => (SmallVec::new(), SmallVec::new()),
+    /// A run being searched: where it continues, where it ends, and the lengths of the path and of the variants when
+    /// it was entered. `variant` is the next variant to try of the best fitting at `at - 1`, if that's where it is.
+    struct Run {
+      at: u32,
+      end: u32,
+      depth: usize,
+      choices: usize,
+      variant: usize,
     }
-  }
-
-  fn find_path(
-    &self,
-    run: Interned,
-    target: u32,
-    path: &mut SmallVec<[u32; 8]>,
-    variants: &mut SmallVec<[(u32, Interned); 4]>,
-  ) -> bool {
-    let (depth, choices) = (path.len(), variants.len());
-    let mut index = run.start;
-    while index < run.start + run.len {
-      match self.pool.get(index as usize) {
-        // Content interned while this run was written. It's printed where an `Interned` refers to it.
-        Some(FormatElement::Skip(skip)) => index += skip.len,
-        Some(FormatElement::Tag(Tag::StartGroup(_))) => {
-          path.push(index);
-          if index == target {
-            return true;
+    let mut path: SmallVec<[u32; 8]> = SmallVec::new();
+    let mut variants: SmallVec<[(u32, Interned); 4]> = SmallVec::new();
+    let mut runs = vec![Run {
+      at: content.start,
+      end: content.start + content.len,
+      depth: 0,
+      choices: 0,
+      variant: 0,
+    }];
+    'runs: while let Some(run) = runs.last_mut() {
+      // The next variant of the best fitting before `at`, after the last one tried didn't hold the target.
+      if run.variant > 0 {
+        let index = run.at - 1;
+        let next = match self.pool.get(index as usize) {
+          Some(FormatElement::BestFitting(best_fitting)) => {
+            self.variants_of(*best_fitting).get(run.variant)
           }
-        }
-        Some(FormatElement::Tag(Tag::EndGroup)) if path.len() > depth => {
-          path.pop();
-        }
-        Some(FormatElement::Interned(inner)) => {
-          let (depth, choices) = (path.len(), variants.len());
-          if self.find_path(*inner, target, path, variants) {
-            return true;
-          }
-          path.truncate(depth);
-          variants.truncate(choices);
-        }
-        Some(FormatElement::BestFitting(best_fitting)) => {
-          for &variant in self.variants_of(*best_fitting) {
+          _ => None,
+        };
+        match next {
+          Some(&variant) => {
+            run.variant += 1;
             let (depth, choices) = (path.len(), variants.len());
             variants.push((index, variant));
-            if self.find_path(variant, target, path, variants) {
-              return true;
-            }
-            path.truncate(depth);
-            variants.truncate(choices);
+            runs.push(Run {
+              at: variant.start,
+              end: variant.start + variant.len,
+              depth,
+              choices,
+              variant: 0,
+            });
+            continue;
           }
+          None => run.variant = 0,
         }
-        _ => {}
       }
-      index += 1;
+      while run.at < run.end {
+        let index = run.at;
+        run.at += 1;
+        match self.pool.get(index as usize) {
+          // Content interned while this run was written. It's printed where an `Interned` refers to it.
+          Some(FormatElement::Skip(skip)) => run.at += skip.len,
+          Some(FormatElement::Tag(Tag::StartGroup(_))) => {
+            path.push(index);
+            if index == target {
+              return (path, variants);
+            }
+          }
+          Some(FormatElement::Tag(Tag::EndGroup)) if path.len() > run.depth => {
+            path.pop();
+          }
+          Some(FormatElement::Interned(inner)) => {
+            let (depth, choices) = (path.len(), variants.len());
+            runs.push(Run {
+              at: inner.start,
+              end: inner.start + inner.len,
+              depth,
+              choices,
+              variant: 0,
+            });
+            continue 'runs;
+          }
+          Some(FormatElement::BestFitting(best_fitting)) => {
+            if let Some(&variant) = self.variants_of(*best_fitting).first() {
+              run.variant = 1;
+              let (depth, choices) = (path.len(), variants.len());
+              variants.push((index, variant));
+              runs.push(Run {
+                at: variant.start,
+                end: variant.start + variant.len,
+                depth,
+                choices,
+                variant: 0,
+              });
+              continue 'runs;
+            }
+          }
+          _ => {}
+        }
+      }
+      // Done with this run: back to where it was entered.
+      let Some(done) = runs.pop() else { break };
+      path.truncate(done.depth);
+      variants.truncate(done.choices);
     }
-    path.truncate(depth);
-    variants.truncate(choices);
-    false
+    (SmallVec::new(), SmallVec::new())
   }
 
   /// `id` is the [`BestFitting::first`].

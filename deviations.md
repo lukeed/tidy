@@ -1100,7 +1100,7 @@ tidy:     "md`\n~~~~js\nmarkdown\\`\n  ~~~js\n  console.log(\"hi\");\n  ~~~\n\\`
 
 - Status: approved 2026-11-02
 - Why: Luke decided tidy's output must not change when it is formatted again, so that a formatted file passes `--check` in CI. Where Prettier's output changes when formatted again, tidy prints Prettier's fixed point: what Prettier prints when it formats its own output until that stays the same. A comment after an expression, inside parentheses around it, is printed after the parentheses; there the next formatting finds it before the `)` of the expression around it, or before the `;` of the statement, and moves it on. tidy places it where it ends up, in one pass.
-- Where: crates/tidy/src/js/ast/comments.rs (`decorate`, `keeps_comments_in_parentheses`)
+- Where: crates/tidy/src/js/ast/comments.rs (`decorate`, `keeps_comments_in_parentheses`), attach/rules.rs (`handle_call_expression_comments`), print/type_parameters.rs (`FormatTypeArguments`), utils/member_chain/groups.rs and mod.rs, utils/conditional.rs (`write_comment_after_operator`), ir/printer/mod.rs (`Fallback::FlattestOnceExpanded`)
 - Parser: babel, typescript
 
 ```
