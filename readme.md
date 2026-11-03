@@ -2,14 +2,14 @@
 
 > Prettier's style, at native speed.
 
-tidy is a code formatter written in Rust. It prints what Prettier prints, for every language below, from one native binary. No Node required, but there's a Node binding if you want one.
+tidy is a code formatter written in Rust. It's a single binary that prints what Prettier prints for every language below. It does not delegate to Node, but there's a Node binding if you want one.
 
-It's _fast_. On a 12,000-file corpus of every language but XML, tidy checks everything in 280 ms. bun fmt takes 569 ms, oxfmt 1.2 s, and Prettier 18.5 s.
+It's _fast_.<br>On a 12,000-file corpus of every language (except XML), tidy checks everything in 280ms. bun fmt takes 569ms. oxfmt 1.2s. Prettier 18.5s.
 
-- Matches Prettier: 100% of 3,906 JavaScript files and 3,308 of 3,309 TypeScript files in the bench corpus (with JSDoc formatting off)
-- Formats the code inside your code: styles and scripts in HTML and Vue, Markdown code blocks and front matter, CSS, GraphQL, HTML and Markdown in JS templates
-- Reads `tidy.json`, `tidy.jsonc` or `tidy.toml`, plus `.editorconfig`
-- Stable JS and TS output: where Prettier's output would change on its next run, tidy prints where it settles, so `--check` stays green in CI
+- **Matches Prettier**<br>100% of 3,906 JavaScript files and 3,308 of 3,309 TypeScript files in the bench corpus (with JSDoc formatting off)
+- **Formats the code inside your code**<br>styles and scripts in HTML and Vue, Markdown code blocks and front matter, CSS, GraphQL, HTML and Markdown in JS templates
+- **Configurable, if needed**<br>Reads `tidy.json`, `tidy.jsonc` or `tidy.toml`, plus `.editorconfig`
+- **Stable JS and TS output**<br>where Prettier's output would change on its next run, tidy prints where it settles, so `--check` stays green in CI
 
 ## Languages
 
@@ -83,7 +83,7 @@ let output = tidy::format(source, language, &Options::default(), Some("App.vue")
 
 ## Benchmarks
 
-Every tool checks every file of each corpus, using all cores, on an M1 Max. Times are the mean of both run orders. Embedded code is left alone here, so every tool does the same work.
+Every tool checks every file of each corpus, using all cores, on an M1 Max. Times are the mean of both run orders. **Embedded code is excluded** so that every tool does the same amount of work.
 
 | Corpus          |  Files |       tidy | bun fmt |    oxfmt |   dprint |  Prettier |
 | --------------- | -----: | ---------: | ------: | -------: | -------: | --------: |
