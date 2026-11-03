@@ -171,3 +171,18 @@ fn prints_prettier_fixed_point_for_chains_with_objects() {
   let fits = "a = b.c({ d: 1 }).e((f) => ({ g: 1 }));\n";
   assert_eq!(format(fits, "a.ts", &ts), fits);
 }
+
+#[test]
+fn follows_the_options_of_other_languages() {
+  let mut options = tidy::Options::default();
+  options.share(&tidy::Shared { single_attribute_per_line: Some(true), ..Default::default() });
+  let text = "<a b=\"1\" c=\"2\" d=\"333333333333333333333333333333\" e=\"444444444444444444444444444\" />;\n";
+  let formatted = tidy::Formatter::default()
+    .format(text, Language::Js(Dialect::Js), &options, Some("a.jsx"), &mut Verbatim)
+    .unwrap()
+    .to_owned();
+  assert_eq!(
+    formatted,
+    "<a\n  b=\"1\"\n  c=\"2\"\n  d=\"333333333333333333333333333333\"\n  e=\"444444444444444444444444444\"\n/>;\n"
+  );
+}

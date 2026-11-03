@@ -218,7 +218,6 @@ pub enum HtmlWhitespaceSensitivity {
   #[default]
   Css,
   /// All of it.
-  #[expect(dead_code, reason = "the HTML in templates takes no whitespace option")]
   Strict,
   /// None of it.
   Ignore,
@@ -228,10 +227,8 @@ pub enum HtmlWhitespaceSensitivity {
 #[derive(Debug, Default, Clone, Copy, Eq, Hash, PartialEq)]
 pub enum ProseWrap {
   /// At the print width.
-  #[expect(dead_code, reason = "the Markdown in templates takes no wrap option")]
   Always,
   /// Not at all.
-  #[expect(dead_code, reason = "the Markdown in templates takes no wrap option")]
   Never,
   /// As in the source.
   #[default]

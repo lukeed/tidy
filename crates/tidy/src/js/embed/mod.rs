@@ -5,8 +5,9 @@ pub(crate) mod html;
 pub(crate) mod markdown;
 
 use crate::js::options::{
-  ArrowParentheses, Expand, FormatOptions, IndentStyle, OperatorPosition, QuoteProperties,
-  QuoteStyle, Semicolons, TrailingCommas,
+  ArrowParentheses, AttributePosition, Expand, FormatOptions, HtmlWhitespaceSensitivity,
+  IndentStyle, OperatorPosition, ProseWrap, QuoteProperties, QuoteStyle, Semicolons,
+  TrailingCommas,
 };
 
 /// The options of the scripts in code that is embedded in a script, as `options` formats that script.
@@ -45,6 +46,17 @@ pub(crate) fn scripts(options: &FormatOptions) -> crate::js::Options {
     },
     jsdoc: options.jsdoc.is_some(),
     sort_imports: options.sort_imports.clone(),
+    single_attribute_per_line: options.attribute_position == AttributePosition::Multiline,
+    wrap: match options.prose_wrap {
+      ProseWrap::Always => crate::Wrap::Always,
+      ProseWrap::Never => crate::Wrap::Never,
+      ProseWrap::Preserve => crate::Wrap::Preserve,
+    },
+    whitespace: match options.html_whitespace_sensitivity {
+      HtmlWhitespaceSensitivity::Strict => crate::Whitespace::Strict,
+      HtmlWhitespaceSensitivity::Css => crate::Whitespace::Auto,
+      HtmlWhitespaceSensitivity::Ignore => crate::Whitespace::Ignore,
+    },
     ..crate::js::Options::default()
   }
 }

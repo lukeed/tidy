@@ -169,7 +169,7 @@ pub struct Shared {
   pub bracket_spacing: Option<bool>,
   /// HTML, Vue, XML and JSX.
   pub bracket_same_line: Option<bool>,
-  /// HTML, Vue and XML.
+  /// HTML, Vue, XML and JSX.
   pub single_attribute_per_line: Option<bool>,
   /// The ignore directive.
   pub ignore: Option<String>,
@@ -293,6 +293,7 @@ impl Shared {
     set(&mut options.single_quote, self.single_quote);
     set(&mut options.bracket_spacing, self.bracket_spacing);
     set(&mut options.bracket_same_line, self.bracket_same_line);
+    set(&mut options.single_attribute_per_line, self.single_attribute_per_line);
     set(&mut options.format_embedded, self.format_embedded);
     match self.trailing_comma {
       Some(false) => options.trailing_comma = js::TrailingComma::None,
@@ -411,7 +412,8 @@ impl Formatter {
       Language::Graphql => self.graphql.format(text, &options.graphql),
       #[cfg(feature = "js")]
       Language::Js(dialect) => {
-        let options = js::Options { dialect, ..options.js.clone() };
+        let (wrap, whitespace) = (options.markdown.wrap, options.html.whitespace);
+        let options = js::Options { dialect, wrap, whitespace, ..options.js.clone() };
         self.js.format(text, path.unwrap_or_default(), &options)
       }
       Language::Xml => {

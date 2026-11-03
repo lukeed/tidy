@@ -50,8 +50,49 @@ function cases(snapshot: string, directory: string): Case[] {
 	return list;
 }
 
+/** Prettier's parsers of JavaScript and TypeScript that tidy stands in for. Flow isn't one. */
+let scriptParsers: Record<string, string> = {
+	babel: "babel",
+	espree: "babel",
+	meriyah: "babel",
+	acorn: "babel",
+	typescript: "typescript",
+	"babel-ts": "babel-ts",
+};
+
 function settings(options: Record<string, unknown>, file: string): FormatOptions | undefined {
 	let parsers = options.parsers as string[];
+	let script = parsers?.map((name) => scriptParsers[name]).find(Boolean);
+	if (script) {
+		if ("rangeStart" in options || "rangeEnd" in options || "requirePragma" in options || "insertPragma" in options) {
+			return undefined;
+		}
+		return {
+			parser: script,
+			quote: options.singleQuote ? "single" : "double",
+			js: {
+				...scripts(options),
+				...Object.fromEntries(
+					["objectWrap", "experimentalTernaries", "experimentalOperatorPosition", "jsxSingleQuote", "bracketSameLine"]
+						.filter((name) => name in options)
+						.map((name) => [name, options[name]]),
+				),
+			},
+			embedded: options.embeddedLanguageFormatting !== "off",
+			width: (options.printWidth as number) ?? 80,
+			indent: (options.tabWidth as number) ?? 2,
+			tabs: (options.useTabs as boolean) ?? false,
+			filepath: file,
+			...(options.endOfLine && options.endOfLine !== "auto" ? { eol: options.endOfLine } : {}),
+			...(options.singleAttributePerLine ? { singleAttributePerLine: true } : {}),
+			// `jsxBracketSameLine` is the deprecated name of `bracketSameLine`.
+			...((options.bracketSameLine ?? options.jsxBracketSameLine) ? { bracketSameLine: true } : {}),
+			...(options.proseWrap ? { markdown: { wrap: options.proseWrap } } : {}),
+			...(options.htmlWhitespaceSensitivity
+				? { whitespace: { css: "auto", strict: "strict", ignore: "ignore" }[options.htmlWhitespaceSensitivity as string] }
+				: {}),
+		} as FormatOptions;
+	}
 	let parser: string = parsers?.[0] === "glimmer" ? "handlebars" : parsers?.[0];
 	if (!["html", "vue", "mjml", "handlebars", "css", "scss", "less"].includes(parser)) return undefined;
 	let whitespace = { css: "auto", strict: "strict", ignore: "ignore" }[(options.htmlWhitespaceSensitivity as string) ?? "css"];
@@ -151,6 +192,20 @@ async function embedded(request: EmbedRequest, options: FormatOptions, extra: Re
 	}
 }
 
+let scriptParserSet: Record<string, true> = { babel: true, typescript: true, "babel-ts": true };
+
+/** Prettier's fixed point for a script: where its output changes when formatted again, tidy prints what it settles on. */
+async function scriptFixedPoint(output: string, options: Record<string, unknown>, file: string) {
+	let parser = (options.parsers as string[]).map((name) => scriptParsers[name]).find(Boolean);
+	let { parsers: _, ...rest } = options;
+	for (let round = 0; round < 5; round++) {
+		let again = await prettier.format(output, { ...rest, parser, filepath: file }).catch(() => undefined);
+		if (again === undefined || again === output) return again;
+		output = again;
+	}
+	return undefined;
+}
+
 let all: Case[] = [];
 for await (let path of new Glob("**/__snapshots__/format.test.js.snap").scan(root)) {
 	let directory = relative(root, join(root, path, "../.."));
@@ -166,7 +221,9 @@ for (let test of all) {
 	let options = settings(test.options, test.file);
 	// The TOML fixtures need a plugin from Prettier's test setup.
 	let plugin = test.name.startsWith("with-plugins/") || test.name.startsWith("front-matter/toml/");
-	if (!options || "cursorOffset" in test.options || test.input.includes("<|>") || plugin) {
+	// Jest shows line breaks other than `\n` as `<CR>` and `<LF>`, which aren't the input's.
+	let markers = /<(CR|LF)>/.test(test.input) || /<(CR|LF)>/.test(test.output);
+	if (!options || "cursorOffset" in test.options || test.input.includes("<|>") || plugin || markers) {
 		skipped++;
 		continue;
 	}
@@ -196,7 +253,7 @@ for (let test of all) {
 	} catch (error) {
 		actual = `!error ${(error as Error).message}`;
 	}
-	if (actual === test.output) passed++;
+	if (actual === test.output || (options.parser && options.parser in scriptParserSet && actual === (await scriptFixedPoint(test.output, test.options, test.file)))) passed++;
 	else failed.push({ name: test.name, expected: test.output, actual });
 }
 

@@ -187,6 +187,8 @@ pub struct Options {
   pub bracket_spacing: bool,
   /// `bracketSameLine`: the `>` of a multi-line JSX element on its last line.
   pub bracket_same_line: bool,
+  /// `singleAttributePerLine`: each attribute of a multi-line JSX element on its own line.
+  pub single_attribute_per_line: bool,
   pub arrow_parens: ArrowParens,
   pub object_wrap: ObjectWrap,
   pub experimental_ternaries: bool,
@@ -195,6 +197,10 @@ pub struct Options {
   pub format_embedded: bool,
   /// Format JSDoc comments as prettier-plugin-jsdoc does.
   pub jsdoc: bool,
+  /// `proseWrap` of the Markdown in templates. [`crate::Formatter`] takes it from the Markdown options.
+  pub wrap: crate::Wrap,
+  /// `htmlWhitespaceSensitivity` of the HTML in templates. [`crate::Formatter`] takes it from the HTML options.
+  pub whitespace: crate::Whitespace,
   /// How to sort imports, if at all: as oxfmt's or bun's `sortImports`, or as `@trivago/prettier-plugin-sort-imports`,
   /// `@ianvs/prettier-plugin-sort-imports` or `prettier-plugin-organize-imports`. See [`SortSettings`].
   pub sort_imports: Option<std::sync::Arc<SortImports>>,
@@ -221,6 +227,9 @@ impl Default for Options {
       experimental_operator_position: OperatorPosition::End,
       format_embedded: true,
       jsdoc: true,
+      single_attribute_per_line: false,
+      wrap: crate::Wrap::Preserve,
+      whitespace: crate::Whitespace::Auto,
       sort_imports: None,
     }
   }
@@ -276,6 +285,20 @@ impl From<&Options> for FormatOptions {
         false => EmbeddedLanguageFormatting::Off,
       },
       jsdoc: options.jsdoc.then(crate::js::options::JsdocOptions::default),
+      attribute_position: match options.single_attribute_per_line {
+        true => crate::js::options::AttributePosition::Multiline,
+        false => crate::js::options::AttributePosition::Auto,
+      },
+      prose_wrap: match options.wrap {
+        crate::Wrap::Always => crate::js::options::ProseWrap::Always,
+        crate::Wrap::Never => crate::js::options::ProseWrap::Never,
+        crate::Wrap::Preserve => crate::js::options::ProseWrap::Preserve,
+      },
+      html_whitespace_sensitivity: match options.whitespace {
+        crate::Whitespace::Strict => crate::js::options::HtmlWhitespaceSensitivity::Strict,
+        crate::Whitespace::Auto => crate::js::options::HtmlWhitespaceSensitivity::Css,
+        crate::Whitespace::Ignore => crate::js::options::HtmlWhitespaceSensitivity::Ignore,
+      },
       ..FormatOptions::default()
     }
   }
@@ -440,9 +463,10 @@ pub(crate) fn same_errors(
   recovered: &[oxc_diagnostics::OxcDiagnostic],
   again: &[oxc_diagnostics::OxcDiagnostic],
 ) -> bool {
-  // Printing puts modifiers in order and drops repeated ones, as Prettier does.
+  // Printing puts modifiers in order, drops repeated ones and the comma after a rest element, as Prettier does.
   let fixed = |error: &&oxc_diagnostics::OxcDiagnostic| {
     matches!(error.code.number.as_deref(), Some("1029" | "1030"))
+      || error.message == "A rest parameter or binding pattern may not have a trailing comma."
   };
   let messages = |errors: &[oxc_diagnostics::OxcDiagnostic]| {
     errors
@@ -473,12 +497,17 @@ fn is_recoverable(error: &oxc_diagnostics::OxcDiagnostic, typescript: bool) -> b
   if typescript && code.is_some_and(|code| CHECKER_ONLY.contains(&code)) {
     return true;
   }
-  // TypeScript's checker reports these, as 1206 and 1308, where oxc has no code for them.
+  // TypeScript's checker reports these, as 1206, 1308 and 1014, where oxc has no code for them.
   if typescript
     && (message == "Decorators are not valid here."
       || message
-        == "`await` is only allowed within async functions and at the top levels of modules")
+        == "`await` is only allowed within async functions and at the top levels of modules"
+      || message == "A rest parameter must be last in a parameter list")
   {
+    return true;
+  }
+  // TypeScript's checker reports it as 1013, and Babel recovers from it (`RestTrailingComma`).
+  if message == "A rest parameter or binding pattern may not have a trailing comma." {
     return true;
   }
   // `VarRedeclaration`, `DuplicateExport`, `DeclarationMissingInitializer`, `allowNewTargetOutsideFunction` and,
