@@ -6,7 +6,7 @@
   "author": "Luke Edwards <luke.edwards05@gmail.com> (https://lukeed.com)",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lukeed/tidyrs.git",
+    "url": "git+https://github.com/lukeed/tidy.git",
     "directory": "crates/tidy_napi"
   },
   "type": "module",
