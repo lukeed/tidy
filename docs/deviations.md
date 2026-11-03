@@ -12,83 +12,83 @@ Most entries come from bun's ports, which correct the places where Prettier's ou
 
 ## Summary
 
-| Entry | Area | Status |
-| --- | --- | --- |
-| [hbs-doctype](#hbs-doctype) | handlebars | approved 2026-11-01 |
-| [hbs-dropped-markup-kept-as-written](#hbs-dropped-markup-kept-as-written) | handlebars | approved 2026-11-01 |
-| [hbs-html-comment-start-and-end](#hbs-html-comment-start-and-end) | handlebars | approved 2026-11-01 |
-| [hbs-escaped-mustache](#hbs-escaped-mustache) | handlebars | approved 2026-11-01 |
-| [hbs-style-with-mustache](#hbs-style-with-mustache) | handlebars | approved 2026-11-01 |
-| [hbs-no-break-space](#hbs-no-break-space) | handlebars | approved 2026-11-01 |
-| [hbs-no-break-space-in-class](#hbs-no-break-space-in-class) | handlebars | approved 2026-11-01 |
-| [hbs-backslash-before-mustache](#hbs-backslash-before-mustache) | handlebars | approved 2026-11-01 |
-| [hbs-both-quotes-in-value](#hbs-both-quotes-in-value) | handlebars | approved 2026-11-01 |
-| [hbs-script-textarea-lines](#hbs-script-textarea-lines) | handlebars | approved 2026-11-01 |
-| [hbs-pre-descendant-whitespace](#hbs-pre-descendant-whitespace) | handlebars | approved 2026-11-01 |
-| [hbs-whitespace-block-in-pre-textarea](#hbs-whitespace-block-in-pre-textarea) | handlebars | approved 2026-11-01 |
-| [hbs-void-with-children](#hbs-void-with-children) | handlebars | approved 2026-11-01 |
-| [hbs-path-round-trip](#hbs-path-round-trip) | handlebars | approved 2026-11-01 |
-| [hbs-bracketed-segment](#hbs-bracketed-segment) | handlebars | approved 2026-11-01 |
-| [hbs-hash-key-in-brackets](#hbs-hash-key-in-brackets) | handlebars | approved 2026-11-01 |
-| [hbs-dropped-arguments](#hbs-dropped-arguments) | handlebars | approved 2026-11-01 |
-| [hbs-raw-block](#hbs-raw-block) | handlebars | approved 2026-11-01 |
-| [hbs-number-exponent](#hbs-number-exponent) | handlebars | approved 2026-11-01 |
-| [hbs-triple-stash-strip](#hbs-triple-stash-strip) | handlebars | approved 2026-11-01 |
-| [hbs-comment-dashes](#hbs-comment-dashes) | handlebars | approved 2026-11-01 |
-| [hbs-else-chain](#hbs-else-chain) | handlebars | approved 2026-11-01 |
-| [hbs-line-separator-columns](#hbs-line-separator-columns) | handlebars | approved 2026-11-01 |
-| [hbs-ws-ignore-escaped-mustache](#hbs-ws-ignore-escaped-mustache) | handlebars | approved 2026-11-01 |
-| [css-escaped-space-before-semicolon](#css-escaped-space-before-semicolon) | css/scss/less | approved 2026-11-01 |
-| [css-escaped-space-in-value](#css-escaped-space-in-value) | css/scss/less | approved 2026-11-01 |
-| [css-selector-without-namespace](#css-selector-without-namespace) | css/scss/less | approved 2026-11-01 |
-| [css-non-ascii-lowercase](#css-non-ascii-lowercase) | css/scss/less | approved 2026-11-01 |
-| [less-variable-colon-without-space](#less-variable-colon-without-space) | less | approved 2026-11-01 |
-| [less-variable-comment](#less-variable-comment) | less | approved 2026-11-01 |
-| [css-comment-only-at-rule-params](#css-comment-only-at-rule-params) | scss | approved 2026-11-01 |
-| [css-line-comment-before-brace-or-semicolon](#css-line-comment-before-brace-or-semicolon) | scss/less | approved 2026-11-01 |
-| [css-nth-and-keyframe-sign](#css-nth-and-keyframe-sign) | css/scss/less | approved 2026-11-01 |
-| [css-hex-escape-space-in-selector](#css-hex-escape-space-in-selector) | css/scss/less | approved 2026-11-01 |
-| [css-attribute-value-escape](#css-attribute-value-escape) | css/scss/less | approved 2026-11-01 |
-| [css-hex-escape-space-in-value](#css-hex-escape-space-in-value) | css/scss/less | approved 2026-11-01 |
-| [css-author-defined-names](#css-author-defined-names) | css/scss/less | approved 2026-11-01 |
-| [css-custom-property-values](#css-custom-property-values) | css/scss/less | approved 2026-11-01 |
-| [css-custom-property-line-breaks](#css-custom-property-line-breaks) | css/scss/less | approved 2026-11-01 |
-| [css-custom-property-json](#css-custom-property-json) | css/scss/less | approved 2026-11-01 |
-| [css-custom-property-url](#css-custom-property-url) | css/less | approved 2026-11-01 |
-| [html-pre-without-end-tag](#html-pre-without-end-tag) | html | approved 2026-11-01 |
-| [html-unquoted-attribute-value](#html-unquoted-attribute-value) | html/vue | approved 2026-11-01 |
-| [html-whitespace-only-pre-textarea](#html-whitespace-only-pre-textarea) | html | approved 2026-11-01 |
-| [html-ignored-void-without-slash](#html-ignored-void-without-slash) | html | approved 2026-11-01 |
-| [html-text-after-nul](#html-text-after-nul) | html/vue | approved 2026-11-01 |
-| [vue-v-pre-interpolation](#vue-v-pre-interpolation) | vue | approved 2026-11-01 |
-| [xml-embed-by-name](#xml-embed-by-name) | xml | proposed |
-| [xml-hex-character-reference](#xml-hex-character-reference) | xml | proposed |
-| [xml-ignore-trims-xml-whitespace](#xml-ignore-trims-xml-whitespace) | xml | proposed |
-| [html-borrowed-markers-once](#html-borrowed-markers-once) | html | approved 2026-11-01 |
-| [toml-byte-order-mark](#toml-byte-order-mark) | toml | approved 2026-11-01 |
-| [toml-embedded](#toml-embedded) | markdown/css/html/handlebars | approved 2026-11-01 |
-| [dockerfile-bare-continuation](#dockerfile-bare-continuation) | dockerfile | proposed |
-| [dockerfile-empty-continuation-lines](#dockerfile-empty-continuation-lines) | dockerfile | proposed |
-| [dockerfile-quoted-env-value](#dockerfile-quoted-env-value) | dockerfile | proposed |
-| [dockerfile-env-value-with-tab](#dockerfile-env-value-with-tab) | dockerfile | proposed |
-| [dockerfile-glued-keyword](#dockerfile-glued-keyword) | dockerfile | proposed |
-| [dockerfile-unparsed-continuation](#dockerfile-unparsed-continuation) | dockerfile | proposed |
-| [dockerfile-read-back](#dockerfile-read-back) | dockerfile | proposed |
-| [dockerfile-byte-order-mark](#dockerfile-byte-order-mark) | dockerfile | proposed |
-| [dockerfile-embedded](#dockerfile-embedded) | markdown | proposed |
-| [ini-space-around-equals](#ini-space-around-equals) | ini | approved 2026-11-01 |
-| [ini-git-config](#ini-git-config) | ini | approved 2026-11-01 |
-| [ini-kept-mode](#ini-kept-mode) | ini | proposed |
-| [ini-empty-section](#ini-empty-section) | ini | proposed |
-| [ini-empty-list](#ini-empty-list) | ini | proposed |
-| [ini-embedded](#ini-embedded) | markdown | proposed |
-| [graphql-block-string-padding](#graphql-block-string-padding) | graphql | approved 2026-11-02 |
-| [graphql-block-string-trailing-space](#graphql-block-string-trailing-space) | graphql | approved 2026-11-02 |
-| [js-jsdoc](#js-jsdoc) | babel/typescript | approved 2026-11-02 |
-| [js-markdown-fence-length](#js-markdown-fence-length) | babel/typescript | approved 2026-11-02 |
-| [js-stable-output](#js-stable-output) | babel/typescript | approved 2026-11-02 |
-| [the rule in step 2](#process) | all | proposed |
-| [tempura and text mode](#beyond-prettier) | handlebars | approved 2026-10-31 |
+| Entry                                                                                     | Area                         | Status              |
+| ----------------------------------------------------------------------------------------- | ---------------------------- | ------------------- |
+| [hbs-doctype](#hbs-doctype)                                                               | handlebars                   | approved 2026-11-01 |
+| [hbs-dropped-markup-kept-as-written](#hbs-dropped-markup-kept-as-written)                 | handlebars                   | approved 2026-11-01 |
+| [hbs-html-comment-start-and-end](#hbs-html-comment-start-and-end)                         | handlebars                   | approved 2026-11-01 |
+| [hbs-escaped-mustache](#hbs-escaped-mustache)                                             | handlebars                   | approved 2026-11-01 |
+| [hbs-style-with-mustache](#hbs-style-with-mustache)                                       | handlebars                   | approved 2026-11-01 |
+| [hbs-no-break-space](#hbs-no-break-space)                                                 | handlebars                   | approved 2026-11-01 |
+| [hbs-no-break-space-in-class](#hbs-no-break-space-in-class)                               | handlebars                   | approved 2026-11-01 |
+| [hbs-backslash-before-mustache](#hbs-backslash-before-mustache)                           | handlebars                   | approved 2026-11-01 |
+| [hbs-both-quotes-in-value](#hbs-both-quotes-in-value)                                     | handlebars                   | approved 2026-11-01 |
+| [hbs-script-textarea-lines](#hbs-script-textarea-lines)                                   | handlebars                   | approved 2026-11-01 |
+| [hbs-pre-descendant-whitespace](#hbs-pre-descendant-whitespace)                           | handlebars                   | approved 2026-11-01 |
+| [hbs-whitespace-block-in-pre-textarea](#hbs-whitespace-block-in-pre-textarea)             | handlebars                   | approved 2026-11-01 |
+| [hbs-void-with-children](#hbs-void-with-children)                                         | handlebars                   | approved 2026-11-01 |
+| [hbs-path-round-trip](#hbs-path-round-trip)                                               | handlebars                   | approved 2026-11-01 |
+| [hbs-bracketed-segment](#hbs-bracketed-segment)                                           | handlebars                   | approved 2026-11-01 |
+| [hbs-hash-key-in-brackets](#hbs-hash-key-in-brackets)                                     | handlebars                   | approved 2026-11-01 |
+| [hbs-dropped-arguments](#hbs-dropped-arguments)                                           | handlebars                   | approved 2026-11-01 |
+| [hbs-raw-block](#hbs-raw-block)                                                           | handlebars                   | approved 2026-11-01 |
+| [hbs-number-exponent](#hbs-number-exponent)                                               | handlebars                   | approved 2026-11-01 |
+| [hbs-triple-stash-strip](#hbs-triple-stash-strip)                                         | handlebars                   | approved 2026-11-01 |
+| [hbs-comment-dashes](#hbs-comment-dashes)                                                 | handlebars                   | approved 2026-11-01 |
+| [hbs-else-chain](#hbs-else-chain)                                                         | handlebars                   | approved 2026-11-01 |
+| [hbs-line-separator-columns](#hbs-line-separator-columns)                                 | handlebars                   | approved 2026-11-01 |
+| [hbs-ws-ignore-escaped-mustache](#hbs-ws-ignore-escaped-mustache)                         | handlebars                   | approved 2026-11-01 |
+| [css-escaped-space-before-semicolon](#css-escaped-space-before-semicolon)                 | css/scss/less                | approved 2026-11-01 |
+| [css-escaped-space-in-value](#css-escaped-space-in-value)                                 | css/scss/less                | approved 2026-11-01 |
+| [css-selector-without-namespace](#css-selector-without-namespace)                         | css/scss/less                | approved 2026-11-01 |
+| [css-non-ascii-lowercase](#css-non-ascii-lowercase)                                       | css/scss/less                | approved 2026-11-01 |
+| [less-variable-colon-without-space](#less-variable-colon-without-space)                   | less                         | approved 2026-11-01 |
+| [less-variable-comment](#less-variable-comment)                                           | less                         | approved 2026-11-01 |
+| [css-comment-only-at-rule-params](#css-comment-only-at-rule-params)                       | scss                         | approved 2026-11-01 |
+| [css-line-comment-before-brace-or-semicolon](#css-line-comment-before-brace-or-semicolon) | scss/less                    | approved 2026-11-01 |
+| [css-nth-and-keyframe-sign](#css-nth-and-keyframe-sign)                                   | css/scss/less                | approved 2026-11-01 |
+| [css-hex-escape-space-in-selector](#css-hex-escape-space-in-selector)                     | css/scss/less                | approved 2026-11-01 |
+| [css-attribute-value-escape](#css-attribute-value-escape)                                 | css/scss/less                | approved 2026-11-01 |
+| [css-hex-escape-space-in-value](#css-hex-escape-space-in-value)                           | css/scss/less                | approved 2026-11-01 |
+| [css-author-defined-names](#css-author-defined-names)                                     | css/scss/less                | approved 2026-11-01 |
+| [css-custom-property-values](#css-custom-property-values)                                 | css/scss/less                | approved 2026-11-01 |
+| [css-custom-property-line-breaks](#css-custom-property-line-breaks)                       | css/scss/less                | approved 2026-11-01 |
+| [css-custom-property-json](#css-custom-property-json)                                     | css/scss/less                | approved 2026-11-01 |
+| [css-custom-property-url](#css-custom-property-url)                                       | css/less                     | approved 2026-11-01 |
+| [html-pre-without-end-tag](#html-pre-without-end-tag)                                     | html                         | approved 2026-11-01 |
+| [html-unquoted-attribute-value](#html-unquoted-attribute-value)                           | html/vue                     | approved 2026-11-01 |
+| [html-whitespace-only-pre-textarea](#html-whitespace-only-pre-textarea)                   | html                         | approved 2026-11-01 |
+| [html-ignored-void-without-slash](#html-ignored-void-without-slash)                       | html                         | approved 2026-11-01 |
+| [html-text-after-nul](#html-text-after-nul)                                               | html/vue                     | approved 2026-11-01 |
+| [vue-v-pre-interpolation](#vue-v-pre-interpolation)                                       | vue                          | approved 2026-11-01 |
+| [xml-embed-by-name](#xml-embed-by-name)                                                   | xml                          | proposed            |
+| [xml-hex-character-reference](#xml-hex-character-reference)                               | xml                          | proposed            |
+| [xml-ignore-trims-xml-whitespace](#xml-ignore-trims-xml-whitespace)                       | xml                          | proposed            |
+| [html-borrowed-markers-once](#html-borrowed-markers-once)                                 | html                         | approved 2026-11-01 |
+| [toml-byte-order-mark](#toml-byte-order-mark)                                             | toml                         | approved 2026-11-01 |
+| [toml-embedded](#toml-embedded)                                                           | markdown/css/html/handlebars | approved 2026-11-01 |
+| [dockerfile-bare-continuation](#dockerfile-bare-continuation)                             | dockerfile                   | proposed            |
+| [dockerfile-empty-continuation-lines](#dockerfile-empty-continuation-lines)               | dockerfile                   | proposed            |
+| [dockerfile-quoted-env-value](#dockerfile-quoted-env-value)                               | dockerfile                   | proposed            |
+| [dockerfile-env-value-with-tab](#dockerfile-env-value-with-tab)                           | dockerfile                   | proposed            |
+| [dockerfile-glued-keyword](#dockerfile-glued-keyword)                                     | dockerfile                   | proposed            |
+| [dockerfile-unparsed-continuation](#dockerfile-unparsed-continuation)                     | dockerfile                   | proposed            |
+| [dockerfile-read-back](#dockerfile-read-back)                                             | dockerfile                   | proposed            |
+| [dockerfile-byte-order-mark](#dockerfile-byte-order-mark)                                 | dockerfile                   | proposed            |
+| [dockerfile-embedded](#dockerfile-embedded)                                               | markdown                     | proposed            |
+| [ini-space-around-equals](#ini-space-around-equals)                                       | ini                          | approved 2026-11-01 |
+| [ini-git-config](#ini-git-config)                                                         | ini                          | approved 2026-11-01 |
+| [ini-kept-mode](#ini-kept-mode)                                                           | ini                          | proposed            |
+| [ini-empty-section](#ini-empty-section)                                                   | ini                          | proposed            |
+| [ini-empty-list](#ini-empty-list)                                                         | ini                          | proposed            |
+| [ini-embedded](#ini-embedded)                                                             | markdown                     | proposed            |
+| [graphql-block-string-padding](#graphql-block-string-padding)                             | graphql                      | approved 2026-11-02 |
+| [graphql-block-string-trailing-space](#graphql-block-string-trailing-space)               | graphql                      | approved 2026-11-02 |
+| [js-jsdoc](#js-jsdoc)                                                                     | babel/typescript             | approved 2026-11-02 |
+| [js-markdown-fence-length](#js-markdown-fence-length)                                     | babel/typescript             | approved 2026-11-02 |
+| [js-stable-output](#js-stable-output)                                                     | babel/typescript             | approved 2026-11-02 |
+| [the rule in step 2](#process)                                                            | all                          | proposed            |
+| [tempura and text mode](#beyond-prettier)                                                 | handlebars                   | approved 2026-10-31 |
 
 ## Handlebars
 
@@ -811,15 +811,15 @@ Found in `vlang/v`, `vlib/toml/tests/testdata/toml_with_utf8_bom.toml`, the only
 ### toml-embedded
 
 - Status: approved 2026-11-01
-- Why: Prettier has no TOML formatter, so it leaves TOML front matter (`+++`) and ```` ```toml ```` code blocks as they are written. tidy formats them with taplo's style, as it formats YAML front matter and JSON code blocks with Prettier's.
+- Why: Prettier has no TOML formatter, so it leaves TOML front matter (`+++`) and ` ```toml ` code blocks as they are written. tidy formats them with taplo's style, as it formats YAML front matter and JSON code blocks with Prettier's.
 - Where: crates/tidy/src/embed.rs (`own`, `builtin`)
 - Parser: markdown, css, scss, less, html, vue, handlebars
 
-```
+````
 input:    "+++\ntitle=\"x\"\n+++\n\n```toml\na=1\n```\n"
 Prettier: "+++\ntitle=\"x\"\n+++\n\n```toml\na=1\n```\n"
 tidy:     "+++\ntitle = \"x\"\n+++\n\n```toml\na = 1\n```\n"
-```
+````
 
 ## Dockerfile
 
@@ -940,15 +940,15 @@ tidy:   "﻿FROM a\n"
 ### dockerfile-embedded
 
 - Status: proposed
-- Why: Prettier has no Dockerfile formatter, so it leaves ```` ```dockerfile ```` code blocks as they are written. tidy formats them as it formats a Dockerfile, at the start of a line only, since indenting a heredoc would change it.
+- Why: Prettier has no Dockerfile formatter, so it leaves ` ```dockerfile ` code blocks as they are written. tidy formats them as it formats a Dockerfile, at the start of a line only, since indenting a heredoc would change it.
 - Where: crates/tidy/src/embed.rs (`own`, `builtin`)
 - Parser: markdown
 
-```
+````
 input:    "```dockerfile\nfrom   node\n```\n"
 Prettier: "```dockerfile\nfrom   node\n```\n"
 tidy:     "```dockerfile\nFROM node\n```\n"
-```
+````
 
 ## INI
 
@@ -1028,15 +1028,15 @@ tidy:   "a =\n\nb = 1\n"
 ### ini-embedded
 
 - Status: proposed
-- Why: Prettier has no INI formatter of its own, so it leaves ```` ```ini ```` code blocks as they are written. tidy formats them as it formats an INI file, at the start of a line only, since an indent can continue a value.
+- Why: Prettier has no INI formatter of its own, so it leaves ` ```ini ` code blocks as they are written. tidy formats them as it formats an INI file, at the start of a line only, since an indent can continue a value.
 - Where: crates/tidy/src/embed.rs (`own`, `builtin`)
 - Parser: markdown
 
-```
+````
 input:    "```ini\na=1\n```\n"
 Prettier: "```ini\na=1\n```\n"
 tidy:     "```ini\na = 1\n```\n"
-```
+````
 
 ## GraphQL
 

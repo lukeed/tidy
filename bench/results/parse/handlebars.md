@@ -2,10 +2,10 @@
 
 57 of 57 files, 0.12 MB: the files that every tool accepts. Each tool parses them on one thread, from memory, and drops what it builds. A time is the median of 20 passes. The tools build different things: a tree for a formatter keeps comments and positions, and a value keeps only the data.
 
-| Tool | Builds | Time | Speed | Against fastest | Rejects |
-| --- | --- | ---: | ---: | ---: | ---: |
-| tidy | HTML and tags | 0.32 ms | 377 MB/s | 1.00x | 0 |
-| handlebars | tags only | 11.77 ms | 10 MB/s | 36.70x | 0 |
+| Tool       | Builds        |     Time |    Speed | Against fastest | Rejects |
+| ---------- | ------------- | -------: | -------: | --------------: | ------: |
+| tidy       | HTML and tags |  0.32 ms | 377 MB/s |           1.00x |       0 |
+| handlebars | tags only     | 11.77 ms |  10 MB/s |          36.70x |       0 |
 
 ## Setup
 

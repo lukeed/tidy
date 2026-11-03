@@ -5,15 +5,22 @@
 import { join } from "node:path";
 import * as prettier from "prettier";
 
-type Case = { input: string; options?: Record<string, unknown>; output?: string };
+type Case = {
+  input: string;
+  options?: Record<string, unknown>;
+  output?: string;
+};
 
 let path = join(import.meta.dir, "../../crates/tidy/tests/json.json");
 let cases: Case[] = await Bun.file(path).json();
 for (let test of cases) {
-	try {
-		test.output = await prettier.format(test.input, { parser: "json", ...test.options });
-	} catch {
-		test.output = "!error";
-	}
+  try {
+    test.output = await prettier.format(test.input, {
+      parser: "json",
+      ...test.options,
+    });
+  } catch {
+    test.output = "!error";
+  }
 }
 await Bun.write(path, `${JSON.stringify(cases, null, 1)}\n`);

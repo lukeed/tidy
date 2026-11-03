@@ -10,60 +10,173 @@ import { format } from "../../../crates/tidy_napi/index.js";
 const PRETTIER = "prettier@3.9.10";
 
 type Kind = "meaning" | "layout";
-type Case = { id: string; title: string; why: string; kind: Kind; signed: string; wrap?: string; width?: number };
+type Case = {
+  id: string;
+  title: string;
+  why: string;
+  kind: Kind;
+  signed: string;
+  wrap?: string;
+  width?: number;
+};
 
 const cases: Case[] = [
-	{ id: "task-html", kind: "meaning", signed: "rule", title: "HTML in a task item keeps its indent", why: "Prettier moves the HTML block to the margin, out of the list item, and indents its later lines past the box: each pass adds 4 more spaces." },
-	{ id: "continuation", kind: "meaning", signed: "rule", title: "An indented line that would open a block keeps its indent", why: "Without the indent, the fence, thematic break, or HTML tag opens a block and ends the paragraph." },
-	{ id: "link-target", kind: "meaning", signed: "rule", title: "Link targets stay as written where Prettier's form reads differently", why: "Prettier writes the parsed URL. An unbalanced `(` then ends the link, and a backslash, `<`, `>`, or an entity changes the target." },
-	{ id: "emphasis", kind: "meaning", signed: "rule", title: "An emphasis mark right after `*` is `_`", why: "Prettier writes `*`, which merges into `***` and nests the other way." },
-	{ id: "code-span", kind: "meaning", signed: "rule", title: "A code span over two lines keeps its second line as written", why: "Prettier writes it from the parsed value, without the container's indent or `>`, so the second line leaves the list item or quote." },
-	{ id: "nested-blank", kind: "meaning", signed: "rule", title: "A blank line before a nested list stays when it is all that keeps the list loose", why: "Prettier drops a blank line before a nested list after anything but a paragraph or code. When no other blank line keeps the list loose, it turns tight, and its paragraphs lose their `<p>`." },
-	{ id: "wrap-html", kind: "meaning", signed: "rule", wrap: "always", width: 20, title: "Filling never starts a line with a tag that opens an HTML block", why: "Prettier breaks before `<div>`, `<script>`, or `<!--`, which then opens an HTML block. tidy moves the word before it down too, as Prettier does for `>` and list markers." },
-	{ id: "wrap-first-tag", kind: "meaning", signed: "rule", wrap: "always", width: 20, title: "A paragraph's first line is never a tag alone", why: "A lone complete tag on the first line starts an HTML block (CommonMark type 7), so the paragraph turns into raw HTML." },
-	{ id: "wrap-cj-latin", kind: "meaning", signed: "rule", wrap: "always", width: 20, title: "A line break between Chinese or Japanese and Latin text joins as a space", why: "Prettier joins with nothing when the paragraph mostly has no such spaces, which removes a space that renders." },
-	{ id: "wrap-cj-emoji", kind: "meaning", signed: "rule", wrap: "always", width: 20, title: "A line break between Chinese or Japanese and an emoji joins with nothing", why: "Both are wide, so CSS renders the break as nothing. Prettier treats the emoji as Latin text and may write a space, which renders." },
-	{ id: "wrap-label", kind: "meaning", signed: "rule", wrap: "always", width: 20, title: "A line break between wide characters in a link label stays", why: "Joining with nothing would change the label so it no longer matches its definition, and Prettier's space renders where the break does not." },
+  {
+    id: "task-html",
+    kind: "meaning",
+    signed: "rule",
+    title: "HTML in a task item keeps its indent",
+    why: "Prettier moves the HTML block to the margin, out of the list item, and indents its later lines past the box: each pass adds 4 more spaces.",
+  },
+  {
+    id: "continuation",
+    kind: "meaning",
+    signed: "rule",
+    title: "An indented line that would open a block keeps its indent",
+    why: "Without the indent, the fence, thematic break, or HTML tag opens a block and ends the paragraph.",
+  },
+  {
+    id: "link-target",
+    kind: "meaning",
+    signed: "rule",
+    title:
+      "Link targets stay as written where Prettier's form reads differently",
+    why: "Prettier writes the parsed URL. An unbalanced `(` then ends the link, and a backslash, `<`, `>`, or an entity changes the target.",
+  },
+  {
+    id: "emphasis",
+    kind: "meaning",
+    signed: "rule",
+    title: "An emphasis mark right after `*` is `_`",
+    why: "Prettier writes `*`, which merges into `***` and nests the other way.",
+  },
+  {
+    id: "code-span",
+    kind: "meaning",
+    signed: "rule",
+    title: "A code span over two lines keeps its second line as written",
+    why: "Prettier writes it from the parsed value, without the container's indent or `>`, so the second line leaves the list item or quote.",
+  },
+  {
+    id: "nested-blank",
+    kind: "meaning",
+    signed: "rule",
+    title:
+      "A blank line before a nested list stays when it is all that keeps the list loose",
+    why: "Prettier drops a blank line before a nested list after anything but a paragraph or code. When no other blank line keeps the list loose, it turns tight, and its paragraphs lose their `<p>`.",
+  },
+  {
+    id: "wrap-html",
+    kind: "meaning",
+    signed: "rule",
+    wrap: "always",
+    width: 20,
+    title: "Filling never starts a line with a tag that opens an HTML block",
+    why: "Prettier breaks before `<div>`, `<script>`, or `<!--`, which then opens an HTML block. tidy moves the word before it down too, as Prettier does for `>` and list markers.",
+  },
+  {
+    id: "wrap-first-tag",
+    kind: "meaning",
+    signed: "rule",
+    wrap: "always",
+    width: 20,
+    title: "A paragraph's first line is never a tag alone",
+    why: "A lone complete tag on the first line starts an HTML block (CommonMark type 7), so the paragraph turns into raw HTML.",
+  },
+  {
+    id: "wrap-cj-latin",
+    kind: "meaning",
+    signed: "rule",
+    wrap: "always",
+    width: 20,
+    title:
+      "A line break between Chinese or Japanese and Latin text joins as a space",
+    why: "Prettier joins with nothing when the paragraph mostly has no such spaces, which removes a space that renders.",
+  },
+  {
+    id: "wrap-cj-emoji",
+    kind: "meaning",
+    signed: "rule",
+    wrap: "always",
+    width: 20,
+    title:
+      "A line break between Chinese or Japanese and an emoji joins with nothing",
+    why: "Both are wide, so CSS renders the break as nothing. Prettier treats the emoji as Latin text and may write a space, which renders.",
+  },
+  {
+    id: "wrap-label",
+    kind: "meaning",
+    signed: "rule",
+    wrap: "always",
+    width: 20,
+    title: "A line break between wide characters in a link label stays",
+    why: "Joining with nothing would change the label so it no longer matches its definition, and Prettier's space renders where the break does not.",
+  },
 ];
 
-const signoff = { rule: "Luke's rule: formatting never changes what a document means.", pending: "Not signed off yet: ask Luke." };
+const signoff = {
+  rule: "Luke's rule: formatting never changes what a document means.",
+  pending: "Not signed off yet: ask Luke.",
+};
 
 let root = new URL("../../..", import.meta.url).pathname;
 
 let visible = (text: string) =>
-	text
-		.replaceAll("\t", "→")
-		.split("\n")
-		.map((line) => line.replace(/ +$/, (spaces) => "·".repeat(spaces.length)))
-		.join("\n");
-let block = (label: string, text: string) => `${label}:\n\n\`\`\`\`markdown\n${visible(text).trimEnd()}\n\`\`\`\`\n`;
+  text
+    .replaceAll("\t", "→")
+    .split("\n")
+    .map((line) => line.replace(/ +$/, (spaces) => "·".repeat(spaces.length)))
+    .join("\n");
+let block = (label: string, text: string) =>
+  `${label}:\n\n\`\`\`\`markdown\n${visible(text).trimEnd()}\n\`\`\`\`\n`;
 
 let sections = [
-	"# Divergences from Prettier\n",
-	"<!-- Generated by `mise run oracle:markdown:divergences` from `tests/oracle/markdown/divergences.ts` and `tests/oracle/markdown/divergences/*.md`. Edit those, not this file. -->\n",
-	`Where tidy's Markdown formatter, with its Prettier preset, differs from ${PRETTIER} on purpose. Each case is a minimal input run through both. \`→\` is a tab and \`·\` is a trailing space. A _meaning_ entry is a place where Prettier's output reads differently from its input; a _layout_ entry is a choice between two outputs that read the same. Gaps that tidy should close, and parser bugs, are in \`crates/tidy/src/markdown/handoff.md\` instead. The other languages' deviations are in \`deviations.md\`.\n`,
+  "# Divergences from Prettier\n",
+  "<!-- Generated by `mise run oracle:markdown:divergences` from `tests/oracle/markdown/divergences.ts` and `tests/oracle/markdown/divergences/*.md`. Edit those, not this file. -->\n",
+  `Where tidy's Markdown formatter, with its Prettier preset, differs from ${PRETTIER} on purpose. Each case is a minimal input run through both. \`→\` is a tab and \`·\` is a trailing space. A _meaning_ entry is a place where Prettier's output reads differently from its input; a _layout_ entry is a choice between two outputs that read the same. Gaps that tidy should close, and parser bugs, are in \`crates/tidy/src/markdown/handoff.md\` instead. The other languages' deviations are in \`deviations.md\`.\n`,
 ];
 let stale = 0;
 for (let entry of cases) {
-	let file = join(root, "tests", "oracle", "markdown", "divergences", `${entry.id}.md`);
-	let input = await Bun.file(file).text();
-	let wrap = entry.wrap ?? "preserve";
-	let width = String(entry.width ?? 80);
-	let flags = ["--no-config", "--no-editorconfig", "--embedded-language-formatting=off", `--prose-wrap=${wrap}`, `--print-width=${width}`];
-	let expected = await $`bunx ${PRETTIER} ${flags} --stdin-filepath x.md < ${file}`.text();
-	let actual = format(input, { parser: "markdown", embedded: false, width: Number(width), markdown: { wrap } });
-	let same = expected === actual;
-	stale += Number(same);
-	let options = entry.wrap ? ` (\`wrap: ${wrap}\`, width ${width})` : "";
-	sections.push(
-		`## ${entry.title}${same ? " (stale: tidy now matches)" : ""}\n`,
-		`\`${entry.id}\`${options}. Kind: ${entry.kind}. ${signoff[entry.signed as keyof typeof signoff]}\n`,
-		`${entry.why}\n`,
-		block("Input", input),
-		block("Prettier", expected),
-		block("tidy", actual),
-	);
+  let file = join(
+    root,
+    "tests",
+    "oracle",
+    "markdown",
+    "divergences",
+    `${entry.id}.md`,
+  );
+  let input = await Bun.file(file).text();
+  let wrap = entry.wrap ?? "preserve";
+  let width = String(entry.width ?? 80);
+  let flags = [
+    "--no-config",
+    "--no-editorconfig",
+    "--embedded-language-formatting=off",
+    `--prose-wrap=${wrap}`,
+    `--print-width=${width}`,
+  ];
+  let expected =
+    await $`bunx ${PRETTIER} ${flags} --stdin-filepath x.md < ${file}`.text();
+  let actual = format(input, {
+    parser: "markdown",
+    embedded: false,
+    width: Number(width),
+    markdown: { wrap },
+  });
+  let same = expected === actual;
+  stale += Number(same);
+  let options = entry.wrap ? ` (\`wrap: ${wrap}\`, width ${width})` : "";
+  sections.push(
+    `## ${entry.title}${same ? " (stale: tidy now matches)" : ""}\n`,
+    `\`${entry.id}\`${options}. Kind: ${entry.kind}. ${signoff[entry.signed as keyof typeof signoff]}\n`,
+    `${entry.why}\n`,
+    block("Input", input),
+    block("Prettier", expected),
+    block("tidy", actual),
+  );
 }
 let doc = format(sections.join("\n"), { parser: "markdown", embedded: false });
 await Bun.write(join(root, "docs/markdown-divergences.md"), doc);
-console.log(`docs/markdown-divergences.md: ${cases.length} cases, ${stale} stale`);
+console.log(
+  `docs/markdown-divergences.md: ${cases.length} cases, ${stale} stale`,
+);

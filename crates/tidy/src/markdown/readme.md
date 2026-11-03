@@ -8,14 +8,13 @@ Most formatters parse your Markdown into a tree, turn that tree into a layout do
 
 It fixes how blocks are laid out &mdash; list markers, indentation, blank lines, headings, fences, tables &mdash; and copies everything inside a line exactly as you wrote it. So your escapes, entities, links, and HTML never move. That's also why it's fast: there's very little left to decide.
 
-* 1.75x faster than `bun fmt`, which is already _very_ fast
-* Matches Prettier's output on 99%+ of real-world files, out of the box
-* Keeps what a document means: the tests re-parse every output and compare it to the input
-* Presets plus per-option overrides, so you can keep your own markers
-* Supports `prettier-ignore` style directives, under any name you like
-* Hands code blocks & front matter to you, so your other formatters can take a pass
-* Rust library, CLI, and Node binding
-
+- 1.75x faster than `bun fmt`, which is already _very_ fast
+- Matches Prettier's output on 99%+ of real-world files, out of the box
+- Keeps what a document means: the tests re-parse every output and compare it to the input
+- Presets plus per-option overrides, so you can keep your own markers
+- Supports `prettier-ignore` style directives, under any name you like
+- Hands code blocks & front matter to you, so your other formatters can take a pass
+- Rust library, CLI, and Node binding
 
 ## Install
 
@@ -24,7 +23,6 @@ $ cargo add tidy         # library
 $ cargo install tidy_cli # CLI
 $ bun add tidyrs         # Node binding
 ```
-
 
 ## Usage
 
@@ -63,38 +61,40 @@ let output = tidy::markdown::format_with(source, &options, |code| match code.lan
 import { check, format } from "tidyrs";
 
 let output = format("* one\n* two\n", { parser: "markdown" }); //=> "- one\n- two\n"
-let options = { parser: "markdown", markdown: { preset: "preserve", wrap: "always" } };
+let options = {
+  parser: "markdown",
+  markdown: { preset: "preserve", wrap: "always" },
+};
 let pretty = format(input, options, (code) => {
-  if (code.language === "json") return JSON.stringify(JSON.parse(code.code), null, 2);
+  if (code.language === "json")
+    return JSON.stringify(JSON.parse(code.code), null, 2);
 });
 
 if (!check(input, { parser: "markdown" })) process.exitCode = 1;
 ```
 
-
 ## Options
 
 Every option starts from a preset. `prettier` is the default; `preserve` keeps every marker as written and only fixes the layout.
 
-| Option      | Values                                     | `prettier`        | `preserve`      |
-| ----------- | ------------------------------------------ | ----------------- | --------------- |
-| `width`     | any number                                 | `80`              | `80`            |
-| `wrap`      | `preserve`, `always`, `never`              | `preserve`        | `preserve`      |
-| `bullet`    | `keep`, `dash`, `asterisk`, `plus`         | `dash`            | `keep`          |
-| `emphasis`  | `keep`, `underscore`, `asterisk`           | `underscore`      | `keep`          |
-| `strong`    | `keep`, `asterisk`, `underscore`           | `asterisk`        | `keep`          |
-| `numbering` | `keep`, `auto`                             | `auto`            | `keep`          |
-| `rule`      | `keep`, `dash`, `asterisk`, `underscore`   | `dash`            | `keep`          |
-| `fence`     | `keep`, `backtick`, `tilde`                | `backtick`        | `keep`          |
-| `heading`   | `keep`, `atx`                              | `keep`            | `keep`          |
-| `ignore`    | any name                                   | `prettier-ignore` | `tidy-ignore`   |
+| Option      | Values                                   | `prettier`        | `preserve`    |
+| ----------- | ---------------------------------------- | ----------------- | ------------- |
+| `width`     | any number                               | `80`              | `80`          |
+| `wrap`      | `preserve`, `always`, `never`            | `preserve`        | `preserve`    |
+| `bullet`    | `keep`, `dash`, `asterisk`, `plus`       | `dash`            | `keep`        |
+| `emphasis`  | `keep`, `underscore`, `asterisk`         | `underscore`      | `keep`        |
+| `strong`    | `keep`, `asterisk`, `underscore`         | `asterisk`        | `keep`        |
+| `numbering` | `keep`, `auto`                           | `auto`            | `keep`        |
+| `rule`      | `keep`, `dash`, `asterisk`, `underscore` | `dash`            | `keep`        |
+| `fence`     | `keep`, `backtick`, `tilde`              | `backtick`        | `keep`        |
+| `heading`   | `keep`, `atx`                            | `keep`            | `keep`        |
+| `ignore`    | any name                                 | `prettier-ignore` | `tidy-ignore` |
 
 A few of these bend on purpose, the same way Prettier does:
 
-* Adjacent sibling lists alternate their marker (`-` then `*`), or else they'd merge into one list
-* `_` emphasis falls back to `*` inside a word, where `_` doesn't work
-* `auto` numbering counts up from the first number &mdash; unless your second item repeats it (`1.`, `1.`, `1.`), in which case it's kept
-
+- Adjacent sibling lists alternate their marker (`-` then `*`), or else they'd merge into one list
+- `_` emphasis falls back to `*` inside a word, where `_` doesn't work
+- `auto` numbering counts up from the first number &mdash; unless your second item repeats it (`1.`, `1.`, `1.`), in which case it's kept
 
 ## Ignore directives
 
@@ -112,7 +112,6 @@ Everything in here is left alone.
 
 A range only counts at the top level, not inside a quote or list, as in Prettier. And `<!-- prettier-ignore-file -->` at the top of a file (after any front matter) skips the whole file.
 
-
 ## Benchmarks
 
 Check mode with all cores, code blocks left alone. The mean of both run orders, since whichever runs first is slower. Run your own with `mise run bench -- --only markdown`.
@@ -127,7 +126,6 @@ prettier          6,527 ms
 ```
 
 > Measured on an M1 Max with Bun 1.4.4, whose `bun fmt` matches Prettier byte for byte.
-
 
 ## License
 

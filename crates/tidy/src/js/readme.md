@@ -34,19 +34,19 @@ bun's tree is built for its type checker, not ESTree. Where they differ, `js::as
 - `Member` is an element of a class, an interface or a type literal. `Prop` is a property of an object literal.
 - `Pat` is a binding pattern, `Param` a formal parameter, `TypeNode` a TypeScript type.
 
-| bun handle | oxc nodes |
-| --- | --- |
-| `Expr` | every `Expression` but `ParenthesizedExpression` and `ChainExpression`, `Elision`, `JSXText`, `JSXEmptyExpression`, JSX names and string values |
-| `Stmt` | every `Statement`, and `VariableDeclaration` in a `for` head |
-| `TypeNode` | every `TSType` |
-| `Func` | `Function`, `ArrowFunctionExpression` |
-| `Class` | `Class` |
-| `Member` | `ClassElement`, `TSSignature` |
-| `Prop` | `ObjectProperty`, a `SpreadElement` in an object |
-| `Pat`, `PatProp`, `PatElem` | `BindingPattern`, `BindingProperty`, an element of `ArrayPattern` |
-| `Param`, `TypeParam` | `FormalParameter`, `FormalParameterRest`, `TSThisParameter`, `TSIndexSignatureName`; `TSTypeParameter` and a mapped type's key |
-| `VarDecl`, `Case`, `EnumMember` | `VariableDeclarator`, `SwitchCase`, `TSEnumMember` |
-| `ImportSpec`, `ExportSpec`, `TupleElem` | `ImportDeclarationSpecifier`, `ExportSpecifier`, `TSTupleElement` |
+| bun handle                              | oxc nodes                                                                                                                                       |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Expr`                                  | every `Expression` but `ParenthesizedExpression` and `ChainExpression`, `Elision`, `JSXText`, `JSXEmptyExpression`, JSX names and string values |
+| `Stmt`                                  | every `Statement`, and `VariableDeclaration` in a `for` head                                                                                    |
+| `TypeNode`                              | every `TSType`                                                                                                                                  |
+| `Func`                                  | `Function`, `ArrowFunctionExpression`                                                                                                           |
+| `Class`                                 | `Class`                                                                                                                                         |
+| `Member`                                | `ClassElement`, `TSSignature`                                                                                                                   |
+| `Prop`                                  | `ObjectProperty`, a `SpreadElement` in an object                                                                                                |
+| `Pat`, `PatProp`, `PatElem`             | `BindingPattern`, `BindingProperty`, an element of `ArrayPattern`                                                                               |
+| `Param`, `TypeParam`                    | `FormalParameter`, `FormalParameterRest`, `TSThisParameter`, `TSIndexSignatureName`; `TSTypeParameter` and a mapped type's key                  |
+| `VarDecl`, `Case`, `EnumMember`         | `VariableDeclarator`, `SwitchCase`, `TSEnumMember`                                                                                              |
+| `ImportSpec`, `ExportSpec`, `TupleElem` | `ImportDeclarationSpecifier`, `ExportSpecifier`, `TSTupleElement`                                                                               |
 
 ## Comments
 

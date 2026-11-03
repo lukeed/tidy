@@ -2,14 +2,14 @@
 
 2156 of 2511 files, 4.92 MB: the files that every tool accepts. Each tool parses them on one thread, from memory, and drops what it builds. A time is the median of 20 passes. The tools build different things: a tree for a formatter keeps comments and positions, and a value keeps only the data.
 
-| Tool | Builds | Time | Speed | Against fastest | Rejects |
-| --- | --- | ---: | ---: | ---: | ---: |
-| tidy | tree, comments | 9.53 ms | 517 MB/s | 1.00x | 0 |
-| oxc-graphql-parser | tree, comments | 9.99 ms | 493 MB/s | 1.05x | 0 |
-| apollo-parser | tree, trivia | 67.52 ms | 73 MB/s | 7.09x | 0 |
-| cynic-parser | query or schema | 36.97 ms | 133 MB/s | 3.88x | 0 |
-| graphql-parser | query or schema | 45.24 ms | 109 MB/s | 4.75x | 0 |
-| async-graphql-parser | query or schema | 164.43 ms | 30 MB/s | 17.26x | 355 |
+| Tool                 | Builds          |      Time |    Speed | Against fastest | Rejects |
+| -------------------- | --------------- | --------: | -------: | --------------: | ------: |
+| tidy                 | tree, comments  |   9.53 ms | 517 MB/s |           1.00x |       0 |
+| oxc-graphql-parser   | tree, comments  |   9.99 ms | 493 MB/s |           1.05x |       0 |
+| apollo-parser        | tree, trivia    |  67.52 ms |  73 MB/s |           7.09x |       0 |
+| cynic-parser         | query or schema |  36.97 ms | 133 MB/s |           3.88x |       0 |
+| graphql-parser       | query or schema |  45.24 ms | 109 MB/s |           4.75x |       0 |
+| async-graphql-parser | query or schema | 164.43 ms |  30 MB/s |          17.26x |     355 |
 
 ## Setup
 

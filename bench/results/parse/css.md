@@ -2,12 +2,12 @@
 
 299 of 300 files, 0.23 MB: the files that every tool accepts. Each tool parses them on one thread, from memory, and drops what it builds. A time is the median of 20 passes. The tools build different things: a tree for a formatter keeps comments and positions, and a value keeps only the data.
 
-| Tool | Builds | Time | Speed | Against fastest | Rejects |
-| --- | --- | ---: | ---: | ---: | ---: |
-| tidy | tree, values as text | 1.12 ms | 201 MB/s | 1.00x | 0 |
-| raffia | tree, comments | 3.85 ms | 59 MB/s | 3.44x | 0 |
-| oxc-css-parser | tree, comments | 3.24 ms | 70 MB/s | 2.90x | 0 |
-| lightningcss | typed rules | 2.99 ms | 76 MB/s | 2.67x | 1 |
+| Tool           | Builds               |    Time |    Speed | Against fastest | Rejects |
+| -------------- | -------------------- | ------: | -------: | --------------: | ------: |
+| tidy           | tree, values as text | 1.12 ms | 201 MB/s |           1.00x |       0 |
+| raffia         | tree, comments       | 3.85 ms |  59 MB/s |           3.44x |       0 |
+| oxc-css-parser | tree, comments       | 3.24 ms |  70 MB/s |           2.90x |       0 |
+| lightningcss   | typed rules          | 2.99 ms |  76 MB/s |           2.67x |       1 |
 
 ## Setup
 

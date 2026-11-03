@@ -6,12 +6,12 @@ The Prettier preset matches Prettier 3.9.10 byte for byte where that keeps the d
 
 ## Open work
 
-| Item | Status |
-|---|---|
-| Starship | `starship/vendor/mdtidy` is a symlink to `~/repos/oss/mdtidy`, which still exists, so starship builds. Moving starship to `tidy::markdown` (rename `mdtidy::` to `tidy::markdown::` in `ss_check`, and point the path at tidy) is a change in starship. Ask Luke. |
-| Readme | `readme.md` here is mdtidy's, in Luke's voice. Its benchmark numbers are stale. Replace them with the final benchmarks (`mise run bench`). |
-| pulldown-cmark bugs | Two, not reported. Luke said not to report them. See [Bugs](#bugs). |
-| Publishing | Nothing is published. Ask Luke first, every time. |
+| Item                | Status                                                                                                                                                                                                                                                            |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Starship            | `starship/vendor/mdtidy` is a symlink to `~/repos/oss/mdtidy`, which still exists, so starship builds. Moving starship to `tidy::markdown` (rename `mdtidy::` to `tidy::markdown::` in `ss_check`, and point the path at tidy) is a change in starship. Ask Luke. |
+| Readme              | `readme.md` here is mdtidy's, in Luke's voice. Its benchmark numbers are stale. Replace them with the final benchmarks (`mise run bench`).                                                                                                                        |
+| pulldown-cmark bugs | Two, not reported. Luke said not to report them. See [Bugs](#bugs).                                                                                                                                                                                               |
+| Publishing          | Nothing is published. Ask Luke first, every time.                                                                                                                                                                                                                 |
 
 ## Gaps, divergences, and bugs
 
@@ -40,7 +40,7 @@ These are places where tidy should match Prettier and doesn't yet. Most files fi
 
 Two pulldown-cmark 0.13.6 bugs, both with tabs. tidy follows pulldown-cmark's reading, so its output is stable but differs from CommonMark:
 
-1. A closing fence followed by tabs (```` ```→→ ````) doesn't close the fence, so the rest of the file reads as code (seen in `v/doc/c_and_v_type_interoperability.md`).
+1. A closing fence followed by tabs (` ```→→ `) doesn't close the fence, so the rest of the file reads as code (seen in `v/doc/c_and_v_type_interoperability.md`).
 2. A tab-indented `>` after a quote line reads as a quote marker, though a tab is 4 columns.
 
 ## Tests, oracles, and benchmarks
@@ -59,12 +59,12 @@ Every command runs through mise, from the repo root.
 
 Corpora are not in the repo. `mise run oracle:markdown:corpora` copies the Markdown files that each checkout tracks, skipping `node_modules`:
 
-| Corpus | Repos | Files (2026-11-01) |
-|---|---|---|
-| A | `~/repos/oss/{vite,storybook,shadcn-svelte}` | 872 |
-| B | `~/repos/oss/bun`, `~/repos/personal/starship.io/starship` | 2,142 |
-| C | `~/repos/oss/{angular-html-parser,rolldown,jest,v,deno,deno_lint,oxc,prettier}`, `~/repos/testing/{bootstrap,everything-claude-code}` | 3,781 |
-| D | `~/repos/oss/prettier`, only `tests/format` | 308 |
+| Corpus | Repos                                                                                                                                 | Files (2026-11-01) |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| A      | `~/repos/oss/{vite,storybook,shadcn-svelte}`                                                                                          | 872                |
+| B      | `~/repos/oss/bun`, `~/repos/personal/starship.io/starship`                                                                            | 2,142              |
+| C      | `~/repos/oss/{angular-html-parser,rolldown,jest,v,deno,deno_lint,oxc,prettier}`, `~/repos/testing/{bootstrap,everything-claude-code}` | 3,781              |
+| D      | `~/repos/oss/prettier`, only `tests/format`                                                                                           | 308                |
 
 D is Prettier's edge-case fixtures: don't rank gaps by it. C has many files in Chinese and Japanese, which test wrapping.
 
@@ -72,11 +72,11 @@ D is Prettier's edge-case fixtures: don't rank gaps by it. C has many files in C
 
 Files that match Prettier 3.9.10, by `--wrap`, measured in mdtidy before the merge. After the merge, with `wrap: preserve`: A 871/872, B 2,141/2,142, C 3,764/3,781, D 301/308.
 
-| Wrap | A | B | C | D |
-|---|---|---|---|---|
+| Wrap               | A       | B           | C           | D       |
+| ------------------ | ------- | ----------- | ----------- | ------- |
 | preserve (default) | 871/872 | 2,141/2,142 | 3,456/3,466 | 303/310 |
-| always | 870 | 2,067 | 3,417 | 286 |
-| never | 870 | 2,142 | 3,444 | 292 |
+| always             | 870     | 2,067       | 3,417       | 286     |
+| never              | 870     | 2,142       | 3,444       | 292     |
 
 The semantics oracle passes on all four. Library speed: about 54 ms single-threaded for A+B (9.9 MB).
 

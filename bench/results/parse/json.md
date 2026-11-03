@@ -2,16 +2,16 @@
 
 4383 of 4569 files, 3.25 MB: the files that every tool accepts. Each tool parses them on one thread, from memory, and drops what it builds. A time is the median of 20 passes. The tools build different things: a tree for a formatter keeps comments and positions, and a value keeps only the data.
 
-| Tool | Builds | Time | Speed | Against fastest | Rejects |
-| --- | --- | ---: | ---: | ---: | ---: |
-| tidy parse | tree, comments | 6.58 ms | 494 MB/s | 1.52x | 0 |
-| tidy value | serde_json value | 13.01 ms | 250 MB/s | 3.00x | 1 |
-| jsonc-parser ast | tree, comments | 11.39 ms | 285 MB/s | 2.62x | 8 |
-| oxc_parser | JS tree, comments | 13.64 ms | 238 MB/s | 3.14x | 12 |
-| jsonc-parser value | own value | 11.84 ms | 274 MB/s | 2.73x | 8 |
-| jsonc-parser serde | serde_json value | 14.85 ms | 219 MB/s | 3.42x | 9 |
-| serde_json | value, strict | 9.11 ms | 357 MB/s | 2.10x | 185 |
-| sonic-rs | value, strict | 4.34 ms | 749 MB/s | 1.00x | 185 |
+| Tool               | Builds            |     Time |    Speed | Against fastest | Rejects |
+| ------------------ | ----------------- | -------: | -------: | --------------: | ------: |
+| tidy parse         | tree, comments    |  6.58 ms | 494 MB/s |           1.52x |       0 |
+| tidy value         | serde_json value  | 13.01 ms | 250 MB/s |           3.00x |       1 |
+| jsonc-parser ast   | tree, comments    | 11.39 ms | 285 MB/s |           2.62x |       8 |
+| oxc_parser         | JS tree, comments | 13.64 ms | 238 MB/s |           3.14x |      12 |
+| jsonc-parser value | own value         | 11.84 ms | 274 MB/s |           2.73x |       8 |
+| jsonc-parser serde | serde_json value  | 14.85 ms | 219 MB/s |           3.42x |       9 |
+| serde_json         | value, strict     |  9.11 ms | 357 MB/s |           2.10x |     185 |
+| sonic-rs           | value, strict     |  4.34 ms | 749 MB/s |           1.00x |     185 |
 
 ## Setup
 

@@ -2,14 +2,14 @@
 
 2834 files, 7.6 MB. Each tool checks every file. A time is the mean of 10 runs in each order, or 3 for Prettier. With embedded code formatted, only tidy, bun fmt, oxfmt and Prettier run, as the other tools can't format it.
 
-| Tool | Embedded off | Against tidy | Embedded on | Against tidy |
-| --- | ---: | ---: | ---: | ---: |
-| tidy | 36.5 ms | 1.00x | 43.7 ms | 1.00x |
-| bun | 70.5 ms | 1.93x | 77.7 ms | 1.78x |
-| oxfmt | 79.5 ms | 2.18x | 354.0 ms | 8.10x |
-| tidy (1 thread) | 112.7 ms | 3.09x | 217.2 ms | 4.97x |
-| dprint | 188.3 ms | 5.16x |  |  |
-| prettier | 6617.9 ms | 181.46x | 16219.4 ms | 370.89x |
+| Tool            | Embedded off | Against tidy | Embedded on | Against tidy |
+| --------------- | -----------: | -----------: | ----------: | -----------: |
+| tidy            |      36.5 ms |        1.00x |     43.7 ms |        1.00x |
+| bun             |      70.5 ms |        1.93x |     77.7 ms |        1.78x |
+| oxfmt           |      79.5 ms |        2.18x |    354.0 ms |        8.10x |
+| tidy (1 thread) |     112.7 ms |        3.09x |    217.2 ms |        4.97x |
+| dprint          |     188.3 ms |        5.16x |             |              |
+| prettier        |    6617.9 ms |      181.46x |  16219.4 ms |      370.89x |
 
 ## Setup
 

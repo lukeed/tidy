@@ -2,15 +2,15 @@
 
 2511 files, 4.8 MB. Each tool checks every file. A time is the mean of 10 runs in each order, or 3 for Prettier.
 
-| Tool | Time | Against tidy |
-| --- | ---: | ---: |
-| tidy | 37.2 ms | 1.00x |
-| bun | 63.3 ms | 1.70x |
-| oxfmt | 72.4 ms | 1.94x |
-| tidy (1 thread) | 95.0 ms | 2.55x |
-| biome | 157.7 ms | 4.23x |
-| dprint | 270.8 ms | 7.27x |
-| prettier | 1987.5 ms | 53.37x |
+| Tool            |      Time | Against tidy |
+| --------------- | --------: | -----------: |
+| tidy            |   37.2 ms |        1.00x |
+| bun             |   63.3 ms |        1.70x |
+| oxfmt           |   72.4 ms |        1.94x |
+| tidy (1 thread) |   95.0 ms |        2.55x |
+| biome           |  157.7 ms |        4.23x |
+| dprint          |  270.8 ms |        7.27x |
+| prettier        | 1987.5 ms |       53.37x |
 
 ## Setup
 
