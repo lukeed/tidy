@@ -2,7 +2,7 @@
 //! records the nodes; here they come from Prettier's `decorateComment` (`src/main/comments/attach.js`) over oxc's nodes,
 //! which are ESTree's but for the ones [`attachable`] skips.
 
-use super::{File, NONE, Node, Span, expression_id};
+use super::{Expr, ExprKind, ExprTag, File, NONE, Node, Span, expression_id};
 use oxc_ast::AstKind;
 use oxc_span::GetSpan;
 
@@ -123,7 +123,7 @@ impl<'a> File<'a> {
         (next, at) = (self.token_after(paren.end), paren.end);
         (enclosing, preceding, following) = self.surrounding(after, typescript, &mut sorted);
       }
-      records.push(Record {
+      let mut record = Record {
         span,
         block: comment.is_block(),
         multiline: comment.is_multiline_block(),
@@ -134,9 +134,52 @@ impl<'a> File<'a> {
         enclosing,
         preceding,
         following,
-      });
+      };
+      self.lead_left_side(&mut record, typescript, &mut sorted);
+      records.push(record);
     }
     records
+  }
+
+  /// A comment before the left side of an expression, inside the parentheses around it, is printed before the
+  /// expression, and the next formatting finds it there. A member chain prints it after the left side of its link.
+  fn lead_left_side(
+    &self,
+    record: &mut Record,
+    typescript: bool,
+    sorted: &mut rustc_hash::FxHashMap<u32, Vec<u32>>,
+  ) {
+    if is_ignore(&self.text.as_bytes()[record.span.start as usize..record.span.end as usize]) {
+      return;
+    }
+    while record.preceding == NONE
+      && let Some(Node::Expr(left)) = Node::of(self, record.following)
+      && let Some(Node::Expr(e)) = Node::of(self, record.enclosing)
+      && e.has_naked_left_side()
+      && e.left_side().is_some_and(|it| it.id == left.id)
+      // Prettier prints the comments of a function that is called or tagged inside its parentheses.
+      && !(left.as_fn().is_some() && matches!(e.tag(), ExprTag::Call | ExprTag::TaggedTemplate))
+      && let start = self.decorated_span(e.id).start
+      && 0 < start
+      && start < record.span.start
+    {
+      if is_in_member_chain(e) {
+        if is_link(left)
+          && let Some(side) = left.left_side()
+        {
+          let end = side.parens().last().map_or_else(|| side.span().end, |it| it.end);
+          (record.newline_before, record.prev, record.next) = (false, end, self.token_after(end));
+          let after = Span::new(end, end + 1);
+          (record.enclosing, record.preceding, record.following) =
+            self.surrounding(after, typescript, sorted);
+        }
+        return;
+      }
+      record.prev = self.token_before(start);
+      let before = Span::new(start - 1, start);
+      (record.enclosing, record.preceding, record.following) =
+        self.surrounding(before, typescript, sorted);
+    }
   }
 
   /// The end of the token before `at`: white space and comments are skipped.
@@ -371,6 +414,36 @@ fn is_space(text: &[u8], at: u32) -> bool {
 
 fn breaks(gap: &[u8]) -> bool {
   gap.iter().any(|&byte| byte == b'\n' || byte == b'\r')
+}
+
+/// `// prettier-ignore`, which ignores the node that it leads.
+fn is_ignore(text: &[u8]) -> bool {
+  let content = match text {
+    [b'/', b'*', content @ .., b'*', b'/'] | [b'/', b'/', content @ ..] => content,
+    content => content,
+  };
+  matches!(crate::js::strings::trim_js_whitespace(content), b"prettier-ignore" | b"oxfmt-ignore")
+}
+
+/// A call or a member access, which a member chain prints as one of its links.
+fn is_link(e: Expr<'_>) -> bool {
+  matches!(e.tag(), ExprTag::Call | ExprTag::Dot | ExprTag::Index)
+}
+
+/// A link of a call or member access that ends in a call of a member, which Prettier prints as a member chain.
+fn is_in_member_chain(mut e: Expr<'_>) -> bool {
+  while is_link(e) {
+    if let ExprKind::Call(call) = e.kind()
+      && is_link(call.callee())
+    {
+      return true;
+    }
+    match e.parent() {
+      Node::Expr(parent) if parent.left_side().is_some_and(|it| it.id == e.id) => e = parent,
+      _ => return false,
+    }
+  }
+  false
 }
 
 /// True if the expression with `id` keeps a comment after it inside its parentheses when they're printed: an operand

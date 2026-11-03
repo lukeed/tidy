@@ -102,53 +102,6 @@ impl<'a> Format<'a> for FormatAdjacentArgument<'a> {
   }
 }
 
-/// Prettier's `hasNakedLeftSide`, plus `a<T>`. Prettier doesn't check for it and turns `return (// comment⏎a)<T>;` into
-/// `return // comment⏎a<T>;`.
-fn has_naked_left_side(e: Expr<'_>) -> bool {
-  match e.kind() {
-    ExprKind::Assign { .. }
-    | ExprKind::Binary { .. }
-    | ExprKind::Sequence(_)
-    | ExprKind::Cond { .. }
-    | ExprKind::Call(_)
-    | ExprKind::Dot { .. }
-    | ExprKind::Index { .. }
-    | ExprKind::TaggedTemplate(_)
-    | ExprKind::NonNull(_)
-    | ExprKind::Satisfies { .. }
-    | ExprKind::Instantiation { .. } => true,
-    ExprKind::As { .. } | ExprKind::AsConst(_) => !e.is_angle_bracket_assertion(),
-    ExprKind::Unary { op, .. } => matches!(op, UnOp::PostInc | UnOp::PostDec),
-    _ => false,
-  }
-}
-
-/// Prettier's `getLeftSide`. It takes the first of a few properties that the node has, so it also descends into the
-/// operand of `!a`, `await a` and `<T>a`, the callee of `new A()` and the first `${}` of a template.
-fn left_side(e: Expr<'_>) -> Option<Expr<'_>> {
-  match e.kind() {
-    ExprKind::Sequence(expressions) => expressions.first(),
-    ExprKind::Template(template) => template.exprs().first(),
-    ExprKind::Binary { left, .. } => Some(left),
-    ExprKind::Assign { target, .. } => Some(target),
-    ExprKind::Cond { test, .. } => Some(test),
-    ExprKind::Call(call) | ExprKind::New(call) | ExprKind::TaggedTemplate(call) => {
-      Some(call.callee())
-    }
-    ExprKind::Dot { obj, .. } | ExprKind::Index { obj, .. } => Some(obj),
-    ExprKind::Unary { operand, .. } | ExprKind::Await(operand) | ExprKind::Spread(operand) => {
-      Some(operand)
-    }
-    ExprKind::Yield { value, .. } => value,
-    ExprKind::NonNull(expr)
-    | ExprKind::As { expr, .. }
-    | ExprKind::AsConst(expr)
-    | ExprKind::Satisfies { expr, .. }
-    | ExprKind::Instantiation { expr, .. } => Some(expr),
-    _ => None,
-  }
-}
-
 /// `return !(// comment⏎a) && b;`: Prettier finds the comment because its `getLeftSide` descends into the operand of
 /// `!`, and wraps the argument in parentheses. oxfmt stops at `!a`.
 fn left_edge_descends_into_operands(f: &Formatter<'_>) -> bool {
@@ -207,7 +160,7 @@ fn has_comment_on_left_edge<'a>(
   if has_leading_comment {
     return true;
   }
-  if is_cast || !has_naked_left_side(argument) {
+  if is_cast || !argument.has_naked_left_side() {
     return false;
   }
   let looks_at_properties =
@@ -230,10 +183,10 @@ fn has_comment_on_left_edge<'a>(
   // printed after it, along with its comments.
   let mut chain_head = None;
   let mut current = argument;
-  while let Some(left) = left_side(current)
-    && (has_naked_left_side(current) || (matches_prettier && left_edge_descends_into_operands(f)))
+  while let Some(left) = current.left_side()
+    && (current.has_naked_left_side() || (matches_prettier && left_edge_descends_into_operands(f)))
   {
-    is_right_after_keyword &= has_naked_left_side(current);
+    is_right_after_keyword &= current.has_naked_left_side();
     if !is_right_after_keyword && !matches_prettier {
       return false;
     }

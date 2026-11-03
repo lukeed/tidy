@@ -153,6 +153,23 @@ fn prints_prettier_fixed_point_for_comments_before_links() {
 }
 
 #[test]
+fn prints_prettier_fixed_point_for_comments_before_left_sides() {
+  let cases = [
+    ("x = (\n  // c\n  42\n) * 84 + 2;\n", "x =\n  // c\n  42 * 84 + 2;\n"),
+    ("x = (\n  // c\n  a.b(1)\n).c();\n", "x = a\n  .b // c\n  (1)\n  .c();\n"),
+    ("x = (\n  // c\n  a.b\n).c();\n", "x = a.b // c\n  .c();\n"),
+    ("x = (/* c */ a.b()).c();\n", "x = a\n  .b /* c */\n  ()\n  .c();\n"),
+    ("x = (\n  // c\n  a\n).c();\n", "x = a\n  // c\n  .c();\n"),
+    ("foo /* c */\n`\n`;\n", "foo /* c */ `\n`;\n"),
+  ];
+  for (text, expected) in cases {
+    let once = format(text, "a.js", &Options::default());
+    assert_eq!(once, expected);
+    assert_eq!(format(&once, "a.js", &Options::default()), once);
+  }
+}
+
+#[test]
 fn prints_prettier_fixed_point_for_comments_before_branches() {
   let text = "y = a ? b : (\n  /* c */\n  d\n);\n";
   let once = format(text, "a.js", &Options::default());

@@ -21,6 +21,10 @@ fn lines_before(comment: Comment<'_>, f: &Formatter<'_>) -> usize {
       len => Some(&text[..text.len() - len]),
     }
   }
+  // Placed where it is printed, as `a.b // comment` in a member chain.
+  if !comment.has_newline_before() {
+    return 0;
+  }
   let before = f.source_text().text_for(&Span::before(0, comment.span()));
   match without_last_line(before) {
     None => 0,

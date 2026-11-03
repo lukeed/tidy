@@ -687,6 +687,53 @@ impl<'a> Expr<'a> {
     }
   }
 
+  /// Prettier's `hasNakedLeftSide`, plus `a<T>`. Prettier doesn't check for it and turns `return (// comment⏎a)<T>;` into
+  /// `return // comment⏎a<T>;`.
+  pub(crate) fn has_naked_left_side(self) -> bool {
+    match self.kind() {
+      ExprKind::Assign { .. }
+      | ExprKind::Binary { .. }
+      | ExprKind::Sequence(_)
+      | ExprKind::Cond { .. }
+      | ExprKind::Call(_)
+      | ExprKind::Dot { .. }
+      | ExprKind::Index { .. }
+      | ExprKind::TaggedTemplate(_)
+      | ExprKind::NonNull(_)
+      | ExprKind::Satisfies { .. }
+      | ExprKind::Instantiation { .. } => true,
+      ExprKind::As { .. } | ExprKind::AsConst(_) => !self.is_angle_bracket_assertion(),
+      ExprKind::Unary { op, .. } => matches!(op, UnOp::PostInc | UnOp::PostDec),
+      _ => false,
+    }
+  }
+
+  /// Prettier's `getLeftSide`. It takes the first of a few properties that the node has, so it also descends into the
+  /// operand of `!a`, `await a` and `<T>a`, the callee of `new A()` and the first `${}` of a template.
+  pub(crate) fn left_side(self) -> Option<Expr<'a>> {
+    match self.kind() {
+      ExprKind::Sequence(expressions) => expressions.first(),
+      ExprKind::Template(template) => template.exprs().first(),
+      ExprKind::Binary { left, .. } => Some(left),
+      ExprKind::Assign { target, .. } => Some(target),
+      ExprKind::Cond { test, .. } => Some(test),
+      ExprKind::Call(call) | ExprKind::New(call) | ExprKind::TaggedTemplate(call) => {
+        Some(call.callee())
+      }
+      ExprKind::Dot { obj, .. } | ExprKind::Index { obj, .. } => Some(obj),
+      ExprKind::Unary { operand, .. } | ExprKind::Await(operand) | ExprKind::Spread(operand) => {
+        Some(operand)
+      }
+      ExprKind::Yield { value, .. } => value,
+      ExprKind::NonNull(expr)
+      | ExprKind::As { expr, .. }
+      | ExprKind::AsConst(expr)
+      | ExprKind::Satisfies { expr, .. }
+      | ExprKind::Instantiation { expr, .. } => Some(expr),
+      _ => None,
+    }
+  }
+
   /// `<T>e` or `<const>e`, as opposed to `e as T`.
   pub(crate) fn is_angle_bracket_assertion(self) -> bool {
     matches!(self.file.kind(self.id), Some(AstKind::TSTypeAssertion(_)))
