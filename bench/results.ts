@@ -16,7 +16,7 @@ export async function record(path: string, title: string, sections: Section[], t
 	let lines = [`# ${title}`, ""];
 	for (let { title, summary, head, rows } of sections) {
 		if (title) lines.push(`## ${title}`, "");
-		let numeric = (index: number) => rows.every((row) => /^[\d.]/.test(row[index]));
+		let numeric = (index: number) => rows.every((row) => row[index] === "" || /^[\d.]/.test(row[index]));
 		lines.push(summary, "", line(head), line(head.map((_, index) => (numeric(index) ? "---:" : "---"))));
 		lines.push(...rows.map(line), "");
 	}

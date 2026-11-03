@@ -1,6 +1,7 @@
 // Times the JavaScript and TypeScript formatters against each other, and counts the files that each prints as Prettier
 // does. Each corpus has the files that Prettier parses. Every tool runs with Prettier's defaults: oxfmt with a width of
-// 80, Biome with spaces, tidy without JSDoc formatting, and none formats embedded code.
+// 80, Biome with spaces, tidy without JSDoc formatting. Each runs with embedded code left alone, and the tools that can
+// format it run again with it formatted.
 //
 // The tools: tidy, Prettier 3.9.9, oxfmt, Biome and bun fmt. Each set runs in both orders; Prettier runs fewer times.
 // The results go to bench/results/format/js.md and ts.md.
@@ -31,22 +32,30 @@ let extensions: Record<string, string[]> = {
 
 let base = join(tmpdir(), "tidy-bench-js");
 rmSync(base, { recursive: true, force: true });
-let config = join(base, "oxfmtrc.json");
-await Bun.write(config, JSON.stringify({ printWidth: 80, embeddedLanguageFormatting: "off" }));
-let tidyConfig = join(base, "tidy.json");
-await Bun.write(tidyConfig, JSON.stringify({ embedded: false, js: { jsdoc: false } }));
+/** The config files of tidy and oxfmt, with embedded code left alone or formatted. */
+let configs = async (embedded: boolean) => {
+	let mode = embedded ? "auto" : "off";
+	let oxfmt = join(base, `oxfmtrc-${mode}.json`);
+	await Bun.write(oxfmt, JSON.stringify({ printWidth: 80, embeddedLanguageFormatting: mode }));
+	let tidy = join(base, `tidy-${mode}.json`);
+	await Bun.write(tidy, JSON.stringify({ embedded, js: { jsdoc: false } }));
+	return { oxfmt, tidy };
+};
+let config = { off: await configs(false), on: await configs(true) };
 
-/** The commands that check a folder, and the ones that format it in place. */
-let commands = (dir: string, write: boolean): Record<string, string> => {
+/** The commands that check a folder, or format it in place. With `embedded`, only the tools that format embedded code. */
+let commands = (dir: string, write: boolean, embedded = false): Record<string, string> => {
 	let check = write ? "" : "--check";
+	let { oxfmt, tidy } = embedded ? config.on : config.off;
+	let off = embedded ? "" : "--embedded-language-formatting off";
 	return {
-		tidy: `${target}/release/tidy ${dir} ${write ? "--write" : "--check"} --config ${tidyConfig}`,
-		"tidy (1 thread)": `${target}/release/tidy ${dir} ${write ? "--write" : "--check"} --config ${tidyConfig} --threads 1`,
-		prettier: `${bin("prettier")} ${write ? "--write" : "--check"} ${dir} --no-config --embedded-language-formatting off --log-level silent`,
-		oxfmt: `${bin("oxfmt")} ${check} -c ${config} --disable-nested-config ${dir}`,
-		"oxfmt (1 thread)": `${bin("oxfmt")} ${check} -c ${config} --disable-nested-config --threads=1 ${dir}`,
-		biome: `${bin("biome")} format ${write ? "--write" : ""} --indent-style=space --max-diagnostics=0 ${dir}`,
-		bun: `bun fmt --cwd=${dir} ${check} --no-editorconfig --no-script --no-config --embedded-language-formatting off`,
+		tidy: `${target}/release/tidy ${dir} ${write ? "--write" : "--check"} --config ${tidy}`,
+		"tidy (1 thread)": `${target}/release/tidy ${dir} ${write ? "--write" : "--check"} --config ${tidy} --threads 1`,
+		prettier: `${bin("prettier")} ${write ? "--write" : "--check"} ${dir} --no-config ${off} --log-level silent`,
+		oxfmt: `${bin("oxfmt")} ${check} -c ${oxfmt} --disable-nested-config ${dir}`,
+		"oxfmt (1 thread)": `${bin("oxfmt")} ${check} -c ${oxfmt} --disable-nested-config --threads=1 ${dir}`,
+		...(embedded ? {} : { biome: `${bin("biome")} format ${write ? "--write" : ""} --indent-style=space --max-diagnostics=0 ${dir}` }),
+		bun: `bun fmt --cwd=${dir} ${check} --no-editorconfig --no-script --no-config ${off}`,
 	};
 };
 
@@ -62,21 +71,30 @@ for (let name of Object.keys(extensions).filter((name) => !only || only.includes
 	let corpus = join(base, name);
 	await gather(corpus, extensions[name]);
 	let [files, bytes] = size(corpus);
-	let check = commands(corpus, false);
-	let fast = Object.keys(check).filter((tool) => tool !== "prettier");
-	let means = { ...(await time(fast, check, runs)), ...(await time(["prettier"], check, Math.min(runs, 2))) };
-	let matches = await conformance(corpus, Object.keys(versions));
-	let fastest = Math.min(...Object.values(means).map(average));
-	let sorted = Object.entries(means).sort(([, left], [, right]) => average(left) - average(right));
-	let rows = sorted.map(([tool, values]) => {
+	let measure = async (embedded: boolean) => {
+		let check = commands(corpus, false, embedded);
+		let fast = Object.keys(check).filter((tool) => tool !== "prettier");
+		let means = { ...(await time(fast, check, runs)), ...(await time(["prettier"], check, Math.min(runs, 2))) };
+		let tools = Object.keys(versions).filter((tool) => tool in check);
+		return { means, matches: await conformance(corpus, tools, embedded) };
+	};
+	let off = await measure(false);
+	let on = await measure(true);
+	let cells = ({ means, matches }: typeof off, tool: string) => {
+		let values = means[tool];
+		if (!values) return ["", "", ""];
+		let fastest = Math.min(...Object.values(means).map(average));
 		let match = matches[tool.replace(" (1 thread)", "")];
 		let share = tool === "prettier" ? "reference" : `${match} (${((match / files) * 100).toFixed(1)}%)`;
-		return [tool, `${average(values).toFixed(0)} ms`, `${(average(values) / fastest).toFixed(2)}x`, share];
-	});
+		return [`${average(values).toFixed(0)} ms`, `${(average(values) / fastest).toFixed(2)}x`, share];
+	};
+	let sorted = Object.keys(off.means).sort((left, right) => average(off.means[left]) - average(off.means[right]));
+	let rows = sorted.map((tool) => [tool, ...cells(off, tool), ...cells(on, tool)]);
 	console.log(`\n${name}: ${files} files`);
 	for (let row of rows) console.log(`  ${row.join("  ")}`);
 	let summary = `${files} files, ${(bytes / 1024 / 1024).toFixed(1)} MB, from ${repos.join(", ")}: the files that Prettier parses. Each tool checks every file; a time is the mean of ${runs} runs in each order, or ${Math.min(runs, 2)} for Prettier. "Same as Prettier" counts the files that a tool formats to Prettier's output. With one thread, tidy reads and formats the files in turn, while oxfmt still reads them on another thread, so its time doesn't include all of its reading.`;
-	let head = ["Tool", "Time", "Against fastest", "Same as Prettier"];
+	summary += " With embedded code formatted, Biome doesn't run, as it can't format it, and Prettier formats it too.";
+	let head = ["Tool", "Embedded off", "Against fastest", "Same as Prettier", "Embedded on", "Against fastest", "Same as Prettier"];
 	let title = `Formatters: ${name === "js" ? "JavaScript" : "TypeScript"}`;
 	await record(`format/${name}.md`, title, [{ summary, head, rows }], Object.values(versions));
 }
@@ -127,13 +145,13 @@ async function time(names: string[], all: Record<string, string>, count: number)
 }
 
 /** Formats a copy of the corpus with each tool, and counts the files equal to Prettier's copy. */
-async function conformance(corpus: string, tools: string[]) {
+async function conformance(corpus: string, tools: string[], embedded: boolean) {
 	let outputs: Record<string, Map<string, string>> = {};
 	for (let tool of tools) {
-		let copy = `${corpus}-${tool}`;
+		let copy = embedded ? `${corpus}-embedded-${tool}` : `${corpus}-${tool}`;
 		rmSync(copy, { recursive: true, force: true });
 		cpSync(corpus, copy, { recursive: true });
-		await $`sh -c ${commands(copy, true)[tool]}`.nothrow().quiet();
+		await $`sh -c ${commands(copy, true, embedded)[tool]}`.nothrow().quiet();
 		let texts = await Promise.all(list(copy).map(async (path) => [relative(copy, path), await Bun.file(path).text()]));
 		outputs[tool] = new Map(texts as [string, string][]);
 	}

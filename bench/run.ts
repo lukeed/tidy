@@ -1,6 +1,6 @@
 // Times tidy against the incumbent formatters of each language, and on all of them at once. Every tool checks the
-// files of a corpus and leaves embedded code alone, except tidy, which always formats style sheets in markup and in
-// Markdown code blocks, so it does more work than the others. Each corpus only has the files that Prettier parses.
+// files of a corpus with embedded code left alone. Where a corpus has code of other languages in its files, the tools
+// that can also format it run again with it formatted. Each corpus only has the files that Prettier parses.
 // Each set runs in both orders; Prettier runs fewer times, since it is two orders of magnitude slower. The TOML corpus
 // only has the files that taplo parses, the Dockerfile corpus the ones that prettier-plugin-sh parses, and the INI
 // corpus the ones that prettier-plugin-ini parses, with the hidden files that hold INI, such as `.editorconfig`. The
@@ -207,9 +207,12 @@ let yamlfmt = (await $`mise which yamlfmt`.cwd(root).text()).trim();
 let off = "--no-config --embedded-language-formatting off";
 let oxfmt = join(corpus, "oxfmtrc.json");
 await Bun.write(oxfmt, JSON.stringify({ printWidth: 80, embeddedLanguageFormatting: "off" }));
+let oxfmtEmbedded = join(corpus, "oxfmtrc-embedded.json");
+await Bun.write(oxfmtEmbedded, JSON.stringify({ printWidth: 80, embeddedLanguageFormatting: "auto" }));
+let plugins = "--plugin @prettier/plugin-xml --plugin prettier-plugin-sh --plugin prettier-plugin-ini";
 let commands = (dir: string): Record<string, string> => ({
-	tidy: `${target}/release/tidy ${dir} --check --no-config`,
-	"tidy (1 thread)": `${target}/release/tidy ${dir} --check --no-config --threads 1`,
+	tidy: `${target}/release/tidy ${dir} --check --no-config --no-embedded`,
+	"tidy (1 thread)": `${target}/release/tidy ${dir} --check --no-config --no-embedded --threads 1`,
 	bun: `bun fmt --cwd=${dir} --check --no-editorconfig --no-script ${off}`,
 	dprint: `${target}/dprint/release/dprint-bench ${dir}`,
 	oxc: `${target}/css/release/css-bench oxc ${dir}`,
@@ -220,8 +223,20 @@ let commands = (dir: string): Record<string, string> => ({
 	taplo: `${taplo} fmt --check ${dir}/**/*.toml`,
 	tombi: `${root}/node_modules/@tombi-toml/cli-darwin-arm64/tombi format --check ${dir}`,
 	yamlfmt: `${yamlfmt} -lint ${dir}`,
-	prettier: `${prettier} --check ${dir} ${off} --log-level silent --plugin @prettier/plugin-xml --plugin prettier-plugin-sh --plugin prettier-plugin-ini`,
+	prettier: `${prettier} --check ${dir} ${off} --log-level silent ${plugins}`,
 });
+
+/** The commands of the tools that can also format embedded code, formatting it. */
+let embedding = (dir: string): Record<string, string> => ({
+	tidy: `${target}/release/tidy ${dir} --check --no-config`,
+	"tidy (1 thread)": `${target}/release/tidy ${dir} --check --no-config --threads 1`,
+	bun: `bun fmt --cwd=${dir} --check --no-editorconfig --no-script --no-config`,
+	oxfmt: `${root}/node_modules/.bin/oxfmt --check -c ${oxfmtEmbedded} --disable-nested-config ${dir}`,
+	prettier: `${prettier} --check ${dir} --no-config --log-level silent ${plugins}`,
+});
+
+/** The corpora with code of other languages in their files. */
+let embeds = ["all", "all-but-xml", "html", "vue", "pages", "handlebars", "markdown"];
 
 /** What each tool is, with its version. */
 let versions: Record<string, string> = {
@@ -293,21 +308,28 @@ let rows: string[] = [];
 for (let name of names.filter((name) => !only || only.includes(name))) {
 	let dir = join(corpus, name);
 	let [files, bytes] = size(dir);
-	let all = commands(dir);
-	let fast = Object.keys(all).filter((tool) => tool !== "prettier" && (!formats[tool] || formats[tool].includes(name)));
-	let slow = name === "toml" ? {} : await time(["prettier"], all, Math.min(runs, 3));
-	let means = { ...(await time(fast, all, runs)), ...slow };
-	let ours = average(means.tidy);
-	rows.push(`\n${name}: ${files} files, ${megabytes(bytes)}`);
+	let measure = async (all: Record<string, string>) => {
+		let fast = Object.keys(all).filter((tool) => tool !== "prettier" && (!formats[tool] || formats[tool].includes(name)));
+		let slow = name === "toml" ? {} : await time(["prettier"], all, Math.min(runs, 3));
+		return { ...(await time(fast, all, runs)), ...slow };
+	};
+	let means = await measure(commands(dir));
+	let embedded = embeds.includes(name) ? await measure(embedding(dir)) : undefined;
 	let sorted = Object.entries(means).sort(([, left], [, right]) => average(left) - average(right));
-	for (let [tool, values] of sorted) {
-		let mean = average(values);
-		rows.push(`  ${tool.padEnd(16)} ${mean.toFixed(1).padStart(9)} ms  ${(mean / ours).toFixed(2).padStart(7)}x`);
-	}
-	console.log(rows.slice(-sorted.length - 1).join("\n"));
+	let cells = (values: number[] | undefined, base: number) =>
+		values ? [`${average(values).toFixed(1)} ms`, `${(average(values) / base).toFixed(2)}x`] : ["", ""];
+	let table = sorted.map(([tool, values]) => [
+		tool,
+		...cells(values, average(means.tidy)),
+		...(embedded ? cells(embedded[tool], average(embedded.tidy)) : []),
+	]);
+	rows.push(`\n${name}: ${files} files, ${megabytes(bytes)}`, ...table.map((row) => `  ${row.join("  ")}`));
+	console.log(rows.slice(-table.length - 1).join("\n"));
 	let summary = `${files} files, ${megabytes(bytes)}. Each tool checks every file. A time is the mean of ${runs} runs in each order, or ${Math.min(runs, 3)} for Prettier.`;
-	let head = ["Tool", "Time", "Against tidy"];
-	let table = sorted.map(([tool, values]) => [tool, `${average(values).toFixed(1)} ms`, `${(average(values) / ours).toFixed(2)}x`]);
+	if (embedded) summary += " With embedded code formatted, only tidy, bun fmt, oxfmt and Prettier run, as the other tools can't format it.";
+	let head = embedded
+		? ["Tool", "Embedded off", "Against tidy", "Embedded on", "Against tidy"]
+		: ["Tool", "Time", "Against tidy"];
 	let used = sorted.map(([tool]) => tool).filter((tool) => !tool.includes("(1 thread)"));
 	await record(`format/${name}.md`, `Formatters: ${language(name)}`, [{ summary, head, rows: table }], used.map((tool) => versions[tool] ?? tool));
 }
