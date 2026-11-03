@@ -1,7 +1,7 @@
 // Formats JavaScript and TypeScript files with Prettier and with tidy, and compares the outputs. Both rejecting a file
-// counts as the same. Every output of tidy must read back the same, unless Prettier formats it again as tidy does:
-// that is Prettier's own instability. Embedded code isn't formatted by either, unless `--embedded` is given: then both
-// format the CSS, GraphQL, Markdown and HTML in templates.
+// counts as the same. Where Prettier's output changes when formatted again, tidy prints Prettier's fixed point instead,
+// so that a formatted file passes `--check`. Every output of tidy must read back the same. Embedded code isn't
+// formatted by either, unless `--embedded` is given: then both format the CSS, GraphQL, Markdown and HTML in templates.
 //
 //   bun tests/oracle/js.ts [dir...] [--show=n] [--list=file] [--embedded]
 //
@@ -38,12 +38,12 @@ function files(path: string): string[] {
 
 let counts = {
 	same: 0,
+	"same as Prettier's fixed point": 0,
 	different: 0,
 	rejected: 0,
 	"tidy rejects": 0,
 	"tidy accepts": 0,
 	unstable: 0,
-	"unstable as Prettier": 0,
 };
 let differing: string[] = [];
 let shown = 0;
@@ -77,6 +77,8 @@ for (let path of dirs.flatMap(files)) {
 		differing.push(`accepts ${path}`);
 	} else if (tidy === expected) {
 		counts.same++;
+	} else if (tidy === (await fixedPoint(expected, parser, path))) {
+		counts["same as Prettier's fixed point"]++;
 	} else {
 		counts.different++;
 		differing.push(path);
@@ -84,18 +86,21 @@ for (let path of dirs.flatMap(files)) {
 	}
 	if (tidy !== undefined) {
 		let again = attempt(() => format(tidy, { filepath: path, embedded, js: { jsdoc: false } }));
-		if (again !== tidy && (await isUnstableAsPrettier(tidy, again, parser, path))) {
-			counts["unstable as Prettier"]++;
-		} else if (again !== tidy) {
+		if (again !== tidy) {
 			counts.unstable++;
 			differing.push(`unstable ${path}`);
 		}
 	}
 }
-/** True if Prettier formats `output`, its own and tidy's, to `again` as tidy does. */
-async function isUnstableAsPrettier(output: string, again: string | undefined, parser: string, path: string) {
+/** What Prettier formats `output`, its own, to when formatted again until it stays the same, if it does. */
+async function fixedPoint(output: string, parser: string, path: string) {
 	let options = { parser, filepath: path, embeddedLanguageFormatting: embedded ? "auto" : "off" } as const;
-	return (await prettier.format(output, options).catch(() => undefined)) === again;
+	for (let round = 0; round < 5; round++) {
+		let again = await prettier.format(output, options).catch(() => undefined);
+		if (again === undefined || again === output) return again;
+		output = again;
+	}
+	return undefined;
 }
 
 if (list) await Bun.write(list, `${differing.join("\n")}\n`);

@@ -3,6 +3,8 @@
 //! empty statements, white space in JSX, the layout of Jest's tables), and their comments have the same words. The Prettier oracle can't see a change of
 //! meaning that Prettier makes too; this one can.
 //!
+//! It also counts the outputs that change when formatted again, and the files that make tidy panic.
+//!
 //!   cargo run --release -- [--show=n] [folder...]
 //!
 //! Without folders, it reads Prettier's fixtures of JavaScript, JSX and TypeScript, and the bench corpus of bench/js.ts.
@@ -28,16 +30,29 @@ fn main() {
   }
   let (mut same, mut different, mut comments, mut unparsable, mut skipped, mut shown) =
     (0, 0, 0, 0, 0, 0);
+  let (mut unstable, mut panics) = (0, 0);
   for path in &paths {
     let Ok(text) = std::fs::read_to_string(path) else { continue };
     let name = path.to_string_lossy();
     let Some(dialect) = tidy::js::Dialect::of_path(&name) else { continue };
     let options =
       tidy::js::Options { dialect, jsdoc: false, format_embedded: false, ..Default::default() };
-    let Ok(output) = tidy::js::format(&text, &name, &options) else {
-      skipped += 1;
-      continue;
+    let output = match std::panic::catch_unwind(|| tidy::js::format(&text, &name, &options)) {
+      Ok(Ok(output)) => output,
+      Ok(Err(_)) => {
+        skipped += 1;
+        continue;
+      }
+      Err(_) => {
+        panics += 1;
+        report(&mut shown, show, &name, "tidy panics".into());
+        continue;
+      }
     };
+    if tidy::js::format(&output, &name, &options).ok().as_ref() != Some(&output) {
+      unstable += 1;
+      report(&mut shown, show, &name, "formatting the output again changes it".into());
+    }
     let Some((before, notes)) = read(&text, &name) else {
       skipped += 1;
       continue;
@@ -58,7 +73,8 @@ fn main() {
     }
   }
   println!(
-    "same {same}, different {different}, comments differ {comments}, output doesn't parse {unparsable}, skipped {skipped}"
+    "same {same}, different {different}, comments differ {comments}, output doesn't parse {unparsable}, unstable \
+     {unstable}, panics {panics}, skipped {skipped}"
   );
 }
 
