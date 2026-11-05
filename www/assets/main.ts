@@ -1,3 +1,5 @@
+import { on } from "bongo/client";
+
 /**
  * Remember the choice, so the inline script in `<head>` can apply it before
  * paint.
@@ -50,7 +52,11 @@ document.addEventListener("click", (event) => {
 // ───────────────────────────── on this page ─────────────────────────────
 
 /** Mark the heading the reader is in, so the contents list follows the page. */
+let watching: IntersectionObserver | undefined;
+
 function spy() {
+  watching?.disconnect();
+
   let links = [...document.querySelectorAll<HTMLAnchorElement>(".toc a")];
   if (!links.length) return;
 
@@ -59,7 +65,7 @@ function spy() {
   );
   let seen = new Set<string>();
 
-  let observer = new IntersectionObserver(
+  watching = new IntersectionObserver(
     (entries) => {
       for (let entry of entries) {
         if (entry.isIntersecting) seen.add(entry.target.id);
@@ -74,8 +80,40 @@ function spy() {
 
   for (let id of byId.keys()) {
     let heading = document.getElementById(id);
-    if (heading) observer.observe(heading);
+    if (heading) watching.observe(heading);
   }
+}
+
+// ──────────────────────── sidebar and header ────────────────────────
+
+/**
+ * The sidebar and the header are `transition:persist`, so the client keeps the
+ * elements the server rendered for the first page and their `aria-current`
+ * never moves. Set it from the URL after every navigation instead.
+ */
+function here(path: string) {
+  for (let link of document.querySelectorAll<HTMLAnchorElement>(".side a")) {
+    let href = link.getAttribute("href") ?? "";
+    let state =
+      path === href
+        ? "page"
+        : href !== "/" && path.startsWith(href)
+          ? "true"
+          : null;
+    if (state) link.setAttribute("aria-current", state);
+    else link.removeAttribute("aria-current");
+  }
+
+  let docs = document.querySelector<HTMLAnchorElement>(
+    '.top nav a[href="/docs/"]',
+  );
+  docs?.toggleAttribute("aria-current", path.startsWith("/docs/"));
+}
+
+/** A link in the open phone menu should not leave it open on the next page. */
+function closeMenu() {
+  document.getElementById("side")?.classList.remove("open");
+  document.querySelector("[data-menu]")?.setAttribute("aria-expanded", "false");
 }
 
 // ───────────────────────────── search ─────────────────────────────
@@ -187,4 +225,10 @@ document.addEventListener("keydown", (event) => {
 });
 
 spy();
-document.addEventListener("bongo:navigate", spy as EventListener);
+here(location.pathname);
+
+on("bongo:navigated", ({ to }) => {
+  here(to.pathname);
+  closeMenu();
+  spy();
+});

@@ -30,28 +30,30 @@
 	letter-spacing: .14em;
 	text-transform: uppercase;
 	color: var(--muted);
-	padding: 0 10px 10px;
+	padding: 0 0 10px 10px;
 }
 
+/* Links hang off a hairline rule, like the one the home page runs down its
+   margin. The current page turns that rule accent; nothing is a pill. */
 .side a {
 	display: block;
-	padding: 6px 10px;
-	border-radius: 6px;
+	padding: 6px 0 6px 14px;
+	margin-left: 10px;
 	font-size: 14.5px;
 	color: var(--text);
 	text-decoration: none;
-	border-left: 2px solid transparent;
+	border-left: 1px solid var(--hair);
 }
 
 .side a:hover {
 	color: var(--ink);
-	background: var(--sunk);
+	border-left-color: var(--rule);
 }
 
 .side a[aria-current=page] {
 	color: var(--accent);
-	border-left-color: var(--accent);
-	background: var(--sunk);
+	border-left: 2px solid var(--accent);
+	padding-left: 13px;
 	font-weight: 500;
 }
 
@@ -60,9 +62,10 @@
 	justify-content: space-between;
 	align-items: baseline;
 	gap: 10px;
-	margin-top: 8px;
+	margin: 8px 0 0;
+	border-left: 0 !important;
 	border-top: 1px solid var(--hair);
-	padding-top: 16px !important;
+	padding: 16px 0 0 10px !important;
 	color: var(--muted) !important;
 }
 
