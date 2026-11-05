@@ -46,6 +46,21 @@ const ESCAPE: Record<string, string> = {
 const escape = (text: string) =>
   text.replace(/[&<>"]/g, (char) => ESCAPE[char]);
 
+const JSON_LIKE = new Set(["json", "jsonc", "json5"]);
+
+/**
+ * Twinkleplop tags a JSON key and a string value alike, so an object comes out
+ * one flat colour. A string that a `:` follows is a key: tag it as a property,
+ * which is what the YAML and TOML grammars already do.
+ */
+function keys(html: string, lang: string): string {
+  if (!JSON_LIKE.has(lang)) return html;
+  return html.replace(
+    /<span class="tok string">((?:(?!<\/span>)[\s\S])*)<\/span>(<span class="tok punctuation">:<\/span>)/g,
+    '<span class="tok property">$1</span>$2',
+  );
+}
+
 const HIGHLIGHTERS: Record<string, (code: string) => string> = {
   bash: bash(),
   css: css(),
@@ -77,12 +92,15 @@ export const languages = {
  * do.
  */
 export const fence: Fence = (html, block) => {
-  if (!block.lang)
+  if (!block.lang) {
     return `<figure class="code"><pre class="twinkleplop"><code>${escape(block.code)}</code></pre></figure>`;
+  }
+  // The name of a file says more than the name of its language, and its
+  // extension usually says the language anyway.
   let label = block.filename
-    ? `<span>${escape(block.filename)}</span><span class="lang">${escape(block.lang)}</span>`
+    ? `<span class="file">${escape(block.filename)}</span>`
     : `<span>${NAMES[block.lang] ?? escape(block.lang)}</span>`;
-  return `<figure class="code"><div class="bar">${label}<button class="copy" type="button" data-copy-code>Copy</button></div>${html}</figure>`;
+  return `<figure class="code"><div class="bar">${label}<button class="copy" type="button" data-copy-code>Copy</button></div>${keys(html, block.lang)}</figure>`;
 };
 
 // A code span this short never wraps, so an option name keeps its dashes.
@@ -115,5 +133,5 @@ export const transform: Build.Transform = (text, ctx) =>
 export function highlight(code: string, lang: string): string {
   let fn = HIGHLIGHTERS[lang];
   if (!fn) throw new Error(`No highlighter for "${lang}"`);
-  return fn(code);
+  return keys(fn(code), lang);
 }

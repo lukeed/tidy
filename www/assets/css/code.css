@@ -97,3 +97,10 @@ a > code {
 	color: inherit;
 	border-color: currentColor;
 }
+
+/* a path reads as a path, not as a label */
+figure.code .bar .file {
+	text-transform: none;
+	letter-spacing: 0;
+	font-size: 12px;
+}

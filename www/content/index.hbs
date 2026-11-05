@@ -100,17 +100,10 @@ summary: tidy is a code formatter written in Rust. One binary prints what Pretti
 			<h2>Configurable, if you need it</h2>
 			<p class="sub">Each file takes the nearest <code>tidy.json</code>, <code>tidy.jsonc</code> or <code>tidy.toml</code>, on top of <code>.editorconfig</code>. Shared keys apply everywhere, and a language section overrides them. See <a href="/docs/options/">every option</a>.</p>
 			<div class="cfg">
-				<figure class="code"><div class="bar"><span>tidy.json</span><span class="lang">json</span></div>{{{ $data.sample.config }}}</figure>
+				<figure class="code"><div class="bar"><span class="file">tidy.json</span></div>{{{ $data.sample.config }}}</figure>
 				<div>
 					<p class="sub" style="margin-top:0">Then run it:</p>
-					<figure class="code"><div class="bar"><span>Shell</span></div><pre class="twinkleplop"><code><span class="l"><span class="tok comment"># print one file, formatted</span></span>
-<span class="l">$ tidy index.html</span>
-<span class="l"></span>
-<span class="l"><span class="tok comment"># list what isn't formatted; exits 1 if any</span></span>
-<span class="l">$ tidy src --check</span>
-<span class="l"></span>
-<span class="l"><span class="tok comment"># rewrite everything in place</span></span>
-<span class="l">$ tidy . --write</span></code></pre></figure>
+					<figure class="code"><div class="bar"><span>Shell</span></div>{{{ $data.sample.usage }}}</figure>
 				</div>
 			</div>
 		</div>

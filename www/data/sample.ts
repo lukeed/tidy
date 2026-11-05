@@ -15,4 +15,5 @@ export default {
   input: highlight(read("routes.input.ts"), "typescript"),
   output: highlight(read("routes.output.ts"), "typescript"),
   config: highlight(read("example-config.json"), "json"),
+  usage: highlight(read("usage.sh"), "bash"),
 };
