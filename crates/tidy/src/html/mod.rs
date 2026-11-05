@@ -192,7 +192,8 @@ fn run<'a>(
   buffer: String,
 ) -> Result<String, Error> {
   let source = text.as_bytes();
-  let clock = std::time::Instant::now();
+  let stats = std::env::var_os("TIDY_STATS").is_some();
+  let clock = stats.then(std::time::Instant::now);
   parse::parse(content, matter, options.parser, tree).map_err(|error| match error {
     parse::ParseError::Syntax(error) => Error::Syntax {
       message: String::from_utf8_lossy(&error.message()).into_owned(),
@@ -200,7 +201,7 @@ fn run<'a>(
     },
     parse::ParseError::NestedTooDeeply => Error::TooDeep,
   })?;
-  let parsed = clock.elapsed();
+  let parsed = clock.map(|clock| clock.elapsed());
   let typescript = options.parser == Parser::Vue && has_typescript_script(tree);
   #[cfg(feature = "js")]
   let scripts = scripts_in(options);
@@ -227,7 +228,7 @@ fn run<'a>(
   if !preprocess::preprocess(tree, &context) {
     return Err(Error::TooDeep);
   }
-  let preprocessed = clock.elapsed();
+  let preprocessed = clock.map(|clock| clock.elapsed());
   print::Printer::new(text, tree, &context, docs, embed).print_root();
   let print = crate::doc::Options {
     width: options.width,
@@ -235,9 +236,11 @@ fn run<'a>(
     tabs: options.tabs,
     eol: options.eol,
   };
-  let built = clock.elapsed();
+  let built = clock.map(|clock| clock.elapsed());
   let output = crate::doc::print(docs, &print, buffer);
-  if std::env::var_os("TIDY_STATS").is_some() {
+  if let (Some(clock), Some(parsed), Some(preprocessed), Some(built)) =
+    (clock, parsed, preprocessed, built)
+  {
     let printed = clock.elapsed();
     let ms = |d: std::time::Duration| d.as_secs_f64() * 1000.0;
     eprintln!(
