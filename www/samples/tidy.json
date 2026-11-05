@@ -1,0 +1,5 @@
+{
+  "width": 100,
+  "js": { "semi": false, "quote": "single" },
+  "markdown": { "wrap": "always" }
+}

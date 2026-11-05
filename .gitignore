@@ -5,3 +5,6 @@ crates/tidy_napi/index.js
 crates/tidy_napi/npm/
 node_modules/
 target/
+
+www/public
+www/.wrangler

@@ -1,0 +1,2 @@
+{{#expect kind, title, body}}
+<div class="note-box{{#if kind === 'warn'}} warn{{/if}}"><b>{{ title || 'Note' }}</b>{{{ body }}}</div>

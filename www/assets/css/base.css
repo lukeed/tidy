@@ -1,0 +1,193 @@
+@font-face {
+	font-family: "Archivo";
+	src: url("../fonts/archivo.woff2") format("woff2");
+	font-weight: 100 900;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "IBM Plex Mono";
+	src: url("../fonts/ibm-plex-mono-400.woff2") format("woff2");
+	font-weight: 400;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "IBM Plex Mono";
+	src: url("../fonts/ibm-plex-mono-600.woff2") format("woff2");
+	font-weight: 600;
+	font-display: swap;
+}
+
+:root {
+	--bg: #0A0B0C;
+	--panel: #101213;
+	--sunk: #0D0F10;
+	--rule: #1C1F21;
+	--hair: #15181A;
+	--ink: #EDEEEA;
+	--text: #B3B7B4;
+	--muted: #70767A;
+	--accent: #C7F24A;
+	--accent-ink: #0A0B0C;
+	--accent-dim: #26300F;
+	--warn: #FF7A45;
+
+	/* the Ink code theme */
+	--t-key: #E58CD8;
+	--t-str: #7FD6A6;
+	--t-num: #E8B35C;
+	--t-com: #7A7D85;
+	--t-fn: #86AAFF;
+	--t-type: #5ECFD6;
+	--t-prop: #EDEEEA;
+	--t-pun: #787E82;
+	--t-id: #EDEEEA;
+
+	--sans: "Archivo", system-ui, sans-serif;
+	--mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+
+	/* the rule that runs the length of a docs page, like a print margin */
+	--rail: 152px;
+	--top: 58px;
+
+	color-scheme: dark;
+}
+
+:root[data-theme=light] {
+	--bg: #F6F7F3;
+	--panel: #FFFFFF;
+	--sunk: #EEF0EA;
+	--rule: #DCDFD6;
+	--hair: #E6E8E1;
+	--ink: #0A0B0C;
+	--text: #3C4142;
+	--muted: #6E7475;
+	--accent: #3E7A00;
+	--accent-ink: #FFFFFF;
+	--accent-dim: #E6F0D2;
+	--warn: #C44400;
+
+	--t-key: #9A2D8E;
+	--t-str: #1F7A52;
+	--t-num: #8A5A00;
+	--t-com: #8C8E95;
+	--t-fn: #2C4FD6;
+	--t-type: #0B6E75;
+	--t-prop: #15161A;
+	--t-pun: #85898A;
+	--t-id: #15161A;
+
+	color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+	scroll-padding-top: calc(var(--top) + 28px);
+}
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font: 400 16px/1.62 var(--sans);
+	-webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+pre,
+ol,
+ul,
+dl,
+dd,
+blockquote {
+	margin: 0;
+	padding: 0;
+}
+
+ul,
+ol {
+	list-style: none;
+}
+
+a {
+	color: inherit;
+}
+
+button {
+	font: inherit;
+	color: inherit;
+	background: none;
+	border: 0;
+	cursor: pointer;
+}
+
+img,
+svg {
+	display: block;
+	max-width: 100%;
+}
+
+code,
+kbd,
+pre,
+samp {
+	font-family: var(--mono);
+	font-feature-settings: "liga" 0, "calt" 0;
+}
+
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+::selection {
+	background: var(--accent);
+	color: var(--accent-ink);
+}
+
+.wrap {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: 0 clamp(20px, 4vw, 32px);
+}
+
+.vh {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+.skip {
+	position: absolute;
+	left: 12px;
+	top: -60px;
+	z-index: 20;
+	background: var(--accent);
+	color: var(--accent-ink);
+	border-radius: 7px;
+	padding: 10px 14px;
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: none;
+	transition: top .12s;
+}
+
+.skip:focus {
+	top: 12px;
+}
