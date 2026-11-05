@@ -8,3 +8,4 @@ target/
 
 www/public
 www/.wrangler
+www/assets/wasm

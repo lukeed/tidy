@@ -1,0 +1,171 @@
+.play {
+	max-width: 1480px;
+	margin: 0 auto;
+	padding: 20px clamp(16px, 3vw, 28px) 32px;
+}
+
+.play-bar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	padding-bottom: 16px;
+}
+
+.pick {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	font: 400 12px/1 var(--mono);
+	letter-spacing: .1em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+
+.pick select {
+	font: 400 13.5px/1 var(--mono);
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--ink);
+	background: var(--panel);
+	border: 1px solid var(--rule);
+	border-radius: 7px;
+	padding: 8px 10px;
+}
+
+.pick select:hover {
+	border-color: var(--muted);
+}
+
+.play-state {
+	margin-left: auto;
+	font: 400 12px/1 var(--mono);
+	color: var(--muted);
+}
+
+.play-state.ok {
+	color: var(--accent);
+}
+
+.play-state.failed {
+	color: var(--warn);
+}
+
+.play [data-share] {
+	flex: none;
+}
+
+/* --- the panes --- */
+.play-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 16px;
+	align-items: stretch;
+}
+
+.pane-box[hidden] {
+	display: none;
+}
+
+.pane-box {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	border: 1px solid var(--rule);
+	border-radius: 9px;
+	background: var(--panel);
+	overflow: hidden;
+	height: clamp(380px, calc(100vh - 230px), 760px);
+}
+
+.pane-box h2 {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 10px;
+	flex: none;
+	font: 400 11.5px/1 var(--mono);
+	letter-spacing: .09em;
+	text-transform: uppercase;
+	color: var(--muted);
+	padding: 11px 14px;
+	border-bottom: 1px solid var(--hair);
+	background: var(--sunk);
+}
+
+.pane-box .hint {
+	font-variant-numeric: tabular-nums;
+	text-transform: none;
+	letter-spacing: 0;
+	opacity: .8;
+}
+
+.pane-box.out .hint {
+	color: var(--accent);
+}
+
+.pane-box textarea,
+.pane-box pre {
+	flex: 1;
+	min-height: 0;
+	margin: 0;
+	padding: 14px 16px;
+	border: 0;
+	outline: 0;
+	resize: none;
+	overflow: auto;
+	background: transparent;
+	color: var(--ink);
+	font: 400 13px/1.62 var(--mono);
+	tab-size: 2;
+	white-space: pre;
+}
+
+.pane-box textarea::placeholder {
+	color: var(--muted);
+}
+
+.pane-box textarea:focus-visible {
+	outline: 0;
+}
+
+.pane-box:focus-within {
+	border-color: var(--accent);
+}
+
+.pane-box pre.failed {
+	color: var(--warn);
+	white-space: pre-wrap;
+}
+
+/* the config pane sits under the two editors */
+.cfg-pane {
+	grid-column: 1 / -1;
+	height: 220px;
+}
+
+.play-note {
+	margin-top: 16px;
+	font: 400 12.5px/1.6 var(--mono);
+	color: var(--muted);
+}
+
+.play-note a {
+	color: var(--ink);
+}
+
+@media (max-width: 900px) {
+	.play-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.pane-box {
+		height: 340px;
+	}
+
+	.play-state {
+		margin-left: 0;
+		width: 100%;
+		order: 9;
+	}
+}

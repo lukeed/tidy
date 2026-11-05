@@ -3,6 +3,7 @@ rust = { version = "1.98.0", components = "clippy,rustfmt" }
 bun = "1.4.4"
 taplo = "0.10.0"
 yamlfmt = "0.21.0"
+"cargo:wasm-bindgen-cli" = "0.2.130"
 
 [env]
 CARGO_TARGET_DIR = "{{config_root}}/target"
@@ -10,6 +11,13 @@ CARGO_TARGET_DIR = "{{config_root}}/target"
 [tasks.build]
 description = "Build the library and CLI"
 run = "cargo build --workspace --exclude tidy_napi"
+
+[tasks."build:wasm"]
+description = "Build the playground's wasm into www/assets/wasm"
+run = [
+  "cargo build --profile wasm --target wasm32-unknown-unknown -p tidy_wasm",
+  '"$(mise where cargo:wasm-bindgen-cli)/bin/wasm-bindgen" --target web --no-typescript --out-dir www/assets/wasm --out-name tidy target/wasm32-unknown-unknown/wasm/tidy_wasm.wasm',
+]
 
 [tasks."build:napi"]
 description = "Build the Node addon for this platform"

@@ -4,6 +4,7 @@ members = [
   "crates/tidy",
   "crates/tidy_cli",
   "crates/tidy_napi",
+  "crates/tidy_wasm",
   "crates/tidy_walk",
 ]
 exclude = [
@@ -42,6 +43,10 @@ codegen-units = 1
 lto = "fat"
 opt-level = 3
 strip = true
+
+[profile.wasm]
+inherits = "release"
+opt-level = "z"
 
 [profile.profiling]
 inherits = "release"

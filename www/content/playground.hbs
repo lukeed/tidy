@@ -1,0 +1,51 @@
+---
+title: Playground
+summary: Format code with tidy in your browser. The same Rust, compiled to WebAssembly, with no file leaving the page.
+---
+{{#var languages = [
+	['typescript', 'TypeScript'], ['babel', 'JavaScript'], ['html', 'HTML'], ['vue', 'Vue'],
+	['handlebars', 'Handlebars'], ['css', 'CSS'], ['scss', 'SCSS'], ['less', 'Less'],
+	['json', 'JSON'], ['jsonc', 'JSONC'], ['json5', 'JSON5'], ['yaml', 'YAML'],
+	['toml', 'TOML'], ['markdown', 'Markdown'], ['graphql', 'GraphQL'], ['xml', 'XML'],
+	['dockerfile', 'Dockerfile'], ['ini', 'INI']
+]}}
+<a class="skip" href="#input">Skip to the editor</a>
+<main class="play" id="main" data-wasm="<bongo:asset src='wasm/tidy_bg.wasm' />">
+	<div class="play-bar">
+		<label class="pick">
+			<span>Language</span>
+			<select data-parser aria-label="Language">
+				{{#each languages as lang}}
+				<option value="{{ lang[0] }}"{{#if lang[0] === 'typescript'}} selected{{/if}}>{{ lang[1] }}</option>
+				{{/each}}
+			</select>
+		</label>
+		<button class="pill" type="button" data-config-toggle aria-expanded="false" aria-controls="config">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h8"/><circle cx="16" cy="17" r="2.2"/></svg>
+			Config
+		</button>
+		<span class="play-state" data-state role="status">loading tidy…</span>
+		<button class="pill" type="button" data-share>Copy link</button>
+	</div>
+
+	<div class="play-grid">
+		<section class="pane-box" aria-label="Input">
+			<h2><span>Input</span><span class="hint" data-in-stat></span></h2>
+			<textarea id="input" data-input spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Code to format"></textarea>
+		</section>
+		<section class="pane-box out" aria-label="Output">
+			<h2><span>Output</span><span class="hint" data-out-stat></span></h2>
+			<pre data-output aria-live="polite"></pre>
+		</section>
+		<section class="pane-box cfg-pane" id="config" hidden aria-label="Config">
+			<h2><span>tidy.json</span><span class="hint">JSON or TOML</span></h2>
+			<textarea data-config spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="tidy config"></textarea>
+		</section>
+	</div>
+
+	<p class="play-note">
+		tidy runs here as WebAssembly, in this tab. Nothing you type is sent anywhere.
+		See <a href="/docs/options/">Options</a> for every key the config pane takes.
+	</p>
+</main>
+<bongo:script src="play.ts"></bongo:script>

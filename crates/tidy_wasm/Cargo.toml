@@ -1,0 +1,19 @@
+[package]
+name = "tidy_wasm"
+description = "tidy in the browser, for the playground"
+publish = false
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+tidy = { workspace = true, features = ["config"] }
+wasm-bindgen = "=0.2.130"
+
+[lints]
+workspace = true

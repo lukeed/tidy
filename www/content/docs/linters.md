@@ -1,17 +1,17 @@
 ---
 title: Linters
-summary: Run tidy next to ESLint, oxlint or Biome without the two fighting over the same code.
+summary: Run tidy next to ESLint or Biome without the two fighting over the same code.
 group: Usage
 order: 7
 ---
 
-tidy formats. It has no rules and will not tell you about an unused variable. Keep a linter beside it, and make sure the linter has no opinions about layout — otherwise one tool rewrites what the other just wrote, and the loop never settles.
+tidy formats. It has no rules and will not tell you about an unused variable. Keep a linter beside it, and make sure that linter has no opinions about layout — otherwise one tool rewrites what the other just wrote, and the loop never settles.
 
-The rule is the same one Prettier documents: **turn off every stylistic rule in the linter.**
+The rule is Prettier's: **turn off every stylistic rule in the linter.**
 
 ## ESLint
 
-`eslint-config-prettier` exists to do exactly this, and works unchanged for tidy, because the style is the same.
+`eslint-config-prettier` turns them off, and works unchanged for tidy, because the style is the same. Nothing about your existing setup has to move.
 
 ```sh
 $ npm install --save-dev eslint-config-prettier
@@ -24,22 +24,17 @@ import prettier from "eslint-config-prettier";
 export default [js.configs.recommended, prettier];
 ```
 
-Put it last, so it switches off the formatting rules the configs before it turned on.
+Put it last, so it switches off the formatting rules that the configs before it turned on.
 
-Do not use `eslint-plugin-prettier`. It runs the formatter as a lint rule, which means every formatting difference becomes an error in your editor's problem list, and the formatting goes back through Node — the cost tidy exists to remove.
-
-## oxlint
-
-oxlint ships no stylistic rules, so there is nothing to disable:
-
-```sh
-$ oxlint
-$ tidy check .
-```
+<!-- prettier-ignore -->
+> **Do not use `eslint-plugin-prettier`.** It runs the formatter as a lint rule,
+> so every formatting difference becomes an error in your editor's problem list
+> — and the formatting goes back through Node, which is the cost tidy exists to
+> remove. Format with `tidy up`, lint with ESLint, and keep them apart.
 
 ## Biome
 
-Biome is a linter and a formatter in one. Use one or the other for formatting, not both:
+Biome lints and formats. Use one of the two for formatting, not both:
 
 ```json [biome.json]
 {
@@ -48,21 +43,11 @@ Biome is a linter and a formatter in one. Use one or the other for formatting, n
 }
 ```
 
-With the formatter off, Biome lints and tidy formats.
+With its formatter off, Biome lints and tidy formats.
 
-## Stylelint
+## Others
 
-```sh
-$ npm install --save-dev stylelint-config-prettier
-```
-
-```json [.stylelintrc.json]
-{
-  "extends": ["stylelint-config-standard", "stylelint-config-prettier"]
-}
-```
-
-Recent Stylelint versions have already dropped their stylistic rules, so on Stylelint 15 and later this config is a no-op and you can leave it out.
+oxlint ships no stylistic rules, so there is nothing to turn off. Stylelint dropped its own in version 15, so recent versions need nothing either.
 
 ## Order
 
@@ -72,4 +57,4 @@ Lint first, format second:
 $ eslint . && tidy check .
 ```
 
-A lint autofix can leave code unformatted — it is rewriting syntax, not layout. Formatting afterwards cleans up after it. The other order leaves you with a formatted file that the next autofix will unformat.
+A lint autofix rewrites syntax, not layout, so it can leave code unformatted. Formatting afterwards cleans up after it. The other order leaves you with a formatted file that the next autofix will unformat.
