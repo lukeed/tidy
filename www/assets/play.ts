@@ -206,9 +206,13 @@ function show(which: string) {
 type Property = {
   type?: string;
   enum?: string[];
+  anyOf?: { enum?: string[] }[];
   default?: unknown;
   description?: string;
 };
+
+/** One entry of the list: an option's name, or one value it takes. */
+type Hit = { key: string; property?: Property; note?: string; quote?: boolean };
 type Schema = {
   properties: Record<
     string,
@@ -217,8 +221,10 @@ type Schema = {
 };
 
 let schema: Schema | undefined;
-let hits: { key: string; property: Property }[] = [];
+let hits: Hit[] = [];
 let picked = 0;
+/** Whether a reader chose an entry, rather than the list merely opening. */
+let moved = false;
 
 /** Which object the caret sits in: a language section, or the top level. */
 function scopeAt(text: string, caret: number): string | null {
@@ -245,17 +251,37 @@ function scopeAt(text: string, caret: number): string | null {
 }
 
 /** The partial key being typed, and where it starts. */
-function wordAt(
-  text: string,
-  caret: number,
-): { word: string; start: number } | null {
+type Spot =
+  | { kind: "key"; word: string; start: number }
+  | {
+      kind: "value";
+      key: string;
+      word: string;
+      start: number;
+      quoted: boolean;
+    };
+
+/** What the caret is about to write: an option's name, or its value. */
+function spotAt(text: string, caret: number): Spot | null {
+  // A value: the run before the caret, then a colon, then the key it belongs to.
   let at = caret;
-  while (at > 0 && /[A-Za-z]/.test(text[at - 1]!)) at--;
+  while (at > 0 && /[\w.+-]/.test(text[at - 1]!)) at--;
   let word = text.slice(at, caret);
-  let before = text.slice(0, at).trimEnd();
+  let quoted = text[at - 1] === '"';
+  let before = text.slice(0, quoted ? at - 1 : at).trimEnd();
+
+  if (before.endsWith(":")) {
+    let owner = /"([A-Za-z]+)"\s*:$/.exec(before);
+    if (owner)
+      return { kind: "value", key: owner[1]!, word, start: at, quoted };
+    return null;
+  }
+
+  // A key: the run before the caret, which an opening brace or a comma precedes.
+  if (quoted) before = text.slice(0, at - 1).trimEnd();
   let opens = before.endsWith("{") || before.endsWith(",") || before === "";
-  if (!opens && !before.endsWith('"')) return null;
-  return { word, start: at };
+  if (!opens) return null;
+  return { kind: "key", word, start: quoted ? at - 1 : at };
 }
 
 function hide() {
@@ -263,19 +289,29 @@ function hide() {
   hits = [];
 }
 
-function insert(key: string, property: Property) {
+/**
+ * Write the chosen completion where the caret is, and leave it ready to type
+ * on.
+ */
+function insert(hit: Hit) {
   let caret = config.selectionStart;
-  let spot = wordAt(config.value, caret);
+  let spot = spotAt(config.value, caret);
   if (!spot) return;
 
-  let quoted = config.value.slice(0, spot.start).trimEnd().endsWith('"');
-  let start = quoted ? spot.start - 1 : spot.start;
-  let value = JSON.stringify(property.default ?? null);
-  let text = property.type === "object" ? `"${key}": {}` : `"${key}": ${value}`;
+  let text: string;
+  let back = 0;
+  if (spot.kind === "value") {
+    text = hit.quote ? JSON.stringify(hit.key) : hit.key;
+  } else if (hit.property?.type === "object") {
+    text = `"${hit.key}": {}`;
+    back = 1;
+  } else {
+    text = `"${hit.key}": ${JSON.stringify(hit.property?.default ?? null)}`;
+  }
 
   config.value =
-    config.value.slice(0, start) + text + config.value.slice(caret);
-  let end = start + text.length - (property.type === "object" ? 1 : 0);
+    config.value.slice(0, spot.start) + text + config.value.slice(caret);
+  let end = spot.start + text.length - back;
   config.selectionStart = config.selectionEnd = end;
   hide();
   run();
@@ -317,12 +353,14 @@ function place(caret: number) {
 
 function draw() {
   list.innerHTML = hits
-    .map(({ key, property }, index) => {
-      let shown =
-        property.default === undefined
+    .map(({ key, property, note }, index) => {
+      let right =
+        note ??
+        (property?.default === undefined
           ? ""
-          : `<span class="def">${escape(JSON.stringify(property.default))}</span>`;
-      let about = property.description
+          : JSON.stringify(property.default));
+      let shown = right ? `<span class="def">${escape(right)}</span>` : "";
+      let about = property?.description
         ? `<small>${escape(property.description)}</small>`
         : "";
       return `<li role="option" aria-selected="${index === picked}"><b>${escape(key)}</b>${shown}${about}</li>`;
@@ -331,12 +369,32 @@ function draw() {
   list.hidden = hits.length === 0;
 }
 
+/** The values an option takes, when they are a closed set. */
+function values(property: Property): Hit[] {
+  // The name above says what the option is, so a value only marks the default.
+  let mark = (value: string, quote: boolean): Hit => ({
+    key: value,
+    quote,
+    note:
+      JSON.stringify(property.default) === (quote ? `"${value}"` : value)
+        ? "default"
+        : "",
+  });
+
+  if (property.enum) return property.enum.map((value) => mark(value, true));
+  if (property.type === "boolean")
+    return ["true", "false"].map((value) => mark(value, false));
+
+  let choices = property.anyOf?.flatMap((one) => one.enum ?? []) ?? [];
+  return choices.map((value) => mark(value, true));
+}
+
 function complete() {
   // An empty pane shows its prompt instead of a list of everything.
   if (!schema || !config.value.trim()) return hide();
 
   let caret = config.selectionStart;
-  let spot = wordAt(config.value, caret);
+  let spot = spotAt(config.value, caret);
   if (!spot) return hide();
 
   let section = scopeAt(config.value, caret);
@@ -345,38 +403,59 @@ function complete() {
     : schema.properties;
 
   let word = spot.word.toLowerCase();
-  // Every option in scope, nearest match first; the list scrolls rather than truncating.
-  hits = Object.entries(properties)
-    .filter(([key]) => key.toLowerCase().includes(word))
-    .sort(([a], [b]) => {
-      let lead =
-        Number(b.toLowerCase().startsWith(word)) -
-        Number(a.toLowerCase().startsWith(word));
-      return lead || a.localeCompare(b);
-    })
-    .map(([key, property]) => ({ key, property }));
+
+  if (spot.kind === "value") {
+    let property = properties[spot.key];
+    hits = property
+      ? values(property).filter((hit) => hit.key.toLowerCase().startsWith(word))
+      : [];
+  } else {
+    // Every option in scope, nearest match first; the list scrolls rather than truncating.
+    hits = Object.entries(properties)
+      .filter(([key]) => key.toLowerCase().includes(word))
+      .sort(([a], [b]) => {
+        let lead =
+          Number(b.toLowerCase().startsWith(word)) -
+          Number(a.toLowerCase().startsWith(word));
+        return lead || a.localeCompare(b);
+      })
+      .map(([key, property]) => ({ key, property }));
+  }
 
   picked = 0;
+  moved = false;
   draw();
   if (hits.length) place(caret);
 }
 
 function keys(event: KeyboardEvent) {
   if (list.hidden) return;
-  if (event.key === "Escape") return hide();
+
+  if (event.key === "Escape") {
+    event.preventDefault();
+    return hide();
+  }
+
   if (event.key === "ArrowDown" || event.key === "ArrowUp") {
     event.preventDefault();
+    moved = true;
     picked =
       (picked + (event.key === "ArrowDown" ? 1 : hits.length - 1)) %
       hits.length;
     return draw();
   }
-  if (event.key === "Enter" || event.key === "Tab") {
-    let hit = hits[picked];
-    if (!hit) return;
-    event.preventDefault();
-    insert(hit.key, hit.property);
+
+  // Tab always takes the entry. Enter only does once one is chosen, so it
+  // still breaks the line when the list merely happens to be open.
+  if (event.key !== "Tab" && !(event.key === "Enter" && moved)) {
+    if (event.key === "Enter") hide();
+    return;
   }
+
+  let hit = hits[picked];
+  if (!hit) return;
+  event.preventDefault();
+  insert(hit);
 }
 
 /** Wires one `<tidy-playground>`; the element calls this when it connects. */
@@ -402,7 +481,7 @@ export function mount(root: HTMLElement) {
     if (!item) return;
     event.preventDefault();
     let hit = hits[[...list.children].indexOf(item)];
-    if (hit) insert(hit.key, hit.property);
+    if (hit) insert(hit);
   });
 
   schema ??= undefined;
@@ -477,8 +556,8 @@ export function mount(root: HTMLElement) {
     return;
   }
 
-  loading ??= init({ module_or_path: root.dataset.wasm! });
-  loading
+  let ran = (loading ??= init({ module_or_path: root.dataset.wasm! }));
+  ran
     .then(() => {
       ready = true;
       state.textContent = `tidy v${version()}`;

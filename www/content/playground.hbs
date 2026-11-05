@@ -22,7 +22,7 @@ summary: Format code with tidy in your browser. The same Rust, compiled to WebAs
 		</label>
 		<div class="seg" role="tablist" aria-label="What the left pane shows">
 			<button type="button" role="tab" data-tab="input" aria-selected="true" aria-controls="input-pane">Input</button>
-			<button type="button" role="tab" data-tab="config" aria-selected="false" aria-controls="config">tidy.json</button>
+			<button type="button" role="tab" data-tab="config" aria-selected="false" aria-controls="config">Config</button>
 		</div>
 		<span class="play-state" data-state role="status">loading tidy…</span>
 		<button class="pill" type="button" data-share>Copy link</button>
@@ -36,8 +36,8 @@ summary: Format code with tidy in your browser. The same Rust, compiled to WebAs
 				<textarea id="input" data-input spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Code to format"></textarea>
 			</div>
 		</section>
-		<section class="pane-box left" id="config" role="tabpanel" hidden aria-label="tidy.json">
-			<h2><span>tidy.json</span><span class="hint">JSON or TOML</span></h2>
+		<section class="pane-box left" id="config" role="tabpanel" hidden aria-label="Config">
+			<h2><span>Config</span><span class="hint">tidy.json or tidy.toml</span></h2>
 			<div class="editor">
 				<pre class="shade twinkleplop" aria-hidden="true"><code data-config-shade></code></pre>
 				<textarea data-config spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="tidy config" placeholder="Empty means tidy&#39;s defaults. Type an option name to complete it."></textarea>
