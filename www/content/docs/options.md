@@ -9,6 +9,33 @@ Options go in a [config file](/docs/configuration/), at the top level or inside 
 
 Names are shorter than Prettier's, because the prefix is implied: `width`, not `printWidth`. The behaviour is Prettier's.
 
+## Completion in your editor
+
+tidy ships a JSON Schema for its own config. Point `$schema` at it and an editor completes every key, shows its default, and marks a typo before tidy does:
+
+```json [tidy.json]
+{
+  "$schema": "https://tidy.lukeed.com/tidy.schema.json",
+  "width": 100
+}
+```
+
+The same file is in the `tidyrs` package, for a project that would rather not fetch it:
+
+```json [tidy.json]
+{
+  "$schema": "./node_modules/tidyrs/tidy.schema.json"
+}
+```
+
+Or print it from the binary:
+
+```sh
+$ tidy schema > tidy.schema.json
+```
+
+The schema is generated from the same table the parser is checked against, so it cannot describe an option tidy does not take, or miss one it does. The [playground](/playground/) completes the config pane from it.
+
 ## Shared options
 
 These are valid at the top level and inside any language section.
