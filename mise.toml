@@ -12,6 +12,10 @@ CARGO_TARGET_DIR = "{{config_root}}/target"
 description = "Build the library and CLI"
 run = "cargo build --workspace --exclude tidy_napi"
 
+[tasks.schema]
+description = "Write the JSON Schema of a tidy.json for npm and the site"
+run = "cargo run -q -p tidy_cli -- schema > crates/tidy_napi/tidy.schema.json"
+
 [tasks."build:wasm"]
 description = "Build the playground's wasm into www/assets/wasm"
 run = [
@@ -33,6 +37,7 @@ description = "Check formatting"
 run = [
   "cargo fmt --all --check",
   "cargo run -q -p tidy_cli -- check $({{vars.tidied}})",
+  "cargo run -q -p tidy_cli -- schema | diff -u crates/tidy_napi/tidy.schema.json - > /dev/null || { echo 'tidy.schema.json is stale; run: mise run schema'; exit 1; }",
 ]
 
 [tasks."fmt:fix"]

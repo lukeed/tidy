@@ -219,19 +219,6 @@
 	padding: 16px;
 }
 
-/* the input is shown as written, so its colours stay out of the way */
-.pane.in {
-	--t-key: var(--muted);
-	--t-str: var(--muted);
-	--t-num: var(--muted);
-	--t-fn: var(--muted);
-	--t-type: var(--muted);
-	--t-prop: var(--muted);
-	--t-pun: var(--muted);
-	--t-id: var(--muted);
-	--t-com: var(--muted);
-}
-
 /* the claims */
 .claims {
 	display: grid;

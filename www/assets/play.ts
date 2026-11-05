@@ -1,4 +1,65 @@
+import { language as bash } from "@twinkleplop/bash";
+import { language as css } from "@twinkleplop/css";
+import { language as html } from "@twinkleplop/html";
+import { language as javascript } from "@twinkleplop/javascript";
+import { language as json } from "@twinkleplop/json";
+import { language as markdown } from "@twinkleplop/markdown";
+import { language as toml } from "@twinkleplop/toml";
+import { language as typescript } from "@twinkleplop/typescript";
+import { language as yaml } from "@twinkleplop/yaml";
+
 import init, { format, version } from "./wasm/tidy.js";
+
+/**
+ * A grammar per parser; one tidy formats but twinkleplop has no grammar for
+ * stays plain.
+ */
+const GRAMMAR: Record<string, () => (code: string) => string> = {
+  typescript,
+  babel: javascript,
+  html,
+  vue: html,
+  handlebars: html,
+  xml: html,
+  css,
+  scss: css,
+  less: css,
+  json,
+  jsonc: json,
+  json5: json,
+  yaml,
+  toml,
+  markdown,
+  dockerfile: bash,
+};
+
+let grammars = new Map<string, (code: string) => string>();
+
+function paint(code: string, parser: string): string {
+  let make = GRAMMAR[parser];
+  if (!make) return escape(code);
+  let run = grammars.get(parser) ?? make();
+  grammars.set(parser, run);
+  try {
+    let html = run(code);
+    // The grammars return a full <pre><code> frame; the shade supplies its own.
+    return html
+      .replace(/^<pre[^>]*><code[^>]*>/, "")
+      .replace(/<\/code><\/pre>$/, "");
+  } catch {
+    return escape(code);
+  }
+}
+
+const ESCAPE: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+};
+
+function escape(text: string): string {
+  return text.replace(/[&<>]/g, (char) => ESCAPE[char]);
+}
 
 type Parser = string;
 
@@ -51,6 +112,11 @@ let parser: HTMLSelectElement;
 let state: HTMLElement;
 let inStat: HTMLElement;
 let outStat: HTMLElement;
+let toggle: HTMLElement;
+let pane: HTMLElement;
+let inShade: HTMLElement;
+let cfgShade: HTMLElement;
+let list: HTMLElement;
 
 let ready = false;
 let loading: Promise<unknown> | undefined;
@@ -80,7 +146,18 @@ function restore(): boolean {
   }
 }
 
+/** The shade must end in a line break, or the last empty line has no height. */
+function shade(target: HTMLElement, text: string, parser: string) {
+  target.innerHTML = paint(text.endsWith("\n") ? text : `${text}\n`, parser);
+}
+
 function run() {
+  shade(inShade, input.value, parser.value);
+  shade(
+    cfgShade,
+    config.value,
+    config.value.trim().startsWith("{") ? "json" : "toml",
+  );
   if (!ready) return;
 
   let source = input.value;
@@ -99,7 +176,7 @@ function run() {
   try {
     let text = format(source, parser.value, config.value, filepath);
     let took = performance.now() - clock;
-    output.textContent = text;
+    output.innerHTML = paint(text, parser.value);
     output.classList.remove("failed");
     outStat.textContent = `${took < 1 ? took.toFixed(2) : Math.round(took)} ms`;
   } catch (error) {
@@ -120,15 +197,184 @@ function openConfig(open: boolean) {
   document.getElementById("config")!.hidden = !open;
 }
 
-/**
- * The client runtime replaces `<body>`, and a script in replaced markup never
- * runs, so the page is wired here after every navigation that lands on it.
- */
-export function mount() {
-  let root = document.querySelector<HTMLElement>(".play");
-  if (!root || root.dataset.mounted) return;
-  root.dataset.mounted = "1";
+// ───────────────────────────── completion ─────────────────────────────
 
+type Property = {
+  type?: string;
+  enum?: string[];
+  default?: unknown;
+  description?: string;
+};
+type Schema = {
+  properties: Record<
+    string,
+    Property & { properties?: Record<string, Property> }
+  >;
+};
+
+let schema: Schema | undefined;
+let hits: { key: string; property: Property }[] = [];
+let picked = 0;
+
+/** Which object the caret sits in: a language section, or the top level. */
+function scopeAt(text: string, caret: number): string | null {
+  let depth = 0;
+  let quoted = false;
+  for (let at = caret - 1; at >= 0; at--) {
+    let char = text[at];
+    if (char === '"' && text[at - 1] !== "\\") quoted = !quoted;
+    if (quoted) continue;
+    if (char === "}") depth++;
+    else if (char === "{") {
+      if (depth === 0) {
+        // The key that opened this object, if any, names the section.
+        let before = text.slice(0, at);
+        let name = /"([A-Za-z]+)"\s*:\s*$/.exec(
+          before.trimEnd().endsWith(":") ? before : before,
+        );
+        return name ? name[1] : null;
+      }
+      depth--;
+    }
+  }
+  return null;
+}
+
+/** The partial key being typed, and where it starts. */
+function wordAt(
+  text: string,
+  caret: number,
+): { word: string; start: number } | null {
+  let at = caret;
+  while (at > 0 && /[A-Za-z]/.test(text[at - 1]!)) at--;
+  let word = text.slice(at, caret);
+  let before = text.slice(0, at).trimEnd();
+  let opens = before.endsWith("{") || before.endsWith(",") || before === "";
+  if (!opens && !before.endsWith('"')) return null;
+  return { word, start: at };
+}
+
+function hide() {
+  list.hidden = true;
+  hits = [];
+}
+
+function insert(key: string, property: Property) {
+  let caret = config.selectionStart;
+  let spot = wordAt(config.value, caret);
+  if (!spot) return;
+
+  let quoted = config.value.slice(0, spot.start).trimEnd().endsWith('"');
+  let start = quoted ? spot.start - 1 : spot.start;
+  let value = JSON.stringify(property.default ?? null);
+  let text = property.type === "object" ? `"${key}": {}` : `"${key}": ${value}`;
+
+  config.value =
+    config.value.slice(0, start) + text + config.value.slice(caret);
+  let end = start + text.length - (property.type === "object" ? 1 : 0);
+  config.selectionStart = config.selectionEnd = end;
+  hide();
+  run();
+  config.focus();
+}
+
+/** One character of the editor's monospace font, measured once per mount. */
+let cell = 0;
+
+function measure(): number {
+  if (cell) return cell;
+  let probe = document.createElement("span");
+  probe.textContent = "0".repeat(40);
+  probe.style.cssText = "position:absolute;visibility:hidden;white-space:pre";
+  probe.style.font = getComputedStyle(config).font;
+  config.parentElement!.append(probe);
+  cell = probe.getBoundingClientRect().width / 40;
+  probe.remove();
+  return cell;
+}
+
+/** Put the list under the caret, inside the pane. */
+function place(caret: number) {
+  let before = config.value.slice(0, caret);
+  let line = before.split("\n").length - 1;
+  let column = caret - before.lastIndexOf("\n") - 1;
+  let style = getComputedStyle(config);
+  let padX = parseFloat(style.paddingLeft);
+  let padY = parseFloat(style.paddingTop);
+  let height = parseFloat(style.lineHeight);
+
+  let x = padX + column * measure() - config.scrollLeft;
+  let y = padY + (line + 1) * height - config.scrollTop + 4;
+  let room = config.clientWidth - list.offsetWidth - 8;
+
+  list.style.left = `${Math.max(8, Math.min(x, room))}px`;
+  list.style.top = `${y}px`;
+}
+
+function draw() {
+  list.innerHTML = hits
+    .map(({ key, property }, index) => {
+      let shown =
+        property.default === undefined
+          ? ""
+          : `<span class="def">${escape(JSON.stringify(property.default))}</span>`;
+      let about = property.description
+        ? `<small>${escape(property.description)}</small>`
+        : "";
+      return `<li role="option" aria-selected="${index === picked}"><b>${escape(key)}</b>${shown}${about}</li>`;
+    })
+    .join("");
+  list.hidden = hits.length === 0;
+}
+
+function complete() {
+  if (!schema) return hide();
+
+  let caret = config.selectionStart;
+  let spot = wordAt(config.value, caret);
+  if (!spot) return hide();
+
+  let section = scopeAt(config.value, caret);
+  let properties = section
+    ? (schema.properties[section]?.properties ?? {})
+    : schema.properties;
+
+  let word = spot.word.toLowerCase();
+  hits = Object.entries(properties)
+    .filter(
+      ([key, property]) =>
+        (key.toLowerCase().startsWith(word) && property.type !== "object") ||
+        (!section &&
+          property.type === "object" &&
+          key.toLowerCase().startsWith(word)),
+    )
+    .slice(0, 8)
+    .map(([key, property]) => ({ key, property }));
+  picked = 0;
+  draw();
+  if (hits.length) place(caret);
+}
+
+function keys(event: KeyboardEvent) {
+  if (list.hidden) return;
+  if (event.key === "Escape") return hide();
+  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    event.preventDefault();
+    picked =
+      (picked + (event.key === "ArrowDown" ? 1 : hits.length - 1)) %
+      hits.length;
+    return draw();
+  }
+  if (event.key === "Enter" || event.key === "Tab") {
+    let hit = hits[picked];
+    if (!hit) return;
+    event.preventDefault();
+    insert(hit.key, hit.property);
+  }
+}
+
+/** Wires one `<tidy-playground>`; the element calls this when it connects. */
+export function mount(root: HTMLElement) {
   input = root.querySelector<HTMLTextAreaElement>("[data-input]")!;
   config = root.querySelector<HTMLTextAreaElement>("[data-config]")!;
   output = root.querySelector<HTMLPreElement>("[data-output]")!;
@@ -136,15 +382,50 @@ export function mount() {
   state = root.querySelector<HTMLElement>("[data-state]")!;
   inStat = root.querySelector<HTMLElement>("[data-in-stat]")!;
   outStat = root.querySelector<HTMLElement>("[data-out-stat]")!;
+  toggle = root.querySelector<HTMLElement>("[data-config-toggle]")!;
+  pane = root.querySelector<HTMLElement>("#config")!;
+  inShade = root.querySelector<HTMLElement>("[data-input-shade]")!;
+  cfgShade = root.querySelector<HTMLElement>("[data-config-shade]")!;
+  list = root.querySelector<HTMLElement>("[data-complete]")!;
+
+  list.addEventListener("mousedown", (event) => {
+    let item = (event.target as HTMLElement).closest("li");
+    if (!item) return;
+    event.preventDefault();
+    let hit = hits[[...list.children].indexOf(item)];
+    if (hit) insert(hit.key, hit.property);
+  });
+
+  schema ??= undefined;
+  void fetch("/tidy.schema.json")
+    .then((response) => response.json())
+    .then((loaded: Schema) => {
+      schema = loaded;
+    })
+    .catch(() => {
+      /* completion is a bonus; the pane still works without it */
+    });
 
   parser.addEventListener("change", () => {
     sample();
     run();
   });
 
-  for (let field of [input, config]) {
+  for (let [field, shade] of [
+    [input, inShade],
+    [config, cfgShade],
+  ] as const) {
     field.addEventListener("input", run);
+    field.addEventListener("scroll", () => {
+      shade.parentElement!.scrollTop = field.scrollTop;
+      shade.parentElement!.scrollLeft = field.scrollLeft;
+    });
   }
+
+  config.addEventListener("input", () => complete());
+  config.addEventListener("click", () => hide());
+  config.addEventListener("blur", () => setTimeout(hide, 120));
+  config.addEventListener("keydown", keys);
 
   root
     .querySelector("[data-config-toggle]")

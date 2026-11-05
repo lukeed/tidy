@@ -16,6 +16,7 @@ Usage
   $ tidy [paths...] [options]          Print the formatted file
   $ tidy up [paths...] [options]       Rewrite files in place
   $ tidy check [paths...] [options]    List files that aren't formatted, and exit 1 if any
+  $ tidy schema                        Print the JSON Schema of a tidy.json
 
   Without paths, `tidy` reads stdin and prints the result, and `up` and `check` take the
   current folder. Folders are searched for .html, .htm, .vue, .hbs, .handlebars, .css, .scss,
@@ -105,6 +106,16 @@ enum Scope {
 
 fn run() -> Result<ExitCode, String> {
   let mut raw: Vec<std::ffi::OsString> = std::env::args_os().skip(1).collect();
+
+  if raw.first().and_then(|arg| arg.to_str()) == Some("schema") {
+    let text = tidy::schema::schema();
+    // A closed pipe, as in `tidy schema | head`, is not an error worth reporting.
+    match std::io::stdout().write_all(text.as_bytes()) {
+      Err(error) if error.kind() == std::io::ErrorKind::BrokenPipe => {}
+      other => other.map_err(|error| error.to_string())?,
+    }
+    return Ok(ExitCode::SUCCESS);
+  }
 
   let mode = match raw.first().and_then(|arg| arg.to_str()) {
     Some("up") => Mode::Up,

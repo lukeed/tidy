@@ -224,20 +224,24 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-/** Loaded only on the page that needs it, since it pulls in the wasm glue. */
-function playground() {
-  if (document.querySelector(".play")) {
-    void import("./play").then((module) => module.mount());
+/**
+ * A custom element, so the browser mounts it whenever it enters the document.
+ * The client runtime replaces `<body>`, and a script inside replaced markup
+ * never runs, but an upgrade does.
+ */
+class TidyPlayground extends HTMLElement {
+  connectedCallback() {
+    void import("./play").then((module) => module.mount(this));
   }
 }
 
+customElements.define("tidy-playground", TidyPlayground);
+
 spy();
 here(location.pathname);
-playground();
 
 on("bongo:navigated", ({ to }) => {
   here(to.pathname);
   closeMenu();
   spy();
-  playground();
 });

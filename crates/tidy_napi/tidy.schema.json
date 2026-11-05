@@ -1,0 +1,1495 @@
+{
+  "$id": "https://tidy.lukeed.com/tidy.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Options for tidy, a code formatter with Prettier's style. https://tidy.lukeed.com/docs/options/",
+  "properties": {
+    "bracketSameLine": {
+      "default": false,
+      "description": "Keep the `>` of a multi-line tag on the last line.",
+      "type": "boolean"
+    },
+    "bracketSpacing": {
+      "default": true,
+      "description": "Spaces inside the braces of JSON and JS objects, and YAML flow mappings.",
+      "type": "boolean"
+    },
+    "css": {
+      "additionalProperties": false,
+      "description": "Options for css only.",
+      "properties": {
+        "bracketSameLine": {
+          "default": false,
+          "description": "Keep the `>` of a multi-line tag on the last line.",
+          "type": "boolean"
+        },
+        "bracketSpacing": {
+          "default": true,
+          "description": "Spaces inside the braces of JSON and JS objects, and YAML flow mappings.",
+          "type": "boolean"
+        },
+        "embedded": {
+          "default": true,
+          "description": "Format the code of other languages inside a file.",
+          "type": "boolean"
+        },
+        "eol": {
+          "default": "lf",
+          "description": "The line ending to write.",
+          "enum": [
+            "lf",
+            "crlf",
+            "cr"
+          ],
+          "type": "string"
+        },
+        "ignore": {
+          "default": "prettier-ignore",
+          "description": "The name of the ignore directive.",
+          "type": "string"
+        },
+        "indent": {
+          "default": 2,
+          "description": "The width of one indent.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "quote": {
+          "default": "double",
+          "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
+          "enum": [
+            "double",
+            "single"
+          ],
+          "type": "string"
+        },
+        "singleAttributePerLine": {
+          "default": false,
+          "description": "Put each attribute on its own line.",
+          "type": "boolean"
+        },
+        "tabs": {
+          "default": false,
+          "description": "Indent with tabs.",
+          "type": "boolean"
+        },
+        "trailingComma": {
+          "default": true,
+          "description": "Trailing commas in SCSS, JSONC, JSON5, YAML flow collections, TOML arrays and JS.",
+          "type": "boolean"
+        },
+        "whitespace": {
+          "default": "auto",
+          "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
+          "enum": [
+            "strict",
+            "auto",
+            "ignore"
+          ],
+          "type": "string"
+        },
+        "width": {
+          "default": 80,
+          "description": "The line width the printer fits to. 120 for Dockerfiles.",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "dockerfile": {
+      "additionalProperties": false,
+      "description": "Options for dockerfile only.",
+      "properties": {
+        "bracketSameLine": {
+          "default": false,
+          "description": "Keep the `>` of a multi-line tag on the last line.",
+          "type": "boolean"
+        },
+        "bracketSpacing": {
+          "default": true,
+          "description": "Spaces inside the braces of JSON and JS objects, and YAML flow mappings.",
+          "type": "boolean"
+        },
+        "embedded": {
+          "default": true,
+          "description": "Format the code of other languages inside a file.",
+          "type": "boolean"
+        },
+        "eol": {
+          "default": "lf",
+          "description": "The line ending to write.",
+          "enum": [
+            "lf",
+            "crlf",
+            "cr"
+          ],
+          "type": "string"
+        },
+        "healthcheckCmdNewLine": {
+          "default": false,
+          "description": "Put a HEALTHCHECK's CMD on its own line.",
+          "type": "boolean"
+        },
+        "ignore": {
+          "default": "prettier-ignore",
+          "description": "The name of the ignore directive.",
+          "type": "string"
+        },
+        "indent": {
+          "default": 2,
+          "description": "The width of one indent.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "indentStages": {
+          "default": false,
+          "description": "Indent the instructions of each stage.",
+          "type": "boolean"
+        },
+        "quote": {
+          "default": "double",
+          "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
+          "enum": [
+            "double",
+            "single"
+          ],
+          "type": "string"
+        },
+        "singleAttributePerLine": {
+          "default": false,
+          "description": "Put each attribute on its own line.",
+          "type": "boolean"
+        },
+        "tabs": {
+          "default": false,
+          "description": "Indent with tabs.",
+          "type": "boolean"
+        },
+        "trailingComma": {
+          "default": true,
+          "description": "Trailing commas in SCSS, JSONC, JSON5, YAML flow collections, TOML arrays and JS.",
+          "type": "boolean"
+        },
+        "whitespace": {
+          "default": "auto",
+          "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
+          "enum": [
+            "strict",
+            "auto",
+            "ignore"
+          ],
+          "type": "string"
+        },
+        "width": {
+          "default": 80,
+          "description": "The line width the printer fits to. 120 for Dockerfiles.",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "embedded": {
+      "default": true,
+      "description": "Format the code of other languages inside a file.",
+      "type": "boolean"
+    },
+    "eol": {
+      "default": "lf",
+      "description": "The line ending to write.",
+      "enum": [
+        "lf",
+        "crlf",
+        "cr"
+      ],
+      "type": "string"
+    },
+    "graphql": {
+      "additionalProperties": false,
+      "description": "Options for graphql only.",
+      "properties": {
+        "bracketSameLine": {
+          "default": false,
+          "description": "Keep the `>` of a multi-line tag on the last line.",
+          "type": "boolean"
+        },
+        "bracketSpacing": {
+          "default": true,
+          "description": "Spaces inside the braces of JSON and JS objects, and YAML flow mappings.",
+          "type": "boolean"
+        },
+        "embedded": {
+          "default": true,
+          "description": "Format the code of other languages inside a file.",
+          "type": "boolean"
+        },
+        "eol": {
+          "default": "lf",
+          "description": "The line ending to write.",
+          "enum": [
+            "lf",
+            "crlf",
+            "cr"
+          ],
+          "type": "string"
+        },
+        "ignore": {
+          "default": "prettier-ignore",
+          "description": "The name of the ignore directive.",
+          "type": "string"
+        },
+        "indent": {
+          "default": 2,
+          "description": "The width of one indent.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "quote": {
+          "default": "double",
+          "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
+          "enum": [
+            "double",
+            "single"
+          ],
+          "type": "string"
+        },
+        "singleAttributePerLine": {
+          "default": false,
+          "description": "Put each attribute on its own line.",
+          "type": "boolean"
+        },
+        "tabs": {
+          "default": false,
+          "description": "Indent with tabs.",
+          "type": "boolean"
+        },
+        "trailingComma": {
+          "default": true,
+          "description": "Trailing commas in SCSS, JSONC, JSON5, YAML flow collections, TOML arrays and JS.",
+          "type": "boolean"
+        },
+        "whitespace": {
+          "default": "auto",
+          "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
+          "enum": [
+            "strict",
+            "auto",
+            "ignore"
+          ],
+          "type": "string"
+        },
+        "width": {
+          "default": 80,
+          "description": "The line width the printer fits to. 120 for Dockerfiles.",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "handlebars": {
+      "additionalProperties": false,
+      "description": "Options for handlebars only.",
+      "properties": {
+        "bracketSameLine": {
+          "default": false,
+          "description": "Keep the `>` of a multi-line tag on the last line.",
+          "type": "boolean"
+        },
+        "bracketSpacing": {
+          "default": true,
+          "description": "Spaces inside the braces of JSON and JS objects, and YAML flow mappings.",
+          "type": "boolean"
+        },
+        "dialect": {
+          "default": "auto",
+          "description": "Which mustache grammar to parse.",
+          "enum": [
+            "auto",
+            "handlebars",
+            "tempura"
+          ],
+          "type": "string"
+        },
+        "embedded": {
+          "default": true,
+          "description": "Format the code of other languages inside a file.",
+          "type": "boolean"
+        },
+        "eol": {
+          "default": "lf",
+          "description": "The line ending to write.",
+          "enum": [
+            "lf",
+            "crlf",
+            "cr"
+          ],
+          "type": "string"
+        },
+        "ignore": {
+          "default": "prettier-ignore",
+          "description": "The name of the ignore directive.",
+          "type": "string"
+        },
+        "indent": {
+          "default": 2,
+          "description": "The width of one indent.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "quote": {
+          "default": "double",
+          "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
+          "enum": [
+            "double",
+            "single"
+          ],
+          "type": "string"
+        },
+        "singleAttributePerLine": {
+          "default": false,
+          "description": "Put each attribute on its own line.",
+          "type": "boolean"
+        },
+        "tabs": {
+          "default": false,
+          "description": "Indent with tabs.",
+          "type": "boolean"
+        },
+        "trailingComma": {
+          "default": true,
+          "description": "Trailing commas in SCSS, JSONC, JSON5, YAML flow collections, TOML arrays and JS.",
+          "type": "boolean"
+        },
+        "whitespace": {
+          "default": "auto",
+          "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
+          "enum": [
+            "strict",
+            "auto",
+            "ignore"
+          ],
+          "type": "string"
+        },
+        "width": {
+          "default": 80,
+          "description": "The line width the printer fits to. 120 for Dockerfiles.",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "html": {
+      "additionalProperties": false,
+      "description": "Options for html only.",
+      "properties": {
+        "bracketSameLine": {
+          "default": false,
+          "description": "Keep the `>` of a multi-line tag on the last line.",
+          "type": "boolean"
+        },
+        "bracketSpacing": {
+          "default": true,
+          "description": "Spaces inside the braces of JSON and JS objects, and YAML flow mappings.",
+          "type": "boolean"
+        },
+        "embedded": {
+          "default": true,
+          "description": "Format the code of other languages inside a file.",
+          "type": "boolean"
+        },
+        "eol": {
+          "default": "lf",
+          "description": "The line ending to write.",
+          "enum": [
+            "lf",
+            "crlf",
+            "cr"
+          ],
+          "type": "string"
+        },
+        "ignore": {
+          "default": "prettier-ignore",
+          "description": "The name of the ignore directive.",
+          "type": "string"
+        },
+        "indent": {
+          "default": 2,
+          "description": "The width of one indent.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "quote": {
+          "default": "double",
+          "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
+          "enum": [
+            "double",
+            "single"
+          ],
+          "type": "string"
+        },
+        "singleAttributePerLine": {
+          "default": false,
+          "description": "Put each attribute on its own line.",
+          "type": "boolean"
+        },
+        "tabs": {
+          "default": false,
+          "description": "Indent with tabs.",
+          "type": "boolean"
+        },
+        "trailingComma": {
+          "default": true,
+          "description": "Trailing commas in SCSS, JSONC, JSON5, YAML flow collections, TOML arrays and JS.",
+          "type": "boolean"
+        },
+        "whitespace": {
+          "default": "auto",
+          "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
+          "enum": [
+            "strict",
+            "auto",
+            "ignore"
+          ],
+          "type": "string"
+        },
+        "width": {
+          "default": 80,
+          "description": "The line width the printer fits to. 120 for Dockerfiles.",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "ignore": {
+      "default": "prettier-ignore",
+      "description": "The name of the ignore directive.",
+      "type": "string"
+    },
+    "indent": {
+      "default": 2,
+      "description": "The width of one indent.",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "ini": {
+      "additionalProperties": false,
+      "description": "Options for ini only.",
+      "properties": {
+        "bracketSameLine": {
+          "default": false,
+          "description": "Keep the `>` of a multi-line tag on the last line.",
+          "type": "boolean"
+        },
+        "bracketSpacing": {
+          "default": true,
+          "description": "Spaces inside the braces of JSON and JS objects, and YAML flow mappings.",
+          "type": "boolean"
+        },
+        "embedded": {
+          "default": true,
+          "description": "Format the code of other languages inside a file.",
+          "type": "boolean"
+        },
+        "eol": {
+          "default": "lf",
+          "description": "The line ending to write.",
+          "enum": [
+            "lf",
+            "crlf",
+            "cr"
+          ],
+          "type": "string"
+        },
+        "ignore": {
+          "default": "prettier-ignore",
+          "description": "The name of the ignore directive.",
+          "type": "string"
+        },
+        "indent": {
+          "default": 2,
+          "description": "The width of one indent.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "quote": {
+          "default": "double",
+          "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
+          "enum": [
+            "double",
+            "single"
+          ],
+          "type": "string"
+        },
+        "singleAttributePerLine": {
+          "default": false,
+          "description": "Put each attribute on its own line.",
+          "type": "boolean"
+        },
+        "spaceAroundEquals": {
+          "default": true,
+          "description": "Spaces around the `=` of an entry.",
+          "type": "boolean"
+        },
+        "tabs": {
+          "default": false,
+          "description": "Indent with tabs.",
+          "type": "boolean"
+        },
+        "trailingComma": {
+          "default": true,
+          "description": "Trailing commas in SCSS, JSONC, JSON5, YAML flow collections, TOML arrays and JS.",
+          "type": "boolean"
+        },
+        "whitespace": {
+          "default": "auto",
+          "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
+          "enum": [
+            "strict",
+            "auto",
+            "ignore"
+          ],
+          "type": "string"
+        },
+        "width": {
+          "default": 80,
+          "description": "The line width the printer fits to. 120 for Dockerfiles.",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "js": {
+      "additionalProperties": false,
+      "description": "Options for js only.",
+      "properties": {
+        "arrowParens": {
+          "default": "always",
+          "description": "Parentheses around a lone arrow function parameter.",
+          "enum": [
+            "always",
+            "avoid"
+          ],
+          "type": "string"
+        },
+        "bracketSameLine": {
+          "default": false,
+          "description": "Keep the `>` of a multi-line tag on the last line.",
+          "type": "boolean"
+        },
+        "bracketSpacing": {
+          "default": true,
+          "description": "Spaces inside the braces of JSON and JS objects, and YAML flow mappings.",
+          "type": "boolean"
+        },
+        "embedded": {
+          "default": true,
+          "description": "Format the code of other languages inside a file.",
+          "type": "boolean"
+        },
+        "eol": {
+          "default": "lf",
+          "description": "The line ending to write.",
+          "enum": [
+            "lf",
+            "crlf",
+            "cr"
+          ],
+          "type": "string"
+        },
+        "experimentalOperatorPosition": {
+          "default": "end",
+          "description": "Which side of a line break a binary operator sits on.",
+          "enum": [
+            "start",
+            "end"
+          ],
+          "type": "string"
+        },
+        "experimentalTernaries": {
+          "default": false,
+          "description": "Prettier's experimental ternary layout.",
+          "type": "boolean"
+        },
+        "ignore": {
+          "default": "prettier-ignore",
+          "description": "The name of the ignore directive.",
+          "type": "string"
+        },
+        "indent": {
+          "default": 2,
+          "description": "The width of one indent.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "jsdoc": {
+          "default": true,
+          "description": "Format JSDoc comments, as prettier-plugin-jsdoc does.",
+          "type": "boolean"
+        },
+        "jsxSingleQuote": {
+          "default": false,
+          "description": "Single quotes in JSX attributes.",
+          "type": "boolean"
+        },
+        "objectWrap": {
+          "default": "preserve",
+          "description": "Keep an object expanded when the source had a line break after `{`.",
+          "enum": [
+            "preserve",
+            "collapse"
+          ],
+          "type": "string"
+        },
+        "plugins": {
+          "default": [],
+          "description": "Import sorters to follow: @trivago/prettier-plugin-sort-imports, @ianvs/prettier-plugin-sort-imports or prettier-plugin-organize-imports.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "quote": {
+          "default": "double",
+          "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
+          "enum": [
+            "double",
+            "single"
+          ],
+          "type": "string"
+        },
+        "quoteProps": {
+          "default": "as-needed",
+          "description": "When to quote the keys of an object.",
+          "enum": [
+            "as-needed",
+            "consistent",
+            "preserve"
+          ],
+          "type": "string"
+        },
+        "semi": {
+          "default": true,
+          "description": "End statements with a semicolon.",
+          "type": "boolean"
+        },
+        "singleAttributePerLine": {
+          "default": false,
+          "description": "Put each attribute on its own line.",
+          "type": "boolean"
+        },
+        "sortImports": {
+          "default": false,
+          "description": "Sort imports, with oxfmt's sorter.",
+          "type": "boolean"
+        },
+        "tabs": {
+          "default": false,
+          "description": "Indent with tabs.",
+          "type": "boolean"
+        },
+        "trailingComma": {
+          "anyOf": [
+            {
+              "enum": [
+                "all",
+                "es5",
+                "none"
+              ]
+            },
+            {
+              "type": "boolean"
+            }
+          ],
+          "default": "all",
+          "description": "Where to leave a trailing comma."
+        },
+        "whitespace": {
+          "default": "auto",
+          "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
+          "enum": [
+            "strict",
+            "auto",
+            "ignore"
+          ],
+          "type": "string"
+        },
+        "width": {
+          "default": 80,
+          "description": "The line width the printer fits to. 120 for Dockerfiles.",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "json": {
+      "additionalProperties": false,
+      "description": "Options for json only.",
+      "properties": {
+        "bracketSameLine": {
+          "default": false,
+          "description": "Keep the `>` of a multi-line tag on the last line.",
+          "type": "boolean"
+        },
+        "bracketSpacing": {
+          "default": true,
+          "description": "Spaces inside the braces of JSON and JS objects, and YAML flow mappings.",
+          "type": "boolean"
+        },
+        "embedded": {
+          "default": true,
+          "description": "Format the code of other languages inside a file.",
+          "type": "boolean"
+        },
+        "eol": {
+          "default": "lf",
+          "description": "The line ending to write.",
+          "enum": [
+            "lf",
+            "crlf",
+            "cr"
+          ],
+          "type": "string"
+        },
+        "ignore": {
+          "default": "prettier-ignore",
+          "description": "The name of the ignore directive.",
+          "type": "string"
+        },
+        "indent": {
+          "default": 2,
+          "description": "The width of one indent.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "objectWrap": {
+          "default": "preserve",
+          "description": "Keep an object expanded when the source had a line break after `{`.",
+          "enum": [
+            "preserve",
+            "collapse"
+          ],
+          "type": "string"
+        },
+        "quote": {
+          "default": "double",
+          "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
+          "enum": [
+            "double",
+            "single"
+          ],
+          "type": "string"
+        },
+        "quoteProps": {
+          "default": "as-needed",
+          "description": "When to quote the keys of an object.",
+          "enum": [
+            "as-needed",
+            "consistent",
+            "preserve"
+          ],
+          "type": "string"
+        },
+        "singleAttributePerLine": {
+          "default": false,
+          "description": "Put each attribute on its own line.",
+          "type": "boolean"
+        },
+        "tabs": {
+          "default": false,
+          "description": "Indent with tabs.",
+          "type": "boolean"
+        },
+        "trailingComma": {
+          "default": true,
+          "description": "Trailing commas in SCSS, JSONC, JSON5, YAML flow collections, TOML arrays and JS.",
+          "type": "boolean"
+        },
+        "whitespace": {
+          "default": "auto",
+          "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
+          "enum": [
+            "strict",
+            "auto",
+            "ignore"
+          ],
+          "type": "string"
+        },
+        "width": {
+          "default": 80,
+          "description": "The line width the printer fits to. 120 for Dockerfiles.",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "markdown": {
+      "additionalProperties": false,
+      "description": "Options for markdown only.",
+      "properties": {
+        "bracketSameLine": {
+          "default": false,
+          "description": "Keep the `>` of a multi-line tag on the last line.",
+          "type": "boolean"
+        },
+        "bracketSpacing": {
+          "default": true,
+          "description": "Spaces inside the braces of JSON and JS objects, and YAML flow mappings.",
+          "type": "boolean"
+        },
+        "bullet": {
+          "default": "dash",
+          "description": "The marker of a bullet list item.",
+          "enum": [
+            "keep",
+            "dash",
+            "asterisk",
+            "plus"
+          ],
+          "type": "string"
+        },
+        "embedded": {
+          "default": true,
+          "description": "Format the code of other languages inside a file.",
+          "type": "boolean"
+        },
+        "emphasis": {
+          "default": "underscore",
+          "description": "The delimiter of emphasis.",
+          "enum": [
+            "keep",
+            "underscore",
+            "asterisk"
+          ],
+          "type": "string"
+        },
+        "eol": {
+          "default": "lf",
+          "description": "The line ending to write.",
+          "enum": [
+            "lf",
+            "crlf",
+            "cr"
+          ],
+          "type": "string"
+        },
+        "fence": {
+          "default": "backtick",
+          "description": "The fence of a code block.",
+          "enum": [
+            "keep",
+            "backtick",
+            "tilde"
+          ],
+          "type": "string"
+        },
+        "heading": {
+          "default": "keep",
+          "description": "Turn setext headings into `#` prefixes.",
+          "enum": [
+            "keep",
+            "atx"
+          ],
+          "type": "string"
+        },
+        "ignore": {
+          "default": "prettier-ignore",
+          "description": "The name of the ignore directive.",
+          "type": "string"
+        },
+        "indent": {
+          "default": 2,
+          "description": "The width of one indent.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "numbering": {
+          "default": "auto",
+          "description": "The numbers of ordered list items.",
+          "enum": [
+            "keep",
+            "auto"
+          ],
+          "type": "string"
+        },
+        "preset": {
+          "default": "prettier",
+          "description": "A starting set of the marker options below.",
+          "enum": [
+            "prettier",
+            "preserve"
+          ],
+          "type": "string"
+        },
+        "quote": {
+          "default": "double",
+          "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
+          "enum": [
+            "double",
+            "single"
+          ],
+          "type": "string"
+        },
+        "rule": {
+          "default": "dash",
+          "description": "The characters of a thematic break.",
+          "enum": [
+            "keep",
+            "dash",
+            "asterisk",
+            "underscore"
+          ],
+          "type": "string"
+        },
+        "singleAttributePerLine": {
+          "default": false,
+          "description": "Put each attribute on its own line.",
+          "type": "boolean"
+        },
+        "strong": {
+          "default": "asterisk",
+          "description": "The delimiter of strong emphasis.",
+          "enum": [
+            "keep",
+            "asterisk",
+            "underscore"
+          ],
+          "type": "string"
+        },
+        "tabs": {
+          "default": false,
+          "description": "Indent with tabs.",
+          "type": "boolean"
+        },
+        "trailingComma": {
+          "default": true,
+          "description": "Trailing commas in SCSS, JSONC, JSON5, YAML flow collections, TOML arrays and JS.",
+          "type": "boolean"
+        },
+        "whitespace": {
+          "default": "auto",
+          "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
+          "enum": [
+            "strict",
+            "auto",
+            "ignore"
+          ],
+          "type": "string"
+        },
+        "width": {
+          "default": 80,
+          "description": "The line width the printer fits to. 120 for Dockerfiles.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "wrap": {
+          "default": "preserve",
+          "description": "How to wrap prose.",
+          "enum": [
+            "preserve",
+            "always",
+            "never"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "quote": {
+      "default": "double",
+      "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
+      "enum": [
+        "double",
+        "single"
+      ],
+      "type": "string"
+    },
+    "singleAttributePerLine": {
+      "default": false,
+      "description": "Put each attribute on its own line.",
+      "type": "boolean"
+    },
+    "tabs": {
+      "default": false,
+      "description": "Indent with tabs.",
+      "type": "boolean"
+    },
+    "toml": {
+      "additionalProperties": false,
+      "description": "Options for toml only.",
+      "properties": {
+        "alignComments": {
+          "default": true,
+          "description": "Align the comments after consecutive entries.",
+          "type": "boolean"
+        },
+        "alignEntries": {
+          "default": false,
+          "description": "Align the values of consecutive entries.",
+          "type": "boolean"
+        },
+        "alignSingleComments": {
+          "default": true,
+          "description": "Align a comment that stands alone.",
+          "type": "boolean"
+        },
+        "allowedBlankLines": {
+          "default": 2,
+          "description": "How many blank lines to keep in a row.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "arrayAutoCollapse": {
+          "default": true,
+          "description": "Collapse an array that fits the line width.",
+          "type": "boolean"
+        },
+        "arrayAutoExpand": {
+          "default": true,
+          "description": "Expand an array that does not fit the line width.",
+          "type": "boolean"
+        },
+        "bracketSameLine": {
+          "default": false,
+          "description": "Keep the `>` of a multi-line tag on the last line.",
+          "type": "boolean"
+        },
+        "bracketSpacing": {
+          "default": true,
+          "description": "Spaces inside the braces of JSON and JS objects, and YAML flow mappings.",
+          "type": "boolean"
+        },
+        "compactArrays": {
+          "default": true,
+          "description": "No spaces inside the brackets of an array.",
+          "type": "boolean"
+        },
+        "compactEntries": {
+          "default": false,
+          "description": "No spaces around the `=` of an entry.",
+          "type": "boolean"
+        },
+        "compactInlineTables": {
+          "default": false,
+          "description": "No spaces inside the braces of an inline table.",
+          "type": "boolean"
+        },
+        "embedded": {
+          "default": true,
+          "description": "Format the code of other languages inside a file.",
+          "type": "boolean"
+        },
+        "eol": {
+          "default": "lf",
+          "description": "The line ending to write.",
+          "enum": [
+            "lf",
+            "crlf",
+            "cr"
+          ],
+          "type": "string"
+        },
+        "ignore": {
+          "default": "prettier-ignore",
+          "description": "The name of the ignore directive.",
+          "type": "string"
+        },
+        "indent": {
+          "default": 2,
+          "description": "The width of one indent.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "indentEntries": {
+          "default": false,
+          "description": "Indent entries under their table header.",
+          "type": "boolean"
+        },
+        "indentTables": {
+          "default": false,
+          "description": "Indent the entries of a table.",
+          "type": "boolean"
+        },
+        "inlineTableExpand": {
+          "default": true,
+          "description": "Expand an inline table onto several lines.",
+          "type": "boolean"
+        },
+        "quote": {
+          "default": "double",
+          "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
+          "enum": [
+            "double",
+            "single"
+          ],
+          "type": "string"
+        },
+        "reorderArrays": {
+          "default": false,
+          "description": "Sort the values of each array.",
+          "type": "boolean"
+        },
+        "reorderInlineTables": {
+          "default": false,
+          "description": "Sort the keys of each inline table.",
+          "type": "boolean"
+        },
+        "reorderKeys": {
+          "default": false,
+          "description": "Sort the keys of each table.",
+          "type": "boolean"
+        },
+        "singleAttributePerLine": {
+          "default": false,
+          "description": "Put each attribute on its own line.",
+          "type": "boolean"
+        },
+        "tabs": {
+          "default": false,
+          "description": "Indent with tabs.",
+          "type": "boolean"
+        },
+        "trailingComma": {
+          "default": true,
+          "description": "Trailing commas in SCSS, JSONC, JSON5, YAML flow collections, TOML arrays and JS.",
+          "type": "boolean"
+        },
+        "trailingNewline": {
+          "default": true,
+          "description": "End the file with a line break.",
+          "type": "boolean"
+        },
+        "whitespace": {
+          "default": "auto",
+          "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
+          "enum": [
+            "strict",
+            "auto",
+            "ignore"
+          ],
+          "type": "string"
+        },
+        "width": {
+          "default": 80,
+          "description": "The line width the printer fits to. 120 for Dockerfiles.",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "trailingComma": {
+      "default": true,
+      "description": "Trailing commas in SCSS, JSONC, JSON5, YAML flow collections, TOML arrays and JS.",
+      "type": "boolean"
+    },
+    "vue": {
+      "additionalProperties": false,
+      "description": "Options for vue only.",
+      "properties": {
+        "bracketSameLine": {
+          "default": false,
+          "description": "Keep the `>` of a multi-line tag on the last line.",
+          "type": "boolean"
+        },
+        "bracketSpacing": {
+          "default": true,
+          "description": "Spaces inside the braces of JSON and JS objects, and YAML flow mappings.",
+          "type": "boolean"
+        },
+        "embedded": {
+          "default": true,
+          "description": "Format the code of other languages inside a file.",
+          "type": "boolean"
+        },
+        "eol": {
+          "default": "lf",
+          "description": "The line ending to write.",
+          "enum": [
+            "lf",
+            "crlf",
+            "cr"
+          ],
+          "type": "string"
+        },
+        "ignore": {
+          "default": "prettier-ignore",
+          "description": "The name of the ignore directive.",
+          "type": "string"
+        },
+        "indent": {
+          "default": 2,
+          "description": "The width of one indent.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "indentBlocks": {
+          "default": false,
+          "description": "Indent the contents of `<script>` and `<style>`.",
+          "type": "boolean"
+        },
+        "quote": {
+          "default": "double",
+          "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
+          "enum": [
+            "double",
+            "single"
+          ],
+          "type": "string"
+        },
+        "singleAttributePerLine": {
+          "default": false,
+          "description": "Put each attribute on its own line.",
+          "type": "boolean"
+        },
+        "tabs": {
+          "default": false,
+          "description": "Indent with tabs.",
+          "type": "boolean"
+        },
+        "trailingComma": {
+          "default": true,
+          "description": "Trailing commas in SCSS, JSONC, JSON5, YAML flow collections, TOML arrays and JS.",
+          "type": "boolean"
+        },
+        "whitespace": {
+          "default": "auto",
+          "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
+          "enum": [
+            "strict",
+            "auto",
+            "ignore"
+          ],
+          "type": "string"
+        },
+        "width": {
+          "default": 80,
+          "description": "The line width the printer fits to. 120 for Dockerfiles.",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "whitespace": {
+      "default": "auto",
+      "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
+      "enum": [
+        "strict",
+        "auto",
+        "ignore"
+      ],
+      "type": "string"
+    },
+    "width": {
+      "default": 80,
+      "description": "The line width the printer fits to. 120 for Dockerfiles.",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "xml": {
+      "additionalProperties": false,
+      "description": "Options for xml only.",
+      "properties": {
+        "attributeQuotes": {
+          "default": "preserve",
+          "description": "Which quotes to write around an attribute value.",
+          "enum": [
+            "preserve",
+            "single",
+            "double"
+          ],
+          "type": "string"
+        },
+        "bracketSameLine": {
+          "default": false,
+          "description": "Keep the `>` of a multi-line tag on the last line.",
+          "type": "boolean"
+        },
+        "bracketSpacing": {
+          "default": true,
+          "description": "Spaces inside the braces of JSON and JS objects, and YAML flow mappings.",
+          "type": "boolean"
+        },
+        "embedded": {
+          "default": true,
+          "description": "Format the code of other languages inside a file.",
+          "type": "boolean"
+        },
+        "eol": {
+          "default": "lf",
+          "description": "The line ending to write.",
+          "enum": [
+            "lf",
+            "crlf",
+            "cr"
+          ],
+          "type": "string"
+        },
+        "ignore": {
+          "default": "prettier-ignore",
+          "description": "The name of the ignore directive.",
+          "type": "string"
+        },
+        "indent": {
+          "default": 2,
+          "description": "The width of one indent.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "quote": {
+          "default": "double",
+          "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
+          "enum": [
+            "double",
+            "single"
+          ],
+          "type": "string"
+        },
+        "selfClosingSpace": {
+          "default": true,
+          "description": "A space before the `/>` of a self-closing tag.",
+          "type": "boolean"
+        },
+        "singleAttributePerLine": {
+          "default": false,
+          "description": "Put each attribute on its own line.",
+          "type": "boolean"
+        },
+        "sortAttributes": {
+          "default": false,
+          "description": "Sort attributes by name.",
+          "type": "boolean"
+        },
+        "tabs": {
+          "default": false,
+          "description": "Indent with tabs.",
+          "type": "boolean"
+        },
+        "trailingComma": {
+          "default": true,
+          "description": "Trailing commas in SCSS, JSONC, JSON5, YAML flow collections, TOML arrays and JS.",
+          "type": "boolean"
+        },
+        "whitespace": {
+          "default": "auto",
+          "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
+          "enum": [
+            "strict",
+            "auto",
+            "ignore"
+          ],
+          "type": "string"
+        },
+        "width": {
+          "default": 80,
+          "description": "The line width the printer fits to. 120 for Dockerfiles.",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "yaml": {
+      "additionalProperties": false,
+      "description": "Options for yaml only.",
+      "properties": {
+        "bracketSameLine": {
+          "default": false,
+          "description": "Keep the `>` of a multi-line tag on the last line.",
+          "type": "boolean"
+        },
+        "bracketSpacing": {
+          "default": true,
+          "description": "Spaces inside the braces of JSON and JS objects, and YAML flow mappings.",
+          "type": "boolean"
+        },
+        "embedded": {
+          "default": true,
+          "description": "Format the code of other languages inside a file.",
+          "type": "boolean"
+        },
+        "eol": {
+          "default": "lf",
+          "description": "The line ending to write.",
+          "enum": [
+            "lf",
+            "crlf",
+            "cr"
+          ],
+          "type": "string"
+        },
+        "ignore": {
+          "default": "prettier-ignore",
+          "description": "The name of the ignore directive.",
+          "type": "string"
+        },
+        "indent": {
+          "default": 2,
+          "description": "The width of one indent.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "quote": {
+          "default": "double",
+          "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
+          "enum": [
+            "double",
+            "single"
+          ],
+          "type": "string"
+        },
+        "singleAttributePerLine": {
+          "default": false,
+          "description": "Put each attribute on its own line.",
+          "type": "boolean"
+        },
+        "tabs": {
+          "default": false,
+          "description": "Indent with tabs.",
+          "type": "boolean"
+        },
+        "trailingComma": {
+          "default": true,
+          "description": "Trailing commas in SCSS, JSONC, JSON5, YAML flow collections, TOML arrays and JS.",
+          "type": "boolean"
+        },
+        "whitespace": {
+          "default": "auto",
+          "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
+          "enum": [
+            "strict",
+            "auto",
+            "ignore"
+          ],
+          "type": "string"
+        },
+        "width": {
+          "default": 80,
+          "description": "The line width the printer fits to. 120 for Dockerfiles.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "wrap": {
+          "default": "preserve",
+          "description": "How to wrap prose.",
+          "enum": [
+            "preserve",
+            "always",
+            "never"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "title": "tidy",
+  "type": "object"
+}

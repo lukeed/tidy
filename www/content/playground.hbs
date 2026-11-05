@@ -10,7 +10,7 @@ summary: Format code with tidy in your browser. The same Rust, compiled to WebAs
 	['dockerfile', 'Dockerfile'], ['ini', 'INI']
 ]}}
 <a class="skip" href="#input">Skip to the editor</a>
-<main class="play" id="main" data-wasm="<bongo:asset src='wasm/tidy_bg.wasm' />">
+<tidy-playground class="play" id="main" data-wasm="<bongo:asset src='wasm/tidy_bg.wasm' />">
 	<div class="play-bar">
 		<label class="pick">
 			<span>Language</span>
@@ -31,15 +31,22 @@ summary: Format code with tidy in your browser. The same Rust, compiled to WebAs
 	<div class="play-grid">
 		<section class="pane-box" aria-label="Input">
 			<h2><span>Input</span><span class="hint" data-in-stat></span></h2>
-			<textarea id="input" data-input spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Code to format"></textarea>
+			<div class="editor">
+				<pre class="shade twinkleplop" aria-hidden="true"><code data-input-shade></code></pre>
+				<textarea id="input" data-input spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Code to format"></textarea>
+			</div>
 		</section>
 		<section class="pane-box out" aria-label="Output">
 			<h2><span>Output</span><span class="hint" data-out-stat></span></h2>
-			<pre data-output aria-live="polite"></pre>
+			<pre class="twinkleplop" data-output aria-live="polite"></pre>
 		</section>
 		<section class="pane-box cfg-pane" id="config" hidden aria-label="Config">
 			<h2><span>tidy.json</span><span class="hint">JSON or TOML</span></h2>
-			<textarea data-config spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="tidy config"></textarea>
+			<div class="editor">
+				<pre class="shade twinkleplop" aria-hidden="true"><code data-config-shade></code></pre>
+				<textarea data-config spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="tidy config" placeholder="{ &quot;width&quot;: 100 }"></textarea>
+				<ul class="complete" data-complete hidden role="listbox" aria-label="Options"></ul>
+			</div>
 		</section>
 	</div>
 
@@ -47,4 +54,4 @@ summary: Format code with tidy in your browser. The same Rust, compiled to WebAs
 		tidy runs here as WebAssembly, in this tab. Nothing you type is sent anywhere.
 		See <a href="/docs/options/">Options</a> for every key the config pane takes.
 	</p>
-</main>
+</tidy-playground>

@@ -17,6 +17,8 @@ pub mod json;
 mod languages;
 pub mod markdown;
 mod options;
+#[cfg(feature = "config")]
+pub mod schema;
 mod stack;
 mod strings;
 mod syntax;
