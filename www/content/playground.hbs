@@ -2,56 +2,126 @@
 title: Playground
 summary: Format code with tidy in your browser. The same Rust, compiled to WebAssembly, with no file leaving the page.
 ---
+
 {{#var languages = [
-	['typescript', 'TypeScript'], ['babel', 'JavaScript'], ['html', 'HTML'], ['vue', 'Vue'],
-	['handlebars', 'Handlebars'], ['css', 'CSS'], ['scss', 'SCSS'], ['less', 'Less'],
-	['json', 'JSON'], ['jsonc', 'JSONC'], ['json5', 'JSON5'], ['yaml', 'YAML'],
-	['toml', 'TOML'], ['markdown', 'Markdown'], ['graphql', 'GraphQL'], ['xml', 'XML'],
-	['dockerfile', 'Dockerfile'], ['ini', 'INI']
+  ["typescript", "TypeScript"],
+  ["babel", "JavaScript"],
+  ["html", "HTML"],
+  ["vue", "Vue"],
+  ["handlebars", "Handlebars"],
+  ["css", "CSS"],
+  ["scss", "SCSS"],
+  ["less", "Less"],
+  ["json", "JSON"],
+  ["jsonc", "JSONC"],
+  ["json5", "JSON5"],
+  ["yaml", "YAML"],
+  ["toml", "TOML"],
+  ["markdown", "Markdown"],
+  ["graphql", "GraphQL"],
+  ["xml", "XML"],
+  ["dockerfile", "Dockerfile"],
+  ["ini", "INI"],
 ]}}
 <a class="skip" href="#input">Skip to the editor</a>
-<tidy-playground class="play" id="main" data-wasm="<bongo:asset src='wasm/tidy_bg.wasm' />">
-	<div class="play-bar">
-		<label class="pick">
-			<span>Language</span>
-			<select data-parser aria-label="Language">
-				{{#each languages as lang}}
-				<option value="{{ lang[0] }}"{{#if lang[0] === 'typescript'}} selected{{/if}}>{{ lang[1] }}</option>
-				{{/each}}
-			</select>
-		</label>
-		<div class="seg" role="tablist" aria-label="What the left pane shows">
-			<button type="button" role="tab" data-tab="input" aria-selected="true" aria-controls="input-pane">Input</button>
-			<button type="button" role="tab" data-tab="config" aria-selected="false" aria-controls="config">Config</button>
-		</div>
-		<span class="play-state" data-state role="status">loading tidy…</span>
-		<button class="pill" type="button" data-share>Copy link</button>
-	</div>
+<tidy-playground
+  class="play"
+  id="main"
+  data-wasm="<bongo:asset src='wasm/tidy_bg.wasm' />"
+>
+  <div class="play-bar">
+    <label class="pick">
+      <span>Language</span>
+      <select data-parser aria-label="Language">
+        {{#each languages as lang}}
+          <option
+            value="{{ lang[0] }}"
+            {{#if lang[0] === 'typescript'}} selected{{/if}}
+          >{{ lang[1] }}</option>
+        {{/each}}
+      </select>
+    </label>
+    <div class="seg" role="tablist" aria-label="What the left pane shows">
+      <button
+        type="button"
+        role="tab"
+        data-tab="input"
+        aria-selected="true"
+        aria-controls="input-pane"
+      >Input</button>
+      <button
+        type="button"
+        role="tab"
+        data-tab="config"
+        aria-selected="false"
+        aria-controls="config"
+      >Config</button>
+    </div>
+    <span class="play-state" data-state role="status">loading tidy…</span>
+    <button class="pill" type="button" data-share>Copy link</button>
+  </div>
 
-	<div class="play-grid">
-		<section class="pane-box left" id="input-pane" role="tabpanel" aria-label="Input">
-			<h2><span>Input</span><span class="hint" data-in-stat></span></h2>
-			<div class="editor">
-				<pre class="shade twinkleplop" aria-hidden="true"><code data-input-shade></code></pre>
-				<textarea id="input" data-input spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Code to format"></textarea>
-			</div>
-		</section>
-		<section class="pane-box left" id="config" role="tabpanel" hidden aria-label="Config">
-			<h2><span>Config</span><span class="hint">tidy.json or tidy.toml</span></h2>
-			<div class="editor">
-				<pre class="shade twinkleplop" aria-hidden="true"><code data-config-shade></code></pre>
-				<textarea data-config spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="tidy config" placeholder="Empty means tidy&#39;s defaults. Type an option name to complete it."></textarea>
-				<ul class="complete" data-complete hidden role="listbox" aria-label="Options"></ul>
-			</div>
-		</section>
-		<section class="pane-box out" aria-label="Output">
-			<h2><span>Output</span><span class="hint" data-out-stat></span></h2>
-			<pre class="twinkleplop" data-output aria-live="polite"></pre>
-		</section>
-	</div>
+  <div class="play-grid">
+    <section
+      class="pane-box left"
+      id="input-pane"
+      role="tabpanel"
+      aria-label="Input"
+    >
+      <h2><span>Input</span><span class="hint" data-in-stat></span></h2>
+      <div class="editor">
+        <pre class="shade twinkleplop" aria-hidden="true"><code
+            data-input-shade
+          ></code></pre>
+        <textarea
+          id="input"
+          data-input
+          spellcheck="false"
+          autocomplete="off"
+          autocapitalize="off"
+          aria-label="Code to format"
+        ></textarea>
+      </div>
+    </section>
+    <section
+      class="pane-box left"
+      id="config"
+      role="tabpanel"
+      hidden
+      aria-label="Config"
+    >
+      <h2><span>Config</span><span class="hint">tidy.json or tidy.toml</span></h2>
+      <div class="editor">
+        <pre class="shade twinkleplop" aria-hidden="true"><code
+            data-config-shade
+          ></code></pre>
+        <textarea
+          data-config
+          spellcheck="false"
+          autocomplete="off"
+          autocapitalize="off"
+          aria-label="tidy config"
+          placeholder="Empty means tidy&#39;s defaults. Type an option name to complete it."
+        ></textarea>
+        <ul
+          class="complete"
+          data-complete
+          hidden
+          role="listbox"
+          aria-label="Options"
+        ></ul>
+      </div>
+    </section>
+    <section class="pane-box out" aria-label="Output">
+      <h2><span>Output</span><span class="hint" data-out-stat></span></h2>
+      <pre class="twinkleplop" data-output aria-live="polite"></pre>
+    </section>
+  </div>
 
-	<p class="play-note">
-		tidy runs here as WebAssembly, in this tab. Nothing you type is sent anywhere.
-		See <a href="/docs/options/">Options</a> for every key the config pane takes.
-	</p>
+  <p class="play-note">
+    tidy runs here as WebAssembly, in this tab. Nothing you type is sent
+    anywhere. See
+    <a href="/docs/options/">Options</a>
+    for every key the config pane takes.
+  </p>
 </tidy-playground>

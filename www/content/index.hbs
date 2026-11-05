@@ -2,118 +2,171 @@
 title: Prettier's style, at native speed
 summary: tidy is a code formatter written in Rust. One binary prints what Prettier prints, for JavaScript, TypeScript, HTML, CSS, Markdown, YAML, JSON, TOML and more.
 ---
+
 {{#var bench = $data.bench}}
 {{#var claims = [
-	['Matches Prettier', 'Every release is checked against Prettier ' + $data.release.prettier + ' over a 12,000-file corpus: 100% of 3,906 JavaScript files and 3,308 of 3,309 TypeScript files.'],
-	['Formats the code inside your code', 'Styles and scripts in HTML and Vue. Markdown code blocks and front matter. CSS, GraphQL, HTML and Markdown in JS template literals.'],
-	['Configurable, if you need it', 'Reads <code>tidy.json</code>, <code>tidy.jsonc</code> or <code>tidy.toml</code>, on top of <code>.editorconfig</code>. The defaults are Prettier&rsquo;s.'],
-	['Stable output', 'Where Prettier would change its mind on the next run, tidy prints where it settles, so <code>tidy check</code> stays green in CI.']
+  [
+    "Matches Prettier",
+    "Every release is checked against Prettier " +
+      $data.release.prettier +
+      " over a 12,000-file corpus: 100% of 3,906 JavaScript files and 3,308 of 3,309 TypeScript files.",
+  ],
+  [
+    "Formats the code inside your code",
+    "Styles and scripts in HTML and Vue. Markdown code blocks and front matter. CSS, GraphQL, HTML and Markdown in JS template literals.",
+  ],
+  [
+    "Configurable, if you need it",
+    "Reads <code>tidy.json</code>, <code>tidy.jsonc</code> or <code>tidy.toml</code>, on top of <code>.editorconfig</code>. The defaults are Prettier&rsquo;s.",
+  ],
+  [
+    "Stable output",
+    "Where Prettier would change its mind on the next run, tidy prints where it settles, so <code>tidy check</code> stays green in CI.",
+  ],
 ]}}
 {{#var langs = [
-	['JavaScript, TypeScript, JSX', 'Prettier'],
-	['HTML, Vue, Handlebars, MJML', 'Prettier'],
-	['CSS, SCSS, Less', 'Prettier'],
-	['JSON, JSONC, JSON5', 'Prettier'],
-	['YAML, GraphQL, Markdown', 'Prettier'],
-	['XML, SVG', '@prettier/plugin-xml'],
-	['TOML', 'taplo'],
-	['Dockerfiles', 'dprint-plugin-dockerfile'],
-	['INI, .editorconfig, .npmrc', 'prettier-plugin-ini']
+  ["JavaScript, TypeScript, JSX", "Prettier"],
+  ["HTML, Vue, Handlebars, MJML", "Prettier"],
+  ["CSS, SCSS, Less", "Prettier"],
+  ["JSON, JSONC, JSON5", "Prettier"],
+  ["YAML, GraphQL, Markdown", "Prettier"],
+  ["XML, SVG", "@prettier/plugin-xml"],
+  ["TOML", "taplo"],
+  ["Dockerfiles", "dprint-plugin-dockerfile"],
+  ["INI, .editorconfig, .npmrc", "prettier-plugin-ini"],
 ]}}
 <a class="skip" href="#main">Skip to content</a>
 <div class="wrap rail">
-<main id="main">
-	<section class="row hero">
-		<p class="num">00</p>
-		<div class="body">
-			<h1>Prettier's style, at <mark>native speed</mark>.</h1>
-			<p class="lede">tidy is a code formatter written in Rust. One binary prints what Prettier prints, for every language below. It does not shell out to Node &mdash; though there is a Node binding if you want one.</p>
-			<div class="term">
-				<div class="tbar"><i></i><i></i><i></i><span>~/project</span></div>
-				<div class="tin"><em>$</em><code>curl -fsSL https://tidy.lukeed.com | sh</code><button type="button" data-copy="curl -fsSL https://tidy.lukeed.com | sh">copy</button></div>
-			</div>
-			<p class="alt">or build it with cargo &mdash; <a href="/docs/install/">every way to install</a></p>
-		</div>
-	</section>
+  <main id="main">
+    <section class="row hero">
+      <p class="num">00</p>
+      <div class="body">
+        <h1>Prettier's style, at <mark>native speed</mark>.</h1>
+        <p class="lede">tidy is a code formatter written in Rust. One binary
+          prints what Prettier prints, for every language below. It does not
+          shell out to Node &mdash; though there is a Node binding if you want
+          one.</p>
+        <div class="term">
+          <div class="tbar"><i></i><i></i><i></i><span>~/project</span></div>
+          <div class="tin"><em>$</em><code>curl -fsSL https://tidy.lukeed.com |
+              sh</code><button
+              type="button"
+              data-copy="curl -fsSL https://tidy.lukeed.com | sh"
+            >copy</button></div>
+        </div>
+        <p class="alt">or build it with cargo &mdash;
+          <a href="/docs/install/">every way to install</a></p>
+      </div>
+    </section>
 
-	<section class="row sec">
-		<p class="num">01 / Speed</p>
-		<div class="body">
-			<div class="stat"><b>18.5s &rarr; 280ms</b><span>A {{ $utils.num(bench.total.files) }}-file corpus of every language, checked end to end.</span></div>
-			<div class="bars">
-				{{#each bench.featured as row}}
-				<div class="grp">
-					<div class="gl"><b>{{ row.corpus }}</b><span>{{ $utils.num(row.files) }} files</span></div>
-					{{#each $utils.bars(row) as bar}}
-					<div class="b{{#if bar.me}} me{{/if}}{{#if bar.off}} off{{/if}}">
-						<span class="who">{{ bar.who }}</span>
-						<span class="track"><i style="width:{{ bar.width }}%"></i>{{#if bar.off}}<em>{{ bar.times }}&times; slower</em>{{/if}}</span>
-						<span class="ms">{{ $utils.ms(bar.ms) }}</span>
-					</div>
-					{{/each}}
-				</div>
-				{{/each}}
-			</div>
-			<p class="note">{{ bench.machine }}, all cores, mean of both run orders. Bars compare the three native tools; Prettier is off that scale. <a href="/docs/benchmarks/">every corpus and the method &rarr;</a></p>
-		</div>
-	</section>
+    <section class="row sec">
+      <p class="num">01 / Speed</p>
+      <div class="body">
+        <div class="stat"><b>18.5s &rarr; 280ms</b><span>A
+            {{ $utils.num(bench.total.files) }}-file corpus of every language,
+            checked end to end.</span></div>
+        <div class="bars">
+          {{#each bench.featured as row}}
+            <div class="grp">
+              <div class="gl"><b>{{ row.corpus }}</b><span>{{
+                    $utils.num(row.files)
+                  }}
+                  files</span></div>
+              {{#each $utils.bars(row) as bar}}
+                <div
+                  class="b{{#if bar.me}} me{{/if}}{{#if bar.off}} off{{/if}}"
+                >
+                  <span class="who">{{ bar.who }}</span>
+                  <span class="track"><i
+                      style="width:{{ bar.width }}%"
+                    ></i>{{#if bar.off}}<em>{{ bar.times }}&times; slower</em>{{/if}}</span>
+                  <span class="ms">{{ $utils.ms(bar.ms) }}</span>
+                </div>
+              {{/each}}
+            </div>
+          {{/each}}
+        </div>
+        <p class="note">{{ bench.machine }}, all cores, mean of both run orders.
+          Bars compare the three native tools; Prettier is off that scale.
+          <a href="/docs/benchmarks/">every corpus and the method &rarr;</a></p>
+      </div>
+    </section>
 
-	<section class="row sec">
-		<p class="num">02 / Output</p>
-		<div class="body">
-			<h2>Byte for byte what Prettier prints</h2>
-			<p class="sub">Not a lookalike style. tidy's tests run Prettier over the same corpus and compare the bytes, so a difference is a bug &mdash; unless it is one of the <a href="/docs/deviations/">documented deviations</a>.</p>
-			<div class="ba">
-				<div class="pane in"><h3><span>routes.ts</span><span>as written</span></h3>{{{ $data.sample.input }}}</div>
-				<div class="pane"><h3><span>routes.ts</span><em>tidy up</em></h3>{{{ $data.sample.output }}}</div>
-			</div>
-		</div>
-	</section>
+    <section class="row sec">
+      <p class="num">02 / Output</p>
+      <div class="body">
+        <h2>Byte for byte what Prettier prints</h2>
+        <p class="sub">Not a lookalike style. tidy's tests run Prettier over the
+          same corpus and compare the bytes, so a difference is a bug &mdash;
+          unless it is one of the
+          <a href="/docs/deviations/">documented deviations</a>.</p>
+        <div class="ba">
+          <div class="pane in"><h3><span>routes.ts</span><span>as written</span></h3>{{{
+              $data.sample.input
+            }}}</div>
+          <div class="pane"><h3><span>routes.ts</span><em>tidy up</em></h3>{{{
+              $data.sample.output
+            }}}</div>
+        </div>
+      </div>
+    </section>
 
-	<section class="row sec">
-		<p class="num">03 / Why</p>
-		<div class="body">
-			<div class="claims">
-				{{#each claims as claim}}
-				<div><b>{{ claim[0] }}</b><p>{{{ claim[1] }}}</p></div>
-				{{/each}}
-			</div>
-		</div>
-	</section>
+    <section class="row sec">
+      <p class="num">03 / Why</p>
+      <div class="body">
+        <div class="claims">
+          {{#each claims as claim}}
+            <div><b>{{ claim[0] }}</b><p>{{{ claim[1] }}}</p></div>
+          {{/each}}
+        </div>
+      </div>
+    </section>
 
-	<section class="row sec">
-		<p class="num">04 / Languages</p>
-		<div class="body">
-			<h2>Every language Prettier formats</h2>
-			<p class="sub">Plus the ones its plugins cover, built into the same binary. Nothing to install, nothing to register.</p>
-			<ul class="langs">
-				{{#each langs as lang}}
-				<li><b>{{ lang[0] }}</b><span>{{ lang[1] }}</span></li>
-				{{/each}}
-			</ul>
-		</div>
-	</section>
+    <section class="row sec">
+      <p class="num">04 / Languages</p>
+      <div class="body">
+        <h2>Every language Prettier formats</h2>
+        <p class="sub">Plus the ones its plugins cover, built into the same
+          binary. Nothing to install, nothing to register.</p>
+        <ul class="langs">
+          {{#each langs as lang}}
+            <li><b>{{ lang[0] }}</b><span>{{ lang[1] }}</span></li>
+          {{/each}}
+        </ul>
+      </div>
+    </section>
 
-	<section class="row sec">
-		<p class="num">05 / Config</p>
-		<div class="body">
-			<h2>Configurable, if you need it</h2>
-			<p class="sub">Each file takes the nearest <code>tidy.json</code>, <code>tidy.jsonc</code> or <code>tidy.toml</code>, on top of <code>.editorconfig</code>. Shared keys apply everywhere, and a language section overrides them. See <a href="/docs/options/">every option</a>.</p>
-			<div class="cfg">
-				<figure class="code"><div class="bar"><span class="file">tidy.json</span></div>{{{ $data.sample.config }}}</figure>
-				<div>
-					<p class="sub" style="margin-top:0">Then run it:</p>
-					<figure class="code"><div class="bar"><span>Shell</span></div>{{{ $data.sample.usage }}}</figure>
-				</div>
-			</div>
-		</div>
-	</section>
-</main>
+    <section class="row sec">
+      <p class="num">05 / Config</p>
+      <div class="body">
+        <h2>Configurable, if you need it</h2>
+        <p class="sub">Each file takes the nearest
+          <code>tidy.json</code>,
+          <code>tidy.jsonc</code>
+          or
+          <code>tidy.toml</code>, on top of
+          <code>.editorconfig</code>. Shared keys apply everywhere, and a
+          language section overrides them. See
+          <a href="/docs/options/">every option</a>.</p>
+        <div class="cfg">
+          <figure class="code"><div class="bar"><span
+                class="file"
+              >tidy.json</span></div>{{{ $data.sample.config }}}</figure>
+          <div>
+            <p class="sub" style="margin-top:0">Then run it:</p>
+            <figure class="code"><div class="bar"><span>Shell</span></div>{{{
+                $data.sample.usage
+              }}}</figure>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
 </div>
 
 <footer class="foot"><div class="wrap">
-	<a href="https://github.com/lukeed/tidy">github</a>
-	<a href="/docs/">docs</a>
-	<a href="/llms.txt">llms.txt</a>
-	<span class="sp">MIT &copy; <a href="https://lukeed.com">lukeed</a></span>
-</div></footer>
+    <a href="https://github.com/lukeed/tidy">github</a>
+    <a href="/docs/">docs</a>
+    <a href="/llms.txt">llms.txt</a>
+    <span class="sp">MIT &copy; <a href="https://lukeed.com">lukeed</a></span>
+  </div></footer>

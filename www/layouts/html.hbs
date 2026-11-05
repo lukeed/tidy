@@ -1,53 +1,71 @@
 {{#var docs = !!$page.params.group}}
-{{#var home = $page.path === '/'}}
-{{#var lost = $page.path === '/404.html'}}
-{{#var title = home ? "tidy · Prettier's style, at native speed" : $page.title + ' · tidy'}}
+{{#var home = $page.path === "/"}}
+{{#var lost = $page.path === "/404.html"}}
+{{#var title = home
+  ? "tidy · Prettier's style, at native speed"
+  : $page.title + " · tidy"}}
 {{#var summary = $utils.plain($page.summary || $site.description)}}
 {{#var alt = "tidy: Prettier's style, at native speed."}}
 <!doctype html>
 <html lang="{{ $site.lang }}">
-<head>
-	<meta charset="utf-8"/>
-	<meta name="viewport" content="width=device-width, initial-scale=1"/>
-	<script>document.documentElement.dataset.theme=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark")</script>
-	<title>{{ title }}</title>
-	<meta name="description" content="{{ summary }}"/>
-	{{#if lost}}
-	<meta name="robots" content="noindex"/>
-	{{#else}}
-	<link rel="canonical" href="{{ $page.url }}"/>
-	{{/if}}
-	{{#if docs}}
-	<bongo:alternate type="text/markdown" />
-	{{/if}}
-	<meta property="og:type" content="website"/>
-	<meta property="og:site_name" content="tidy"/>
-	<meta property="og:title" content="{{ title }}"/>
-	<meta property="og:description" content="{{ summary }}"/>
-	<meta property="og:url" content="{{ $page.url }}"/>
-	<meta property="og:image" content="{{ new URL($site.url).origin }}<bongo:asset src='img/og.png' />"/>
-	<meta property="og:image:type" content="image/png"/>
-	<meta property="og:image:width" content="1200"/>
-	<meta property="og:image:height" content="630"/>
-	<meta property="og:image:alt" content="{{ alt }}"/>
-	<meta name="twitter:card" content="summary_large_image"/>
-	<meta name="twitter:image:alt" content="{{ alt }}"/>
-	<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0A0B0C"/>
-	<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F6F7F3"/>
-	<link rel="icon" type="image/svg+xml" href="<bongo:asset src='img/favicon.svg' />"/>
-	<link rel="apple-touch-icon" href="<bongo:asset src='img/touch.png' />"/>
-	<bongo:asset preload src="fonts/archivo.woff2" />
-	<bongo:asset preload src="fonts/ibm-plex-mono-400.woff2" />
-	<bongo:style src="style.css"></bongo:style>
-	{{#if $utils.production()}}
-	<script defer src="/x/script.js" data-endpoint="/x"></script>
-	{{/if}}
-</head>
-<body{{#if home}} class="home"{{/if}}>
-{{#partial src="header"}}
-{{{ $page.content }}}
-{{#partial src="search"}}
-<bongo:client transitions prefetch />
-<bongo:script src="main.ts"></bongo:script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script
+    >document.documentElement.dataset.theme=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark")</script>
+    <title>{{ title }}</title>
+    <meta name="description" content="{{ summary }}" />
+    {{#if lost}}
+      <meta name="robots" content="noindex" />
+    {{#else}}
+      <link rel="canonical" href="{{ $page.url }}" />
+    {{/if}}
+    {{#if docs}}
+      <bongo:alternate type="text/markdown" />
+    {{/if}}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="tidy" />
+    <meta property="og:title" content="{{ title }}" />
+    <meta property="og:description" content="{{ summary }}" />
+    <meta property="og:url" content="{{ $page.url }}" />
+    <meta
+      property="og:image"
+      content="{{ new URL($site.url).origin }}<bongo:asset src='img/og.png' />"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="{{ alt }}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image:alt" content="{{ alt }}" />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: dark)"
+      content="#0A0B0C"
+    />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: light)"
+      content="#F6F7F3"
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="<bongo:asset src='img/favicon.svg' />"
+    />
+    <link rel="apple-touch-icon" href="<bongo:asset src='img/touch.png' />" />
+    <bongo:asset preload src="fonts/archivo.woff2" />
+    <bongo:asset preload src="fonts/ibm-plex-mono-400.woff2" />
+    <bongo:style src="style.css"></bongo:style>
+    {{#if $utils.production()}}
+      <script defer src="/x/script.js" data-endpoint="/x"></script>
+    {{/if}}
+  </head>
+  <body {{#if home}} class="home"{{/if}}>
+    {{#partial src="header"}}
+    {{{ $page.content }}}
+    {{#partial src="search"}}
+    <bongo:client transitions prefetch />
+    <bongo:script src="main.ts"></bongo:script>
+  </body>
 </html>
