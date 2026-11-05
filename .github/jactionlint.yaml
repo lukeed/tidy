@@ -1,6 +1,0 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/jdx/jactionlint/main/schema/jactionlint-config.json
-rules:
-  # npm accepts a trusted publisher only once tidyrs names this workflow as one
-  # on npmjs.com. Until that is set up, dropping NODE_AUTH_TOKEN would stop the
-  # release publishing at all. Turn this back on with the npm side.
-  use-trusted-publishing: off
