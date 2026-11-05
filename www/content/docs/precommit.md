@@ -28,6 +28,43 @@ $ chmod +x .githooks/pre-commit
 
 `core.hooksPath` still has to be set once per clone, so put that line in whatever your project uses to set itself up.
 
+## hk
+
+[hk](https://hk.jdx.dev) runs linters and formatters as git hooks, from one `hk.pkl` file. It stashes the unstaged work before a commit, so a step only sees what you staged, then stages what the step rewrote and puts the rest back.
+
+There is no tidy builtin, so declare the step yourself:
+
+```pkl [hk.pkl]
+amends "package://github.com/jdx/hk/releases/download/v2.11.1/hk@2.11.1#/Config.pkl"
+
+steps {
+  ["tidy"] = new Step {
+    glob = List(
+      "*.js", "*.jsx", "*.mjs", "*.cjs", "*.ts", "*.tsx", "*.mts", "*.cts",
+      "*.css", "*.scss", "*.less", "*.html", "*.vue", "*.hbs",
+      "*.json", "*.jsonc", "*.json5", "*.yaml", "*.yml", "*.toml",
+      "*.md", "*.markdown", "*.graphql", "*.xml", "*.svg"
+    )
+    check = "tidy check {{files}}"
+    fix = "tidy up {{files}}"
+  }
+}
+```
+
+```sh
+$ hk install
+```
+
+`git commit` now runs the step, rewrites what it must, and stages the result. The same step answers `hk check` and `hk fix`, so CI runs `hk check` and gets the same thing the hook does.
+
+<!-- prettier-ignore -->
+> **Do not pass `--staged` inside an hk step.** hk already decided which files
+> the step gets, and `{{files}}` is that list. Asking tidy to go back to git
+> would fight it: a step that is meant to see only part of the index would
+> format all of it.
+
+The `glob` list is what gives hk a file set per step, which is how it runs steps in parallel. Trim it to the languages your repository actually has.
+
 ## lint-staged
 
 ```json [package.json]

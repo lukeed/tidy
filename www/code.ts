@@ -23,6 +23,7 @@ const NAMES: Record<string, string> = {
   jsonc: "JSON",
   markdown: "Markdown",
   md: "Markdown",
+  pkl: "Pkl",
   rs: "Rust",
   rust: "Rust",
   scss: "SCSS",
@@ -84,6 +85,7 @@ export const languages = {
   less: "css",
   vue: "html",
   xml: "html",
+  pkl: "typescript",
 };
 
 /**
