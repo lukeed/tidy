@@ -81,7 +81,7 @@ If `prettier-ignore` reads wrong in a repository that has left Prettier behind, 
 Or for one run:
 
 ```sh
-$ tidy . --write --ignore tidy-ignore
+$ tidy up . --ignore tidy-ignore
 ```
 
 The name is per language too, so `"markdown": { "ignore": "tidy-ignore" }` changes it for Markdown alone.
@@ -93,13 +93,13 @@ tidy skips `node_modules` and every folder whose name starts with `.` when it wa
 To format part of a repository, name the parts:
 
 ```sh
-$ tidy src tests --check
+$ tidy check src tests
 ```
 
 To exclude a path inside one you do want, use your shell or your task runner to build the list:
 
 ```sh
-$ git ls-files '*.ts' ':!:src/generated' | xargs tidy --check
+$ git ls-files '*.ts' ':!:src/generated' | xargs tidy check
 ```
 
 That form has the useful property of formatting exactly what git tracks, which is usually what you meant by "the project".

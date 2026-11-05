@@ -34,7 +34,7 @@ oxlint ships no stylistic rules, so there is nothing to disable:
 
 ```sh
 $ oxlint
-$ tidy . --check
+$ tidy check .
 ```
 
 ## Biome
@@ -69,7 +69,7 @@ Recent Stylelint versions have already dropped their stylistic rules, so on Styl
 Lint first, format second:
 
 ```sh
-$ eslint . && tidy . --check
+$ eslint . && tidy check .
 ```
 
 A lint autofix can leave code unformatted — it is rewriting syntax, not layout. Formatting afterwards cleans up after it. The other order leaves you with a formatted file that the next autofix will unformat.

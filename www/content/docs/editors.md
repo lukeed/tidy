@@ -21,7 +21,7 @@ Install an extension that can run a command on save, such as **Run on Save** (`e
     "commands": [
       {
         "match": "\\.(js|jsx|mjs|cjs|ts|tsx|mts|cts|css|scss|less|html|vue|hbs|md|json|jsonc|yaml|yml|toml|xml|svg|graphql)$",
-        "cmd": "tidy --write ${file}"
+        "cmd": "tidy up ${file}"
       }
     ]
   }
@@ -107,7 +107,7 @@ Settings → Tools → File Watchers → **+** → `<custom>`:
 | ----------------------- | ----------------------------------- |
 | File type               | the type you want, one watcher each |
 | Program                 | `tidy`                              |
-| Arguments               | `--write $FilePath$`                |
+| Arguments               | `up $FilePath$`                     |
 | Output paths to refresh | `$FilePath$`                        |
 | Auto-save edited files  | off                                 |
 
@@ -117,7 +117,7 @@ Turn off "Auto-save edited files to trigger the watcher", or the watcher runs wh
 
 | Form                           | When                                                                          |
 | ------------------------------ | ----------------------------------------------------------------------------- |
-| `tidy --write <path>`          | The editor can run a command on a saved file.                                 |
+| `tidy up <path>`               | The editor can run a command on a saved file.                                 |
 | `tidy --stdin-filepath <path>` | The editor pipes the buffer in and takes stdout. Formats unsaved buffers too. |
 
 Prefer the stdin form where the editor supports it: it never writes a half-formatted file if something goes wrong, and it works before the first save.

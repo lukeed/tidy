@@ -7,7 +7,7 @@ summary: tidy is a code formatter written in Rust. One binary prints what Pretti
 	['Matches Prettier', 'Every release is checked against Prettier ' + $data.release.prettier + ' over a 12,000-file corpus: 100% of 3,906 JavaScript files and 3,308 of 3,309 TypeScript files.'],
 	['Formats the code inside your code', 'Styles and scripts in HTML and Vue. Markdown code blocks and front matter. CSS, GraphQL, HTML and Markdown in JS template literals.'],
 	['Configurable, if you need it', 'Reads <code>tidy.json</code>, <code>tidy.jsonc</code> or <code>tidy.toml</code>, on top of <code>.editorconfig</code>. The defaults are Prettier&rsquo;s.'],
-	['Stable output', 'Where Prettier would change its mind on the next run, tidy prints where it settles, so <code>--check</code> stays green in CI.']
+	['Stable output', 'Where Prettier would change its mind on the next run, tidy prints where it settles, so <code>tidy check</code> stays green in CI.']
 ]}}
 {{#var langs = [
 	['JavaScript, TypeScript, JSX', 'Prettier'],
@@ -65,7 +65,7 @@ summary: tidy is a code formatter written in Rust. One binary prints what Pretti
 			<p class="sub">Not a lookalike style. tidy's tests run Prettier over the same corpus and compare the bytes, so a difference is a bug &mdash; unless it is one of the <a href="/docs/deviations/">documented deviations</a>.</p>
 			<div class="ba">
 				<div class="pane in"><h3><span>routes.ts</span><span>as written</span></h3>{{{ $data.sample.input }}}</div>
-				<div class="pane"><h3><span>routes.ts</span><em>tidy --write</em></h3>{{{ $data.sample.output }}}</div>
+				<div class="pane"><h3><span>routes.ts</span><em>tidy up</em></h3>{{{ $data.sample.output }}}</div>
 			</div>
 		</div>
 	</section>

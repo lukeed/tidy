@@ -11,8 +11,10 @@ Its output is Prettier's. Not a style inspired by Prettier — the same bytes, c
 
 ```sh
 $ curl -fsSL https://tidy.lukeed.com | sh
-$ tidy . --write
+$ tidy up .
 ```
+
+Three commands: `tidy` prints a formatted file, `tidy up` rewrites files in place, and `tidy check` names the ones that need it. Both of the last two take `--staged` or `--changed`, so a hook or a CI job can format only what a commit or a branch touched.
 
 ## Why it exists
 
@@ -27,7 +29,7 @@ That constraint shapes everything. A faster formatter that prints _almost_ Prett
 - **The same output.** 100% of 3,906 JavaScript files and 3,308 of 3,309 TypeScript files in the bench corpus match Prettier byte for byte.
 - **One binary.** No `node_modules`, no plugin registration. XML, TOML, Dockerfiles and INI are built in, which in Prettier are four separate plugins.
 - **Every language in one pass.** Styles and scripts inside HTML and Vue, code blocks and front matter inside Markdown, and CSS, GraphQL and HTML inside JavaScript template literals.
-- **Stable output.** Prettier's output is not always a fixed point: run it twice and a few files change again. Where that happens, tidy prints where Prettier settles, so `--check` stays green.
+- **Stable output.** Prettier's output is not always a fixed point: run it twice and a few files change again. Where that happens, tidy prints where Prettier settles, so `tidy check` stays green.
 - **Prettier's options.** `tidy.json` takes the options you already know, in the same shapes. [`.editorconfig`](/docs/editorconfig/) is read too.
 
 ## How fast

@@ -61,7 +61,7 @@ Embedded code is printed to fit the remaining width at its indent, not the full 
 ## Turning it off
 
 ```sh
-$ tidy . --write --no-embedded
+$ tidy up . --no-embedded
 ```
 
 ```json [tidy.json]

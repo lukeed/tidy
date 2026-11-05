@@ -81,7 +81,7 @@ From weakest to strongest:
 
 ```sh
 # the config says 100; this run uses 120
-$ tidy . --write --width 120
+$ tidy up . --width 120
 ```
 
 ## Overriding the search

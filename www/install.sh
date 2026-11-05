@@ -53,8 +53,8 @@ If tidy has not been released for your platform yet, build it from source:
 
 	say ""
 	say "next:"
-	say "  tidy . --check    list what isn't formatted"
-	say "  tidy . --write    rewrite it all in place"
+	say "  tidy check .     list what isn't formatted"
+	say "  tidy up .        rewrite it all in place"
 	say "  https://tidy.lukeed.com/docs/"
 }
 

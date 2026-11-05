@@ -32,7 +32,7 @@ fn tidy(args: &[&str], cwd: &Path) -> Output {
 #[test]
 fn lists_files_to_format() {
   let folder = Folder::new("check", &[("docs/a.md", "* a\n"), ("docs/b.md", "- b\n")]);
-  let output = tidy(&["docs", "--check"], &folder.0);
+  let output = tidy(&["check", "docs"], &folder.0);
   assert_eq!(String::from_utf8_lossy(&output.stdout), "docs/a.md\n");
   assert_eq!(output.status.code(), Some(1));
 }
@@ -40,7 +40,7 @@ fn lists_files_to_format() {
 #[test]
 fn lists_each_file_once() {
   let folder = Folder::new("once", &[("docs/a.md", "* a\n"), (".github/b.md", "* b\n")]);
-  let output = tidy(&["docs", "./docs", "docs/a.md", ".github/b.md", "--check"], &folder.0);
+  let output = tidy(&["check", "docs", "./docs", "docs/a.md", ".github/b.md"], &folder.0);
   assert_eq!(String::from_utf8_lossy(&output.stdout), ".github/b.md\ndocs/a.md\n");
   assert_eq!(output.status.code(), Some(1));
 }
@@ -48,7 +48,7 @@ fn lists_each_file_once() {
 #[test]
 fn writes_files_in_place() {
   let folder = Folder::new("write", &[("docs/a.md", "* a\n"), ("docs/b.md", "- b\n")]);
-  let output = tidy(&["docs", "--write"], &folder.0);
+  let output = tidy(&["up", "docs"], &folder.0);
   assert_eq!(String::from_utf8_lossy(&output.stdout), "docs/a.md\n");
   assert_eq!(std::fs::read_to_string(folder.0.join("docs/a.md")).expect("read"), "- a\n");
   assert_eq!(output.status.code(), Some(0));
@@ -61,7 +61,7 @@ fn reports_folders_it_cannot_read() {
   let folder = Folder::new("locked", &[("docs/a.md", "- a\n"), ("docs/locked/b.md", "* b\n")]);
   let locked = folder.0.join("docs/locked");
   std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000)).expect("lock folder");
-  let output = tidy(&["docs", "--check"], &folder.0);
+  let output = tidy(&["check", "docs"], &folder.0);
   std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).expect("unlock folder");
   let stderr = String::from_utf8_lossy(&output.stderr);
   assert!(stderr.contains("docs/locked"), "{stderr}");

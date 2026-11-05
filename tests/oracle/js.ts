@@ -1,6 +1,6 @@
 // Formats JavaScript and TypeScript files with Prettier and with tidy, and compares the outputs. Both rejecting a file
 // counts as the same. Where Prettier's output changes when formatted again, tidy prints Prettier's fixed point instead,
-// so that a formatted file passes `--check`. Every output of tidy must read back the same. Embedded code isn't
+// so that a formatted file passes `tidy check`. Every output of tidy must read back the same. Embedded code isn't
 // formatted by either, unless `--embedded` is given: then both format the CSS, GraphQL, Markdown and HTML in templates.
 //
 //   bun tests/oracle/js.ts [dir...] [--show=n] [--list=file] [--embedded]

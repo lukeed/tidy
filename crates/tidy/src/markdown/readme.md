@@ -30,8 +30,8 @@ $ bun add tidyrs         # Node binding
 
 ```sh
 $ tidy readme.md                     # print the result
-$ tidy docs --check                  # list files that aren't formatted
-$ tidy . --write                     # rewrite in place
+$ tidy check docs                    # list files that aren't formatted
+$ tidy up .                          # rewrite in place
 $ cat notes.md | tidy --parser markdown
 ```
 

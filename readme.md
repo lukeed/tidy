@@ -9,7 +9,7 @@ It's _fast_.<br>On a 12,000-file corpus of every language (except XML), tidy che
 - **Matches Prettier**<br>100% of 3,906 JavaScript files and 3,308 of 3,309 TypeScript files in the bench corpus (with JSDoc formatting off)
 - **Formats the code inside your code**<br>styles and scripts in HTML and Vue, Markdown code blocks and front matter, CSS, GraphQL, HTML and Markdown in JS templates
 - **Configurable, if needed**<br>Reads `tidy.json`, `tidy.jsonc` or `tidy.toml`, plus `.editorconfig`
-- **Stable JS and TS output**<br>where Prettier's output would change on its next run, tidy prints where it settles, so `--check` stays green in CI
+- **Stable JS and TS output**<br>where Prettier's output would change on its next run, tidy prints where it settles, so `tidy check` stays green in CI
 
 ## Languages
 
@@ -40,10 +40,10 @@ $ cargo install --path crates/tidy_cli
 $ tidy index.html
 
 # list the files that aren't formatted; exits 1 if any
-$ tidy src --check
+$ tidy check src
 
 # rewrite everything in place
-$ tidy . --write
+$ tidy up .
 ```
 
 Without paths, tidy reads stdin. Run `tidy --help` for every flag.

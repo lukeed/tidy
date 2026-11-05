@@ -9,36 +9,38 @@ Formatting on commit keeps the main branch formatted without anybody remembering
 
 ## A git hook, with nothing else
 
-```sh [.git/hooks/pre-commit]
+```sh [.githooks/pre-commit]
 #!/bin/sh
 set -eu
 
-files=$(git diff --cached --name-only --diff-filter=d)
-[ -n "$files" ] || exit 0
-
-echo "$files" | xargs tidy --write
-echo "$files" | xargs git add
+tidy up --staged
 ```
 
-Make it executable with `chmod +x .git/hooks/pre-commit`. `--diff-filter=d` leaves out files the commit deletes, which would otherwise fail to open.
+That is the whole hook. `--staged` asks git which files are in the index, formats only those, and stages what it rewrote, so the commit holds the formatted version. A commit that touches no formattable file does nothing and succeeds.
 
-A hook in `.git/hooks` is not committed, so every clone needs it again. `git config core.hooksPath .githooks` moves them into the repository, where they are shared:
+A hook in `.git/hooks` is not committed, so every clone needs it again. Keep them in the repository instead:
 
 ```sh
-$ mkdir .githooks && git config core.hooksPath .githooks
+$ mkdir .githooks
+$ git config core.hooksPath .githooks
+$ chmod +x .githooks/pre-commit
 ```
+
+`core.hooksPath` still has to be set once per clone, so put that line in whatever your project uses to set itself up.
 
 ## lint-staged
 
 ```json [package.json]
 {
   "lint-staged": {
-    "*": "tidy --write"
+    "*": "tidy up"
   }
 }
 ```
 
 `lint-staged` stages what the command rewrote, so nothing else is needed. The `*` pattern is safe: tidy leaves alone any file whose name it does not recognise.
+
+If tidy is the only thing in your `lint-staged` config, `tidy up --staged` does the same job with nothing installed.
 
 With husky:
 
@@ -54,7 +56,7 @@ repos:
     hooks:
       - id: tidy
         name: tidy
-        entry: tidy --write
+        entry: tidy up
         language: system
         pass_filenames: true
 ```
@@ -63,18 +65,15 @@ repos:
 
 ## Check instead of write
 
-A hook that rewrites files during a commit can surprise people, because the commit is not what they staged. The quieter alternative refuses the commit and leaves the fix to them:
+A hook that rewrites files during a commit can surprise people, because the commit is not quite what they staged. The quieter alternative refuses the commit and leaves the fix to them:
 
 ```sh [.githooks/pre-commit]
 #!/bin/sh
 set -eu
 
-files=$(git diff --cached --name-only --diff-filter=d)
-[ -n "$files" ] || exit 0
-
-if ! echo "$files" | xargs tidy --check; then
+if ! tidy check --staged; then
 	echo
-	echo "Run: tidy . --write"
+	echo "Run: tidy up --staged"
 	exit 1
 fi
 ```

@@ -47,7 +47,7 @@ It also means tidy tracks a Prettier version. tidy follows Prettier 3.9.9, and M
 
 Prettier's output is not always a fixed point. For some inputs, formatting twice gives a third result, because the first pass changes something the second pass measures differently.
 
-Where that happens, tidy prints the result Prettier settles on. So `tidy --check` does not report a file that Prettier itself would reformat on the next run. This is not counted as a deviation, because the two agree once Prettier has stopped changing its mind.
+Where that happens, tidy prints the result Prettier settles on. So `tidy check` does not report a file that Prettier itself would reformat on the next run. This is not counted as a deviation, because the two agree once Prettier has stopped changing its mind.
 
 ## Speed
 

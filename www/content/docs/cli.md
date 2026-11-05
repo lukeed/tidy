@@ -6,34 +6,77 @@ order: 2
 ---
 
 ```sh
-$ tidy [paths...] [options]
+$ tidy [paths...] [options]          # print the formatted file
+$ tidy up [paths...] [options]       # rewrite files in place
+$ tidy check [paths...] [options]    # list what isn't formatted
 ```
-
-With no paths, tidy reads stdin and prints the result. With one file, it prints that file formatted, unless `--check` or `--write` is set. With a folder, it searches that folder for files it knows how to format.
 
 ```sh
 # print one file, formatted
 $ tidy index.html
 
 # list the files that aren't formatted; exits 1 if any
-$ tidy src --check
+$ tidy check src
 
 # rewrite everything in place
-$ tidy . --write
+$ tidy up .
 
 # a different width for one run
-$ tidy . --write --width 100
+$ tidy up . --width 100
 ```
 
-## Modes
+## Commands
 
-Three modes, and they are mutually exclusive.
+| Command      | What it does                                                                                    |
+| ------------ | ----------------------------------------------------------------------------------------------- |
+| `tidy`       | Print the formatted result to stdout.                                                           |
+| `tidy up`    | Rewrite each file in place, and print what it rewrote. Files already formatted are not touched. |
+| `tidy check` | Print the paths that are not formatted. Changes nothing. Exits 1 if any.                        |
 
-| Flag            | What it does                                                             |
-| --------------- | ------------------------------------------------------------------------ |
-| _(none)_        | Print the formatted result to stdout.                                    |
-| `--check`       | Print the paths that are not formatted. Changes nothing. Exits 1 if any. |
-| `-w`, `--write` | Rewrite each file in place. Files already formatted are not touched.     |
+Bare `tidy` reads stdin when it gets no paths, and takes one file otherwise. `up` and `check` take as many paths as you like, and the current folder when you give none.
+
+```sh
+$ tidy check          # the same as: tidy check .
+$ cat a.ts | tidy --stdin-filepath a.ts
+```
+
+A folder named `up` or `check` is read as the command, not as a path. Write `./up` to mean the folder.
+
+## Only what git says changed
+
+Instead of naming paths, let git name them. Both work with `up` and `check`, and not with bare `tidy`.
+
+| Flag                | What it does                                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `--staged`          | Only files staged in the index. `tidy up` stages what it rewrote, so the commit holds the formatted version. |
+| `--changed[=<ref>]` | Only files that differ from a branch or commit. Without a value, the default branch.                         |
+
+```sh
+# a pre-commit hook, in one line
+$ tidy up --staged
+
+# everything this branch touched
+$ tidy check --changed
+
+# against a named branch or commit
+$ tidy check --changed=main
+$ tidy check --changed=HEAD~3
+```
+
+`--changed` compares the working tree against the merge base of the ref and `HEAD`, so it covers what you committed on this branch _and_ what you have not committed yet. New files that git does not track yet are included; files a `.gitignore` covers are not.
+
+The default branch is `origin/HEAD` where that is set, else `main`, else `master`. If none of those exist, name the ref yourself.
+
+A path narrows what git named, rather than adding to it:
+
+```sh
+# only the changed files under src/
+$ tidy check --changed=main src
+```
+
+When git names no file tidy can format, the run succeeds and prints nothing — a commit that touches no formattable file is not a failure.
+
+`--changed` takes its value with `=`, because `--changed main` cannot be told apart from `--changed` followed by the path `main`.
 
 ## Choosing files
 
@@ -86,11 +129,11 @@ Every one of these has a config equivalent, documented in [Options](/docs/option
 
 | Code | Means                                                                                       |
 | ---- | ------------------------------------------------------------------------------------------- |
-| `0`  | Success. With `--check`, every file is formatted.                                           |
-| `1`  | With `--check`, at least one file is not formatted.                                         |
+| `0`  | Success. With `check`, every file is formatted.                                             |
+| `1`  | With `check`, at least one file is not formatted.                                           |
 | `2`  | Something failed: a file would not parse, a path could not be read, or an option was wrong. |
 
-A `--check` run that cannot parse a file exits `2`, not `1`, so a broken file is never reported as merely unformatted.
+A `check` run that cannot parse a file exits `2`, not `1`, so a broken file is never reported as merely unformatted.
 
 ## stdin
 

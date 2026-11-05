@@ -337,8 +337,8 @@ await Bun.write(
 let plugins =
   "--plugin @prettier/plugin-xml --plugin prettier-plugin-sh --plugin prettier-plugin-ini";
 let commands = (dir: string): Record<string, string> => ({
-  tidy: `${target}/release/tidy ${dir} --check --no-config --no-embedded`,
-  "tidy (1 thread)": `${target}/release/tidy ${dir} --check --no-config --no-embedded --threads 1`,
+  tidy: `${target}/release/tidy check ${dir} --no-config --no-embedded`,
+  "tidy (1 thread)": `${target}/release/tidy check ${dir} --no-config --no-embedded --threads 1`,
   bun: `bun fmt --cwd=${dir} --check --no-editorconfig --no-script ${off}`,
   dprint: `${target}/dprint/release/dprint-bench ${dir}`,
   oxc: `${target}/css/release/css-bench oxc ${dir}`,
@@ -354,8 +354,8 @@ let commands = (dir: string): Record<string, string> => ({
 
 /** The commands of the tools that can also format embedded code, formatting it. */
 let embedding = (dir: string): Record<string, string> => ({
-  tidy: `${target}/release/tidy ${dir} --check --no-config`,
-  "tidy (1 thread)": `${target}/release/tidy ${dir} --check --no-config --threads 1`,
+  tidy: `${target}/release/tidy check ${dir} --no-config`,
+  "tidy (1 thread)": `${target}/release/tidy check ${dir} --no-config --threads 1`,
   bun: `bun fmt --cwd=${dir} --check --no-editorconfig --no-script --no-config`,
   oxfmt: `${root}/node_modules/.bin/oxfmt --check -c ${oxfmtEmbedded} --disable-nested-config ${dir}`,
   prettier: `${prettier} --check ${dir} --no-config --log-level silent ${plugins}`,

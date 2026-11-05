@@ -63,7 +63,7 @@ Standard EditorConfig rules: the nearest `.editorconfig` applies, and tidy keeps
 ## Turning it off
 
 ```sh
-$ tidy . --write --no-config
+$ tidy up . --no-config
 ```
 
 `--no-config` turns off both `.editorconfig` and the `tidy.json` search. There is no flag that turns off only one.
@@ -73,5 +73,5 @@ $ tidy . --write --no-config
 `.editorconfig` files are INI, and tidy formats INI, so it formats them too:
 
 ```sh
-$ tidy .editorconfig --write
+$ tidy up .editorconfig
 ```

@@ -49,7 +49,7 @@ function check(
 ): boolean;
 ```
 
-`check` answers whether the source is already formatted. It is the API behind `tidy --check`, and cheaper than comparing `format(source) === source` yourself.
+`check` answers whether the source is already formatted. It is the API behind `tidy check`, and cheaper than comparing `format(source) === source` yourself.
 
 ## Options
 

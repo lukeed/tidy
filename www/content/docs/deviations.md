@@ -26,7 +26,7 @@ Most of them come from Bun's ports, which found these cases first. When Prettier
 
 ## Stability
 
-Separately from deviations, Prettier's output is not always a fixed point: for some inputs, running it twice gives a third result. Where that happens tidy prints the result Prettier settles on, so `tidy --check` does not fail on a file Prettier itself would reformat.
+Separately from deviations, Prettier's output is not always a fixed point: for some inputs, running it twice gives a third result. Where that happens tidy prints the result Prettier settles on, so `tidy check` does not fail on a file Prettier itself would reformat.
 
 This is not listed as a deviation, because tidy and Prettier agree once Prettier has stopped changing its mind.
 

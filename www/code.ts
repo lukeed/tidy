@@ -108,7 +108,7 @@ const SHORT = 32;
 
 /**
  * Let wide tables scroll, and mark each short code span and each table cell of
- * code spans alone, such as `-w, --write`, which stay on one line.
+ * code spans alone, such as `--eol, --quote`, which stay on one line.
  */
 export const transform: Build.Transform = (text, ctx) =>
   ctx.kind === "page"

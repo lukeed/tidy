@@ -21,7 +21,7 @@ For a new project that is a fine trade. For a repository with history, open bran
 
 ## What tidy trades instead
 
-tidy keeps the style and replaces the engine. The same input gives the same bytes, so adopting it is a no-op diff: run `tidy . --write` on a formatted repository and nothing changes.
+tidy keeps the style and replaces the engine. The same input gives the same bytes, so adopting it is a no-op diff: run `tidy up .` on a formatted repository and nothing changes.
 
 The trade is scope. tidy has no plugin system, so the languages it formats are the ones compiled into the binary. If you need a formatter for a language it does not know, tidy cannot be extended to cover it.
 

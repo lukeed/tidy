@@ -2,7 +2,10 @@
 $ tidy index.html
 
 # list what isn't formatted; exits 1 if any
-$ tidy src --check
+$ tidy check src
 
 # rewrite everything in place
-$ tidy . --write
+$ tidy up .
+
+# only what this branch changed
+$ tidy up --changed

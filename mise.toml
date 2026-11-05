@@ -24,15 +24,12 @@ tidied = "git ls-files -- '*.ts' '*.js' '*.mjs' '*.cjs' '*.json' '*.jsonc' '*.md
 description = "Check formatting"
 run = [
   "cargo fmt --all --check",
-  "cargo run -q -p tidy_cli -- --check $({{vars.tidied}})",
+  "cargo run -q -p tidy_cli -- check $({{vars.tidied}})",
 ]
 
 [tasks."fmt:fix"]
 description = "Format all crates and the other files with tidy"
-run = [
-  "cargo fmt --all",
-  "cargo run -q -p tidy_cli -- --write $({{vars.tidied}})",
-]
+run = ["cargo fmt --all", "cargo run -q -p tidy_cli -- up $({{vars.tidied}})"]
 
 [tasks.clippy]
 description = "Lint with warnings denied"
