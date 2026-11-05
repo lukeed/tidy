@@ -234,8 +234,12 @@
 	color: transparent;
 }
 
+/* Clearly a prompt, so it is never read as a value already in the file. */
 .editor > textarea::placeholder {
 	color: var(--muted);
+	font-family: var(--sans);
+	font-style: italic;
+	opacity: .75;
 }
 
 /* --- completion from the JSON schema --- */
@@ -247,7 +251,7 @@
 	list-style: none;
 	min-width: 260px;
 	max-width: 420px;
-	max-height: 232px;
+	max-height: 300px;
 	overflow-y: auto;
 	background: var(--panel);
 	border: 1px solid var(--rule);

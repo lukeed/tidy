@@ -328,7 +328,8 @@ function draw() {
 }
 
 function complete() {
-  if (!schema) return hide();
+  // An empty pane shows its prompt instead of a list of everything.
+  if (!schema || !config.value.trim()) return hide();
 
   let caret = config.selectionStart;
   let spot = wordAt(config.value, caret);
@@ -340,16 +341,17 @@ function complete() {
     : schema.properties;
 
   let word = spot.word.toLowerCase();
+  // Every option in scope, nearest match first; the list scrolls rather than truncating.
   hits = Object.entries(properties)
-    .filter(
-      ([key, property]) =>
-        (key.toLowerCase().startsWith(word) && property.type !== "object") ||
-        (!section &&
-          property.type === "object" &&
-          key.toLowerCase().startsWith(word)),
-    )
-    .slice(0, 8)
+    .filter(([key]) => key.toLowerCase().includes(word))
+    .sort(([a], [b]) => {
+      let lead =
+        Number(b.toLowerCase().startsWith(word)) -
+        Number(a.toLowerCase().startsWith(word));
+      return lead || a.localeCompare(b);
+    })
     .map(([key, property]) => ({ key, property }));
+
   picked = 0;
   draw();
   if (hits.length) place(caret);
