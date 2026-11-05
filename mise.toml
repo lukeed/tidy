@@ -1,10 +1,19 @@
+min_version = "2026.9.7"
+
 [tools]
 rust = { version = "1.98.0", components = "clippy,rustfmt" }
 bun = "1.4.4"
 hk = "2.11.1"
+jactionlint = "2.4.0"
+mr-boxington = "1.29.2"
 taplo = "0.10.0"
 yamlfmt = "0.21.0"
 "cargo:wasm-bindgen-cli" = "0.2.130"
+
+# mbx caches compiler output in one store, so a build here warms the next worktree.
+[wrappers.cargo]
+command = "mbx"
+env = { MBX_CARGO_SHIM_MODE = "1" }
 
 [env]
 CARGO_TARGET_DIR = "{{config_root}}/target"

@@ -39,6 +39,12 @@ steps {
     fix = "cargo run -q -p tidy_cli -- up {{files}}"
   }
 
+  // jactionlint is the maintained fork; mise warns that actionlint is deprecated.
+  ["actionlint"] = new Step {
+    glob = List(".github/workflows/*.yml", ".github/workflows/*.yaml")
+    check = "jactionlint {{files}}"
+  }
+
   // The shipped schema is what `tidy schema` prints, so a new option cannot land without it.
   ["schema"] = new Step {
     glob = List(

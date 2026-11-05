@@ -21,6 +21,7 @@ env:
 
 jobs:
   cli:
+    timeout-minutes: 30
     name: cli ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -43,11 +44,11 @@ jobs:
       - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
           install_args: rust
+          cache: false
       - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
         if: matrix.zig
-      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          key: cli-${{ matrix.target }}
+          use-cache: false
       - run: rustup target add ${{ matrix.target }}
 
       - name: Build
@@ -88,6 +89,7 @@ jobs:
           if-no-files-found: error
 
   release:
+    timeout-minutes: 15
     name: release
     needs: cli
     runs-on: ubuntu-latest
@@ -124,6 +126,7 @@ jobs:
           tag: ${{ inputs.tag || github.ref_name }}
 
   build:
+    timeout-minutes: 30
     name: build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -156,11 +159,12 @@ jobs:
         with:
           ref: ${{ inputs.tag || github.ref }}
       - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+        with:
+          cache: false
       - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
         if: contains(matrix.target, 'musl')
-      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          key: ${{ matrix.target }}
+          use-cache: false
       - run: rustup target add ${{ matrix.target }}
       - run: bun install --frozen-lockfile
       - run: bunx napi build --platform --release --esm --target ${{ matrix.target }} ${{ matrix.flags }}
@@ -181,6 +185,7 @@ jobs:
           if-no-files-found: error
 
   publish:
+    timeout-minutes: 15
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -194,6 +199,8 @@ jobs:
         with:
           ref: ${{ inputs.tag || github.ref }}
       - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+        with:
+          cache: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24

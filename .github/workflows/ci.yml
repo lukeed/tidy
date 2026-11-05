@@ -18,17 +18,19 @@ env:
 
 jobs:
   lint:
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
-          install_args: rust hk
+          install_args: rust hk jactionlint
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - run: mise run fmt
       - run: mise run clippy
 
   rust:
+    timeout-minutes: 30
     name: rust (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -48,6 +50,7 @@ jobs:
       - run: cargo test -p tidy --no-default-features --no-fail-fast
 
   napi:
+    timeout-minutes: 30
     name: napi (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:

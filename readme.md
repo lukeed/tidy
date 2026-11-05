@@ -81,7 +81,7 @@ let language = Language::of_path("App.vue").unwrap();
 let output = tidy::format(source, language, &Options::default(), Some("App.vue"), &mut Verbatim)?;
 ```
 
-## Working on tidy
+## Development
 
 [hk](https://hk.jdx.dev) runs the formatters, as a git hook and in CI. `hk.pkl` declares the steps; install the hook once per clone:
 
@@ -89,6 +89,8 @@ let output = tidy::format(source, language, &Options::default(), Some("App.vue")
 $ mise install
 $ hk install
 ```
+
+`mise.toml` pins the tools. [mbx](https://mr-boxington.jdx.dev) caches compiler output in one store, so building one worktree warms the next; it wraps `cargo` through mise, which needs mise's wrapper directory ahead of `~/.cargo/bin` on your `PATH`.
 
 A commit then formats what it staged, with tidy itself, and stages the result. To run the same steps by hand:
 
