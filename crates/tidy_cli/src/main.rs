@@ -241,7 +241,18 @@ fn run() -> Result<ExitCode, String> {
   let paths = match listed {
     None => paths,
     Some(listed) => {
-      let under = |path: &Path| paths.is_empty() || paths.iter().any(|root| path.starts_with(root));
+      // A path git named is relative when it sits below this folder, and
+      // absolute when it sits above it, so `.` is the relative ones.
+      let under = |path: &Path| {
+        paths.is_empty()
+          || paths.iter().any(|root| {
+            let root = root.strip_prefix(".").unwrap_or(root);
+            match root.as_os_str().is_empty() {
+              true => path.is_relative(),
+              false => path.starts_with(root),
+            }
+          })
+      };
       let wanted = listed.into_iter().filter(|path| under(path)).collect::<Vec<_>>();
       // Nothing to do is not a failure: a commit that touches no formattable file is fine.
       if wanted.is_empty() {
@@ -368,23 +379,27 @@ fn git(args: &[&str]) -> Result<String, String> {
 }
 
 /// The files that git names, in a language tidy formats and still on disk.
+///
+/// git writes every path from the root of the repository, with `/` on every
+/// system. Taking the path apart as text, rather than against the filesystem,
+/// keeps that the same on Windows, where the two disagree about separators.
 fn git_listed(lists: &[&[&str]]) -> Result<Vec<PathBuf>, String> {
-  let root = PathBuf::from(git(&["rev-parse", "--show-toplevel"])?.trim());
-  let here = std::env::current_dir().unwrap_or_default();
+  let root = git(&["rev-parse", "--show-toplevel"])?.trim().to_owned();
+  // Where tidy runs, below the root: `src/`, or empty at the root itself.
+  let prefix = git(&["rev-parse", "--show-prefix"])?.trim().to_owned();
+
   let mut paths = Vec::new();
   for args in lists {
     for line in git(args)?.lines() {
       if line.is_empty() || Language::of_path(line).is_none() {
         continue;
       }
-      // git names a path from the root of the repository, wherever tidy was run.
-      let path = root.join(line);
-      if !path.is_file() {
-        continue;
-      }
-      // Print it the way it was typed, when it is below the current folder.
-      let path = path.strip_prefix(&here).map(Path::to_path_buf).unwrap_or(path);
-      if !paths.contains(&path) {
+      // Name it as it was typed when it is below this folder, else from the root.
+      let path = match line.strip_prefix(&prefix) {
+        Some(below) => PathBuf::from(below),
+        None => PathBuf::from(&root).join(line),
+      };
+      if path.is_file() && !paths.contains(&path) {
         paths.push(path);
       }
     }

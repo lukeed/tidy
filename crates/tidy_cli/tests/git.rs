@@ -140,6 +140,37 @@ fn leaves_out_files_it_cannot_format() {
   assert_eq!(lines(&output), ["b.ts"]);
 }
 
+/// `--staged` is about the commit, not the folder, so it covers the whole
+/// index wherever tidy runs. A file below that folder is named as it was
+/// typed; one above it keeps a path that still resolves.
+#[test]
+fn names_each_file_from_the_folder_it_runs_in() {
+  let repo = Repo::new("prefix", &[("src/a.ts", "const a = 1;\n")]);
+  repo.write("src/b.ts", "const b   =2\n");
+  repo.write("top.ts", "const c   =3\n");
+  repo.git(&["add", "-A"]);
+
+  let root = tidy(&["check", "--staged"], &repo.0);
+  assert_eq!(lines(&root), ["src/b.ts", "top.ts"]);
+
+  let inside = lines(&tidy(&["check", "--staged"], &repo.0.join("src")));
+  assert_eq!(inside.len(), 2, "the whole index, not just this folder: {inside:?}");
+  assert!(inside.contains(&"b.ts".to_owned()), "named from here: {inside:?}");
+  assert!(inside.iter().any(|path| path.ends_with("top.ts")), "still named: {inside:?}");
+}
+
+/// A path given alongside the scope narrows it, which is how you format one folder.
+#[test]
+fn a_path_narrows_a_scope_from_a_subfolder() {
+  let repo = Repo::new("narrow-sub", &[("src/a.ts", "const a = 1;\n")]);
+  repo.write("src/b.ts", "const b   =2\n");
+  repo.write("top.ts", "const c   =3\n");
+  repo.git(&["add", "-A"]);
+
+  let output = tidy(&["check", "--staged", "."], &repo.0.join("src"));
+  assert_eq!(lines(&output), ["b.ts"]);
+}
+
 #[test]
 fn the_two_scopes_are_exclusive() {
   let repo = Repo::new("both", &[("a.ts", "const a = 1;\n")]);
