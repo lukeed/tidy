@@ -4,6 +4,10 @@
 #
 #   TIDY_VERSION=v0.1.0   pin a release; defaults to the latest
 #   TIDY_INSTALL=~/bin    where the binary goes; defaults to ~/.local/bin
+#
+# This checks the published sha256, which catches a truncated download. For a
+# signed release manifest, install with packslip or mise instead:
+#   packslip install github.com/lukeed/tidy
 
 set -eu
 

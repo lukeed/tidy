@@ -85,6 +85,34 @@ Each release on [GitHub](https://github.com/lukeed/tidy/releases) will carry an 
 
 The Linux builds link against musl, so they run on any distribution and inside a `scratch` container.
 
+## Verified installs
+
+Every release carries `packslip.sigstore.json`, a [packslip](https://packslip.dev) manifest. It is signed by the release workflow's own identity, with no long-lived key, and it states each archive's digest, platform and the executables inside it.
+
+That lets an installer verify what it downloads instead of trusting a file name or a checksum served beside the binary:
+
+```sh
+$ packslip install github.com/lukeed/tidy
+```
+
+mise reads the same manifest through its packslip backend:
+
+```sh
+$ mise use -g packslip:github.com/lukeed/tidy
+```
+
+To check an archive you already have:
+
+```sh
+$ packslip verify github.com/lukeed/tidy
+```
+
+<!-- prettier-ignore -->
+> The install script above checks the `.sha256` published beside each archive,
+> which catches a truncated download, not a hostile one — a POSIX shell cannot
+> verify a signature. Where it matters, install through packslip or mise, which
+> can.
+
 ## Check it works
 
 ```sh
