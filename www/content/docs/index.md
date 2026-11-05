@@ -20,7 +20,7 @@ Prettier settled the argument about code style, and the cost of that is a Node p
 
 Several formatters are faster. Most ask you to accept a different style, which means a one-time diff across the whole repository and a new argument about the parts that changed. tidy takes the other path: keep the style, replace the engine.
 
-That constraint shapes everything. A faster formatter that prints *almost* Prettier is a formatter you cannot adopt without a migration.
+That constraint shapes everything. A faster formatter that prints _almost_ Prettier is a formatter you cannot adopt without a migration.
 
 ## What you get
 

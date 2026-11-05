@@ -18,7 +18,7 @@ run = "bunx napi build --platform --release --esm"
 
 [vars]
 # The files that tidy formats: all but the test cases, which stay as written.
-tidied = "git ls-files -- '*.ts' '*.js' '*.mjs' '*.cjs' '*.json' '*.jsonc' '*.md' '*.yml' '*.yaml' '*.toml' ':!:crates/tidy/tests/fixtures/**' ':!:crates/tidy/tests/*.json' ':!:tests/oracle/markdown/divergences/**'"
+tidied = "git ls-files -- '*.ts' '*.js' '*.mjs' '*.cjs' '*.json' '*.jsonc' '*.md' '*.yml' '*.yaml' '*.toml' ':!:crates/tidy/tests/fixtures/**' ':!:crates/tidy/tests/*.json' ':!:tests/oracle/markdown/divergences/**' ':!:www/samples/routes.input.ts'"
 
 [tasks.fmt]
 description = "Check formatting"

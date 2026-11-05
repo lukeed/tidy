@@ -1,0 +1,20 @@
+---
+---
+# tidy
+
+> {{ $site.description }}
+
+tidy is a code formatter written in Rust. It prints what Prettier 3.9.9 prints, for JavaScript, TypeScript, JSX, HTML, Vue, Handlebars, MJML, CSS, SCSS, Less, JSON, JSONC, JSON5, YAML, GraphQL, Markdown, XML, SVG, TOML, Dockerfiles and INI. It is a single native binary with no Node runtime, and a 12,071-file corpus checks in 280 ms where Prettier takes 18.5 s.
+
+Every page below is also served as Markdown at the same path with a `.md` extension.
+
+## Docs
+{{#each $utils.nav($pages, '/').flatMap(group => group.pages) as page}}
+- [{{ page.title }}]({{ new URL(page.path, $site.url) }}): {{ $utils.plain(($pages.find(it => it.path === page.path) || {}).summary || '') }}
+{{/each}}
+
+## Source
+
+- [Repository](https://github.com/lukeed/tidy)
+- [Deviations from Prettier](https://github.com/lukeed/tidy/blob/main/docs/deviations.md)
+- [Credits](https://github.com/lukeed/tidy/blob/main/docs/credits.md)

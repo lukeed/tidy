@@ -1,6 +1,18 @@
 .prose {
 	font-size: 16.5px;
 	line-height: 1.72;
+}
+
+/* Text keeps a comfortable measure; tables and code blocks take the column,
+   because an options table has four columns and nowhere to put them. */
+.prose > p,
+.prose > ul,
+.prose > ol,
+.prose > dl,
+.prose > blockquote,
+.prose > h2,
+.prose > h3,
+.prose > h4 {
 	max-width: 76ch;
 }
 

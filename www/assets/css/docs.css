@@ -1,8 +1,8 @@
 .shell {
 	display: grid;
-	grid-template-columns: 236px minmax(0, 1fr) 208px;
-	gap: 0 40px;
-	max-width: 1320px;
+	grid-template-columns: 232px minmax(0, 1fr) 182px;
+	gap: 0 34px;
+	max-width: 1400px;
 	margin: 0 auto;
 	padding: 0 clamp(20px, 4vw, 32px);
 	align-items: start;
@@ -299,9 +299,9 @@
 	border-left-color: var(--accent);
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1220px) {
 	.shell {
-		grid-template-columns: 236px minmax(0, 1fr);
+		grid-template-columns: 232px minmax(0, 1fr);
 	}
 
 	.toc {

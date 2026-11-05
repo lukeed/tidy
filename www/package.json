@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "@bongo/markdown": "^1.3.0",
+    "@cloudflare/workers-types": "^5.20261104.1",
     "@twinkleplop/bash": "^0.1.7",
     "@twinkleplop/core": "^0.3.1",
     "@twinkleplop/css": "^0.1.7",
