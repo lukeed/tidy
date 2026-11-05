@@ -66,8 +66,8 @@ let commands = (
   let { oxfmt, tidy } = embedded ? config.on : config.off;
   let off = embedded ? "" : "--embedded-language-formatting off";
   return {
-    tidy: `${target}/release/tidy ${dir} ${write ? "--write" : "--check"} --config ${tidy}`,
-    "tidy (1 thread)": `${target}/release/tidy ${dir} ${write ? "--write" : "--check"} --config ${tidy} --threads 1`,
+    tidy: `${target}/release/tidy ${write ? "up" : "check"} ${dir} --config ${tidy}`,
+    "tidy (1 thread)": `${target}/release/tidy ${write ? "up" : "check"} ${dir} --config ${tidy} --threads 1`,
     prettier: `${bin("prettier")} ${write ? "--write" : "--check"} ${dir} --no-config ${off} --log-level silent`,
     oxfmt: `${bin("oxfmt")} ${check} -c ${oxfmt} --disable-nested-config ${dir}`,
     "oxfmt (1 thread)": `${bin("oxfmt")} ${check} -c ${oxfmt} --disable-nested-config --threads=1 ${dir}`,

@@ -1,4 +1,4 @@
-//! Formats the style sheets under folders with one engine, the way `--check` does: exits 1 if any file changes.
+//! Formats the style sheets under folders with one engine, the way `tidy check` does: exits 1 if any file changes.
 //!
 //!   css-bench <oxc|malva|lightningcss> <paths...> [--threads <n>] [--write <dir>]
 //!

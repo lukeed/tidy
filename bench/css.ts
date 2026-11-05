@@ -108,8 +108,8 @@ function size(path: string): [number, number] {
 
 let prettierBin = join(root, "node_modules/.bin/prettier");
 let tools = (dir: string, name: string): Record<string, string> => ({
-  tidy: `${tidy} ${dir} --check --no-config`,
-  "tidy (1 thread)": `${tidy} ${dir} --check --no-config --threads 1`,
+  tidy: `${tidy} check ${dir} --no-config`,
+  "tidy (1 thread)": `${tidy} check ${dir} --no-config --threads 1`,
   oxc: `${harness} oxc ${dir}`,
   "oxc (1 thread)": `${harness} oxc ${dir} --threads 1`,
   malva: `${harness} malva ${dir}`,
@@ -137,7 +137,7 @@ async function matches(tool: string, dir: string): Promise<number | undefined> {
       .quiet();
   } else if (tool === "tidy") {
     cpSync(dir, out, { recursive: true });
-    await $`${tidy} ${out} --write --no-config`.nothrow().quiet();
+    await $`${tidy} up ${out} --no-config`.nothrow().quiet();
   } else {
     await $`${harness} ${tool} ${dir} --write ${out}`.nothrow().quiet();
   }

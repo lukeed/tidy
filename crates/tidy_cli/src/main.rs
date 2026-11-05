@@ -272,7 +272,7 @@ fn run() -> Result<ExitCode, String> {
     return Ok(ExitCode::SUCCESS);
   }
   if !check && !write {
-    return Err("pass --check or --write to format more than one file".into());
+    return Err("use `tidy up` or `tidy check` to format more than one file".into());
   }
 
   let mut options = tidy_walk::Options { wanted: &wanted, ..tidy_walk::Options::default() };

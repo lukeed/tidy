@@ -51,7 +51,7 @@ for (let order of [
   let commands = order.flatMap((name) => [
     "--command-name",
     name,
-    `${join(bench, name)} ${dirs.join(" ")} --check`,
+    `${join(bench, name)} check ${dirs.join(" ")}`,
   ]);
   await $`hyperfine -N --warmup 20 --runs ${runs} --ignore-failure --style none --export-json ${file} ${commands}`.quiet();
   let { results } = (await Bun.file(file).json()) as { results: Result[] };
