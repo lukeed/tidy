@@ -95,8 +95,8 @@ $ hk install
 A commit then formats what it staged, with tidy itself, and stages the result. To run the same steps by hand:
 
 ```sh
-$ mise run fmt        # hk check --all
-$ mise run fmt:fix    # hk fix --all
+$ mise run ci     # everything CI runs
+$ mise run fix    # format, and apply the lints that can be fixed
 ```
 
 ## Benchmarks

@@ -38,9 +38,10 @@ description = "Build the Node addon for this platform"
 dir = "crates/tidy_napi"
 run = "bunx napi build --platform --release --esm"
 
-[tasks.clippy]
-description = "Lint with warnings denied"
+[tasks.lint]
+description = "Check formatting and lint with warnings denied"
 run = [
+  "hk check --all",
   "cargo clippy --workspace --all-targets -- -D warnings",
   "cargo clippy -p tidy --no-default-features --all-targets -- -D warnings",
 ]
@@ -54,17 +55,16 @@ run = [
 ]
 depends = ["build:napi"]
 
-[tasks.fmt]
-description = "Check formatting with hk"
-run = "hk check --all"
+[tasks.ci]
+description = "Everything CI runs"
+depends = ["lint", "test"]
 
-[tasks."fmt:fix"]
-description = "Format everything with hk"
-run = "hk fix --all"
-
-[tasks.check]
-description = "Format, lint, and test"
-depends = ["fmt", "clippy", "test"]
+[tasks.fix]
+description = "Format, and apply the lints that can be fixed"
+run = [
+  "hk fix --all",
+  "cargo clippy --workspace --all-targets --fix --allow-dirty --allow-staged -- -D warnings",
+]
 
 [tasks.bench]
 description = "Compare against other formatters: mise run bench -- <dir>"

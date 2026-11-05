@@ -28,7 +28,7 @@ Sidebar groups come from each page's `group` frontmatter, ordered by `order`. Th
 
 ## Formatting
 
-`hk` formats this folder with tidy itself, on commit and through `mise run fmt`: the TypeScript, the Markdown, the stylesheets, the Handlebars templates and the SVG. Reformatting a template changes the whitespace of every page it renders, which HTML collapses, so the pages come out the same.
+`hk` formats this folder with tidy itself, on commit and through `mise run lint`: the TypeScript, the Markdown, the stylesheets, the Handlebars templates and the SVG. Reformatting a template changes the whitespace of every page it renders, which HTML collapses, so the pages come out the same.
 
 ## The JSON Schema
 
