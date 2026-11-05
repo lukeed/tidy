@@ -470,3 +470,18 @@
 		margin-left: 0;
 	}
 }
+
+/* a phone has room for about 30 columns of the install command, so shrink it
+   rather than clip it mid-URL */
+@media (max-width: 480px) {
+	.term .tin {
+		font-size: 12px;
+		gap: 8px;
+		padding: 12px;
+	}
+
+	.term .tin button {
+		font-size: 10px;
+		padding: 5px 7px;
+	}
+}

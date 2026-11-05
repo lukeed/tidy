@@ -86,9 +86,61 @@ type Entry = {
   group: string;
   summary: string;
   headings: [string, string][];
+  text: string;
 };
 
+type Hit = { entry: Entry; heading?: [string, string] };
+
 let index: Entry[] | undefined;
+
+/**
+ * How many times `query` appears in `text`, capped so one long page cannot win
+ * on length alone.
+ */
+function count(text: string, query: string): number {
+  let total = 0;
+  let at = text.indexOf(query);
+  while (at !== -1 && total < 20) {
+    total++;
+    at = text.indexOf(query, at + query.length);
+  }
+  return total;
+}
+
+/**
+ * A title match beats a heading, which beats the summary, which beats the body.
+ * Within the body, the page that says it most often wins — which is why
+ * "ignore" finds "Ignoring code" even though its title does not contain it.
+ */
+function rank(entries: Entry[], query: string): Hit[] {
+  let hits: (Hit & { score: number })[] = [];
+
+  for (let entry of entries) {
+    let titled = entry.title.toLowerCase().includes(query);
+    // A sub-heading link only helps when the title itself did not match.
+    let heading = titled
+      ? undefined
+      : entry.headings.find(([, text]) => text.toLowerCase().includes(query));
+    let score =
+      (titled ? 60 : 0) +
+      (heading ? 25 : 0) +
+      (entry.summary.toLowerCase().includes(query) ? 15 : 0) +
+      count(entry.text.toLowerCase(), query);
+
+    if (score > 0) hits.push({ entry, heading, score });
+  }
+
+  return hits.sort((a, b) => b.score - a.score);
+}
+
+const ESCAPE: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+};
+
+let escape = (text: string) => text.replace(/[&<>"]/g, (char) => ESCAPE[char]);
 
 async function search() {
   let dialog = document.getElementById("search") as HTMLDialogElement | null;
@@ -103,25 +155,19 @@ async function search() {
 
   function draw() {
     let query = input.value.trim().toLowerCase();
-    let hits = !query
-      ? index!.slice(0, 8)
-      : index!
-          .filter(
-            (entry) =>
-              entry.title.toLowerCase().includes(query) ||
-              entry.summary.toLowerCase().includes(query) ||
-              entry.headings.some(([, text]) =>
-                text.toLowerCase().includes(query),
-              ),
-          )
-          .slice(0, 12);
+    let hits = query
+      ? rank(index!, query).slice(0, 12)
+      : index!.slice(0, 8).map((entry) => ({ entry }));
 
     results.innerHTML = hits.length
       ? hits
-          .map(
-            (hit) =>
-              `<a href="${hit.path}"><em>${hit.group}</em><b>${hit.title}</b><span>${hit.summary}</span></a>`,
-          )
+          .map(({ entry, heading }) => {
+            let href = heading ? `${entry.path}#${heading[0]}` : entry.path;
+            let title = heading
+              ? `${escape(entry.title)} &rsaquo; ${escape(heading[1])}`
+              : escape(entry.title);
+            return `<a href="${href}"><em>${escape(entry.group)}</em><b>${title}</b><span>${escape(entry.summary)}</span></a>`;
+          })
           .join("")
       : '<p class="empty">Nothing matches that.</p>';
   }

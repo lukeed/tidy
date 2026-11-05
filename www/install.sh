@@ -26,7 +26,10 @@ main() {
 	trap 'rm -rf "$tmp"' EXIT INT TERM
 
 	say "downloading tidy for $target from $label"
-	fetch "$base/$archive" "$tmp/$archive"
+	fetch "$base/$archive" "$tmp/$archive" || die "could not download $archive from $label.
+
+If tidy has not been released for your platform yet, build it from source:
+  cargo install --git https://github.com/$REPO tidy_cli"
 	fetch "$base/$archive.sha256" "$tmp/$archive.sha256" 2>/dev/null || true
 	verify "$tmp" "$archive"
 
