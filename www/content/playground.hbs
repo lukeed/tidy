@@ -20,33 +20,33 @@ summary: Format code with tidy in your browser. The same Rust, compiled to WebAs
 				{{/each}}
 			</select>
 		</label>
-		<button class="pill" type="button" data-config-toggle aria-expanded="false" aria-controls="config">
-			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h8"/><circle cx="16" cy="17" r="2.2"/></svg>
-			Config
-		</button>
+		<div class="seg" role="tablist" aria-label="What the left pane shows">
+			<button type="button" role="tab" data-tab="input" aria-selected="true" aria-controls="input-pane">Input</button>
+			<button type="button" role="tab" data-tab="config" aria-selected="false" aria-controls="config">tidy.json</button>
+		</div>
 		<span class="play-state" data-state role="status">loading tidy…</span>
 		<button class="pill" type="button" data-share>Copy link</button>
 	</div>
 
 	<div class="play-grid">
-		<section class="pane-box" aria-label="Input">
+		<section class="pane-box left" id="input-pane" role="tabpanel" aria-label="Input">
 			<h2><span>Input</span><span class="hint" data-in-stat></span></h2>
 			<div class="editor">
 				<pre class="shade twinkleplop" aria-hidden="true"><code data-input-shade></code></pre>
 				<textarea id="input" data-input spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Code to format"></textarea>
 			</div>
 		</section>
-		<section class="pane-box out" aria-label="Output">
-			<h2><span>Output</span><span class="hint" data-out-stat></span></h2>
-			<pre class="twinkleplop" data-output aria-live="polite"></pre>
-		</section>
-		<section class="pane-box cfg-pane" id="config" hidden aria-label="Config">
+		<section class="pane-box left" id="config" role="tabpanel" hidden aria-label="tidy.json">
 			<h2><span>tidy.json</span><span class="hint">JSON or TOML</span></h2>
 			<div class="editor">
 				<pre class="shade twinkleplop" aria-hidden="true"><code data-config-shade></code></pre>
 				<textarea data-config spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="tidy config" placeholder="Empty means tidy&#39;s defaults. Type an option name to complete it."></textarea>
 				<ul class="complete" data-complete hidden role="listbox" aria-label="Options"></ul>
 			</div>
+		</section>
+		<section class="pane-box out" aria-label="Output">
+			<h2><span>Output</span><span class="hint" data-out-stat></span></h2>
+			<pre class="twinkleplop" data-output aria-live="polite"></pre>
 		</section>
 	</div>
 

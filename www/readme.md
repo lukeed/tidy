@@ -34,7 +34,7 @@ Sidebar groups come from each page's `group` frontmatter, ordered by `order`. Th
 
 `/playground/` runs tidy in the browser. `crates/tidy_wasm` wraps the library for wasm-bindgen, and `mise run build:wasm` writes `tidy.js` and `tidy_bg.wasm` into `assets/wasm/`, which bongo then publishes under a content-hashed name.
 
-`bun run build` runs that task first, so a built site always carries a current binary. `bun run dev` does not: run `bun run build:wasm` once after a clone, or the playground page will fail to build.
+The left column switches between the input and `tidy.json`, so the output stays beside whichever you edit. `bun run build` runs that task first, so a built site always carries a current binary. `bun run dev` does not: run `bun run build:wasm` once after a clone, or the playground page will fail to build.
 
 The wasm-bindgen crate and CLI versions must match exactly. Both are pinned: the crate in `crates/tidy_wasm/Cargo.toml`, the CLI in `mise.toml`. Bump them together.
 

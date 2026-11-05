@@ -112,8 +112,8 @@ let parser: HTMLSelectElement;
 let state: HTMLElement;
 let inStat: HTMLElement;
 let outStat: HTMLElement;
-let toggle: HTMLElement;
-let pane: HTMLElement;
+let tabs: HTMLElement;
+let panes: Record<string, HTMLElement>;
 let inShade: HTMLElement;
 let cfgShade: HTMLElement;
 let list: HTMLElement;
@@ -190,11 +190,15 @@ function sample() {
   input.value = SAMPLES[parser.value] ?? "";
 }
 
-function openConfig(open: boolean) {
-  document
-    .querySelector("[data-config-toggle]")!
-    .setAttribute("aria-expanded", String(open));
-  document.getElementById("config")!.hidden = !open;
+/** Which editor the left column shows; the output stays beside it either way. */
+function show(which: string) {
+  for (let tab of tabs.querySelectorAll<HTMLElement>("[data-tab]")) {
+    tab.setAttribute("aria-selected", String(tab.dataset.tab === which));
+  }
+  for (let [name, pane] of Object.entries(panes)) {
+    pane.hidden = name !== which;
+  }
+  if (which === "config") config.focus();
 }
 
 // ───────────────────────────── completion ─────────────────────────────
@@ -384,8 +388,11 @@ export function mount(root: HTMLElement) {
   state = root.querySelector<HTMLElement>("[data-state]")!;
   inStat = root.querySelector<HTMLElement>("[data-in-stat]")!;
   outStat = root.querySelector<HTMLElement>("[data-out-stat]")!;
-  toggle = root.querySelector<HTMLElement>("[data-config-toggle]")!;
-  pane = root.querySelector<HTMLElement>("#config")!;
+  tabs = root.querySelector<HTMLElement>(".seg")!;
+  panes = {
+    input: root.querySelector<HTMLElement>("#input-pane")!,
+    config: root.querySelector<HTMLElement>("#config")!,
+  };
   inShade = root.querySelector<HTMLElement>("[data-input-shade]")!;
   cfgShade = root.querySelector<HTMLElement>("[data-config-shade]")!;
   list = root.querySelector<HTMLElement>("[data-complete]")!;
@@ -429,12 +436,10 @@ export function mount(root: HTMLElement) {
   config.addEventListener("blur", () => setTimeout(hide, 120));
   config.addEventListener("keydown", keys);
 
-  root
-    .querySelector("[data-config-toggle]")
-    ?.addEventListener("click", (event) => {
-      let button = event.currentTarget as HTMLElement;
-      openConfig(button.getAttribute("aria-expanded") !== "true");
-    });
+  tabs.addEventListener("click", (event) => {
+    let tab = (event.target as HTMLElement).closest<HTMLElement>("[data-tab]");
+    if (tab) show(tab.dataset.tab!);
+  });
 
   root
     .querySelector("[data-share]")
@@ -460,7 +465,7 @@ export function mount(root: HTMLElement) {
   });
 
   if (restore()) {
-    if (config.value.trim()) openConfig(true);
+    if (config.value.trim()) show("config");
   } else {
     sample();
   }

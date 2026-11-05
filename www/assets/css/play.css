@@ -57,11 +57,20 @@
 }
 
 /* --- the panes --- */
+/* Input and tidy.json share the left column; one of them is hidden. */
 .play-grid {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: 16px;
 	align-items: stretch;
+}
+
+.pane-box.left {
+	grid-area: 1 / 1;
+}
+
+.pane-box.out {
+	grid-area: 1 / 2;
 }
 
 .pane-box[hidden] {
@@ -76,7 +85,7 @@
 	border-radius: 9px;
 	background: var(--panel);
 	overflow: hidden;
-	height: clamp(380px, calc(100vh - 230px), 760px);
+	height: clamp(420px, calc(100vh - 208px), 1040px);
 }
 
 .pane-box h2 {
@@ -139,10 +148,32 @@
 	white-space: pre-wrap;
 }
 
-/* the config pane sits under the two editors */
-.cfg-pane {
-	grid-column: 1 / -1;
-	height: 220px;
+/* --- which editor the left column shows --- */
+.seg {
+	display: inline-flex;
+	border: 1px solid var(--rule);
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.seg button {
+	padding: 8px 14px;
+	font: 400 13px/1 var(--mono);
+	color: var(--muted);
+}
+
+.seg button + button {
+	border-left: 1px solid var(--rule);
+}
+
+.seg button:hover {
+	color: var(--ink);
+	background: var(--sunk);
+}
+
+.seg button[aria-selected=true] {
+	color: var(--accent-ink);
+	background: var(--accent);
 }
 
 .play-note {
@@ -161,7 +192,12 @@
 	}
 
 	.pane-box {
-		height: 340px;
+		height: clamp(300px, calc(50vh - 90px), 520px);
+	}
+
+	.pane-box.left,
+	.pane-box.out {
+		grid-area: auto;
 	}
 }
 
