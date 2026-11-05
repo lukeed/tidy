@@ -44,15 +44,16 @@ const EXTENSION: Record<string, string> = {
   ini: "ini",
 };
 
-let input = document.querySelector<HTMLTextAreaElement>("[data-input]")!;
-let config = document.querySelector<HTMLTextAreaElement>("[data-config]")!;
-let output = document.querySelector<HTMLPreElement>("[data-output]")!;
-let parser = document.querySelector<HTMLSelectElement>("[data-parser]")!;
-let state = document.querySelector<HTMLElement>("[data-state]")!;
-let inStat = document.querySelector<HTMLElement>("[data-in-stat]")!;
-let outStat = document.querySelector<HTMLElement>("[data-out-stat]")!;
+let input: HTMLTextAreaElement;
+let config: HTMLTextAreaElement;
+let output: HTMLPreElement;
+let parser: HTMLSelectElement;
+let state: HTMLElement;
+let inStat: HTMLElement;
+let outStat: HTMLElement;
 
 let ready = false;
+let loading: Promise<unknown> | undefined;
 
 /** The whole page state, small enough to live in the URL. */
 function share(): string {
@@ -112,73 +113,93 @@ function sample() {
   input.value = SAMPLES[parser.value] ?? "";
 }
 
-parser.addEventListener("change", () => {
-  sample();
-  run();
-});
-
-for (let field of [input, config]) {
-  field.addEventListener("input", run);
+function openConfig(open: boolean) {
+  document
+    .querySelector("[data-config-toggle]")!
+    .setAttribute("aria-expanded", String(open));
+  document.getElementById("config")!.hidden = !open;
 }
-
-document
-  .querySelector("[data-config-toggle]")
-  ?.addEventListener("click", (event) => {
-    let button = event.currentTarget as HTMLElement;
-    let open = button.getAttribute("aria-expanded") === "true";
-    button.setAttribute("aria-expanded", String(!open));
-    document.getElementById("config")!.hidden = open;
-  });
-
-document
-  .querySelector("[data-share]")
-  ?.addEventListener("click", async (event) => {
-    let button = event.currentTarget as HTMLElement;
-    history.replaceState(null, "", `#${share()}`);
-    try {
-      await navigator.clipboard.writeText(location.href);
-      button.textContent = "Copied";
-      setTimeout(() => (button.textContent = "Copy link"), 1400);
-    } catch {
-      /* the URL is in the address bar either way */
-    }
-  });
 
 /**
- * Tab indents instead of leaving the editor, which is what a code box should
- * do.
+ * The client runtime replaces `<body>`, and a script in replaced markup never
+ * runs, so the page is wired here after every navigation that lands on it.
  */
-input.addEventListener("keydown", (event) => {
-  if (event.key !== "Tab" || event.shiftKey) return;
-  event.preventDefault();
-  let { selectionStart: start, selectionEnd: end, value } = input;
-  input.value = `${value.slice(0, start)}\t${value.slice(end)}`;
-  input.selectionStart = input.selectionEnd = start + 1;
-  run();
-});
+export function mount() {
+  let root = document.querySelector<HTMLElement>(".play");
+  if (!root || root.dataset.mounted) return;
+  root.dataset.mounted = "1";
 
-if (restore()) {
-  if (config.value.trim()) {
-    document
-      .querySelector("[data-config-toggle]")!
-      .setAttribute("aria-expanded", "true");
-    document.getElementById("config")!.hidden = false;
+  input = root.querySelector<HTMLTextAreaElement>("[data-input]")!;
+  config = root.querySelector<HTMLTextAreaElement>("[data-config]")!;
+  output = root.querySelector<HTMLPreElement>("[data-output]")!;
+  parser = root.querySelector<HTMLSelectElement>("[data-parser]")!;
+  state = root.querySelector<HTMLElement>("[data-state]")!;
+  inStat = root.querySelector<HTMLElement>("[data-in-stat]")!;
+  outStat = root.querySelector<HTMLElement>("[data-out-stat]")!;
+
+  parser.addEventListener("change", () => {
+    sample();
+    run();
+  });
+
+  for (let field of [input, config]) {
+    field.addEventListener("input", run);
   }
-} else {
-  sample();
-}
 
-let binary = document.querySelector<HTMLElement>(".play")!.dataset.wasm!;
+  root
+    .querySelector("[data-config-toggle]")
+    ?.addEventListener("click", (event) => {
+      let button = event.currentTarget as HTMLElement;
+      openConfig(button.getAttribute("aria-expanded") !== "true");
+    });
 
-init({ module_or_path: binary })
-  .then(() => {
-    ready = true;
+  root
+    .querySelector("[data-share]")
+    ?.addEventListener("click", async (event) => {
+      let button = event.currentTarget as HTMLElement;
+      history.replaceState(null, "", `#${share()}`);
+      try {
+        await navigator.clipboard.writeText(location.href);
+        button.textContent = "Copied";
+        setTimeout(() => (button.textContent = "Copy link"), 1400);
+      } catch {
+        /* the URL is in the address bar either way */
+      }
+    });
+
+  input.addEventListener("keydown", (event) => {
+    if (event.key !== "Tab" || event.shiftKey) return;
+    event.preventDefault();
+    let { selectionStart: start, selectionEnd: end, value } = input;
+    input.value = `${value.slice(0, start)}\t${value.slice(end)}`;
+    input.selectionStart = input.selectionEnd = start + 1;
+    run();
+  });
+
+  if (restore()) {
+    if (config.value.trim()) openConfig(true);
+  } else {
+    sample();
+  }
+
+  if (ready) {
     state.textContent = `tidy v${version()}`;
     state.classList.add("ok");
     run();
-  })
-  .catch((error: unknown) => {
-    state.textContent = "tidy failed to load";
-    state.classList.add("failed");
-    output.textContent = String(error);
-  });
+    return;
+  }
+
+  loading ??= init({ module_or_path: root.dataset.wasm! });
+  loading
+    .then(() => {
+      ready = true;
+      state.textContent = `tidy v${version()}`;
+      state.classList.add("ok");
+      run();
+    })
+    .catch((error: unknown) => {
+      state.textContent = "tidy failed to load";
+      state.classList.add("failed");
+      output.textContent = String(error);
+    });
+}

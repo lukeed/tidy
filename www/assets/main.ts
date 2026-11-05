@@ -224,11 +224,20 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+/** Loaded only on the page that needs it, since it pulls in the wasm glue. */
+function playground() {
+  if (document.querySelector(".play")) {
+    void import("./play").then((module) => module.mount());
+  }
+}
+
 spy();
 here(location.pathname);
+playground();
 
 on("bongo:navigated", ({ to }) => {
   here(to.pathname);
   closeMenu();
   spy();
+  playground();
 });
