@@ -36,11 +36,7 @@
         "eol": {
           "default": "lf",
           "description": "The line ending to write.",
-          "enum": [
-            "lf",
-            "crlf",
-            "cr"
-          ],
+          "enum": ["lf", "crlf", "cr"],
           "type": "string"
         },
         "ignore": {
@@ -57,10 +53,7 @@
         "quote": {
           "default": "double",
           "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
-          "enum": [
-            "double",
-            "single"
-          ],
+          "enum": ["double", "single"],
           "type": "string"
         },
         "singleAttributePerLine": {
@@ -81,11 +74,7 @@
         "whitespace": {
           "default": "auto",
           "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
-          "enum": [
-            "strict",
-            "auto",
-            "ignore"
-          ],
+          "enum": ["strict", "auto", "ignore"],
           "type": "string"
         },
         "width": {
@@ -119,11 +108,7 @@
         "eol": {
           "default": "lf",
           "description": "The line ending to write.",
-          "enum": [
-            "lf",
-            "crlf",
-            "cr"
-          ],
+          "enum": ["lf", "crlf", "cr"],
           "type": "string"
         },
         "healthcheckCmdNewLine": {
@@ -150,10 +135,7 @@
         "quote": {
           "default": "double",
           "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
-          "enum": [
-            "double",
-            "single"
-          ],
+          "enum": ["double", "single"],
           "type": "string"
         },
         "singleAttributePerLine": {
@@ -174,11 +156,7 @@
         "whitespace": {
           "default": "auto",
           "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
-          "enum": [
-            "strict",
-            "auto",
-            "ignore"
-          ],
+          "enum": ["strict", "auto", "ignore"],
           "type": "string"
         },
         "width": {
@@ -198,11 +176,7 @@
     "eol": {
       "default": "lf",
       "description": "The line ending to write.",
-      "enum": [
-        "lf",
-        "crlf",
-        "cr"
-      ],
+      "enum": ["lf", "crlf", "cr"],
       "type": "string"
     },
     "graphql": {
@@ -227,11 +201,7 @@
         "eol": {
           "default": "lf",
           "description": "The line ending to write.",
-          "enum": [
-            "lf",
-            "crlf",
-            "cr"
-          ],
+          "enum": ["lf", "crlf", "cr"],
           "type": "string"
         },
         "ignore": {
@@ -248,10 +218,7 @@
         "quote": {
           "default": "double",
           "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
-          "enum": [
-            "double",
-            "single"
-          ],
+          "enum": ["double", "single"],
           "type": "string"
         },
         "singleAttributePerLine": {
@@ -272,11 +239,7 @@
         "whitespace": {
           "default": "auto",
           "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
-          "enum": [
-            "strict",
-            "auto",
-            "ignore"
-          ],
+          "enum": ["strict", "auto", "ignore"],
           "type": "string"
         },
         "width": {
@@ -305,11 +268,7 @@
         "dialect": {
           "default": "auto",
           "description": "Which mustache grammar to parse.",
-          "enum": [
-            "auto",
-            "handlebars",
-            "tempura"
-          ],
+          "enum": ["auto", "handlebars", "tempura"],
           "type": "string"
         },
         "embedded": {
@@ -320,11 +279,7 @@
         "eol": {
           "default": "lf",
           "description": "The line ending to write.",
-          "enum": [
-            "lf",
-            "crlf",
-            "cr"
-          ],
+          "enum": ["lf", "crlf", "cr"],
           "type": "string"
         },
         "ignore": {
@@ -341,10 +296,7 @@
         "quote": {
           "default": "double",
           "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
-          "enum": [
-            "double",
-            "single"
-          ],
+          "enum": ["double", "single"],
           "type": "string"
         },
         "singleAttributePerLine": {
@@ -365,11 +317,7 @@
         "whitespace": {
           "default": "auto",
           "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
-          "enum": [
-            "strict",
-            "auto",
-            "ignore"
-          ],
+          "enum": ["strict", "auto", "ignore"],
           "type": "string"
         },
         "width": {
@@ -403,11 +351,7 @@
         "eol": {
           "default": "lf",
           "description": "The line ending to write.",
-          "enum": [
-            "lf",
-            "crlf",
-            "cr"
-          ],
+          "enum": ["lf", "crlf", "cr"],
           "type": "string"
         },
         "ignore": {
@@ -424,10 +368,7 @@
         "quote": {
           "default": "double",
           "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
-          "enum": [
-            "double",
-            "single"
-          ],
+          "enum": ["double", "single"],
           "type": "string"
         },
         "singleAttributePerLine": {
@@ -448,11 +389,7 @@
         "whitespace": {
           "default": "auto",
           "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
-          "enum": [
-            "strict",
-            "auto",
-            "ignore"
-          ],
+          "enum": ["strict", "auto", "ignore"],
           "type": "string"
         },
         "width": {
@@ -497,11 +434,7 @@
         "eol": {
           "default": "lf",
           "description": "The line ending to write.",
-          "enum": [
-            "lf",
-            "crlf",
-            "cr"
-          ],
+          "enum": ["lf", "crlf", "cr"],
           "type": "string"
         },
         "ignore": {
@@ -518,10 +451,7 @@
         "quote": {
           "default": "double",
           "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
-          "enum": [
-            "double",
-            "single"
-          ],
+          "enum": ["double", "single"],
           "type": "string"
         },
         "singleAttributePerLine": {
@@ -547,11 +477,7 @@
         "whitespace": {
           "default": "auto",
           "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
-          "enum": [
-            "strict",
-            "auto",
-            "ignore"
-          ],
+          "enum": ["strict", "auto", "ignore"],
           "type": "string"
         },
         "width": {
@@ -570,10 +496,7 @@
         "arrowParens": {
           "default": "always",
           "description": "Parentheses around a lone arrow function parameter.",
-          "enum": [
-            "always",
-            "avoid"
-          ],
+          "enum": ["always", "avoid"],
           "type": "string"
         },
         "bracketSameLine": {
@@ -594,20 +517,13 @@
         "eol": {
           "default": "lf",
           "description": "The line ending to write.",
-          "enum": [
-            "lf",
-            "crlf",
-            "cr"
-          ],
+          "enum": ["lf", "crlf", "cr"],
           "type": "string"
         },
         "experimentalOperatorPosition": {
           "default": "end",
           "description": "Which side of a line break a binary operator sits on.",
-          "enum": [
-            "start",
-            "end"
-          ],
+          "enum": ["start", "end"],
           "type": "string"
         },
         "experimentalTernaries": {
@@ -639,10 +555,7 @@
         "objectWrap": {
           "default": "preserve",
           "description": "Keep an object expanded when the source had a line break after `{`.",
-          "enum": [
-            "preserve",
-            "collapse"
-          ],
+          "enum": ["preserve", "collapse"],
           "type": "string"
         },
         "plugins": {
@@ -656,20 +569,13 @@
         "quote": {
           "default": "double",
           "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
-          "enum": [
-            "double",
-            "single"
-          ],
+          "enum": ["double", "single"],
           "type": "string"
         },
         "quoteProps": {
           "default": "as-needed",
           "description": "When to quote the keys of an object.",
-          "enum": [
-            "as-needed",
-            "consistent",
-            "preserve"
-          ],
+          "enum": ["as-needed", "consistent", "preserve"],
           "type": "string"
         },
         "semi": {
@@ -695,11 +601,7 @@
         "trailingComma": {
           "anyOf": [
             {
-              "enum": [
-                "all",
-                "es5",
-                "none"
-              ]
+              "enum": ["all", "es5", "none"]
             },
             {
               "type": "boolean"
@@ -711,11 +613,7 @@
         "whitespace": {
           "default": "auto",
           "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
-          "enum": [
-            "strict",
-            "auto",
-            "ignore"
-          ],
+          "enum": ["strict", "auto", "ignore"],
           "type": "string"
         },
         "width": {
@@ -749,11 +647,7 @@
         "eol": {
           "default": "lf",
           "description": "The line ending to write.",
-          "enum": [
-            "lf",
-            "crlf",
-            "cr"
-          ],
+          "enum": ["lf", "crlf", "cr"],
           "type": "string"
         },
         "ignore": {
@@ -770,29 +664,19 @@
         "objectWrap": {
           "default": "preserve",
           "description": "Keep an object expanded when the source had a line break after `{`.",
-          "enum": [
-            "preserve",
-            "collapse"
-          ],
+          "enum": ["preserve", "collapse"],
           "type": "string"
         },
         "quote": {
           "default": "double",
           "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
-          "enum": [
-            "double",
-            "single"
-          ],
+          "enum": ["double", "single"],
           "type": "string"
         },
         "quoteProps": {
           "default": "as-needed",
           "description": "When to quote the keys of an object.",
-          "enum": [
-            "as-needed",
-            "consistent",
-            "preserve"
-          ],
+          "enum": ["as-needed", "consistent", "preserve"],
           "type": "string"
         },
         "singleAttributePerLine": {
@@ -813,11 +697,7 @@
         "whitespace": {
           "default": "auto",
           "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
-          "enum": [
-            "strict",
-            "auto",
-            "ignore"
-          ],
+          "enum": ["strict", "auto", "ignore"],
           "type": "string"
         },
         "width": {
@@ -846,12 +726,7 @@
         "bullet": {
           "default": "dash",
           "description": "The marker of a bullet list item.",
-          "enum": [
-            "keep",
-            "dash",
-            "asterisk",
-            "plus"
-          ],
+          "enum": ["keep", "dash", "asterisk", "plus"],
           "type": "string"
         },
         "embedded": {
@@ -862,40 +737,25 @@
         "emphasis": {
           "default": "underscore",
           "description": "The delimiter of emphasis.",
-          "enum": [
-            "keep",
-            "underscore",
-            "asterisk"
-          ],
+          "enum": ["keep", "underscore", "asterisk"],
           "type": "string"
         },
         "eol": {
           "default": "lf",
           "description": "The line ending to write.",
-          "enum": [
-            "lf",
-            "crlf",
-            "cr"
-          ],
+          "enum": ["lf", "crlf", "cr"],
           "type": "string"
         },
         "fence": {
           "default": "backtick",
           "description": "The fence of a code block.",
-          "enum": [
-            "keep",
-            "backtick",
-            "tilde"
-          ],
+          "enum": ["keep", "backtick", "tilde"],
           "type": "string"
         },
         "heading": {
           "default": "keep",
           "description": "Turn setext headings into `#` prefixes.",
-          "enum": [
-            "keep",
-            "atx"
-          ],
+          "enum": ["keep", "atx"],
           "type": "string"
         },
         "ignore": {
@@ -912,39 +772,25 @@
         "numbering": {
           "default": "auto",
           "description": "The numbers of ordered list items.",
-          "enum": [
-            "keep",
-            "auto"
-          ],
+          "enum": ["keep", "auto"],
           "type": "string"
         },
         "preset": {
           "default": "prettier",
           "description": "A starting set of the marker options below.",
-          "enum": [
-            "prettier",
-            "preserve"
-          ],
+          "enum": ["prettier", "preserve"],
           "type": "string"
         },
         "quote": {
           "default": "double",
           "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
-          "enum": [
-            "double",
-            "single"
-          ],
+          "enum": ["double", "single"],
           "type": "string"
         },
         "rule": {
           "default": "dash",
           "description": "The characters of a thematic break.",
-          "enum": [
-            "keep",
-            "dash",
-            "asterisk",
-            "underscore"
-          ],
+          "enum": ["keep", "dash", "asterisk", "underscore"],
           "type": "string"
         },
         "singleAttributePerLine": {
@@ -955,11 +801,7 @@
         "strong": {
           "default": "asterisk",
           "description": "The delimiter of strong emphasis.",
-          "enum": [
-            "keep",
-            "asterisk",
-            "underscore"
-          ],
+          "enum": ["keep", "asterisk", "underscore"],
           "type": "string"
         },
         "tabs": {
@@ -975,11 +817,7 @@
         "whitespace": {
           "default": "auto",
           "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
-          "enum": [
-            "strict",
-            "auto",
-            "ignore"
-          ],
+          "enum": ["strict", "auto", "ignore"],
           "type": "string"
         },
         "width": {
@@ -991,11 +829,7 @@
         "wrap": {
           "default": "preserve",
           "description": "How to wrap prose.",
-          "enum": [
-            "preserve",
-            "always",
-            "never"
-          ],
+          "enum": ["preserve", "always", "never"],
           "type": "string"
         }
       },
@@ -1004,10 +838,7 @@
     "quote": {
       "default": "double",
       "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
-      "enum": [
-        "double",
-        "single"
-      ],
+      "enum": ["double", "single"],
       "type": "string"
     },
     "singleAttributePerLine": {
@@ -1088,11 +919,7 @@
         "eol": {
           "default": "lf",
           "description": "The line ending to write.",
-          "enum": [
-            "lf",
-            "crlf",
-            "cr"
-          ],
+          "enum": ["lf", "crlf", "cr"],
           "type": "string"
         },
         "ignore": {
@@ -1124,10 +951,7 @@
         "quote": {
           "default": "double",
           "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
-          "enum": [
-            "double",
-            "single"
-          ],
+          "enum": ["double", "single"],
           "type": "string"
         },
         "reorderArrays": {
@@ -1168,11 +992,7 @@
         "whitespace": {
           "default": "auto",
           "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
-          "enum": [
-            "strict",
-            "auto",
-            "ignore"
-          ],
+          "enum": ["strict", "auto", "ignore"],
           "type": "string"
         },
         "width": {
@@ -1211,11 +1031,7 @@
         "eol": {
           "default": "lf",
           "description": "The line ending to write.",
-          "enum": [
-            "lf",
-            "crlf",
-            "cr"
-          ],
+          "enum": ["lf", "crlf", "cr"],
           "type": "string"
         },
         "ignore": {
@@ -1237,10 +1053,7 @@
         "quote": {
           "default": "double",
           "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
-          "enum": [
-            "double",
-            "single"
-          ],
+          "enum": ["double", "single"],
           "type": "string"
         },
         "singleAttributePerLine": {
@@ -1261,11 +1074,7 @@
         "whitespace": {
           "default": "auto",
           "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
-          "enum": [
-            "strict",
-            "auto",
-            "ignore"
-          ],
+          "enum": ["strict", "auto", "ignore"],
           "type": "string"
         },
         "width": {
@@ -1280,11 +1089,7 @@
     "whitespace": {
       "default": "auto",
       "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
-      "enum": [
-        "strict",
-        "auto",
-        "ignore"
-      ],
+      "enum": ["strict", "auto", "ignore"],
       "type": "string"
     },
     "width": {
@@ -1300,11 +1105,7 @@
         "attributeQuotes": {
           "default": "preserve",
           "description": "Which quotes to write around an attribute value.",
-          "enum": [
-            "preserve",
-            "single",
-            "double"
-          ],
+          "enum": ["preserve", "single", "double"],
           "type": "string"
         },
         "bracketSameLine": {
@@ -1325,11 +1126,7 @@
         "eol": {
           "default": "lf",
           "description": "The line ending to write.",
-          "enum": [
-            "lf",
-            "crlf",
-            "cr"
-          ],
+          "enum": ["lf", "crlf", "cr"],
           "type": "string"
         },
         "ignore": {
@@ -1346,10 +1143,7 @@
         "quote": {
           "default": "double",
           "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
-          "enum": [
-            "double",
-            "single"
-          ],
+          "enum": ["double", "single"],
           "type": "string"
         },
         "selfClosingSpace": {
@@ -1380,11 +1174,7 @@
         "whitespace": {
           "default": "auto",
           "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
-          "enum": [
-            "strict",
-            "auto",
-            "ignore"
-          ],
+          "enum": ["strict", "auto", "ignore"],
           "type": "string"
         },
         "width": {
@@ -1418,11 +1208,7 @@
         "eol": {
           "default": "lf",
           "description": "The line ending to write.",
-          "enum": [
-            "lf",
-            "crlf",
-            "cr"
-          ],
+          "enum": ["lf", "crlf", "cr"],
           "type": "string"
         },
         "ignore": {
@@ -1439,10 +1225,7 @@
         "quote": {
           "default": "double",
           "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",
-          "enum": [
-            "double",
-            "single"
-          ],
+          "enum": ["double", "single"],
           "type": "string"
         },
         "singleAttributePerLine": {
@@ -1463,11 +1246,7 @@
         "whitespace": {
           "default": "auto",
           "description": "Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.",
-          "enum": [
-            "strict",
-            "auto",
-            "ignore"
-          ],
+          "enum": ["strict", "auto", "ignore"],
           "type": "string"
         },
         "width": {
@@ -1479,11 +1258,7 @@
         "wrap": {
           "default": "preserve",
           "description": "How to wrap prose.",
-          "enum": [
-            "preserve",
-            "always",
-            "never"
-          ],
+          "enum": ["preserve", "always", "never"],
           "type": "string"
         }
       },

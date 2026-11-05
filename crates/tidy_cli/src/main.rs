@@ -108,7 +108,10 @@ fn run() -> Result<ExitCode, String> {
   let mut raw: Vec<std::ffi::OsString> = std::env::args_os().skip(1).collect();
 
   if raw.first().and_then(|arg| arg.to_str()) == Some("schema") {
-    let text = tidy::schema::schema();
+    // Printed through tidy, so the file it writes is one tidy already accepts.
+    let raw = tidy::schema::schema();
+    let json = Language::Json(json::Dialect::Json);
+    let text = tidy::format(&raw, json, &Options::default(), None, &mut Verbatim).unwrap_or(raw);
     // A closed pipe, as in `tidy schema | head`, is not an error worth reporting.
     match std::io::stdout().write_all(text.as_bytes()) {
       Err(error) if error.kind() == std::io::ErrorKind::BrokenPipe => {}

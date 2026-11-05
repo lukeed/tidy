@@ -7,5 +7,8 @@ import { join } from "node:path";
  */
 export default () =>
   JSON.parse(
-    readFileSync(join(import.meta.dirname, "../../crates/tidy_napi/tidy.schema.json"), "utf8"),
+    readFileSync(
+      join(import.meta.dirname, "../../crates/tidy_napi/tidy.schema.json"),
+      "utf8",
+    ),
   );
