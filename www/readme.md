@@ -28,11 +28,11 @@ Sidebar groups come from each page's `group` frontmatter, ordered by `order`. Th
 
 ## Formatting
 
-`mise run fmt` formats this folder with tidy itself: the TypeScript, the Markdown, the stylesheets, the Handlebars templates and the SVG. Reformatting a template changes the whitespace of every page it renders, which HTML collapses, so the pages come out the same.
+`hk` formats this folder with tidy itself, on commit and through `mise run fmt`: the TypeScript, the Markdown, the stylesheets, the Handlebars templates and the SVG. Reformatting a template changes the whitespace of every page it renders, which HTML collapses, so the pages come out the same.
 
 ## The JSON Schema
 
-`crates/tidy/src/schema.rs` describes every `tidy.json` option. `mise run schema` writes it to `crates/tidy_napi/tidy.schema.json`, which npm ships and `content/tidy.schema.json.ts` serves at `/tidy.schema.json`. `mise run fmt` fails when that file is stale, and `cargo test -p tidy --test schema` fails when the schema and the config parser stop agreeing.
+`crates/tidy/src/schema.rs` describes every `tidy.json` option. `mise run schema` writes it to `crates/tidy_napi/tidy.schema.json`, which npm ships and `content/tidy.schema.json.ts` serves at `/tidy.schema.json`. hk's `schema` step fails when that file is stale, and `cargo test -p tidy --test schema` fails when the schema and the config parser stop agreeing.
 
 ## The playground
 

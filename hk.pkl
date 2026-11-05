@@ -1,0 +1,61 @@
+amends "package://github.com/jdx/hk/releases/download/v2.11.1/hk@2.11.1#/Config.pkl"
+
+// The cases that the tests read, which must stay exactly as they were written.
+exclude = List(
+  "crates/tidy/tests/fixtures",
+  "crates/tidy/tests/*.json",
+  "tests/oracle/markdown/divergences",
+  "www/samples/routes.input.ts",
+)
+
+steps {
+  // The workspace root is a virtual manifest, so rustfmt needs --all rather
+  // than the per-crate --manifest-path the builtin passes.
+  ["cargo_fmt"] = new Step {
+    glob = List("**/*.rs", "rustfmt.toml")
+    check = "cargo fmt --all --check"
+    fix = "cargo fmt --all"
+  }
+
+  // tidy formats the repository it lives in, in every language it knows.
+  ["tidy"] = new Step {
+    glob = List(
+      "*.ts",
+      "*.js",
+      "*.mjs",
+      "*.cjs",
+      "*.json",
+      "*.jsonc",
+      "*.md",
+      "*.yml",
+      "*.yaml",
+      "*.toml",
+      "*.css",
+      "*.hbs",
+      "*.svg",
+      "*.html",
+    )
+    check = "cargo run -q -p tidy_cli -- check {{files}}"
+    fix = "cargo run -q -p tidy_cli -- up {{files}}"
+  }
+
+  // The shipped schema is what `tidy schema` prints, so a new option cannot land without it.
+  ["schema"] = new Step {
+    glob = List(
+      "crates/tidy/src/schema.rs",
+      "crates/tidy/src/config.rs",
+      "crates/tidy_napi/tidy.schema.json",
+    )
+    check = "cargo run -q -p tidy_cli -- schema | diff -u crates/tidy_napi/tidy.schema.json -"
+    fix = "mise run schema"
+  }
+}
+
+hooks {
+  ["pre-commit"] {
+    fix = true
+    // Worktrees share one stash and hk locks it, so one lane would wait on another.
+    // `stage` stays unset: a glob there also stages edits that were left unstaged.
+    stash = "none"
+  }
+}

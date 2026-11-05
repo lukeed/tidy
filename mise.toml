@@ -1,6 +1,7 @@
 [tools]
 rust = { version = "1.98.0", components = "clippy,rustfmt" }
 bun = "1.4.4"
+hk = "2.11.1"
 taplo = "0.10.0"
 yamlfmt = "0.21.0"
 "cargo:wasm-bindgen-cli" = "0.2.130"
@@ -28,22 +29,6 @@ description = "Build the Node addon for this platform"
 dir = "crates/tidy_napi"
 run = "bunx napi build --platform --release --esm"
 
-[vars]
-# The files that tidy formats: all but the test cases, which stay as written.
-tidied = "git ls-files -- '*.ts' '*.js' '*.mjs' '*.cjs' '*.json' '*.jsonc' '*.md' '*.yml' '*.yaml' '*.toml' '*.css' '*.hbs' '*.svg' '*.html' ':!:crates/tidy/tests/fixtures/**' ':!:crates/tidy/tests/*.json' ':!:tests/oracle/markdown/divergences/**' ':!:www/samples/routes.input.ts'"
-
-[tasks.fmt]
-description = "Check formatting"
-run = [
-  "cargo fmt --all --check",
-  "cargo run -q -p tidy_cli -- check $({{vars.tidied}})",
-  "cargo run -q -p tidy_cli -- schema | diff -u crates/tidy_napi/tidy.schema.json - > /dev/null || { echo 'tidy.schema.json is stale; run: mise run schema'; exit 1; }",
-]
-
-[tasks."fmt:fix"]
-description = "Format all crates and the other files with tidy"
-run = ["cargo fmt --all", "cargo run -q -p tidy_cli -- up $({{vars.tidied}})"]
-
 [tasks.clippy]
 description = "Lint with warnings denied"
 run = [
@@ -59,6 +44,14 @@ run = [
   "bun test --cwd crates/tidy_napi",
 ]
 depends = ["build:napi"]
+
+[tasks.fmt]
+description = "Check formatting with hk"
+run = "hk check --all"
+
+[tasks."fmt:fix"]
+description = "Format everything with hk"
+run = "hk fix --all"
 
 [tasks.check]
 description = "Format, lint, and test"

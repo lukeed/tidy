@@ -81,6 +81,22 @@ let language = Language::of_path("App.vue").unwrap();
 let output = tidy::format(source, language, &Options::default(), Some("App.vue"), &mut Verbatim)?;
 ```
 
+## Working on tidy
+
+[hk](https://hk.jdx.dev) runs the formatters, as a git hook and in CI. `hk.pkl` declares the steps; install the hook once per clone:
+
+```sh
+$ mise install
+$ hk install
+```
+
+A commit then formats what it staged, with tidy itself, and stages the result. To run the same steps by hand:
+
+```sh
+$ mise run fmt        # hk check --all
+$ mise run fmt:fix    # hk fix --all
+```
+
 ## Benchmarks
 
 Every tool checks every file of each corpus, using all cores, on an M1 Max. Times are the mean of both run orders. **Embedded code is excluded** so that every tool does the same amount of work.
