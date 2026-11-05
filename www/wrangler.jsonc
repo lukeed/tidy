@@ -15,7 +15,7 @@
   "rules": [{ "type": "Text", "globs": ["**/*.sh"], "fallthrough": true }],
   "vars": {
     // The crowne.io site id. The key is a secret: wrangler secret put CROWNE_KEY
-    "CROWNE_SITE": "",
+    "CROWNE_SITE": "01M6P92KE67F1WGBTFQY7EHERA",
   },
   "routes": [{ "pattern": "tidy.lukeed.com", "custom_domain": true }],
 }
