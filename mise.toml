@@ -30,7 +30,7 @@ run = "cargo run -q -p tidy_cli -- schema > crates/tidy_napi/tidy.schema.json"
 description = "Build the playground's wasm into www/assets/wasm"
 run = [
   "cargo build --profile wasm --target wasm32-unknown-unknown -p tidy_wasm",
-  '"$(mise where cargo:wasm-bindgen-cli)/bin/wasm-bindgen" --target web --no-typescript --out-dir www/assets/wasm --out-name tidy target/wasm32-unknown-unknown/wasm/tidy_wasm.wasm',
+  '"$(mise where cargo:wasm-bindgen-cli)/bin/wasm-bindgen" --target web --out-dir www/assets/wasm --out-name tidy target/wasm32-unknown-unknown/wasm/tidy_wasm.wasm',
 ]
 
 [tasks."build:napi"]

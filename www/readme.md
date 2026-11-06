@@ -9,6 +9,7 @@ bun run build      # writes public/
 bun run preview    # cf dev, with the Worker
 bun run deploy     # build, then cf deploy
 bun run check      # the home page samples are still what tidy prints
+bun run typecheck  # the build scripts, the browser code and the Worker
 bun run build:wasm # just the playground's WebAssembly
 ```
 

@@ -195,7 +195,7 @@ async function search() {
     let query = input.value.trim().toLowerCase();
     let hits = query
       ? rank(index!, query).slice(0, 12)
-      : index!.slice(0, 8).map((entry) => ({ entry }));
+      : index!.slice(0, 8).map((entry): Hit => ({ entry }));
 
     results.innerHTML = hits.length
       ? hits
