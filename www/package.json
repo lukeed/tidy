@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "bongo dev",
     "build": "mise run build:wasm && bongo build",
-    "preview": "wrangler dev",
-    "deploy": "bun run build && wrangler deploy",
+    "preview": "cf dev",
+    "deploy": "bun run build && cf build && cf deploy --prebuilt",
     "check": "bun samples/check.ts",
     "build:wasm": "mise run build:wasm"
   },

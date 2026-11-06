@@ -6,8 +6,8 @@ The site at [tidy.lukeed.com](https://tidy.lukeed.com), built with [bongo](https
 bun install
 bun run dev        # http://localhost:3000
 bun run build      # writes public/
-bun run preview    # wrangler dev, with the Worker
-bun run deploy     # build, then wrangler deploy
+bun run preview    # cf dev, with the Worker
+bun run deploy     # build, then cf deploy
 bun run check      # the home page samples are still what tidy prints
 bun run build:wasm # just the playground's WebAssembly
 ```
@@ -56,9 +56,9 @@ Analytics never block the response: a failed event is logged and dropped.
 
 ## Before deploying
 
-1. Put the crowne.io site id in `CROWNE_SITE` in `wrangler.jsonc`.
-2. Set the key as a secret: `bunx wrangler secret put CROWNE_KEY`.
-3. Point `tidy.lukeed.com` at the Worker, which the `routes` entry claims as a custom domain.
+1. Put the crowne.io site id in `CROWNE_SITE` in `cloudflare.config.ts`.
+2. Set the key as a secret: `bunx wrangler secret put CROWNE_KEY --name tidy-docs`.
+3. Point `tidy.lukeed.com` at the Worker, which `domains` claims as a custom domain.
 
 Without both values the Worker still serves everything; it just counts nothing.
 
