@@ -9,5 +9,4 @@ target/
 www/public
 www/.wrangler
 www/.cloudflare
-www/**/*.tsbuildinfo
 www/assets/wasm
