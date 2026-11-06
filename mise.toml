@@ -9,6 +9,7 @@ mr-boxington = "1.29.2"
 taplo = "0.10.0"
 yamlfmt = "0.21.0"
 "cargo:wasm-bindgen-cli" = "0.2.130"
+"aqua:WebAssembly/binaryen" = "133"
 
 # mbx caches compiler output in one store, so a build here warms the next worktree.
 [wrappers.cargo]
@@ -31,6 +32,7 @@ description = "Build the playground's wasm into www/assets/wasm"
 run = [
   "cargo build --profile wasm --target wasm32-unknown-unknown -p tidy_wasm",
   '"$(mise where cargo:wasm-bindgen-cli)/bin/wasm-bindgen" --target web --out-dir www/assets/wasm --out-name tidy target/wasm32-unknown-unknown/wasm/tidy_wasm.wasm',
+  "wasm-opt -Oz --strip-debug --strip-producers --strip-target-features www/assets/wasm/tidy_bg.wasm -o www/assets/wasm/tidy_bg.wasm",
 ]
 
 [tasks."build:napi"]

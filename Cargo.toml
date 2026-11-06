@@ -47,6 +47,7 @@ strip = true
 [profile.wasm]
 inherits = "release"
 opt-level = "z"
+strip = false
 
 [profile.profiling]
 inherits = "release"
