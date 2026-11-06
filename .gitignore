@@ -8,5 +8,4 @@ target/
 
 www/public
 www/.wrangler
-www/.cloudflare
 www/assets/wasm
