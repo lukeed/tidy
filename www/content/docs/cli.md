@@ -15,14 +15,14 @@ $ tidy check [paths...] [options]    # list what isn't formatted
 # print one file, formatted
 $ tidy index.html
 
-# list the files that aren't formatted; exits 1 if any
-$ tidy check src
+# list what isn't formatted below here; exits 1 if any
+$ tidy check
 
-# rewrite everything in place
-$ tidy up .
+# rewrite it all in place
+$ tidy up
 
-# a different width for one run
-$ tidy up . --width 100
+# or name the paths, and the options
+$ tidy up src tests --width 100
 ```
 
 ## Commands
@@ -37,6 +37,7 @@ Bare `tidy` reads stdin when it gets no paths, and takes one file otherwise. `up
 
 ```sh
 $ tidy check          # the same as: tidy check .
+$ tidy check src      # or only part of the tree
 $ cat a.ts | tidy --stdin-filepath a.ts
 ```
 

@@ -11,10 +11,10 @@ Its output is Prettier's. Not a style inspired by Prettier — the same bytes, c
 
 ```sh
 $ curl -fsSL https://tidy.lukeed.com | sh
-$ tidy up .
+$ tidy up
 ```
 
-Three commands: `tidy` prints a formatted file, `tidy up` rewrites files in place, and `tidy check` names the ones that need it. Both of the last two take `--staged` or `--changed`, so a hook or a CI job can format only what a commit or a branch touched.
+Three commands: `tidy` prints a formatted file, `tidy up` rewrites files in place, and `tidy check` names the ones that need it. `up` and `check` take this folder when you name no paths. Both of the last two take `--staged` or `--changed`, so a hook or a CI job can format only what a commit or a branch touched.
 
 ## Why it exists
 

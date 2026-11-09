@@ -39,14 +39,17 @@ $ cargo install --path crates/tidy_cli
 # print one file, formatted
 $ tidy index.html
 
-# list the files that aren't formatted; exits 1 if any
-$ tidy check src
+# list what isn't formatted below here; exits 1 if any
+$ tidy check
 
-# rewrite everything in place
-$ tidy up .
+# rewrite it all in place
+$ tidy up
+
+# or name the paths
+$ tidy up src tests
 ```
 
-Without paths, tidy reads stdin. Run `tidy --help` for every flag.
+`up` and `check` take this folder when you name none. Bare `tidy` reads stdin. Run `tidy --help` for every flag.
 
 ### Config
 
