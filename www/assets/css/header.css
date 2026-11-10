@@ -157,7 +157,7 @@
 }
 
 .docs [data-search],
-.play [data-search] {
+.playground [data-search] {
   display: grid;
 }
 
