@@ -9,9 +9,17 @@
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
     // The Worker runs only on these: crowne.io's two paths, the install script,
-    // and `/`, where it chooses between the script and the home page by user agent.
-    "run_worker_first": ["/x/script.js", "/x", "/install.sh", "/"],
+    // the release downloads, and `/`, where it chooses between the script and
+    // the home page by user agent.
+    "run_worker_first": [
+      "/x/script.js",
+      "/x",
+      "/install.sh",
+      "/download/*",
+      "/",
+    ],
   },
+  "r2_buckets": [{ "binding": "RELEASES", "bucket_name": "tidy-releases" }],
   "rules": [{ "type": "Text", "globs": ["**/*.sh"], "fallthrough": true }],
   "vars": {
     // The crowne.io site id. The key is a secret: wrangler secret put CROWNE_KEY

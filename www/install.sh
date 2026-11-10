@@ -5,6 +5,9 @@
 #   TIDY_VERSION=v0.1.0   pin a release; defaults to the latest
 #   TIDY_INSTALL=~/bin    where the binary goes; defaults to ~/.local/bin
 #
+# It downloads from https://tidy.lukeed.com/download/, a copy of each GitHub
+# release asset.
+#
 # This checks the published sha256, which catches a truncated download. For a
 # signed release manifest, install with packslip or mise instead:
 #   packslip install github.com/lukeed/tidy
@@ -12,29 +15,36 @@
 set -eu
 
 REPO="lukeed/tidy"
+BASE="https://tidy.lukeed.com/download"
 
 main() {
 	dest=${TIDY_INSTALL:-$HOME/.local/bin}
 	target=$(detect_target)
 
-	if [ -n "${TIDY_VERSION-}" ]; then
-		base="https://github.com/$REPO/releases/download/$TIDY_VERSION"
-		label=$TIDY_VERSION
-	else
-		base="https://github.com/$REPO/releases/latest/download"
-		label="the latest release"
-	fi
-
 	archive="tidy-$target.tar.gz"
 	tmp=$(mktemp -d)
 	trap 'rm -rf "$tmp"' EXIT INT TERM
 
-	say "downloading tidy for $target from $label"
-	fetch "$base/$archive" "$tmp/$archive" || die "could not download $archive from $label.
+	if [ -n "${TIDY_VERSION-}" ]; then
+		version=$TIDY_VERSION
+	else
+		fetch "$BASE/latest" "$tmp/latest" ||
+			die "could not find the latest release at $BASE/latest"
+		version=$(cat "$tmp/latest")
+	fi
+
+	case $version in
+	v[0-9]*.[0-9]*.[0-9]*) ;;
+	*) die "\"$version\" is not a release tag, such as v0.1.0" ;;
+	esac
+
+	say "downloading tidy $version for $target"
+	fetch "$BASE/$version/$archive" "$tmp/$archive" || die "could not download $archive for $version.
 
 If tidy has not been released for your platform yet, build it from source:
   cargo install --git https://github.com/$REPO tidy_cli"
-	fetch "$base/$archive.sha256" "$tmp/$archive.sha256" 2>/dev/null || true
+	fetch "$BASE/$version/$archive.sha256" "$tmp/$archive.sha256" ||
+		die "could not download $archive.sha256 for $version"
 	verify "$tmp" "$archive"
 
 	tar -xzf "$tmp/$archive" -C "$tmp"
