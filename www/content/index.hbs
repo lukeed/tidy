@@ -4,23 +4,31 @@ summary: tidy is a code formatter written in Rust. One binary prints what Pretti
 ---
 
 {{#var bench = $data.bench}}
+{{#var total = bench.total}}
+{{#var install = "curl -fsSL https://tidy.lukeed.com | sh"}}
 {{#var claims = [
   [
     "Matches Prettier",
-    "Every release is checked against Prettier " +
+    "Checked on every release",
+    "Against Prettier " +
       $data.release.prettier +
-      " over a 12,000-file corpus: 100% of 3,906 JavaScript files and 3,308 of 3,309 TypeScript files.",
+      " over a " +
+      $utils.num(total.files) +
+      "-file corpus: 100% of 3,906 JavaScript files and 3,308 of 3,309 TypeScript files.",
   ],
   [
+    "Embedded code",
     "Formats the code inside your code",
     "Styles and scripts in HTML and Vue. Markdown code blocks and front matter. CSS, GraphQL, HTML and Markdown in JS template literals.",
   ],
   [
+    "Config",
     "Configurable, if you need it",
     "Reads <code>tidy.json</code>, <code>tidy.jsonc</code> or <code>tidy.toml</code>, on top of <code>.editorconfig</code>. The defaults are Prettier&rsquo;s.",
   ],
   [
-    "Stable output",
+    "Stable",
+    "Settles on the first run",
     "Where Prettier would change its mind on the next run, tidy prints where it settles, so <code>tidy check</code> stays green in CI.",
   ],
 ]}}
@@ -36,110 +44,168 @@ summary: tidy is a code formatter written in Rust. One binary prints what Pretti
   ["INI, .editorconfig, .npmrc", "prettier-plugin-ini"],
 ]}}
 <a class="skip" href="#main">Skip to content</a>
-<div class="wrap rail">
-  <main id="main">
-    <section class="row hero">
-      <p class="num">00</p>
-      <div class="body">
+
+<main id="main">
+  <section class="hero band">
+    <div class="wrap">
+      <div class="copy">
+        <p class="eyebrow">A code formatter written in Rust</p>
         <h1>Prettier's style, at <mark>native speed</mark>.</h1>
-        <p class="lede">tidy is a code formatter written in Rust. One binary
-          prints what Prettier prints, for every language below. It does not
-          shell out to Node &mdash; though there is a Node binding if you want
-          one.</p>
+        <p class="lede">One binary prints what Prettier prints, for JavaScript,
+          TypeScript, HTML, CSS, Markdown, YAML, JSON, TOML and more. It does
+          not shell out to Node, though there is a Node binding if you want one.</p>
         <div class="term">
-          <div class="tbar"><i></i><i></i><i></i><span>~/project</span></div>
-          <div class="tin"><em>$</em><code>curl -fsSL https://tidy.lukeed.com |
-              sh</code><button
-              type="button"
-              data-copy="curl -fsSL https://tidy.lukeed.com | sh"
-            >copy</button></div>
+          <em>$</em><code>{{ install }}</code><button
+            class="copybtn"
+            type="button"
+            data-copy="{{ install }}"
+          >copy</button>
         </div>
-        <p class="alt">or build it with cargo &mdash;
+        <p class="alt">or build it with cargo &middot;
           <a href="/docs/install/">every way to install</a></p>
-      </div>
-    </section>
-
-    <section class="row sec">
-      <p class="num">01 / Speed</p>
-      <div class="body">
-        <div class="stat"><b>18.5s &rarr; 280ms</b><span>A
-            {{ $utils.num(bench.total.files) }}-file corpus of every language,
-            checked end to end.</span></div>
-        <div class="bars">
-          {{#each bench.featured as row}}
-            <div class="grp">
-              <div class="gl"><b>{{ row.corpus }}</b><span>{{
-                    $utils.num(row.files)
-                  }}
-                  files</span></div>
-              {{#each $utils.bars(row) as bar}}
-                <div
-                  class="b{{#if bar.me}} me{{/if}}{{#if bar.off}} off{{/if}}"
-                >
-                  <span class="who">{{ bar.who }}</span>
-                  <span class="track"><i
-                      style="width:{{ bar.width }}%"
-                    ></i>{{#if bar.off}}<em>{{ bar.times }}&times; slower</em>{{/if}}</span>
-                  <span class="ms">{{ $utils.ms(bar.ms) }}</span>
-                </div>
-              {{/each}}
-            </div>
-          {{/each}}
-        </div>
-        <p class="note">{{ bench.machine }}, all cores, mean of both run orders.
-          Bars compare the three native tools; Prettier is off that scale.
-          <a href="/docs/benchmarks/">every corpus and the method &rarr;</a></p>
-      </div>
-    </section>
-
-    <section class="row sec">
-      <p class="num">02 / Output</p>
-      <div class="body">
-        <h2>Byte for byte what Prettier prints</h2>
-        <p class="sub">Not a lookalike style. tidy's tests run Prettier over the
-          same corpus and compare the bytes, so a difference is a bug &mdash;
-          unless it is one of the
-          <a href="/docs/deviations/">documented deviations</a>.</p>
-        <div class="ba">
-          <div class="pane in"><h3><span>routes.ts</span><span>as written</span></h3>{{{
-              $data.sample.input
-            }}}</div>
-          <div class="pane"><h3><span>routes.ts</span><em>tidy up</em></h3>{{{
-              $data.sample.output
-            }}}</div>
+        <div class="controls">
+          <a class="big" href="/docs/">Read the docs</a>
+          <a class="big ghost" href="/playground/">Try the playground</a>
         </div>
       </div>
-    </section>
 
-    <section class="row sec">
-      <p class="num">03 / Why</p>
-      <div class="body">
-        <div class="claims">
-          {{#each claims as claim}}
-            <div><b>{{ claim[0] }}</b><p>{{{ claim[1] }}}</p></div>
-          {{/each}}
+      <tidy-hero class="card">
+        <div class="cardbar">
+          <span class="file">routes.ts</span>
+          <button
+            class="replay"
+            type="button"
+            data-replay
+            title="Replay"
+            aria-label="Replay"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            ><path d="M20 11a8 8 0 1 0-2.3 6" /><path d="M20 4v7h-7" /></svg>
+          </button>
+          <span class="state tidy" data-state aria-live="polite">&#10003; tidy</span>
+        </div>
+        <div
+          class="stage"
+          data-stage
+          role="img"
+          aria-label="routes.ts reformatting from its messy original into Prettier style"
+        >
+          <pre data-mess>{{ $data.sample.mess }}</pre>
+          <pre data-tidy>{{ $data.sample.tidy }}</pre>
+        </div>
+      </tidy-hero>
+    </div>
+  </section>
+
+  <section class="speed band">
+    <div class="wrap">
+      <p class="kicker">{{ $utils.num(total.files) }} files, every language</p>
+      <h2>{{ $utils.ms(total.prettier) }}
+        <span class="arrow">&rarr;</span>
+        {{ $utils.ms(total.tidy) }}</h2>
+      <p class="sub">That's every language but XML, on an
+        {{ bench.machine }}. The race below runs in real time. tidy is done
+        before you notice it started.</p>
+
+      <div
+        class="race"
+        data-race
+        data-tidy="{{ total.tidy }}"
+        data-prettier="{{ total.prettier }}"
+        data-files="{{ $utils.num(total.files) }}"
+      >
+        <div class="lane me">
+          <b>tidy</b>
+          <div class="track"><i class="fill" data-fill="tidy"></i><span
+              class="badge"
+              data-badge
+            >done!</span></div>
+          <span class="t" data-time="tidy">{{ $utils.ms(total.tidy) }}</span>
+        </div>
+        <div class="lane them">
+          <b>Prettier</b>
+          <div class="track"><i class="fill" data-fill="prettier"></i></div>
+          <span class="t" data-time="prettier">{{
+              $utils.ms(total.prettier)
+            }}</span>
+        </div>
+        <div class="racebar">
+          <p data-race-note>{{ bench.speedup }}&times; faster over everything
+            but XML.</p>
+          <button class="big small" type="button" data-rerun>Race again</button>
         </div>
       </div>
-    </section>
 
-    <section class="row sec">
-      <p class="num">04 / Languages</p>
-      <div class="body">
-        <h2>Every language Prettier formats</h2>
-        <p class="sub">Plus the ones its plugins cover, built into the same
-          binary. Nothing to install, nothing to register.</p>
-        <ul class="langs">
+      <div class="langs" data-langs>
+        {{#each bench.featured as row}}
+          {{#var group = $utils.bars(row)}}
+          <div class="langgrp">
+            <h3>{{ row.corpus }}<span>{{ $utils.num(row.files) }}
+                files</span></h3>
+            {{#each group.tools as bar, i}}
+              <div class="b{{#if bar.me}} me{{/if}}">
+                <span>{{ bar.who }}</span>
+                <span class="tr"><i
+                    style="width:{{ bar.width }}%;--n:{{ i }}"
+                  ></i></span>
+                <span class="ms">{{ $utils.ms(bar.ms) }}</span>
+              </div>
+            {{/each}}
+            {{#if group.prettier}}
+              <p class="slow">Prettier:
+                {{ $utils.ms(group.prettier) }},
+                <b>{{ group.slower }}&times; slower</b></p>
+            {{/if}}
+          </div>
+        {{/each}}
+      </div>
+
+      <p class="note">{{ bench.machine }}, all cores, mean of both run orders.
+        Bars compare the native tools; Prettier is off that scale.
+        <a href="/docs/benchmarks/">Every language and the method &rarr;</a></p>
+    </div>
+  </section>
+
+  <section class="why band">
+    <div class="wrap">
+      <p class="kicker">Why reach for it</p>
+      <h2>Same output. Fewer surprises.</h2>
+      <p class="sub">tidy's tests run Prettier over the same files and compare
+        the bytes, so a difference is a bug, unless it's one of the
+        <a href="/docs/deviations/">documented deviations</a>.</p>
+      <div class="claims">
+        {{#each claims as claim}}
+          <article class="claim" tabindex="0"><span class="tag">{{
+                claim[0]
+              }}</span><h3>{{ claim[1] }}</h3><p>{{{ claim[2] }}}</p></article>
+        {{/each}}
+      </div>
+      <p class="tidyhint">Hover or tap a card to straighten it up.</p>
+
+      <div class="langwrap">
+        <div>
+          <p class="kicker">Languages</p>
+          <h2>Every language Prettier formats</h2>
+          <p class="sub">Plus the ones its plugins cover, built into the same
+            binary. Nothing to install, nothing to register.</p>
+        </div>
+        <ul class="langlist">
           {{#each langs as lang}}
-            <li><b>{{ lang[0] }}</b><span>{{ lang[1] }}</span></li>
+            <li>{{ lang[0] }} <span>{{ lang[1] }}</span></li>
           {{/each}}
         </ul>
       </div>
-    </section>
 
-    <section class="row sec">
-      <p class="num">05 / Config</p>
-      <div class="body">
-        <h2>Configurable, if you need it</h2>
+      <div class="cfgwrap">
+        <p class="kicker">Config</p>
+        <h2>Only when you want it</h2>
         <p class="sub">Each file takes the nearest
           <code>tidy.json</code>,
           <code>tidy.jsonc</code>
@@ -153,20 +219,29 @@ summary: tidy is a code formatter written in Rust. One binary prints what Pretti
                 class="file"
               >tidy.json</span></div>{{{ $data.sample.config }}}</figure>
           <div>
-            <p class="sub" style="margin-top:0">Then run it:</p>
+            <p class="then">Then run it</p>
             <figure class="code"><div class="bar"><span>Shell</span></div>{{{
                 $data.sample.usage
               }}}</figure>
           </div>
         </div>
       </div>
-    </section>
-  </main>
-</div>
+    </div>
+  </section>
+</main>
 
-<footer class="foot"><div class="wrap">
-    <a href="https://github.com/lukeed/tidy">github</a>
-    <a href="/docs/">docs</a>
-    <a href="/llms.txt">llms.txt</a>
-    <span class="sp">MIT &copy; <a href="https://lukeed.com">lukeed</a></span>
-  </div></footer>
+<footer class="foot band">
+  <div class="wrap">
+    <h2>Run it on something <mark>messy</mark>.</h2>
+    <div class="cta">
+      <a class="big" href="/docs/">Read the docs</a>
+      <a class="big ghost" href="/playground/">Try the playground</a>
+    </div>
+    <div class="fine">
+      <a href="https://github.com/lukeed/tidy">GitHub</a>
+      <a href="/docs/">Docs</a>
+      <a href="/llms.txt">llms.txt</a>
+      <span class="sp">MIT &copy; <a href="https://lukeed.com">lukeed</a></span>
+    </div>
+  </div>
+</footer>

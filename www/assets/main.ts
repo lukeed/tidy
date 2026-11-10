@@ -1,15 +1,6 @@
 import { on } from "bongo/client";
 
-/**
- * Remember the choice, so the inline script in `<head>` can apply it before
- * paint.
- */
-function theme() {
-  let root = document.documentElement;
-  let next = root.dataset.theme === "dark" ? "light" : "dark";
-  root.dataset.theme = next;
-  localStorage.setItem("theme", next);
-}
+import { paint } from "./paint";
 
 /** Copy, then say so on the button that was pressed. */
 async function copy(button: HTMLElement, text: string) {
@@ -20,14 +11,25 @@ async function copy(button: HTMLElement, text: string) {
   }
   let before = button.textContent;
   button.textContent = "copied";
-  setTimeout(() => (button.textContent = before), 1400);
+  button.classList.add("ok");
+  setTimeout(() => {
+    button.textContent = before;
+    button.classList.remove("ok");
+  }, 1400);
+}
+
+/** The docs sidebar is a drawer on a phone, over a scrim. */
+function drawer(open: boolean) {
+  let root = document.documentElement;
+  if (open) root.dataset.open = "";
+  else delete root.dataset.open;
+  document
+    .querySelector("[data-menu]")
+    ?.setAttribute("aria-expanded", String(open));
 }
 
 document.addEventListener("click", (event) => {
   let target = event.target as HTMLElement;
-
-  let toggle = target.closest<HTMLElement>("[data-theme-toggle]");
-  if (toggle) return theme();
 
   let copier = target.closest<HTMLElement>("[data-copy]");
   if (copier) return void copy(copier, copier.dataset.copy!);
@@ -38,53 +40,153 @@ document.addEventListener("click", (event) => {
     if (code) return void copy(block, code.textContent ?? "");
   }
 
-  let menu = target.closest<HTMLElement>("[data-menu]");
-  if (menu) {
-    let open = menu.getAttribute("aria-expanded") === "true";
-    menu.setAttribute("aria-expanded", String(!open));
-    document.getElementById("side")?.classList.toggle("open", !open);
-    return;
+  if (target.closest("[data-menu]")) {
+    return drawer(!("open" in document.documentElement.dataset));
   }
 
+  if (target.closest(".scrim")) return drawer(false);
   if (target.closest("[data-search]")) return void search();
+});
+
+addEventListener("keydown", (event) => {
+  if (event.key === "Escape") drawer(false);
 });
 
 // ───────────────────────────── on this page ─────────────────────────────
 
-/** Mark the heading the reader is in, so the contents list follows the page. */
-let watching: IntersectionObserver | undefined;
+/**
+ * Mark the heading the reader has reached, and spring the marker to it. The
+ * marker is one sticker that moves, rather than a border on each link, so the
+ * list reads as a single place you are in.
+ */
+let marks: { links: HTMLAnchorElement[]; heads: (HTMLElement | null)[] } = {
+  links: [],
+  heads: [],
+};
+let at = -2;
 
-function spy() {
-  watching?.disconnect();
+function place(index: number) {
+  if (index === at) return;
+  at = index;
 
-  let links = [...document.querySelectorAll<HTMLAnchorElement>(".toc a")];
-  if (!links.length) return;
-
-  let byId = new Map(
-    links.map((link) => [decodeURIComponent(link.hash.slice(1)), link]),
-  );
-  let seen = new Set<string>();
-
-  watching = new IntersectionObserver(
-    (entries) => {
-      for (let entry of entries) {
-        if (entry.isIntersecting) seen.add(entry.target.id);
-        else seen.delete(entry.target.id);
-      }
-      let current = [...byId.keys()].find((id) => seen.has(id));
-      for (let [id, link] of byId)
-        link.toggleAttribute("aria-current", id === current);
-    },
-    { rootMargin: "-80px 0px -70% 0px" },
-  );
-
-  for (let id of byId.keys()) {
-    let heading = document.getElementById(id);
-    if (heading) watching.observe(heading);
+  let { links } = marks;
+  for (let [i, link] of links.entries()) {
+    link.toggleAttribute("aria-current", i === index);
   }
+
+  let marker = document.querySelector<HTMLElement>(".marker");
+  if (!marker) return;
+
+  let link = links[index];
+  if (!link) {
+    marker.style.height = "0px";
+    marker.style.borderWidth = "0";
+    return;
+  }
+
+  marker.style.borderWidth = "";
+  marker.style.translate = `0 ${link.offsetTop}px`;
+  marker.style.height = link.offsetHeight + "px";
+
+  // A long list scrolls on its own, so keep the marker in sight.
+  let box = link.closest<HTMLElement>(".toc");
+  let list = link.offsetParent as HTMLElement | null;
+  if (!box || !list) return;
+  let top = list.offsetTop + link.offsetTop;
+  if (top >= box.scrollTop && top <= box.scrollTop + box.clientHeight - 60) {
+    return;
+  }
+  box.scrollTo({
+    top: top - 80,
+    behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "auto"
+      : "smooth",
+  });
 }
 
+/**
+ * The last heading above a line near the top of the window, rather than
+ * whichever one a band happens to hold: past the final heading the reader is
+ * still in its section, and a long table or code block leaves a band empty.
+ */
+function spy() {
+  let index = -1;
+  for (let [i, head] of marks.heads.entries()) {
+    if (head && head.getBoundingClientRect().top <= 140) index = i;
+  }
+  place(Math.max(0, index));
+}
+
+/** Read the list the page just rendered, then mark where the reader is. */
+function watch() {
+  let links = [...document.querySelectorAll<HTMLAnchorElement>(".toc a")];
+  marks = {
+    links,
+    heads: links.map((link) =>
+      document.getElementById(decodeURIComponent(link.hash.slice(1))),
+    ),
+  };
+  at = -2;
+  spy();
+}
+
+let pending = 0;
+addEventListener(
+  "scroll",
+  () => {
+    if (pending) return;
+    pending = requestAnimationFrame(() => {
+      pending = 0;
+      spy();
+    });
+  },
+  { passive: true },
+);
+
+addEventListener("resize", () => {
+  at = -2;
+  spy();
+  restick();
+});
+
 // ──────────────────────── sidebar and header ────────────────────────
+
+/**
+ * Lay the sidebar sticker over the page you are on. The sidebar is kept across
+ * navigations, so the sticker is the same element every time and slides from
+ * the last page to this one.
+ */
+function sticker(link?: HTMLAnchorElement) {
+  let marker = document.querySelector<HTMLElement>(".side-marker");
+  if (!marker) return;
+  if (!link) {
+    marker.style.height = "0px";
+    marker.style.borderWidth = "0";
+    return;
+  }
+
+  // On the first page the sticker should already be there, rather than travel
+  // the whole list to arrive.
+  let first = !marker.style.translate;
+  if (first) marker.style.transition = "none";
+
+  marker.style.borderWidth = "";
+  marker.style.width = link.offsetWidth + "px";
+  marker.style.height = link.offsetHeight + "px";
+  marker.style.translate = `${link.offsetLeft}px ${link.offsetTop}px`;
+
+  if (!first) return;
+  void marker.offsetWidth;
+  marker.style.transition = "";
+}
+
+/** Lay it again where it is, after the page changes shape under it. */
+function restick() {
+  sticker(
+    document.querySelector<HTMLAnchorElement>('.side a[aria-current="page"]') ??
+      undefined,
+  );
+}
 
 /**
  * The sidebar and the header are `transition:persist`, so the client keeps the
@@ -92,6 +194,8 @@ function spy() {
  * never moves. Set it from the URL after every navigation instead.
  */
 function here(path: string) {
+  let on: HTMLAnchorElement | undefined;
+
   for (let link of document.querySelectorAll<HTMLAnchorElement>(".side a")) {
     let href = link.getAttribute("href") ?? "";
     let state =
@@ -102,18 +206,20 @@ function here(path: string) {
           : null;
     if (state) link.setAttribute("aria-current", state);
     else link.removeAttribute("aria-current");
+    if (state === "page") on = link;
   }
 
-  let docs = document.querySelector<HTMLAnchorElement>(
-    '.top nav a[href="/docs/"]',
-  );
-  docs?.toggleAttribute("aria-current", path.startsWith("/docs/"));
-}
+  sticker(on);
 
-/** A link in the open phone menu should not leave it open on the next page. */
-function closeMenu() {
-  document.getElementById("side")?.classList.remove("open");
-  document.querySelector("[data-menu]")?.setAttribute("aria-expanded", "false");
+  // Only the two sections, as the server renders them. The shortcuts beside
+  // them live under the docs, and would else mark a second link.
+  for (let link of document.querySelectorAll<HTMLAnchorElement>(".top nav a")) {
+    let href = link.getAttribute("href") ?? "";
+    let mine =
+      (href === "/docs/" && path.startsWith("/docs/")) ||
+      (href === "/playground/" && path === "/playground/");
+    link.toggleAttribute("aria-current", mine);
+  }
 }
 
 // ───────────────────────────── search ─────────────────────────────
@@ -225,7 +331,7 @@ document.addEventListener("keydown", (event) => {
 });
 
 /**
- * A custom element, so the browser mounts it whenever it enters the document.
+ * Custom elements, so the browser mounts them whenever they enter the document.
  * The client runtime replaces `<body>`, and a script inside replaced markup
  * never runs, but an upgrade does.
  */
@@ -235,13 +341,24 @@ class TidyPlayground extends HTMLElement {
   }
 }
 
+class TidyHero extends HTMLElement {
+  connectedCallback() {
+    void import("./home").then((module) => module.mount(this));
+  }
+}
+
 customElements.define("tidy-playground", TidyPlayground);
+customElements.define("tidy-hero", TidyHero);
 
-spy();
+paint();
+watch();
 here(location.pathname);
+void (document.fonts ? document.fonts.ready : Promise.resolve()).then(restick);
 
-on("bongo:navigated", ({ to }) => {
+// `replaced` runs as the new page goes in, rather than once the transition
+// is over, so the sticker travels with the page rather than after it.
+on("bongo:replaced", ({ to }) => {
   here(to.pathname);
-  closeMenu();
-  spy();
+  drawer(false);
+  watch();
 });

@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 import type { Template } from "bongo";
+import type { Row } from "./data/bench";
 
 export type Link = {
   title: string;
@@ -127,61 +128,55 @@ export function production(): boolean {
   return process.env.NODE_ENV === "production";
 }
 
-/** A millisecond count as the page writes it: `7.2 ms`, `8,528 ms`. */
+/**
+ * A millisecond count as the page writes it: `78ms`, `7.2ms`, `18.5s`.
+ *
+ * @example
+ *   $utils.ms(18548); //=> '18.5s'
+ */
 export function ms(value: number): string {
-  return `${value.toLocaleString("en-US")} ms`;
+  return value < 1000 ? `${value}ms` : `${(value / 1000).toFixed(1)}s`;
 }
 
 export type Bar = {
   who: string;
   ms: number;
   me?: boolean;
-  off?: boolean;
   width: number;
-  times?: number;
+};
+
+export type Bars = {
+  tools: Bar[];
+  /** Prettier's time, which is two orders of magnitude off the same scale. */
+  prettier: number | null;
+  /** How many times slower that is than tidy. */
+  slower: number | null;
 };
 
 /**
- * The bars of one benchmark row. Prettier is two orders of magnitude away, so
- * one linear scale would make the other three identical slivers: the native
- * tools are scaled against each other, and Prettier gets its own full track
- * with the multiple written on it.
+ * One benchmark row as the home page draws it. Prettier is two orders of
+ * magnitude away, so one linear scale would make every native tool an identical
+ * sliver: they are scaled against each other, and Prettier is written out as a
+ * multiple underneath.
  *
  * @example
  *   $utils.bars($data.bench.featured[0]);
  */
-export function bars(row: {
-  tidy: number;
-  bun: number | null;
-  oxfmt: number | null;
-  prettier: number | null;
-}): Bar[] {
+export function bars(row: Row): Bars {
   let native = [
     { who: "tidy", ms: row.tidy, me: true },
-    { who: "bun fmt", ms: row.bun },
+    { who: "bun", ms: row.bun },
     { who: "oxfmt", ms: row.oxfmt },
-  ].filter((bar) => bar.ms != null) as {
-    who: string;
-    ms: number;
-    me?: boolean;
-  }[];
+    { who: "dprint", ms: row.dprint },
+  ].filter((bar) => bar.ms != null) as Omit<Bar, "width">[];
 
   let top = Math.max(...native.map((bar) => bar.ms));
-  let out: Bar[] = native.map((bar) => ({
-    ...bar,
-    width: (bar.ms / top) * 100,
-  }));
 
-  if (row.prettier != null) {
-    out.push({
-      who: "prettier",
-      ms: row.prettier,
-      off: true,
-      width: 100,
-      times: Math.round(row.prettier / row.tidy),
-    });
-  }
-  return out;
+  return {
+    tools: native.map((bar) => ({ ...bar, width: (bar.ms / top) * 100 })),
+    prettier: row.prettier,
+    slower: row.prettier == null ? null : Math.round(row.prettier / row.tidy),
+  };
 }
 
 /** A number with thousands separators: `8528` becomes `8,528`. */

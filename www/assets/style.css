@@ -1,8 +1,10 @@
 @import "./css/base.css";
 @import "./css/header.css";
+@import "./css/paint.css";
 @import "./css/code.css";
 @import "./css/prose.css";
 @import "./css/home.css";
 @import "./css/docs.css";
 @import "./css/play.css";
 @import "./css/search.css";
+@import "./css/lost.css";

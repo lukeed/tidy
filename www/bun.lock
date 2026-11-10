@@ -5,7 +5,7 @@
     "": {
       "name": "www",
       "devDependencies": {
-        "@bongo/markdown": "^1.3.0",
+        "@bongo/markdown": "^1.3.1",
         "@cloudflare/workers-types": "^5.20261104.1",
         "@twinkleplop/bash": "^0.1.7",
         "@twinkleplop/core": "^0.3.1",
@@ -20,14 +20,14 @@
         "@twinkleplop/typescript": "^0.1.7",
         "@twinkleplop/yaml": "^0.1.7",
         "@types/bun": "^1.4.4",
-        "bongo": "npm:@bongo/bongo@^1.3.0",
+        "bongo": "npm:@bongo/bongo@^1.3.1",
         "crowne": "^0.4.0",
         "wrangler": "^4.151.0",
       },
     },
   },
   "packages": {
-    "@bongo/markdown": ["@bongo/markdown@1.3.0", "", { "dependencies": { "md4x": "^0.0.30" }, "peerDependencies": { "@twinkleplop/markdown-core": ">=0.2.0", "shiki": ">=4.0.0", "sugar-high": ">=2.0.0" }, "optionalPeers": ["@twinkleplop/markdown-core", "shiki", "sugar-high"] }, "sha512-NQVomfoBf7ZTvU9l2diCr28EjpnOMqJ8QD24XlEJZ3wvim0p7WvT1+/iJ8H0heeFaWZgONDlI9TJkatnSjw0gQ=="],
+    "@bongo/markdown": ["@bongo/markdown@1.3.1", "", { "dependencies": { "md4x": "^0.0.30" }, "peerDependencies": { "@twinkleplop/markdown-core": ">=0.2.0", "shiki": ">=4.0.0", "sugar-high": ">=2.0.0" }, "optionalPeers": ["@twinkleplop/markdown-core", "shiki", "sugar-high"] }, "sha512-hNp7+PrYfLsCb5S9czkn3XYCWYBi4yWDGJT/2+n18hRNe2dsC1fK+LNhmveDIkIfIqGNCAWTWdwucTWui4tmVA=="],
 
     "@cloudflare/kv-asset-handler": ["@cloudflare/kv-asset-handler@0.5.0", "", {}, "sha512-jxQYkj8dSIzc0cD6cMMNdOc1UVjqSqu8BZdor5s8cGjW2I8BjODt/kWPVdY+u9zj3ms75Q5qaZgnxUad83+eAg=="],
 
@@ -237,7 +237,7 @@
 
     "blake3-wasm": ["blake3-wasm@2.1.5", "", {}, "sha512-F1+K8EbfOZE49dtoPtmxUQrpXaBIl3ICvasLh+nJta0xkz+9kF/7uet9fLnwKqhDrmj6g+6K3Tw9yQPUg2ka5g=="],
 
-    "bongo": ["@bongo/bongo@1.3.0", "", { "dependencies": { "browserslist": "^4.29.3", "kleur": "^4.1.5", "lightningcss": "^1.33.0", "mrmime": "^2.0.1", "resolve.exports": "^2.0.4", "rolldown": "^1.2.14", "tempura": "^1.0.1" }, "peerDependencies": { "@resvg/resvg-js": "^2.6.0", "satori": ">=0.57.0" }, "optionalPeers": ["@resvg/resvg-js", "satori"], "bin": { "bongo": "bin.js" } }, "sha512-IIR4HX97qdQ7jKCjs3x+DpYooYGQSRAVusHeVTpt5scHgpxiak+mf7cT0Ss2N9h9KEnnofFbp1PCc1b+cTu6tw=="],
+    "bongo": ["@bongo/bongo@1.3.1", "", { "dependencies": { "browserslist": "^4.29.3", "kleur": "^4.1.5", "lightningcss": "^1.33.0", "mrmime": "^2.0.1", "resolve.exports": "^2.0.4", "rolldown": "^1.2.14", "tempura": "^1.0.1" }, "peerDependencies": { "@resvg/resvg-js": "^2.6.0", "satori": ">=0.57.0" }, "optionalPeers": ["@resvg/resvg-js", "satori"], "bin": { "bongo": "bin.js" } }, "sha512-bU9jmkSW3kHUdEk/LfGrXKPgrjJPlEFw5YzplIdbPdhNV0WtD4MJeiEk13tbRTL7ktNCLlO52vMV2784Jj/1+w=="],
 
     "browserslist": ["browserslist@4.29.5", "", { "dependencies": { "baseline-browser-mapping": "^2.11.33", "caniuse-lite": "^1.0.30001819", "electron-to-chromium": "^1.5.464", "node-releases": "^2.0.60", "update-browserslist-db": "^1.3.4" }, "bin": { "browserslist": "cli.js" } }, "sha512-khTmKu5NGYTotqcYo8Bew2k4RAE9PuXRSFRXG2lQBrCEQHyeQ/vX6gKMxfokwywBsLiXZMnHsmWMG1pnO8J7uQ=="],
 

@@ -1,38 +1,105 @@
+/* On the home page the bar floats on the bright band it shares. Everywhere
+   else the page is paper, so the bar sticks and keeps its own edge. */
 .top {
+  position: relative;
+  z-index: 35;
+  padding-block: 22px 0;
+}
+
+.paper .top {
   position: sticky;
-  top: 0;
-  z-index: 9;
-  border-bottom: 1px solid var(--rule);
-  background: color-mix(in srgb, var(--bg) 90%, transparent);
-  backdrop-filter: blur(10px);
+  top: env(safe-area-inset-top, 0px);
+  height: var(--top);
+  padding-block: 0;
+  background: var(--bg);
+  border-bottom: 3px solid var(--ink);
 }
 
 .top .wrap {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 14px;
-  height: var(--top);
+  gap: 18px;
+}
+
+.paper .top .wrap {
+  height: 100%;
+  max-width: 1360px;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--ink);
+  color: var(--head);
   text-decoration: none;
-  --mk: var(--accent);
+  font: 800 26px/1 var(--display);
+  letter-spacing: -0.03em;
+}
+
+.paper .brand {
+  font-size: 24px;
 }
 
 .brand b {
-  font: 600 19px/1 var(--sans);
-  letter-spacing: -0.035em;
+  font: inherit;
+}
+
+.mk {
+  color: var(--head);
+  --mk: var(--hi);
+  overflow: visible;
+}
+
+.mk rect {
+  transform-box: fill-box;
+}
+
+/* The wordmark is four stacked lines. Hovering it knocks them out of line,
+   then they tidy themselves up again. */
+.brand:hover .mk rect:nth-child(n + 2) {
+  animation: messy 0.7s var(--out);
+}
+
+.brand:hover .mk rect:nth-child(3) {
+  animation-delay: 40ms;
+}
+
+.brand:hover .mk rect:nth-child(4) {
+  animation-delay: 80ms;
+}
+
+.brand:hover .mk rect:nth-child(5) {
+  animation-delay: 120ms;
+}
+
+@keyframes messy {
+  0% {
+    transform: none;
+  }
+  25% {
+    transform: translateX(-3px) rotate(-8deg);
+  }
+  55% {
+    transform: translateX(1.5px) rotate(3deg);
+  }
+  78% {
+    transform: translateX(-0.5px) rotate(-1deg);
+  }
+  100% {
+    transform: none;
+  }
 }
 
 .ver {
-  font: 400 12px/1 var(--mono);
-  color: var(--muted);
-  padding-left: 14px;
-  border-left: 1px solid var(--rule);
+  font: 600 12px/1 var(--mono);
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: var(--pop);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  padding: 5px 7px;
+  transform: rotate(-3deg);
 }
 
 .top nav {
@@ -40,52 +107,83 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font: 400 13.5px/1 var(--mono);
+  font-weight: 600;
+  font-size: 15px;
 }
 
 .top nav a {
-  color: var(--muted);
+  color: var(--on-bg);
   text-decoration: none;
-  padding: 8px 11px;
-  border-radius: 6px;
+  padding: 6px 10px;
+  border-radius: 9px;
 }
 
 .top nav a:hover {
-  color: var(--ink);
-  background: var(--sunk);
+  color: var(--head);
+  background: var(--bg-deep);
 }
 
 .top nav a[aria-current] {
   color: var(--ink);
+  background: var(--pop);
+  border: 2px solid var(--ink);
+  padding: 4px 8px;
 }
 
 .icon {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  color: var(--muted);
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  color: var(--on-bg);
 }
 
 .icon svg {
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
 }
 
 .icon:hover {
-  color: var(--ink);
-  background: var(--sunk);
+  color: var(--head);
+  background: var(--bg-deep);
 }
 
-[data-theme="light"] .moon,
-[data-theme="dark"] .sun {
+/* Only the docs are searchable, so the button only belongs there. The header
+   is `transition:persist`, so it is one markup for every page and CSS decides. */
+[data-search] {
   display: none;
 }
 
-@media (max-width: 760px) {
-  .ver,
+.docs [data-search] {
+  display: grid;
+}
+
+@media (max-width: 980px) {
   .top nav a[data-wide] {
     display: none;
+  }
+}
+
+/* On the docs the drawer carries the whole site nav, so the bar need not. */
+@media (max-width: 880px) {
+  .docs .top nav a:not(.icon) {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .ver {
+    display: none;
+  }
+
+  .top nav a:not(.icon) {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand:hover .mk rect {
+    animation: none;
   }
 }

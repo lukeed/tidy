@@ -1,8 +1,9 @@
 figure.code {
-  margin: 22px 0;
-  border: 1px solid var(--rule);
-  border-radius: 9px;
-  background: var(--panel);
+  margin: 20px 0;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  box-shadow: 4px 4px 0 var(--ink);
   overflow: hidden;
 }
 
@@ -10,40 +11,59 @@ figure.code .bar {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--hair);
-  background: var(--sunk);
-  font: 400 11.5px/1 var(--mono);
-  letter-spacing: 0.08em;
+  padding: 8px 10px 8px 14px;
+  border-bottom: 2px dashed var(--line);
+  font: 600 12.5px/1 var(--mono);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ink-soft);
 }
 
-figure.code .bar .lang {
-  margin-left: 0;
-  opacity: 0.62;
+/* a path reads as a path, not as a label */
+figure.code .bar .file {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  color: var(--ink);
 }
 
 figure.code .bar .copy {
   margin-left: auto;
-  font: inherit;
-  color: var(--muted);
-  border: 1px solid var(--rule);
-  border-radius: 5px;
-  padding: 5px 8px;
+  font: 700 12px/1 var(--body);
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--ink);
+  background: var(--sand);
+  border: 2px solid var(--ink);
+  border-radius: 99px;
+  padding: 6px 10px;
+  transition:
+    transform 0.12s var(--spring),
+    background-color 0.15s;
 }
 
 figure.code .bar .copy:hover {
-  color: var(--accent);
-  border-color: var(--accent);
+  background: var(--pop);
+}
+
+figure.code .bar .copy:active {
+  transform: scale(0.9, 0.84);
+}
+
+figure.code .bar .copy.ok {
+  background: var(--ok);
+}
+
+figure.code .bar .copy.pop {
+  animation: pop 0.45s var(--spring);
 }
 
 pre.twinkleplop {
   margin: 0;
-  padding: 15px 16px;
+  padding: 16px 18px 18px;
   overflow-x: auto;
-  font-size: 12.9px;
-  line-height: 1.62;
+  font-size: 13.5px;
+  line-height: 1.65;
   color: var(--ink);
   tab-size: 2;
 }
@@ -59,7 +79,8 @@ pre.twinkleplop code {
    which `pre` already renders: making `.l` a block would double every gap. */
 
 .tok.keyword {
-  color: var(--t-key);
+  color: var(--t-kw);
+  font-weight: 600;
 }
 .tok.string {
   color: var(--t-str);
@@ -68,10 +89,11 @@ pre.twinkleplop code {
 .tok.unit,
 .tok.boolean,
 .tok.constant {
-  color: var(--t-num);
+  color: var(--t-lit);
+  font-weight: 600;
 }
 .tok.comment {
-  color: var(--t-com);
+  color: var(--t-pun);
   font-style: italic;
 }
 .tok.function,
@@ -80,18 +102,18 @@ pre.twinkleplop code {
 }
 .tok.type,
 .tok.class {
-  color: var(--t-type);
+  color: var(--t-ty);
 }
 .tok.property,
 .tok.attr {
-  color: var(--t-prop);
+  color: var(--t-key);
 }
 .tok.operator,
 .tok.punctuation {
   color: var(--t-pun);
 }
 .tok.tag {
-  color: var(--t-key);
+  color: var(--t-kw);
 }
 .tok.selector,
 .tok.css {
@@ -104,12 +126,11 @@ pre.twinkleplop code {
 
 /* an inline `code` span, in prose and in tables */
 :not(pre) > code {
-  font-size: 0.88em;
-  color: var(--ink);
-  background: var(--sunk);
-  border: 1px solid var(--hair);
+  font: 600 0.84em var(--mono);
+  background: var(--tint);
+  color: var(--tint-ink);
+  padding: 1px 5px 2px;
   border-radius: 5px;
-  padding: 0.1em 0.34em;
 }
 
 code.short {
@@ -118,12 +139,14 @@ code.short {
 
 a > code {
   color: inherit;
-  border-color: currentColor;
 }
 
-/* a path reads as a path, not as a label */
-figure.code .bar .file {
-  text-transform: none;
-  letter-spacing: 0;
-  font-size: 12px;
+@media (prefers-reduced-motion: reduce) {
+  figure.code .bar .copy {
+    transition: none;
+  }
+
+  figure.code .bar .copy.pop {
+    animation: none;
+  }
 }

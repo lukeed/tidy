@@ -1,0 +1,41 @@
+.lost {
+  padding-block: clamp(60px, 14vh, 140px) clamp(80px, 18vh, 180px);
+  color: var(--ink);
+}
+
+.lost .wrap {
+  max-width: 720px;
+}
+
+.lost h1 {
+  margin-top: 14px;
+  font: 800 clamp(40px, 7vw, 76px)/0.92 var(--display);
+  font-stretch: 78%;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.lost h1 mark {
+  display: inline-block;
+  background: var(--pop);
+  color: var(--ink);
+  padding: 0 0.1em 0.04em;
+  border-radius: 0.12em;
+  transform: rotate(-2deg);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+.lost .cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 36px;
+}
+
+.lost .ghost {
+  border-color: color-mix(in srgb, var(--ink) 35%, transparent);
+}
+
+.lost .ghost:hover {
+  border-color: var(--ink);
+}

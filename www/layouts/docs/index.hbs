@@ -1,8 +1,9 @@
 {{#var groups = $utils.nav($pages, $page.path)}}
 {{#var near = $utils.pager($pages, $page.path)}}
-{{#var heads = $page.headings.filter((heading) => heading.level === 2)}}
+{{#var heads = $page.headings.filter((heading) => heading.level < 4)}}
 {{#var md = $utils.url.ext($page.path, "md")}}
 <a class="skip" href="#main">Skip to content</a>
+<div class="scrim"></div>
 <div class="shell">
   <aside
     class="side"
@@ -11,6 +12,7 @@
     transition:persist="sidebar"
     transition:name="sidebar"
   >
+    <div class="side-marker" aria-hidden="true"></div>
     {{#each groups as group}}
       <div class="grp">
         <div class="grp-label">{{ group.title }}</div>
@@ -25,85 +27,61 @@
     <a class="side-llms" href="/llms.txt"><span>For AI friends</span><code
       >llms.txt</code></a>
   </aside>
+
   <main class="doc" id="main">
-    <div class="subbar">
-      <button
-        class="pill"
-        type="button"
-        data-menu
-        aria-controls="side"
-        aria-expanded="false"
-      >
-        <svg
-          class="menu-open"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.4"
-          stroke-linecap="round"
-          aria-hidden="true"
-        ><path d="M4 7h16M4 12h16M4 17h10" /></svg>
-        <svg
-          class="menu-close"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.4"
-          stroke-linecap="round"
-          aria-hidden="true"
-        ><path d="M6 6l12 12M18 6 6 18" /></svg>Menu
-      </button>
-    </div>
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="/docs/">Docs</a><span
+      >/</span><b>{{ $page.params.group }}</b></nav>
     <div class="doc-head">
-      <nav class="crumbs" aria-label="Breadcrumb"><a href="/docs/">Docs</a><span
-        >/</span><b>{{ $page.params.group }}</b></nav>
+      <h1>{{ $page.title }}<span class="dot" aria-hidden="true">.</span></h1>
       {{#if $utils.file($page.path).endsWith(".md")}}{{#partial
           src="copy-page"
           href=md
         }}{{/if}}
     </div>
-    <h1>{{ $page.title }}</h1>
     {{#if $page.summary}}<p class="summary">{{{
           $utils.inline($page.summary)
         }}}</p>{{/if}}
+    <hr class="rule" />
     <article class="prose">
       {{{ $page.content }}}
     </article>
     <nav class="pager" aria-label="Pages">
-      {{#if near.prev}}<a
-          class="card"
-          href="{{ near.prev.path }}"
-          rel="prev"
-        ><small>&larr; Previous</small><b>{{ near.prev.title }}</b></a>{{/if}}
+      {{#if near.prev}}<a href="{{ near.prev.path }}" rel="prev"><small>&larr;
+            Previous</small><b>{{ near.prev.title }}</b></a>{{/if}}
       {{#if near.next}}<a
-          class="card next"
+          class="next"
           href="{{ near.next.path }}"
           rel="next"
         ><small>Next &rarr;</small><b>{{ near.next.title }}</b></a>{{/if}}
     </nav>
-    <div class="edit">
+    <footer class="docfoot">
       <a href="{{ $utils.source($page.path) }}"><svg
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="2.2"
+          stroke-width="2.4"
           stroke-linecap="round"
           stroke-linejoin="round"
           aria-hidden="true"
-        ><path d="M4 20h4L19 9l-4-4L4 16v4Z" /><path
-            d="m13.5 6.5 4 4"
-          /></svg>Edit this page on GitHub</a>
-      <span>MIT &middot; tidy v{{ $data.release.version }}</span>
-    </div>
+        ><path d="M12 20h9" /><path
+            d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"
+          /></svg>Edit this page</a>
+      <a href="https://github.com/lukeed/tidy">GitHub</a>
+      <span class="sp">MIT &middot; tidy v{{ $data.release.version }}</span>
+    </footer>
   </main>
+
   {{#if heads.length}}
-    <aside class="toc" id="toc" aria-label="On this page">
+    <aside class="toc" aria-label="On this page">
       <div class="toc-label">On this page</div>
-      <nav>
+      <ol>
+        <li class="marker" aria-hidden="true"></li>
         {{#each heads as head}}
-          <a href="#{{ head.id }}">{{{ head.html }}}</a>
+          <li class="l{{ head.level }}"><a href="#{{ head.id }}">{{{
+                head.html
+              }}}</a></li>
         {{/each}}
-      </nav>
+      </ol>
     </aside>
   {{/if}}
 </div>

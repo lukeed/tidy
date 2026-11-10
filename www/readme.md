@@ -19,13 +19,25 @@ bun run build:wasm # just the playground's WebAssembly
 | ----------- | -------------------------------------------------------------------------------------------- |
 | `content/`  | Pages. `index.hbs` is the home page; `docs/*.md` are the docs.                               |
 | `layouts/`  | `html.hbs` wraps everything; `docs/index.hbs` is the docs shell.                             |
-| `partials/` | The header, the wordmark, the search dialog.                                                 |
-| `assets/`   | Styles, the client script, fonts and images.                                                 |
+| `partials/` | The header, the wordmark, the paint pots, the search dialog.                                 |
+| `assets/`   | Styles, the client scripts, fonts and images.                                                |
 | `data/`     | `bench.ts` holds the benchmark numbers, `release.ts` reads the version from `Cargo.toml`.    |
 | `samples/`  | The before and after on the home page, plus `check.ts`, which proves they are tidy's output. |
 | `worker.ts` | The analytics proxy and the install script.                                                  |
 
 Sidebar groups come from each page's `group` frontmatter, ordered by `order`. The group names and their order live in `GROUPS` in `utils.ts`.
+
+## The look
+
+Every colour comes from one of the seven schemes at the top of `assets/css/base.css`. The picker in the header writes `data-scheme` on `<html>` and remembers it, and the inline script in `layouts/html.hbs` reads it back before the first paint. Nothing else in the stylesheets names a colour.
+
+The home page sits on the bright band; every other page is paper, which `body.paper` selects. The docs add `body.docs`, which shows the search button and the phone drawer. The header is `transition:persist`, so one markup serves every page and CSS decides what shows.
+
+Two fonts, both subset to Latin plus the arrows and the tick the pages use: Bricolage Grotesque, with its width axis, for everything but code, and JetBrains Mono for code.
+
+## The hero
+
+`assets/home.ts` reads `samples/routes.input.ts` and `samples/routes.output.ts` out of the two `<pre>` tags the page renders, pairs their tokens by longest common subsequence, and springs each one from where it was to where tidy puts it. **Replay** puts the mess back and tidies it again. Without the script the card shows the tidied file, and the bars below it show their final times.
 
 ## Formatting
 

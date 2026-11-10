@@ -2,7 +2,7 @@
   display: block;
   max-width: 1480px;
   margin: 0 auto;
-  padding: 20px clamp(16px, 3vw, 28px) 32px;
+  padding: 24px clamp(16px, 3vw, 28px) 36px;
 }
 
 .play-bar {
@@ -10,50 +10,89 @@
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  padding-bottom: 16px;
+  padding-bottom: 18px;
 }
 
 .pick {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font: 400 12px/1 var(--mono);
-  letter-spacing: 0.1em;
+  font: 600 11.5px/1 var(--mono);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ink-soft);
 }
 
+/* The native caret crowds the border, so the control draws its own and keeps
+   the room for it. */
 .pick select {
-  font: 400 13.5px/1 var(--mono);
+  appearance: none;
+  font: 600 13.5px/1 var(--mono);
   letter-spacing: 0;
   text-transform: none;
   color: var(--ink);
-  background: var(--panel);
-  border: 1px solid var(--rule);
-  border-radius: 7px;
-  padding: 8px 10px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  padding: 9px 36px 10px 12px;
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 .pick select:hover {
-  border-color: var(--muted);
+  background: var(--pop-wash);
+}
+
+.pick::after {
+  content: "";
+  position: absolute;
+  right: 13px;
+  top: 50%;
+  translate: 0 -50%;
+  width: 11px;
+  height: 7px;
+  background: var(--ink);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  pointer-events: none;
 }
 
 .play-state {
   margin-left: auto;
-  font: 400 12px/1 var(--mono);
-  color: var(--muted);
+  font: 600 12.5px/1 var(--mono);
+  color: var(--ink-soft);
 }
 
 .play-state.ok {
-  color: var(--accent);
+  color: var(--tint-ink);
 }
 
 .play-state.failed {
-  color: var(--warn);
+  color: var(--pop2-text);
 }
 
 .play [data-share] {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  font: 700 13px/1 var(--body);
+  color: var(--ink);
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 99px;
+  padding: 8px 13px 9px;
+  box-shadow: 2px 2px 0 var(--ink);
+  transition:
+    transform 0.12s var(--spring),
+    background-color 0.15s;
+}
+
+.play [data-share]:hover {
+  background: var(--pop);
+}
+
+.play [data-share]:active {
+  transform: translate(1px, 1px) scale(0.96);
+  box-shadow: 1px 1px 0 var(--ink);
 }
 
 /* --- the panes --- */
@@ -61,7 +100,7 @@
 .play-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 18px;
   align-items: stretch;
 }
 
@@ -81,11 +120,12 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  border: 1px solid var(--rule);
-  border-radius: 9px;
-  background: var(--panel);
+  background: var(--card);
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  box-shadow: 6px 6px 0 var(--ink);
   overflow: hidden;
-  height: clamp(420px, calc(100vh - 208px), 1040px);
+  height: clamp(420px, calc(100vh - 230px), 1040px);
 }
 
 .pane-box h2 {
@@ -94,24 +134,23 @@
   align-items: center;
   gap: 10px;
   flex: none;
-  font: 400 11.5px/1 var(--mono);
-  letter-spacing: 0.09em;
+  font: 600 11.5px/1 var(--mono);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--muted);
-  padding: 11px 14px;
-  border-bottom: 1px solid var(--hair);
-  background: var(--sunk);
+  color: var(--ink-soft);
+  padding: 12px 15px;
+  border-bottom: 2px dashed var(--line);
+  background: var(--sand);
 }
 
 .pane-box .hint {
   font-variant-numeric: tabular-nums;
   text-transform: none;
   letter-spacing: 0;
-  opacity: 0.8;
 }
 
 .pane-box.out .hint {
-  color: var(--accent);
+  color: var(--tint-ink);
 }
 
 .pane-box textarea,
@@ -119,20 +158,17 @@
   flex: 1;
   min-height: 0;
   margin: 0;
-  padding: 14px 16px;
+  padding: 16px 18px;
   border: 0;
   outline: 0;
   resize: none;
   overflow: auto;
   background: transparent;
   color: var(--ink);
-  font: 400 13px/1.62 var(--mono);
+  font: 400 13.5px/1.65 var(--mono);
+  font-variant-ligatures: none;
   tab-size: 2;
   white-space: pre;
-}
-
-.pane-box textarea::placeholder {
-  color: var(--muted);
 }
 
 .pane-box textarea:focus-visible {
@@ -140,50 +176,151 @@
 }
 
 .pane-box:focus-within {
-  border-color: var(--accent);
+  border-color: var(--tint-ink);
 }
 
 .pane-box pre.failed {
-  color: var(--warn);
+  color: var(--pop2-text);
   white-space: pre-wrap;
 }
 
 /* --- which editor the left column shows --- */
 .seg {
   display: inline-flex;
-  border: 1px solid var(--rule);
-  border-radius: 8px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
   overflow: hidden;
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 .seg button {
   padding: 8px 14px;
-  font: 400 13px/1 var(--mono);
-  color: var(--muted);
+  font: 700 13px/1 var(--body);
+  color: var(--ink-soft);
+  background: var(--card);
 }
 
 .seg button + button {
-  border-left: 1px solid var(--rule);
+  border-left: 2px solid var(--ink);
 }
 
 .seg button:hover {
   color: var(--ink);
-  background: var(--sunk);
+  background: var(--sand);
 }
 
 .seg button[aria-selected="true"] {
-  color: var(--accent-ink);
-  background: var(--accent);
+  color: var(--ink);
+  background: var(--pop);
 }
 
 .play-note {
-  margin-top: 16px;
-  font: 400 12.5px/1.6 var(--mono);
-  color: var(--muted);
+  margin-top: 18px;
+  font-size: 14.5px;
+  color: var(--ink-soft);
 }
 
 .play-note a {
   color: var(--ink);
+  text-decoration-color: var(--tint-ink);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+/* --- a highlighted layer under a transparent textarea --- */
+.editor {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.editor > pre,
+.editor > textarea {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 16px 18px;
+  border: 0;
+  font: 400 13.5px/1.65 var(--mono);
+  font-variant-ligatures: none;
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+}
+
+.editor > pre {
+  pointer-events: none;
+  color: var(--ink);
+}
+
+.editor > textarea {
+  background: transparent;
+  color: transparent;
+  caret-color: var(--tint-ink);
+  resize: none;
+  outline: 0;
+}
+
+.editor > textarea::selection {
+  background: color-mix(in srgb, var(--pop) 70%, transparent);
+  color: transparent;
+}
+
+/* Clearly a prompt, so it is never read as a value already in the file. */
+.editor > textarea::placeholder {
+  color: var(--ink-soft);
+  font-family: var(--body);
+  font-style: italic;
+  opacity: 0.75;
+}
+
+/* --- completion from the JSON schema --- */
+.complete {
+  position: absolute;
+  z-index: 3;
+  margin: 0;
+  padding: 5px;
+  min-width: 260px;
+  max-width: 420px;
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.complete[hidden] {
+  display: none;
+}
+
+.complete li {
+  padding: 7px 9px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.complete li[aria-selected="true"] {
+  background: var(--pop-wash);
+}
+
+.complete b {
+  font: 600 12.5px/1.3 var(--mono);
+  color: var(--ink);
+}
+
+.complete .def {
+  float: right;
+  font: 600 11.5px/1.3 var(--mono);
+  color: var(--tint-ink);
+}
+
+.complete small {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
 }
 
 @media (max-width: 900px) {
@@ -231,101 +368,8 @@
   }
 }
 
-/* --- a highlighted layer under a transparent textarea --- */
-.editor {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-}
-
-.editor > pre,
-.editor > textarea {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  padding: 14px 16px;
-  border: 0;
-  font: 400 13px/1.62 var(--mono);
-  font-feature-settings:
-    "liga" 0,
-    "calt" 0;
-  tab-size: 2;
-  white-space: pre;
-  overflow: auto;
-}
-
-.editor > pre {
-  pointer-events: none;
-  color: var(--ink);
-}
-
-.editor > textarea {
-  background: transparent;
-  color: transparent;
-  caret-color: var(--accent);
-  resize: none;
-  outline: 0;
-}
-
-.editor > textarea::selection {
-  background: color-mix(in srgb, var(--accent) 34%, transparent);
-  color: transparent;
-}
-
-/* Clearly a prompt, so it is never read as a value already in the file. */
-.editor > textarea::placeholder {
-  color: var(--muted);
-  font-family: var(--sans);
-  font-style: italic;
-  opacity: 0.75;
-}
-
-/* --- completion from the JSON schema --- */
-.complete {
-  position: absolute;
-  z-index: 3;
-  margin: 0;
-  padding: 4px;
-  list-style: none;
-  min-width: 260px;
-  max-width: 420px;
-  max-height: 300px;
-  overflow-y: auto;
-  background: var(--panel);
-  border: 1px solid var(--rule);
-  border-radius: 8px;
-  box-shadow: 0 12px 28px -12px rgb(0 0 0 / 0.55);
-}
-
-.complete[hidden] {
-  display: none;
-}
-
-.complete li {
-  padding: 7px 9px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.complete li[aria-selected="true"] {
-  background: var(--sunk);
-}
-
-.complete b {
-  font: 500 12.5px/1.3 var(--mono);
-  color: var(--ink);
-}
-
-.complete .def {
-  float: right;
-  font: 400 11.5px/1.3 var(--mono);
-  color: var(--accent);
-}
-
-.complete small {
-  display: block;
-  margin-top: 3px;
-  font-size: 11.5px;
-  line-height: 1.45;
-  color: var(--muted);
+@media (prefers-reduced-motion: reduce) {
+  .play [data-share] {
+    transition: none;
+  }
 }
