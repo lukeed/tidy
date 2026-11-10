@@ -236,7 +236,11 @@ jobs:
             crates/tidy_napi/index.d.ts
           if-no-files-found: error
 
+  # npm trusted publishing is not set up yet: each package needs its publisher
+  # before this can authenticate. Set the NPM_PUBLISH variable to "true" once
+  # they do, and a release publishes again.
   publish:
+    if: vars.NPM_PUBLISH == 'true'
     timeout-minutes: 15
     needs: build
     runs-on: ubuntu-latest

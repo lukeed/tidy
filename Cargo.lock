@@ -949,7 +949,7 @@ dependencies = [
 
 [[package]]
 name = "tidy"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "bitflags",
  "bumpalo",
@@ -975,7 +975,7 @@ dependencies = [
 
 [[package]]
 name = "tidy_cli"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "pico-args",
  "tidy",
@@ -984,7 +984,7 @@ dependencies = [
 
 [[package]]
 name = "tidy_napi"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "napi",
  "napi-build",
@@ -995,11 +995,11 @@ dependencies = [
 
 [[package]]
 name = "tidy_walk"
-version = "0.0.0"
+version = "0.1.0"
 
 [[package]]
 name = "tidy_wasm"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "tidy",
  "wasm-bindgen",
