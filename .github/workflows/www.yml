@@ -1,0 +1,58 @@
+name: www
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "www/**"
+      - "crates/tidy/**"
+      - "crates/tidy_wasm/**"
+      - "crates/tidy_napi/tidy.schema.json"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "mise.toml"
+      - ".github/workflows/www.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Deploys queue rather than cancel, so the newest commit is the one that lands.
+concurrency:
+  group: www
+
+env:
+  CARGO_TERM_COLOR: always
+  MISE_TRUSTED_CONFIG_PATHS: ${{ github.workspace }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: www
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The job publishes, so it restores no cache: a poisoned entry would
+      # otherwise reach the site. The crates build cold each time.
+      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        with:
+          install_args: rust bun
+          cache: false
+      # The playground is the tidy crate as wasm, so the build needs the target.
+      - run: rustup target add wasm32-unknown-unknown
+      - run: bun install --frozen-lockfile
+      # The build writes the playground's wasm typings, which are not committed,
+      # so a clean checkout has nothing to typecheck until it has run.
+      - run: bun run build
+      - run: bun run typecheck
+      - uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: www
+          packageManager: bun
+          command: deploy
