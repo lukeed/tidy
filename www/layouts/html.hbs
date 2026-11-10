@@ -55,7 +55,9 @@
       <script defer src="/x/script.js" data-endpoint="/x"></script>
     {{/if}}
   </head>
-  <body class="{{#if home}}home{{#else}}paper{{/if}}{{#if docs}} docs{{/if}}">
+  <body
+    class="{{#if home}}home{{#else}}paper{{/if}}{{#if docs}} docs{{/if}}{{#if $page.path === '/playground/'}} play{{/if}}"
+  >
     {{#partial src="header"}}
     {{{ $page.content }}}
     {{#partial src="search"}}
