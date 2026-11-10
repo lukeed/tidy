@@ -308,6 +308,27 @@ async function search() {
 
   let input = dialog.querySelector<HTMLInputElement>("[data-search-input]")!;
   let results = dialog.querySelector<HTMLElement>("[data-search-results]")!;
+  let cursor = 0;
+
+  let options = () => [...results.querySelectorAll<HTMLAnchorElement>("a")];
+
+  /**
+   * One row is marked at a time, by the arrow keys or by the pointer, so the
+   * row Enter follows is always the only row that looks chosen.
+   */
+  function select(next: number) {
+    let all = options();
+    if (!all.length) return input.removeAttribute("aria-activedescendant");
+
+    cursor = (next + all.length) % all.length;
+    for (let [i, option] of all.entries()) {
+      option.setAttribute("aria-selected", String(i === cursor));
+    }
+
+    let option = all[cursor];
+    input.setAttribute("aria-activedescendant", option.id);
+    option.scrollIntoView({ block: "nearest" });
+  }
 
   function draw() {
     let query = input.value.trim().toLowerCase();
@@ -317,20 +338,44 @@ async function search() {
 
     results.innerHTML = hits.length
       ? hits
-          .map(({ entry, heading }) => {
+          .map(({ entry, heading }, i) => {
             let href = heading ? `${entry.path}#${heading[0]}` : entry.path;
             let title = heading
               ? `${escape(entry.title)} &rsaquo; ${escape(heading[1])}`
               : escape(entry.title);
-            return `<a href="${href}"><em>${escape(entry.group)}</em><b>${title}</b><span>${escape(entry.summary)}</span></a>`;
+            return `<a href="${href}" id="hit${i}" role="option" aria-selected="false"><em>${escape(entry.group)}</em><b>${title}</b><span>${escape(entry.summary)}</span></a>`;
           })
           .join("")
       : '<p class="empty">Nothing matches that.</p>';
+
+    select(0);
   }
 
   // A click on the backdrop lands on the dialog itself, never on its contents.
   dialog.onclick = (event) => {
     if (event.target === dialog) dialog.close();
+    else if ((event.target as HTMLElement).closest("a")) dialog.close();
+  };
+
+  // The pointer moves the same mark the arrows do, rather than lighting a
+  // second row beside it.
+  results.onmousemove = (event) => {
+    let over = (event.target as HTMLElement).closest("a");
+    let at = over ? options().indexOf(over as HTMLAnchorElement) : -1;
+    if (at !== -1 && at !== cursor) select(at);
+  };
+
+  dialog.onkeydown = (event) => {
+    if (event.key === "ArrowDown") select(cursor + 1);
+    else if (event.key === "ArrowUp") select(cursor - 1);
+    else if (event.key === "Enter") {
+      let option = options()[cursor];
+      if (!option) return;
+      dialog.close();
+      option.click();
+    } else return;
+
+    event.preventDefault();
   };
 
   input.oninput = draw;

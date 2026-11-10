@@ -13,9 +13,19 @@
       placeholder="Search the docs"
       aria-label="Search the docs"
       autocomplete="off"
+      role="combobox"
+      aria-expanded="true"
+      aria-autocomplete="list"
+      aria-controls="search-results"
       data-search-input
     />
     <kbd>Esc</kbd>
   </form>
-  <div class="results" data-search-results></div>
+  <div
+    class="results"
+    id="search-results"
+    role="listbox"
+    aria-label="Results"
+    data-search-results
+  ></div>
 </dialog>
