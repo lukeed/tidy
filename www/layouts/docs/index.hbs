@@ -5,7 +5,14 @@
 <a class="skip" href="#main">Skip to content</a>
 <div class="scrim"></div>
 <div class="shell">
-  <aside class="side" id="side" aria-label="Docs" transition:persist="sidebar">
+  <aside
+    class="side"
+    id="side"
+    aria-label="Docs"
+    transition:persist="sidebar"
+    transition:name="sidebar"
+  >
+    <div class="side-marker" aria-hidden="true"></div>
     {{#each groups as group}}
       <div class="grp">
         <div class="grp-label">{{ group.title }}</div>

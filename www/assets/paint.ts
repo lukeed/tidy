@@ -25,8 +25,26 @@ function splat(pot: Element | null) {
   pot.classList.add("splat");
 }
 
+/**
+ * A named element is captured on its own, so it would cross-fade to the new
+ * scheme while the rest of the page waits for the splash to reach it. Drop the
+ * names for the one transition, so the whole page wipes together.
+ */
+function unname(): () => void {
+  let named = [
+    ...document.querySelectorAll<HTMLElement>(
+      '[style*="view-transition-name"]',
+    ),
+  ];
+  let names = named.map((el) => el.style.viewTransitionName);
+  for (let el of named) el.style.viewTransitionName = "none";
+  return () =>
+    named.forEach((el, i) => (el.style.viewTransitionName = names[i]));
+}
+
 /** Wipe the new scheme across the page, out from the pot that was pressed. */
 function wipe(from: Element, apply: () => void) {
+  let rename = unname();
   let box = from.getBoundingClientRect();
   let x = box.left + box.width / 2;
   let y = box.top + box.height / 2;
@@ -36,6 +54,7 @@ function wipe(from: Element, apply: () => void) {
   );
 
   let transition = document.startViewTransition(apply);
+  void transition.finished.then(rename, rename);
   void transition.ready
     .then(() =>
       root.animate(

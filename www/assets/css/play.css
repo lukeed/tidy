@@ -14,6 +14,7 @@
 }
 
 .pick {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -23,7 +24,10 @@
   color: var(--ink-soft);
 }
 
+/* The native caret crowds the border, so the control draws its own and keeps
+   the room for it. */
 .pick select {
+  appearance: none;
   font: 600 13.5px/1 var(--mono);
   letter-spacing: 0;
   text-transform: none;
@@ -31,8 +35,25 @@
   background: var(--card);
   border: 2px solid var(--ink);
   border-radius: 10px;
-  padding: 8px 10px;
+  padding: 9px 36px 10px 12px;
   box-shadow: 2px 2px 0 var(--ink);
+}
+
+.pick select:hover {
+  background: var(--pop-wash);
+}
+
+.pick::after {
+  content: "";
+  position: absolute;
+  right: 13px;
+  top: 50%;
+  translate: 0 -50%;
+  width: 11px;
+  height: 7px;
+  background: var(--ink);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  pointer-events: none;
 }
 
 .play-state {

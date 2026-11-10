@@ -85,7 +85,7 @@ function place(index: number) {
   }
 
   marker.style.borderWidth = "";
-  marker.style.transform = `translateY(${link.offsetTop}px)`;
+  marker.style.translate = `0 ${link.offsetTop}px`;
   marker.style.height = link.offsetHeight + "px";
 
   // A long list scrolls on its own, so keep the marker in sight.
@@ -146,9 +146,47 @@ addEventListener(
 addEventListener("resize", () => {
   at = -2;
   spy();
+  restick();
 });
 
 // ──────────────────────── sidebar and header ────────────────────────
+
+/**
+ * Lay the sidebar sticker over the page you are on. The sidebar is kept across
+ * navigations, so the sticker is the same element every time and slides from
+ * the last page to this one.
+ */
+function sticker(link?: HTMLAnchorElement) {
+  let marker = document.querySelector<HTMLElement>(".side-marker");
+  if (!marker) return;
+  if (!link) {
+    marker.style.height = "0px";
+    marker.style.borderWidth = "0";
+    return;
+  }
+
+  // On the first page the sticker should already be there, rather than travel
+  // the whole list to arrive.
+  let first = !marker.style.translate;
+  if (first) marker.style.transition = "none";
+
+  marker.style.borderWidth = "";
+  marker.style.width = link.offsetWidth + "px";
+  marker.style.height = link.offsetHeight + "px";
+  marker.style.translate = `${link.offsetLeft}px ${link.offsetTop}px`;
+
+  if (!first) return;
+  void marker.offsetWidth;
+  marker.style.transition = "";
+}
+
+/** Lay it again where it is, after the page changes shape under it. */
+function restick() {
+  sticker(
+    document.querySelector<HTMLAnchorElement>('.side a[aria-current="page"]') ??
+      undefined,
+  );
+}
 
 /**
  * The sidebar and the header are `transition:persist`, so the client keeps the
@@ -156,6 +194,8 @@ addEventListener("resize", () => {
  * never moves. Set it from the URL after every navigation instead.
  */
 function here(path: string) {
+  let on: HTMLAnchorElement | undefined;
+
   for (let link of document.querySelectorAll<HTMLAnchorElement>(".side a")) {
     let href = link.getAttribute("href") ?? "";
     let state =
@@ -166,7 +206,10 @@ function here(path: string) {
           : null;
     if (state) link.setAttribute("aria-current", state);
     else link.removeAttribute("aria-current");
+    if (state === "page") on = link;
   }
+
+  sticker(on);
 
   // Only the two sections, as the server renders them. The shortcuts beside
   // them live under the docs, and would else mark a second link.
@@ -310,6 +353,7 @@ customElements.define("tidy-hero", TidyHero);
 paint();
 watch();
 here(location.pathname);
+void (document.fonts ? document.fonts.ready : Promise.resolve()).then(restick);
 
 on("bongo:navigated", ({ to }) => {
   here(to.pathname);

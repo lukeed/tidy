@@ -71,6 +71,8 @@
 }
 
 .side a {
+  position: relative;
+  z-index: 1;
   display: block;
   text-decoration: none;
   color: var(--text);
@@ -91,14 +93,33 @@
   transform: translateX(3px);
 }
 
-/* the page you are on is the one sticker on the list */
 .side a[aria-current="page"] {
-  background: var(--pop);
   color: var(--ink);
   font-weight: 700;
-  border-color: var(--ink);
+}
+
+.side a[aria-current="page"]:hover {
+  background: none;
+  transform: none;
+}
+
+/* The page you are on is the one sticker on the list. It is its own element,
+   so it slides from the last page to this one rather than blinking across,
+   the way the marker on the contents does as you read. */
+.side-marker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  height: 0;
+  rotate: -1deg;
+  background: var(--pop);
+  border: 2px solid var(--ink);
+  border-radius: 11px;
   box-shadow: 3px 3px 0 var(--ink);
-  transform: rotate(-1deg);
+  transition:
+    translate 0.42s var(--spring),
+    height 0.32s var(--spring);
 }
 
 .side-llms {
@@ -374,7 +395,7 @@
   border-radius: 9px;
   box-shadow: 2px 2px 0 var(--ink);
   transition:
-    transform 0.42s var(--spring),
+    translate 0.42s var(--spring),
     height 0.32s var(--spring);
 }
 
@@ -474,6 +495,7 @@
   .side a,
   .pager a,
   .marker,
+  .side-marker,
   .menu,
   .copy-page {
     transition: none !important;
