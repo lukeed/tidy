@@ -5,13 +5,7 @@
 <a class="skip" href="#main">Skip to content</a>
 <div class="scrim"></div>
 <div class="shell">
-  <aside
-    class="side"
-    id="side"
-    aria-label="Docs"
-    transition:persist="sidebar"
-    transition:name="sidebar"
-  >
+  <aside class="side" id="side" aria-label="Docs" transition:persist="sidebar">
     {{#each groups as group}}
       <div class="grp">
         <div class="grp-label">{{ group.title }}</div>
@@ -45,8 +39,8 @@
       {{{ $page.content }}}
     </article>
     <nav class="pager" aria-label="Pages">
-      {{#if near.prev}}<a href="{{ near.prev.path }}" rel="prev"><small
-          >&larr; Previous</small><b>{{ near.prev.title }}</b></a>{{/if}}
+      {{#if near.prev}}<a href="{{ near.prev.path }}" rel="prev"><small>&larr;
+            Previous</small><b>{{ near.prev.title }}</b></a>{{/if}}
       {{#if near.next}}<a
           class="next"
           href="{{ near.next.path }}"

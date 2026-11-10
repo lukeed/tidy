@@ -203,8 +203,8 @@
   /* A sticker's drop shadow. A night scheme glows instead. */
   --hero-shadow: var(--ink);
 
-  --display: "Bricolage Grotesque", "Arial Rounded MT Bold", system-ui,
-    sans-serif;
+  --display:
+    "Bricolage Grotesque", "Arial Rounded MT Bold", system-ui, sans-serif;
   --body: "Bricolage Grotesque", system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 

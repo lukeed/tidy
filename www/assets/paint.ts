@@ -1,7 +1,7 @@
 /**
  * The paint pots. Picking one writes `data-scheme` on `<html>`, which every
- * colour on the site reads, and remembers it for the inline script in
- * `<head>` to apply before the next page paints.
+ * colour on the site reads, and remembers it for the inline script in `<head>`
+ * to apply before the next page paints.
  */
 
 const SCHEMES = [

@@ -55,9 +55,9 @@ addEventListener("keydown", (event) => {
 // ───────────────────────────── on this page ─────────────────────────────
 
 /**
- * Mark the heading the reader is in, and spring the marker to it. The marker
- * is one sticker that moves, rather than a border on each link, so the list
- * reads as a single place you are in.
+ * Mark the heading the reader is in, and spring the marker to it. The marker is
+ * one sticker that moves, rather than a border on each link, so the list reads
+ * as a single place you are in.
  */
 let watching: IntersectionObserver | undefined;
 
@@ -74,7 +74,8 @@ function spy() {
   let seen = new Set<string>();
 
   function place(link: HTMLAnchorElement | undefined) {
-    for (let other of links) other.toggleAttribute("aria-current", other === link);
+    for (let other of links)
+      other.toggleAttribute("aria-current", other === link);
     if (!marker) return;
     if (!link) {
       marker.style.height = "0px";
@@ -131,8 +132,7 @@ function here(path: string) {
 
   for (let link of document.querySelectorAll<HTMLAnchorElement>(".top nav a")) {
     let href = link.getAttribute("href") ?? "";
-    let mine =
-      href === "/docs/" ? path.startsWith("/docs/") : href === path;
+    let mine = href === "/docs/" ? path.startsWith("/docs/") : href === path;
     link.toggleAttribute("aria-current", mine && href !== "/");
   }
 }
@@ -246,9 +246,9 @@ document.addEventListener("keydown", (event) => {
 });
 
 /**
- * Custom elements, so the browser mounts them whenever they enter the
- * document. The client runtime replaces `<body>`, and a script inside replaced
- * markup never runs, but an upgrade does.
+ * Custom elements, so the browser mounts them whenever they enter the document.
+ * The client runtime replaces `<body>`, and a script inside replaced markup
+ * never runs, but an upgrade does.
  */
 class TidyPlayground extends HTMLElement {
   connectedCallback() {

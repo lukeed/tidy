@@ -155,9 +155,9 @@ export type Bars = {
 
 /**
  * One benchmark row as the home page draws it. Prettier is two orders of
- * magnitude away, so one linear scale would make every native tool an
- * identical sliver: they are scaled against each other, and Prettier is
- * written out as a multiple underneath.
+ * magnitude away, so one linear scale would make every native tool an identical
+ * sliver: they are scaled against each other, and Prettier is written out as a
+ * multiple underneath.
  *
  * @example
  *   $utils.bars($data.bench.featured[0]);

@@ -177,8 +177,6 @@
 
 .doc > h1 .dot {
   color: var(--pop2);
-  -webkit-text-stroke: 1.5px var(--ink);
-  paint-order: stroke fill;
 }
 
 .copy-page {
@@ -400,12 +398,15 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* `align-self` still reaches a fixed box, and anything but `stretch` sizes
+     it to its content rather than between `top` and `bottom`. */
   .side {
     position: fixed;
     z-index: 34;
     top: calc(var(--top) + env(safe-area-inset-top, 0px));
     left: 0;
     bottom: 0;
+    align-self: stretch;
     max-height: none;
     width: min(86vw, 320px);
     background: var(--paper);

@@ -4,9 +4,9 @@ import { join } from "node:path";
 import { highlight } from "../code";
 
 /**
- * The before and after that the home page animates between.
- * `routes.output.ts` is what `tidy --no-config routes.input.ts` prints; `bun
- * run check` fails if it drifts.
+ * The before and after that the home page animates between. `routes.output.ts`
+ * is what `tidy --no-config routes.input.ts` prints; `bun run check` fails if
+ * it drifts.
  */
 let read = (name: string) =>
   readFileSync(join(import.meta.dirname, "../samples", name), "utf8").trimEnd();

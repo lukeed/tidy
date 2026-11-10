@@ -1,7 +1,7 @@
 /**
- * The home page's moving parts: the hero card, where every token of
- * `routes.ts` hops into the place tidy puts it, and the two bars below it,
- * which race in real time.
+ * The home page's moving parts: the hero card, where every token of `routes.ts`
+ * hops into the place tidy puts it, and the two bars below it, which race in
+ * real time.
  */
 
 type Mode = "mess" | "tidy";
@@ -63,8 +63,8 @@ let quoted = (text: string) => text[0] === "'" || text[0] === '"';
 
 /**
  * Split source into tokens with a row and column, and give each one a class.
- * `k` ignores which quote mark a string uses, so `'ok'` and `"ok"` are the
- * same token on both sides and the diff pairs them up.
+ * `k` ignores which quote mark a string uses, so `'ok'` and `"ok"` are the same
+ * token on both sides and the diff pairs them up.
  */
 function tokenize(source: string): Pos[] {
   let out: Pos[] = [];
@@ -104,8 +104,8 @@ function tokenize(source: string): Pos[] {
 
 /**
  * Pair the tokens of the two files by their longest common subsequence, so a
- * token that survives tidy keeps one element and moves, and only the ones
- * that do not have to appear or leave.
+ * token that survives tidy keeps one element and moves, and only the ones that
+ * do not have to appear or leave.
  */
 function pair(a: Pos[], b: Pos[]): { a: Pos | null; b: Pos | null }[] {
   let n = a.length;
@@ -298,8 +298,8 @@ function stage(host: HTMLElement) {
 
   /**
    * The tokens that do not belong pop out first. Everything that stays
-   * crouches, hops along an arc, overshoots and settles, top to bottom. The
-   * new tokens land last.
+   * crouches, hops along an arc, overshoots and settles, top to bottom. The new
+   * tokens land last.
    */
   function run(next: Mode) {
     mode = next;
@@ -484,7 +484,7 @@ function stage(host: HTMLElement) {
   });
 }
 
-/** tidy and Prettier, over the whole corpus, at the speed it really happens. */
+/** Tidy and Prettier, over the whole corpus, at the speed it really happens. */
 function race(root: HTMLElement) {
   let fills = {
     tidy: root.querySelector<HTMLElement>('[data-fill="tidy"]'),

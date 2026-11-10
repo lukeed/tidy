@@ -51,10 +51,9 @@ summary: tidy is a code formatter written in Rust. One binary prints what Pretti
       <div class="copy">
         <p class="eyebrow">A code formatter written in Rust</p>
         <h1>Prettier's style, at <mark>native speed</mark>.</h1>
-        <p class="lede">One binary prints what Prettier prints, for
-          JavaScript, TypeScript, HTML, CSS, Markdown, YAML, JSON, TOML and
-          more. It does not shell out to Node, though there is a Node binding
-          if you want one.</p>
+        <p class="lede">One binary prints what Prettier prints, for JavaScript,
+          TypeScript, HTML, CSS, Markdown, YAML, JSON, TOML and more. It does
+          not shell out to Node, though there is a Node binding if you want one.</p>
         <div class="term">
           <em>$</em><code>{{ install }}</code><button
             class="copybtn"
@@ -73,8 +72,7 @@ summary: tidy is a code formatter written in Rust. One binary prints what Pretti
       <tidy-hero class="card">
         <div class="cardbar">
           <span class="file">routes.ts</span>
-          <span class="state tidy" data-state aria-live="polite">&#10003;
-            tidy</span>
+          <span class="state tidy" data-state aria-live="polite">&#10003; tidy</span>
         </div>
         <div
           class="stage"
@@ -149,7 +147,7 @@ summary: tidy is a code formatter written in Rust. One binary prints what Pretti
           <div class="langgrp">
             <h3>{{ row.corpus }}<span>{{ $utils.num(row.files) }}
                 files</span></h3>
-            {{#each group.tools as (bar, i)}}
+            {{#each group.tools as bar, i}}
               <div class="b{{#if bar.me}} me{{/if}}">
                 <span>{{ bar.who }}</span>
                 <span class="tr"><i
@@ -159,7 +157,8 @@ summary: tidy is a code formatter written in Rust. One binary prints what Pretti
               </div>
             {{/each}}
             {{#if group.prettier}}
-              <p class="slow">Prettier: {{ $utils.ms(group.prettier) }},
+              <p class="slow">Prettier:
+                {{ $utils.ms(group.prettier) }},
                 <b>{{ group.slower }}&times; slower</b></p>
             {{/if}}
           </div>

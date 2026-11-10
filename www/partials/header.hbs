@@ -1,6 +1,6 @@
 {{#var docs = !!$page.params.group}}
 {{#var play = $page.path === "/playground/"}}
-<header class="top band" transition:persist="top" transition:name="top">
+<header class="top band" transition:persist="top">
   <div class="wrap">
     <a class="brand" href="/" aria-label="tidy home">{{#partial
         src="wordmark"
@@ -29,9 +29,7 @@
           stroke-width="2.4"
           stroke-linecap="round"
           aria-hidden="true"
-        ><circle cx="10.5" cy="10.5" r="6.5" /><path
-            d="m15.5 15.5 5 5"
-          /></svg>
+        ><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></svg>
       </button>
       <a
         class="icon"
