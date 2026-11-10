@@ -219,10 +219,15 @@
 .stage {
   position: relative;
   margin: 18px 18px 22px;
-  cursor: pointer;
   font: 400 13px/1.62 var(--mono);
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* The code is only worth a click once it has come to rest, as the button
+   beside it is. */
+[data-ready] .stage {
+  cursor: pointer;
 }
 
 /* The tidied file, until the script has measured the card and taken over. */
@@ -284,21 +289,38 @@
   font-weight: 600;
 }
 
-/* play it again, beside the state it resets */
+/* Play it again, beside the state it resets. It is there only once the code
+   has come to rest: while the tokens move, they are the thing to watch, and
+   there is nothing yet to replay. It keeps its place in the bar either way,
+   so the state beside it never shifts. */
 .replay {
   margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font: 700 12.5px/1 var(--body);
-  letter-spacing: 0.02em;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
   color: var(--ink);
   background: var(--sand);
   border: 2px solid var(--ink);
-  border-radius: 99px;
-  padding: 6px 11px 7px 9px;
+  border-radius: 50%;
+  visibility: hidden;
+  opacity: 0;
+  scale: 0.7;
   transition:
-    transform 0.12s var(--spring),
+    opacity 0.09s ease-in,
+    scale 0.09s ease-in,
+    visibility 0s linear 0.09s,
+    background-color 0.15s;
+}
+
+[data-ready] .replay {
+  visibility: visible;
+  opacity: 1;
+  scale: 1;
+  transition:
+    opacity 0.12s var(--out),
+    scale 0.2s var(--spring),
+    visibility 0s,
     background-color 0.15s;
 }
 
@@ -307,25 +329,12 @@
 }
 
 .replay:active {
-  transform: scale(0.92, 0.86);
+  transform: scale(0.9);
 }
 
 .replay svg {
-  width: 12px;
-  height: 12px;
-}
-
-.replay.spin svg {
-  animation: spin 0.6s var(--out);
-}
-
-@keyframes spin {
-  from {
-    rotate: 0deg;
-  }
-  to {
-    rotate: -360deg;
-  }
+  width: 14px;
+  height: 14px;
 }
 
 /* ---------- speed ---------- */
@@ -911,9 +920,22 @@
 
   .state.pop,
   .badge.pop,
-  .langs.go .tr i,
-  .replay.spin svg {
+  .langs.go .tr i {
     animation: none;
+  }
+
+  /* The button still comes and goes; it just does not travel to do it. */
+  .replay {
+    scale: 1;
+    transition:
+      opacity 0.1s linear,
+      visibility 0s linear 0.1s;
+  }
+
+  [data-ready] .replay {
+    transition:
+      opacity 0.1s linear,
+      visibility 0s;
   }
 
   .stage {

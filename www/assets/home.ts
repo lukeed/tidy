@@ -247,6 +247,22 @@ function stage(host: HTMLElement) {
   let last = 0;
   /** Whether the card has tidied itself once, by itself or by hand. */
   let played = false;
+  /** Whether the button was pressed by key, and so should be handed back. */
+  let handBack = false;
+  /** Whether the code is at rest, and so can be made a mess of again. */
+  let resting = false;
+
+  /**
+   * The button is there only between runs. While the tokens move they are the
+   * thing to watch, and there is nothing to replay yet.
+   */
+  function ready(on: boolean) {
+    resting = on;
+    host.toggleAttribute("data-ready", on);
+    if (!on || !handBack) return;
+    handBack = false;
+    replay!.focus();
+  }
 
   function snap() {
     for (let tok of toks) {
@@ -278,12 +294,14 @@ function stage(host: HTMLElement) {
     label!.classList.remove("tidy", "pop");
     if (mode !== "tidy") {
       label!.textContent = "as written";
+      ready(false);
       return;
     }
     label!.textContent = "✓ tidy";
     label!.classList.add("tidy");
     void label!.offsetWidth;
     if (!reduce.matches) label!.classList.add("pop");
+    ready(true);
   }
 
   function flip(tok: Tok, quote: string) {
@@ -306,6 +324,7 @@ function stage(host: HTMLElement) {
   function run(next: Mode) {
     mode = next;
     let mine = ++generation;
+    ready(false);
     label!.classList.remove("tidy", "pop");
     label!.textContent = mode === "tidy" ? "tidying…" : "as written";
 
@@ -453,18 +472,21 @@ function stage(host: HTMLElement) {
 
   /** Put the mess back, let it be read for a beat, then tidy it again. */
   function again() {
+    if (!resting) return;
     played = true;
+    ready(false);
     mode = "mess";
     generation++;
     snap();
     settle(generation);
-    replay!.classList.remove("spin");
-    void replay!.offsetWidth;
-    replay!.classList.add("spin");
     setTimeout(() => mode === "mess" && run("tidy"), reduce.matches ? 0 : 500);
   }
 
-  replay.addEventListener("click", again);
+  replay.addEventListener("click", (event) => {
+    // The button goes as it is pressed, so a key press would drop its focus.
+    handBack = event.detail === 0;
+    again();
+  });
   board.addEventListener("click", again);
 
   let resized: ReturnType<typeof setTimeout>;

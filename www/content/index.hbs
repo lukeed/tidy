@@ -72,7 +72,13 @@ summary: tidy is a code formatter written in Rust. One binary prints what Pretti
       <tidy-hero class="card">
         <div class="cardbar">
           <span class="file">routes.ts</span>
-          <button class="replay" type="button" data-replay>
+          <button
+            class="replay"
+            type="button"
+            data-replay
+            title="Replay"
+            aria-label="Replay"
+          >
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -81,9 +87,7 @@ summary: tidy is a code formatter written in Rust. One binary prints what Pretti
               stroke-linecap="round"
               stroke-linejoin="round"
               aria-hidden="true"
-            ><path d="M20 11a8 8 0 1 0-2.3 6" /><path
-                d="M20 4v7h-7"
-              /></svg>replay
+            ><path d="M20 11a8 8 0 1 0-2.3 6" /><path d="M20 4v7h-7" /></svg>
           </button>
           <span class="state tidy" data-state aria-live="polite">&#10003; tidy</span>
         </div>
