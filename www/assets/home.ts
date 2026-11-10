@@ -245,6 +245,8 @@ function stage(host: HTMLElement) {
   let generation = 0;
   let running = false;
   let last = 0;
+  /** Whether the card has tidied itself once, by itself or by hand. */
+  let played = false;
 
   function snap() {
     for (let tok of toks) {
@@ -451,6 +453,7 @@ function stage(host: HTMLElement) {
 
   /** Put the mess back, let it be read for a beat, then tidy it again. */
   function again() {
+    played = true;
     mode = "mess";
     generation++;
     snap();
@@ -480,7 +483,11 @@ function stage(host: HTMLElement) {
     if (!host.isConnected) return;
     measure();
     snap();
-    setTimeout(() => mode === "mess" && generation === 0 && run("tidy"), 700);
+    setTimeout(() => {
+      if (played || mode !== "mess") return;
+      played = true;
+      run("tidy");
+    }, 700);
   });
 }
 

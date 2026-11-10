@@ -69,20 +69,22 @@ summary: tidy is a code formatter written in Rust. One binary prints what Pretti
         </div>
       </div>
 
-      <tidy-hero class="card">
-        <div class="cardbar">
-          <span class="file">routes.ts</span>
-          <span class="state tidy" data-state aria-live="polite">&#10003; tidy</span>
-        </div>
-        <div
-          class="stage"
-          data-stage
-          role="img"
-          aria-label="routes.ts reformatting from its messy original into Prettier style"
-        >
-          <pre data-mess>{{ $data.sample.mess }}</pre>
-          <pre data-tidy>{{ $data.sample.tidy }}</pre>
-        </div>
+      <tidy-hero class="snippet">
+        <figure class="card">
+          <div class="cardbar">
+            <span class="file">routes.ts</span>
+            <span class="state tidy" data-state aria-live="polite">&#10003; tidy</span>
+          </div>
+          <div
+            class="stage"
+            data-stage
+            role="img"
+            aria-label="routes.ts reformatting from its messy original into Prettier style"
+          >
+            <pre data-mess>{{ $data.sample.mess }}</pre>
+            <pre data-tidy>{{ $data.sample.tidy }}</pre>
+          </div>
+        </figure>
         <div class="cardfoot">
           <button class="replay" type="button" data-replay>
             <svg

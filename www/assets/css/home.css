@@ -160,6 +160,13 @@
 }
 
 /* ---------- the stage the code tidies itself on ---------- */
+/* The card, and under it the button that plays it again. */
+.snippet {
+  min-width: 0;
+  display: grid;
+  gap: 18px;
+}
+
 .card {
   min-width: 0;
   background: var(--paper);
@@ -219,7 +226,7 @@
 
 .stage {
   position: relative;
-  margin: 18px 18px 10px;
+  margin: 18px 18px 22px;
   cursor: pointer;
   font: 400 13px/1.62 var(--mono);
   user-select: none;
@@ -285,35 +292,40 @@
   font-weight: 600;
 }
 
-/* play it again, under the code it belongs to */
+/* play it again, under the card it belongs to */
 .cardfoot {
   display: flex;
   justify-content: flex-end;
-  padding: 0 18px 16px;
 }
 
 .replay {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font: 700 12.5px/1 var(--body);
+  font: 700 13px/1 var(--body);
   letter-spacing: 0.02em;
   color: var(--ink);
-  background: var(--sand);
+  background: var(--card);
   border: 2px solid var(--ink);
   border-radius: 99px;
-  padding: 6px 11px 7px;
+  padding: 7px 13px 8px;
+  box-shadow: 3px 3px 0 var(--hero-shadow);
   transition:
-    transform 0.12s var(--spring),
+    transform 0.14s var(--spring),
+    box-shadow 0.14s var(--spring),
     background-color 0.15s;
 }
 
 .replay:hover {
   background: var(--pop);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--hero-shadow);
 }
 
 .replay:active {
-  transform: scale(0.92, 0.86);
+  transform: translate(2px, 2px) scale(0.97, 0.94);
+  box-shadow: 1px 1px 0 var(--hero-shadow);
+  transition-duration: 0.06s;
 }
 
 .replay svg {
@@ -890,11 +902,7 @@
   }
 
   .stage {
-    margin: 14px 12px 8px;
-  }
-
-  .cardfoot {
-    padding: 0 12px 12px;
+    margin: 14px 12px 16px;
   }
 
   .claim {
