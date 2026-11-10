@@ -56,8 +56,8 @@ const SCRIPT_HEADERS = {
  *   artifacts it attaches to the GitHub release.
  *
  * A fetch of the installer counts an `installer` event, and a fetch of an
- * archive counts an `archive` event. One install is one of each, so the
- * archives are the download count and the installer is the attempt count.
+ * archive counts a `download` event. One install is one of each: the installer
+ * is the attempt, and the download is the install.
  */
 export default {
   async fetch(
@@ -96,7 +96,7 @@ export default {
         "cache-control": "public, max-age=31536000, immutable",
       });
       if (res.ok && !sum && req.method === "GET") {
-        count(req, env, ctx, "archive", { version, target });
+        count(req, env, ctx, "download", { version, target });
       }
       return res;
     }
