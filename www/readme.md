@@ -63,7 +63,7 @@ Everything is a static asset except four paths, listed in `run_worker_first`:
 - `/install.sh` serves the install script.
 - `/` serves the install script to a command line (`curl`, `wget`, …) and the home page to a browser, so `curl -fsSL https://tidy.lukeed.com | sh` works.
 
-Serving the script counts a `download` event, with `piped` (whether it came from `/` or `/install.sh`) and `platform`. The archives themselves come from GitHub releases, so that event is the closest thing to a download count.
+Serving the install script counts an `installer` event, with `piped` (whether it came from `/` or `/install.sh`) and `platform`. Serving an archive counts an `archive` event, with its `version` and `target`. One install is one of each, so the archives are the download count and the installer is the attempt count: the gap between them is the people who read the script, or whose platform has no build. A `HEAD` and a checksum count as neither.
 
 Analytics never block the response: a failed event is logged and dropped.
 

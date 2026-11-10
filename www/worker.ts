@@ -55,8 +55,9 @@ const SCRIPT_HEADERS = {
  *   serves that file out of R2, which the release workflow fills from the same
  *   artifacts it attaches to the GitHub release.
  *
- * Serving the script counts a `download` event, and serving an archive counts
- * an `archive` event with its version and target.
+ * A fetch of the installer counts an `installer` event, and a fetch of an
+ * archive counts an `archive` event. One install is one of each, so the
+ * archives are the download count and the installer is the attempt count.
  */
 export default {
   async fetch(
@@ -104,20 +105,16 @@ export default {
     let wantsScript =
       pathname === "/install.sh" || (pathname === "/" && CLI.test(agent));
 
-    if (wantsScript && (req.method === "GET" || req.method === "HEAD")) {
-      // Serving the script must never depend on analytics answering.
-      if (env.CROWNE_KEY && env.CROWNE_SITE) {
-        let analytics = crowne({ key: env.CROWNE_KEY, site: env.CROWNE_SITE });
-        let event = analytics.track(req, "download", {
+    if (wantsScript && isRead) {
+      // Reading the installer is an attempt, not a download: the archive it
+      // then fetches is the install. Counting both as a download counts one
+      // install twice. A HEAD is not a read of either.
+      if (req.method === "GET") {
+        count(req, env, ctx, "installer", {
           // `curl | sh` versus someone reading it first.
           piped: pathname === "/",
           platform: platform(agent),
         });
-        ctx.waitUntil(
-          event.catch((error: unknown) =>
-            console.warn("crowne: download event", error),
-          ),
-        );
       }
       return new Response(req.method === "HEAD" ? null : script, {
         headers: SCRIPT_HEADERS,
@@ -162,7 +159,7 @@ function count(
   env: Env,
   ctx: ExecutionContext,
   name: string,
-  props: Record<string, string>,
+  props: Record<string, string | boolean>,
 ) {
   if (!env.CROWNE_KEY || !env.CROWNE_SITE) return;
   let event = crowne({ key: env.CROWNE_KEY, site: env.CROWNE_SITE }).track(
