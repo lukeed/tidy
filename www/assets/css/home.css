@@ -44,7 +44,7 @@
   background: var(--pop);
   color: var(--ink);
   padding: 0 0.12em 0.04em;
-  margin-right: 0.1em;
+  margin-right: 7px;
   border-radius: 0.12em;
   transform: rotate(-2.2deg);
   box-shadow: 5px 5px 0 var(--hero-shadow);
