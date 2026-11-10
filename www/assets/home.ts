@@ -264,6 +264,21 @@ function stage(host: HTMLElement) {
     replay!.focus();
   }
 
+  let coming: ReturnType<typeof setTimeout>;
+
+  /**
+   * A beat after the code lands, so the state pill beside it keeps the moment
+   * to itself and the button reads as following, not racing. Going is not
+   * delayed: that answers a press.
+   */
+  function arrive(mine: number) {
+    clearTimeout(coming);
+    coming = setTimeout(
+      () => mine === generation && ready(true),
+      reduce.matches ? 0 : 260,
+    );
+  }
+
   function snap() {
     for (let tok of toks) {
       let here = mode === "tidy" ? tok.b : tok.a;
@@ -294,6 +309,7 @@ function stage(host: HTMLElement) {
     label!.classList.remove("tidy", "pop");
     if (mode !== "tidy") {
       label!.textContent = "as written";
+      clearTimeout(coming);
       ready(false);
       return;
     }
@@ -301,7 +317,7 @@ function stage(host: HTMLElement) {
     label!.classList.add("tidy");
     void label!.offsetWidth;
     if (!reduce.matches) label!.classList.add("pop");
-    ready(true);
+    arrive(mine);
   }
 
   function flip(tok: Tok, quote: string) {
@@ -324,6 +340,7 @@ function stage(host: HTMLElement) {
   function run(next: Mode) {
     mode = next;
     let mine = ++generation;
+    clearTimeout(coming);
     ready(false);
     label!.classList.remove("tidy", "pop");
     label!.textContent = mode === "tidy" ? "tidying…" : "as written";
