@@ -65,6 +65,20 @@ let marks: { links: HTMLAnchorElement[]; heads: (HTMLElement | null)[] } = {
 };
 let at = -2;
 
+/**
+ * A sticker starts where it belongs rather than travelling to it: the list it
+ * marks is new markup after every navigation, so its first placement is not a
+ * move the reader made.
+ */
+function lay(marker: HTMLElement, move: () => void) {
+  let first = !marker.style.translate;
+  if (first) marker.style.transition = "none";
+  move();
+  if (!first) return;
+  void marker.offsetWidth;
+  marker.style.transition = "";
+}
+
 function place(index: number) {
   if (index === at) return;
   at = index;
@@ -84,9 +98,11 @@ function place(index: number) {
     return;
   }
 
-  marker.style.borderWidth = "";
-  marker.style.translate = `0 ${link.offsetTop}px`;
-  marker.style.height = link.offsetHeight + "px";
+  lay(marker, () => {
+    marker.style.borderWidth = "";
+    marker.style.translate = `0 ${link.offsetTop}px`;
+    marker.style.height = link.offsetHeight + "px";
+  });
 
   // A long list scrolls on its own, so keep the marker in sight.
   let box = link.closest<HTMLElement>(".toc");
@@ -165,19 +181,12 @@ function sticker(link?: HTMLAnchorElement) {
     return;
   }
 
-  // On the first page the sticker should already be there, rather than travel
-  // the whole list to arrive.
-  let first = !marker.style.translate;
-  if (first) marker.style.transition = "none";
-
-  marker.style.borderWidth = "";
-  marker.style.width = link.offsetWidth + "px";
-  marker.style.height = link.offsetHeight + "px";
-  marker.style.translate = `${link.offsetLeft}px ${link.offsetTop}px`;
-
-  if (!first) return;
-  void marker.offsetWidth;
-  marker.style.transition = "";
+  lay(marker, () => {
+    marker.style.borderWidth = "";
+    marker.style.width = link.offsetWidth + "px";
+    marker.style.height = link.offsetHeight + "px";
+    marker.style.translate = `${link.offsetLeft}px ${link.offsetTop}px`;
+  });
 }
 
 /** Lay it again where it is, after the page changes shape under it. */
