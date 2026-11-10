@@ -63,7 +63,8 @@ dialog.search .results a {
   text-decoration: none;
 }
 
-dialog.search .results a:hover,
+/* The pointer moves the mark rather than adding its own, so hover is not a
+   second highlight. */
 dialog.search .results a[aria-selected="true"] {
   background: var(--pop-wash);
   border-color: var(--ink);
