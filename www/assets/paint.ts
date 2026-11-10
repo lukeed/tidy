@@ -138,10 +138,48 @@ export function paint() {
     if (!tray.hidden && !target.closest(".paint")) open(false);
   });
 
+  /** Where a keyboard pick splashes from, since no pot was pressed. */
+  let here = () => button!.querySelector(".pot");
+
+  /**
+   * Whether a bare letter belongs to the page rather than to whoever is typing.
+   * A field, a dialog, a held modifier or an IME all mean no.
+   */
+  function loose(event: KeyboardEvent): boolean {
+    if (event.metaKey || event.ctrlKey || event.altKey) return false;
+    if (event.repeat || event.isComposing) return false;
+    if (document.querySelector("dialog[open]")) return false;
+    let at = event.target as HTMLElement | null;
+    return !at?.closest("input, textarea, select, [contenteditable]");
+  }
+
   addEventListener("keydown", (event) => {
-    if (event.key !== "Escape" || tray.hidden) return;
-    open(false);
-    button.focus();
+    if (event.key === "Escape" && !tray.hidden) {
+      open(false);
+      button.focus();
+      return;
+    }
+
+    if (!loose(event)) return;
+
+    // `c` walks the pots in order, and wraps.
+    if (event.key === "c") {
+      let next = SCHEMES[(SCHEMES.indexOf(current()) + 1) % SCHEMES.length];
+      let pot = here();
+      splat(pot);
+      if (pot) pick(next, pot);
+      return;
+    }
+
+    // A number takes its pot, while the tray is open to show which is which.
+    if (tray.hidden) return;
+    let nth = Number(event.key);
+    let option = Number.isInteger(nth) ? options[nth - 1] : undefined;
+    if (!option) return;
+    event.preventDefault();
+    let pot = option.querySelector(".pot");
+    splat(pot);
+    if (pot) pick(option.dataset.scheme!, pot);
   });
 
   for (let option of options) {

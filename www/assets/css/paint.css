@@ -73,6 +73,24 @@
   color: var(--ink-soft);
 }
 
+.tray .keys {
+  margin: 12px 4px 0;
+  padding-top: 10px;
+  border-top: 2px dashed var(--rule);
+  font: 500 12px/1.5 var(--body);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.tray kbd {
+  font: inherit;
+  color: var(--ink);
+  background: var(--sand);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 4px 2px;
+}
+
 .tray .pots {
   display: grid;
   grid-template-columns: repeat(4, 74px);

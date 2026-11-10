@@ -14,6 +14,8 @@
     data-paint
     aria-expanded="false"
     aria-controls="tray"
+    aria-keyshortcuts="c"
+    title="Colors — press C for the next"
   ><span class="pot"></span><span class="lbl">Colors</span></button>
   <div class="tray" id="tray" hidden>
     <p>Pick a paint pot</p>
@@ -31,5 +33,9 @@
           ></span><span>{{ scheme[1] }}</span></button>
       {{/each}}
     </div>
+    <p class="keys"><kbd>1</kbd>&ndash;<kbd>{{ schemes.length }}</kbd>
+      picks one,
+      <kbd>C</kbd>
+      takes the next</p>
   </div>
 </div>
