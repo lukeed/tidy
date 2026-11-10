@@ -3,16 +3,16 @@ dialog.search {
   max-height: min(520px, calc(100vh - 96px));
   margin: 84px auto auto;
   padding: 0;
-  border: 1px solid var(--rule);
-  border-radius: 12px;
-  background: var(--panel);
+  background: var(--card);
   color: var(--text);
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  box-shadow: 8px 8px 0 var(--ink);
   overflow: hidden;
 }
 
 dialog.search::backdrop {
-  background: color-mix(in srgb, #000 62%, transparent);
-  backdrop-filter: blur(2px);
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
 }
 
 dialog.search form {
@@ -20,20 +20,20 @@ dialog.search form {
   align-items: center;
   gap: 11px;
   padding: 14px 16px;
-  border-bottom: 1px solid var(--hair);
+  border-bottom: 2px dashed var(--line);
 }
 
 dialog.search svg {
-  width: 17px;
-  height: 17px;
-  color: var(--muted);
+  width: 18px;
+  height: 18px;
+  color: var(--ink-soft);
   flex: none;
 }
 
 dialog.search input {
   flex: 1;
   min-width: 0;
-  font: 400 15.5px/1 var(--sans);
+  font: 500 16.5px/1 var(--body);
   color: var(--ink);
   background: none;
   border: 0;
@@ -41,10 +41,11 @@ dialog.search input {
 }
 
 dialog.search kbd {
-  font: 400 11px/1 var(--mono);
-  color: var(--muted);
-  border: 1px solid var(--rule);
-  border-radius: 5px;
+  font: 600 11px/1 var(--mono);
+  color: var(--ink-soft);
+  background: var(--sand);
+  border: 2px solid var(--line);
+  border-radius: 7px;
   padding: 5px 7px;
 }
 
@@ -57,26 +58,28 @@ dialog.search .results {
 dialog.search .results a {
   display: block;
   padding: 10px 12px;
-  border-radius: 8px;
+  border: 2px solid transparent;
+  border-radius: 12px;
   text-decoration: none;
 }
 
 dialog.search .results a:hover,
 dialog.search .results a[aria-selected="true"] {
-  background: var(--sunk);
+  background: var(--pop-wash);
+  border-color: var(--ink);
 }
 
 dialog.search .results b {
   display: block;
-  font-weight: 500;
-  font-size: 15px;
+  font-weight: 700;
+  font-size: 15.5px;
   color: var(--ink);
 }
 
 dialog.search .results span {
   display: block;
   font-size: 13.5px;
-  color: var(--muted);
+  color: var(--ink-soft);
   margin-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -84,16 +87,16 @@ dialog.search .results span {
 }
 
 dialog.search .results em {
-  font: 400 11px/1 var(--mono);
+  font: 700 11px/1 var(--mono);
   font-style: normal;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--pop2-text);
 }
 
 dialog.search .empty {
   padding: 28px 16px;
   text-align: center;
-  color: var(--muted);
-  font-size: 14.5px;
+  color: var(--ink-soft);
+  font-size: 15px;
 }

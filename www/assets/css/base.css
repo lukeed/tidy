@@ -1,84 +1,223 @@
 @font-face {
-  font-family: "Archivo";
-  src: url("../fonts/archivo.woff2") format("woff2");
-  font-weight: 100 900;
+  font-family: "Bricolage Grotesque";
+  src: url("../fonts/bricolage.woff2") format("woff2");
+  font-weight: 300 800;
+  font-stretch: 75% 100%;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "IBM Plex Mono";
-  src: url("../fonts/ibm-plex-mono-400.woff2") format("woff2");
-  font-weight: 400;
+  font-family: "JetBrains Mono";
+  src: url("../fonts/jetbrains-mono.woff2") format("woff2");
+  font-weight: 400 600;
   font-display: swap;
 }
 
-@font-face {
-  font-family: "IBM Plex Mono";
-  src: url("../fonts/ibm-plex-mono-600.woff2") format("woff2");
-  font-weight: 600;
-  font-display: swap;
+/* Every colour on the site comes from one of these sets. The picker writes
+   `data-scheme` on `<html>`; the inline script in `<head>` reads it back
+   before the first paint. */
+:root,
+:root[data-scheme="cobalt"] {
+  --bg: #2F57F5;
+  --bg-deep: #1F3FD0;
+  --on-bg: #E6ECFF;
+  --head: #FFFFFF;
+  --hi: #FFE14D;
+  --pop: #FFE14D;
+  --pop-wash: #FFF6C4;
+  --pop2: #FF6FB5;
+  --pop2-text: #D4247A;
+  --ok: #3DDC97;
+  --paper: #FFFDF7;
+  --card: #FFFFFF;
+  --ink: #14163A;
+  --ink-soft: #4A4E78;
+  --rule: #D9DBEC;
+  --track: #F1EFE4;
+  --tint: #EEF1FF;
+  --tint-ink: #1F3FD0;
+  --tag4: #B9C8FF;
+  --on-ink: #FFFFFF;
+  --on-ink-soft: #E6ECFF;
+}
+
+:root[data-scheme="bubblegum"] {
+  --bg: #FF94C2;
+  --bg-deep: #FF74B0;
+  --on-bg: #3A0F2C;
+  --head: #2A0820;
+  --hi: #2A0820;
+  --pop: #8EF0CC;
+  --pop-wash: #DDFBEF;
+  --pop2: #FFE14D;
+  --pop2-text: #B5156F;
+  --ok: #B9F26B;
+  --paper: #FFF9FB;
+  --card: #FFFFFF;
+  --ink: #2A0820;
+  --ink-soft: #6B3A5A;
+  --rule: #F3D3E2;
+  --track: #FBEFF4;
+  --tint: #FFE6F1;
+  --tint-ink: #A3105A;
+  --tag4: #C9B6FF;
+  --on-ink: #FFFFFF;
+  --on-ink-soft: #FFD9EA;
+}
+
+:root[data-scheme="tangerine"] {
+  --bg: #FF9A3D;
+  --bg-deep: #F28526;
+  --on-bg: #2B1240;
+  --head: #2B1240;
+  --hi: #4C1A99;
+  --pop: #C8A6FF;
+  --pop-wash: #EFE5FF;
+  --pop2: #FFE14D;
+  --pop2-text: #7224CF;
+  --ok: #8EE07A;
+  --paper: #FFFBF5;
+  --card: #FFFFFF;
+  --ink: #2B1240;
+  --ink-soft: #4E3A63;
+  --rule: #EADCF5;
+  --track: #F6EFE6;
+  --tint: #F1E8FF;
+  --tint-ink: #5B21B6;
+  --tag4: #FFC7A1;
+  --on-ink: #FFFFFF;
+  --on-ink-soft: #E9DDFF;
+}
+
+:root[data-scheme="sprout"] {
+  --bg: #B6EE4C;
+  --bg-deep: #9FDB30;
+  --on-bg: #12331F;
+  --head: #0E2A18;
+  --hi: #0B5E31;
+  --pop: #7FD8FF;
+  --pop-wash: #DDF4FF;
+  --pop2: #FF9A75;
+  --pop2-text: #C2410C;
+  --ok: #4FD18B;
+  --paper: #FAFFF2;
+  --card: #FFFFFF;
+  --ink: #0E2A18;
+  --ink-soft: #3A5242;
+  --rule: #D6E8C8;
+  --track: #EEF5E4;
+  --tint: #E6F7D2;
+  --tint-ink: #1E6B2E;
+  --tag4: #FFD84D;
+  --on-ink: #FFFFFF;
+  --on-ink-soft: #D9F5C0;
+}
+
+:root[data-scheme="candy"] {
+  --bg: #BDE3FF;
+  --bg-deep: #A3D6FF;
+  --on-bg: #2B2350;
+  --head: #231C47;
+  --hi: #5B32D1;
+  --pop: #FFC6E2;
+  --pop-wash: #FFEAF4;
+  --pop2: #FFF07A;
+  --pop2-text: #B42A70;
+  --ok: #B5F0CF;
+  --paper: #FFFDFB;
+  --card: #FFFFFF;
+  --ink: #231C47;
+  --ink-soft: #5E5785;
+  --rule: #E4E0F2;
+  --track: #F4F1FA;
+  --tint: #EEE8FF;
+  --tint-ink: #5233B8;
+  --tag4: #C9F2E0;
+  --on-ink: #FFFFFF;
+  --on-ink-soft: #E2DCFF;
+}
+
+:root[data-scheme="glow"] {
+  --bg: #1A1340;
+  --bg-deep: #2E2370;
+  --on-bg: #D9D3FF;
+  --head: #FFFFFF;
+  --hi: #F4FF61;
+  --pop: #F4FF61;
+  --pop-wash: #FBFFD0;
+  --pop2: #FF6AD5;
+  --pop2-text: #B8158F;
+  --ok: #4DFFB0;
+  --paper: #FFFDF7;
+  --card: #FFFFFF;
+  --ink: #14102E;
+  --ink-soft: #4B4675;
+  --rule: #DCD8EE;
+  --track: #F1EFF8;
+  --tint: #EDEBFF;
+  --tint-ink: #4B2FD6;
+  --tag4: #9FE8FF;
+  --on-ink: #FFFFFF;
+  --on-ink-soft: #D9D3FF;
+}
+
+:root[data-scheme="crayon"] {
+  --bg: #D91E25;
+  --bg-deep: #B8141B;
+  --on-bg: #FFF0EA;
+  --head: #FFFFFF;
+  --hi: #FFF6C2;
+  --pop: #FFD500;
+  --pop-wash: #FFF4B8;
+  --pop2: #59A8FF;
+  --pop2-text: #1F55E0;
+  --ok: #3CCB6E;
+  --paper: #FFFDF5;
+  --card: #FFFFFF;
+  --ink: #141414;
+  --ink-soft: #4A4A4A;
+  --rule: #E2DED2;
+  --track: #F2EFE6;
+  --tint: #E8F0FF;
+  --tint-ink: #1F4FD8;
+  --tag4: #FFB3B5;
+  --on-ink: #FFFFFF;
+  --on-ink-soft: #F2F2F2;
 }
 
 :root {
-  --bg: #0A0B0C;
-  --panel: #101213;
-  --sunk: #0D0F10;
-  --rule: #1C1F21;
-  --hair: #15181A;
-  --ink: #EDEEEA;
-  --text: #B3B7B4;
-  --muted: #70767A;
-  --accent: #C7F24A;
-  --accent-ink: #0A0B0C;
-  --accent-dim: #26300F;
-  --warn: #FF7A45;
+  --text: color-mix(in srgb, var(--ink) 90%, var(--paper));
+  --sand: var(--track);
+  --line: color-mix(in srgb, var(--ink) 14%, var(--paper));
 
-  /* the Ink code theme */
-  --t-key: #E58CD8;
-  --t-str: #7FD6A6;
-  --t-num: #E8B35C;
-  --t-com: #7A7D85;
-  --t-fn: #86AAFF;
-  --t-type: #5ECFD6;
-  --t-prop: #EDEEEA;
-  --t-pun: #787E82;
-  --t-id: #EDEEEA;
+  /* Code always sits on paper, so these hold across every scheme. */
+  --t-kw: #C8175F;
+  --t-lit: #C8175F;
+  --t-key: #1D55F0;
+  --t-fn: #1D55F0;
+  --t-str: #0B7A4E;
+  --t-ty: #6B3BE6;
+  --t-id: var(--ink);
+  --t-pun: #777A9A;
 
-  --sans: "Archivo", system-ui, sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  /* A sticker's drop shadow. A night scheme glows instead. */
+  --hero-shadow: var(--ink);
 
-  /* the rule that runs the length of a docs page, like a print margin */
-  --rail: 152px;
-  --top: 58px;
+  --display: "Bricolage Grotesque", "Arial Rounded MT Bold", system-ui,
+    sans-serif;
+  --body: "Bricolage Grotesque", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  color-scheme: dark;
-}
-
-:root[data-theme="light"] {
-  --bg: #F6F7F3;
-  --panel: #FFFFFF;
-  --sunk: #EEF0EA;
-  --rule: #DCDFD6;
-  --hair: #E6E8E1;
-  --ink: #0A0B0C;
-  --text: #3C4142;
-  --muted: #6E7475;
-  --accent: #3E7A00;
-  --accent-ink: #FFFFFF;
-  --accent-dim: #E6F0D2;
-  --warn: #C44400;
-
-  --t-key: #9A2D8E;
-  --t-str: #1F7A52;
-  --t-num: #8A5A00;
-  --t-com: #8C8E95;
-  --t-fn: #2C4FD6;
-  --t-type: #0B6E75;
-  --t-prop: #15161A;
-  --t-pun: #85898A;
-  --t-id: #15161A;
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --top: 64px;
 
   color-scheme: light;
+  background: var(--bg);
+}
+
+:root[data-scheme="glow"] {
+  --hero-shadow: var(--pop2);
 }
 
 *,
@@ -89,15 +228,33 @@
 
 html {
   -webkit-text-size-adjust: 100%;
-  scroll-padding-top: calc(var(--top) + 28px);
+  scroll-padding-top: calc(var(--top) + env(safe-area-inset-top, 0px) + 24px);
 }
 
 body {
   margin: 0;
   background: var(--bg);
-  color: var(--text);
-  font: 400 16px/1.62 var(--sans);
+  color: var(--on-bg);
+  font: 400 17px/1.55 var(--body);
   -webkit-font-smoothing: antialiased;
+}
+
+/* The docs and the playground read on paper; only the home page keeps the
+   bright band behind the whole document. */
+body.paper {
+  background: var(--paper);
+  color: var(--text);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* A notch over a sticky bar would otherwise show the paper through it. */
+body.paper::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 40;
+  background: var(--bg);
 }
 
 h1,
@@ -144,26 +301,32 @@ kbd,
 pre,
 samp {
   font-family: var(--mono);
-  font-feature-settings:
-    "liga" 0,
-    "calt" 0;
+  font-variant-ligatures: none;
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: 2px;
+  outline: 3px solid var(--hi);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+body.paper :focus-visible {
+  outline-color: var(--tint-ink);
 }
 
 ::selection {
-  background: var(--accent);
-  color: var(--accent-ink);
+  background: var(--pop);
+  color: var(--ink);
+}
+
+.band {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 
 .wrap {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 0 clamp(20px, 4vw, 32px);
 }
 
 .vh {
@@ -177,19 +340,69 @@ samp {
 
 .skip {
   position: absolute;
-  left: 12px;
-  top: -60px;
-  z-index: 20;
-  background: var(--accent);
-  color: var(--accent-ink);
-  border-radius: 7px;
-  padding: 10px 14px;
-  font-size: 14px;
-  font-weight: 600;
+  left: -999px;
+  top: 8px;
+  z-index: 60;
+  background: var(--pop);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  padding: 9px 13px;
+  font-weight: 700;
+  font-size: 15px;
   text-decoration: none;
-  transition: top 0.12s;
 }
 
 .skip:focus {
-  top: 12px;
+  left: 12px;
+}
+
+/* A sticker button: the shared shape behind every call to action. */
+.big {
+  display: inline-block;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: var(--pop);
+  color: var(--ink);
+  text-decoration: none;
+  font: 800 18px/1 var(--display);
+  letter-spacing: -0.01em;
+  padding: 14px 22px 15px;
+  box-shadow: 5px 5px 0 var(--ink);
+  transition:
+    transform 0.14s var(--spring),
+    box-shadow 0.14s var(--spring);
+}
+
+.big:hover {
+  transform: translate(-1px, -2px) rotate(-1deg);
+  box-shadow: 6px 7px 0 var(--ink);
+}
+
+.big:active {
+  transform: translate(3px, 4px) scale(0.98, 0.95);
+  box-shadow: 1px 1px 0 var(--ink);
+  transition-duration: 0.06s;
+}
+
+.big.small {
+  font-size: 15px;
+  padding: 10px 15px 11px;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.big.ghost {
+  background: transparent;
+  box-shadow: none;
+}
+
+.big.ghost:hover,
+.big.ghost:active {
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .big {
+    transition: none;
+  }
 }

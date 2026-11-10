@@ -1,15 +1,6 @@
 import { on } from "bongo/client";
 
-/**
- * Remember the choice, so the inline script in `<head>` can apply it before
- * paint.
- */
-function theme() {
-  let root = document.documentElement;
-  let next = root.dataset.theme === "dark" ? "light" : "dark";
-  root.dataset.theme = next;
-  localStorage.setItem("theme", next);
-}
+import { paint } from "./paint";
 
 /** Copy, then say so on the button that was pressed. */
 async function copy(button: HTMLElement, text: string) {
@@ -20,14 +11,25 @@ async function copy(button: HTMLElement, text: string) {
   }
   let before = button.textContent;
   button.textContent = "copied";
-  setTimeout(() => (button.textContent = before), 1400);
+  button.classList.add("ok");
+  setTimeout(() => {
+    button.textContent = before;
+    button.classList.remove("ok");
+  }, 1400);
+}
+
+/** The docs sidebar is a drawer on a phone, over a scrim. */
+function drawer(open: boolean) {
+  let root = document.documentElement;
+  if (open) root.dataset.open = "";
+  else delete root.dataset.open;
+  document
+    .querySelector("[data-menu]")
+    ?.setAttribute("aria-expanded", String(open));
 }
 
 document.addEventListener("click", (event) => {
   let target = event.target as HTMLElement;
-
-  let toggle = target.closest<HTMLElement>("[data-theme-toggle]");
-  if (toggle) return theme();
 
   let copier = target.closest<HTMLElement>("[data-copy]");
   if (copier) return void copy(copier, copier.dataset.copy!);
@@ -38,32 +40,51 @@ document.addEventListener("click", (event) => {
     if (code) return void copy(block, code.textContent ?? "");
   }
 
-  let menu = target.closest<HTMLElement>("[data-menu]");
-  if (menu) {
-    let open = menu.getAttribute("aria-expanded") === "true";
-    menu.setAttribute("aria-expanded", String(!open));
-    document.getElementById("side")?.classList.toggle("open", !open);
-    return;
+  if (target.closest("[data-menu]")) {
+    return drawer(!("open" in document.documentElement.dataset));
   }
 
+  if (target.closest(".scrim")) return drawer(false);
   if (target.closest("[data-search]")) return void search();
+});
+
+addEventListener("keydown", (event) => {
+  if (event.key === "Escape") drawer(false);
 });
 
 // ───────────────────────────── on this page ─────────────────────────────
 
-/** Mark the heading the reader is in, so the contents list follows the page. */
+/**
+ * Mark the heading the reader is in, and spring the marker to it. The marker
+ * is one sticker that moves, rather than a border on each link, so the list
+ * reads as a single place you are in.
+ */
 let watching: IntersectionObserver | undefined;
 
 function spy() {
   watching?.disconnect();
 
   let links = [...document.querySelectorAll<HTMLAnchorElement>(".toc a")];
+  let marker = document.querySelector<HTMLElement>(".marker");
   if (!links.length) return;
 
   let byId = new Map(
     links.map((link) => [decodeURIComponent(link.hash.slice(1)), link]),
   );
   let seen = new Set<string>();
+
+  function place(link: HTMLAnchorElement | undefined) {
+    for (let other of links) other.toggleAttribute("aria-current", other === link);
+    if (!marker) return;
+    if (!link) {
+      marker.style.height = "0px";
+      marker.style.borderWidth = "0";
+      return;
+    }
+    marker.style.borderWidth = "";
+    marker.style.transform = `translateY(${link.offsetTop}px)`;
+    marker.style.height = link.offsetHeight + "px";
+  }
 
   watching = new IntersectionObserver(
     (entries) => {
@@ -72,8 +93,7 @@ function spy() {
         else seen.delete(entry.target.id);
       }
       let current = [...byId.keys()].find((id) => seen.has(id));
-      for (let [id, link] of byId)
-        link.toggleAttribute("aria-current", id === current);
+      place(current ? byId.get(current) : links[0]);
     },
     { rootMargin: "-80px 0px -70% 0px" },
   );
@@ -82,6 +102,11 @@ function spy() {
     let heading = document.getElementById(id);
     if (heading) watching.observe(heading);
   }
+
+  void (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
+    let link = links.find((other) => other.hasAttribute("aria-current"));
+    place(link ?? links[0]);
+  });
 }
 
 // ──────────────────────── sidebar and header ────────────────────────
@@ -104,16 +129,12 @@ function here(path: string) {
     else link.removeAttribute("aria-current");
   }
 
-  let docs = document.querySelector<HTMLAnchorElement>(
-    '.top nav a[href="/docs/"]',
-  );
-  docs?.toggleAttribute("aria-current", path.startsWith("/docs/"));
-}
-
-/** A link in the open phone menu should not leave it open on the next page. */
-function closeMenu() {
-  document.getElementById("side")?.classList.remove("open");
-  document.querySelector("[data-menu]")?.setAttribute("aria-expanded", "false");
+  for (let link of document.querySelectorAll<HTMLAnchorElement>(".top nav a")) {
+    let href = link.getAttribute("href") ?? "";
+    let mine =
+      href === "/docs/" ? path.startsWith("/docs/") : href === path;
+    link.toggleAttribute("aria-current", mine && href !== "/");
+  }
 }
 
 // ───────────────────────────── search ─────────────────────────────
@@ -225,9 +246,9 @@ document.addEventListener("keydown", (event) => {
 });
 
 /**
- * A custom element, so the browser mounts it whenever it enters the document.
- * The client runtime replaces `<body>`, and a script inside replaced markup
- * never runs, but an upgrade does.
+ * Custom elements, so the browser mounts them whenever they enter the
+ * document. The client runtime replaces `<body>`, and a script inside replaced
+ * markup never runs, but an upgrade does.
  */
 class TidyPlayground extends HTMLElement {
   connectedCallback() {
@@ -235,13 +256,21 @@ class TidyPlayground extends HTMLElement {
   }
 }
 
-customElements.define("tidy-playground", TidyPlayground);
+class TidyHero extends HTMLElement {
+  connectedCallback() {
+    void import("./home").then((module) => module.mount(this));
+  }
+}
 
+customElements.define("tidy-playground", TidyPlayground);
+customElements.define("tidy-hero", TidyHero);
+
+paint();
 spy();
 here(location.pathname);
 
 on("bongo:navigated", ({ to }) => {
   here(to.pathname);
-  closeMenu();
+  drawer(false);
   spy();
 });

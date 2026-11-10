@@ -1,0 +1,212 @@
+.paint {
+  position: relative;
+  flex: none;
+}
+
+.paint-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 700 14px/1 var(--body);
+  color: var(--ink);
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 99px;
+  padding: 4px 13px 4px 4px;
+  box-shadow: 3px 3px 0 var(--hero-shadow);
+  transition:
+    transform 0.14s var(--spring),
+    box-shadow 0.14s var(--spring);
+}
+
+.paint-btn:hover {
+  transform: translate(-1px, -1px) rotate(-2deg);
+  box-shadow: 4px 4px 0 var(--hero-shadow);
+}
+
+.paint-btn:active {
+  transform: translate(2px, 2px) scale(0.96, 0.9);
+  box-shadow: 1px 1px 0 var(--hero-shadow);
+  transition-duration: 0.06s;
+}
+
+.pot {
+  display: block;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: linear-gradient(135deg, var(--a) 0 52%, var(--b) 52% 100%);
+}
+
+.paint-btn .pot {
+  --a: var(--bg);
+  --b: var(--pop);
+}
+
+.tray {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 12px);
+  z-index: 60;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  background: var(--card);
+  color: var(--ink);
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  box-shadow: 6px 6px 0 var(--ink);
+  padding: 14px 14px 12px;
+  transform-origin: calc(100% - 30px) -10px;
+}
+
+.tray[hidden] {
+  display: none;
+}
+
+.tray p {
+  margin: 0 4px 10px;
+  font: 600 11.5px/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.tray .pots {
+  display: grid;
+  grid-template-columns: repeat(4, 74px);
+  gap: 10px 4px;
+}
+
+.opt {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 4px 0 2px;
+  border-radius: 12px;
+  color: var(--ink);
+  font: 600 12px/1 var(--body);
+}
+
+.opt .pot {
+  width: 42px;
+  height: 42px;
+  border-width: 3px;
+  box-shadow: 0 3px 0 var(--ink);
+  transition: transform 0.35s var(--spring);
+}
+
+.opt:hover .pot {
+  transform: translateY(-3px) rotate(-10deg) scale(1.06);
+}
+
+.opt[aria-pressed="true"] .pot {
+  box-shadow:
+    0 3px 0 var(--ink),
+    0 0 0 4px var(--card),
+    0 0 0 7px var(--ink);
+}
+
+.opt[aria-pressed="true"] span:last-child {
+  text-decoration: underline 2px;
+  text-underline-offset: 3px;
+}
+
+.tray.open {
+  animation: tray-in 0.42s var(--spring);
+}
+
+.tray.open .opt {
+  animation: pot-in 0.5s var(--spring) backwards;
+  animation-delay: calc(var(--i) * 28ms + 60ms);
+}
+
+@keyframes tray-in {
+  from {
+    transform: scale(0.7, 0.5);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@keyframes pot-in {
+  from {
+    transform: translateY(10px) scale(0.4);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.pot.splat {
+  animation: splat 0.5s var(--spring);
+}
+
+@keyframes splat {
+  0% {
+    transform: none;
+  }
+  22% {
+    transform: scale(0.82, 1.12);
+  }
+  55% {
+    transform: scale(1.22, 0.84);
+  }
+  78% {
+    transform: scale(0.95, 1.05);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* The splash wipes the new scheme across the page, so the browser's own
+   cross-fade has to stay out of the way. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+@media (max-width: 560px) {
+  .paint-btn .lbl {
+    display: none;
+  }
+
+  .paint-btn {
+    padding: 4px;
+  }
+
+  .tray .pots {
+    grid-template-columns: repeat(4, 68px);
+  }
+
+  .opt {
+    font-size: 11.5px;
+  }
+
+  .paint {
+    position: static;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paint-btn,
+  .opt .pot {
+    transition: none;
+  }
+
+  .tray.open,
+  .tray.open .opt,
+  .pot.splat {
+    animation: none;
+  }
+}

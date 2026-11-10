@@ -1,48 +1,75 @@
 .prose {
-  font-size: 16.5px;
-  line-height: 1.72;
-}
-
-/* Text keeps a comfortable measure; tables and code blocks take the column,
-   because an options table has four columns and nowhere to put them. */
-.prose > p,
-.prose > ul,
-.prose > ol,
-.prose > dl,
-.prose > blockquote,
-.prose > h2,
-.prose > h3,
-.prose > h4 {
-  max-width: 76ch;
+  font-size: 17px;
+  line-height: 1.7;
 }
 
 .prose > * + * {
-  margin-top: 20px;
+  margin-top: 18px;
+}
+
+.prose p,
+.prose li {
+  max-width: 68ch;
+  text-wrap: pretty;
 }
 
 .prose h2,
 .prose h3,
 .prose h4 {
+  position: relative;
   color: var(--ink);
-  letter-spacing: -0.024em;
-  scroll-margin-top: calc(var(--top) + 24px);
+  text-wrap: balance;
+  scroll-margin-top: calc(var(--top) + 28px);
 }
 
 .prose h2 {
-  font: 600 25px/1.2 var(--sans);
-  margin-top: 54px;
-  padding-top: 22px;
-  border-top: 1px solid var(--hair);
+  margin-top: 72px;
+  font: 800 clamp(30px, 4vw, 40px)/1.05 var(--display);
+  font-stretch: 82%;
+  letter-spacing: -0.03em;
+}
+
+/* a torn strip of tape under every section heading */
+.prose h2::after {
+  content: "";
+  display: block;
+  width: 64px;
+  height: 8px;
+  margin-top: 12px;
+  background: var(--pop);
+  border: 2px solid var(--ink);
+  border-radius: 99px;
+  transform: rotate(-2deg);
+  transform-origin: left;
 }
 
 .prose h3 {
-  font: 600 19px/1.3 var(--sans);
-  margin-top: 36px;
+  margin-top: 48px;
+  font: 800 22px/1.2 var(--display);
+  letter-spacing: -0.015em;
 }
 
 .prose h4 {
-  font: 600 16.5px/1.4 var(--sans);
-  margin-top: 28px;
+  margin-top: 34px;
+  font: 800 18px/1.25 var(--display);
+}
+
+.prose h2 + *,
+.prose h3 + *,
+.prose h4 + * {
+  margin-top: 14px;
+}
+
+.prose h3 code {
+  display: inline-block;
+  font: 600 0.86em var(--mono);
+  color: var(--ink);
+  background: var(--tint);
+  border: 2px solid var(--ink);
+  border-radius: 9px;
+  padding: 3px 9px 4px;
+  box-shadow: 2px 2px 0 var(--ink);
+  margin-right: 4px;
 }
 
 .prose h2 > a,
@@ -55,56 +82,64 @@
 .prose h3 > a::after,
 .prose h4 > a::after {
   content: "#";
-  margin-left: 0.4em;
-  color: var(--accent);
+  position: absolute;
+  left: -1.1em;
+  top: 0;
+  color: var(--pop2-text);
+  font-weight: 800;
   opacity: 0;
-  font-weight: 400;
+  transition: opacity 0.15s;
 }
 
 .prose h2:hover > a::after,
 .prose h3:hover > a::after,
-.prose h4:hover > a::after {
-  opacity: 0.7;
+.prose h4:hover > a::after,
+.prose a:focus-visible::after {
+  opacity: 1;
 }
 
 .prose a {
-  color: var(--accent);
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
+  color: var(--ink);
+  text-decoration-line: underline;
+  text-decoration-color: var(--tint-ink);
+  text-decoration-thickness: 2px;
   text-underline-offset: 3px;
-  text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 3px;
+  transition: background-color 0.15s;
 }
 
 .prose a:hover {
-  text-decoration-color: var(--accent);
+  background: var(--pop-wash);
 }
 
 .prose strong {
   color: var(--ink);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .prose ul,
 .prose ol {
-  padding-left: 4px;
   display: grid;
-  gap: 9px;
+  gap: 8px;
 }
 
 .prose li {
-  padding-left: 24px;
   position: relative;
+  padding-left: 26px;
 }
 
+/* a square of tape, not a bullet */
 .prose ul > li::before {
   content: "";
   position: absolute;
-  left: 4px;
-  top: 0.72em;
-  width: 6px;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--accent);
+  left: 3px;
+  top: 0.62em;
+  width: 10px;
+  height: 10px;
+  background: var(--pop);
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  transform: rotate(12deg);
 }
 
 .prose ol {
@@ -116,62 +151,103 @@
 }
 
 .prose ol > li::before {
-  content: counter(item) ".";
+  content: counter(item);
   position: absolute;
   left: 0;
-  top: 0;
-  font: 400 13px/1.72 var(--mono);
-  color: var(--accent);
+  top: 0.18em;
+  display: grid;
+  place-items: center;
+  width: 19px;
+  height: 19px;
+  font: 700 11px/1 var(--mono);
+  color: var(--ink);
+  background: var(--pop);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
 }
 
 .prose li > ul,
 .prose li > ol {
-  margin-top: 9px;
+  margin-top: 8px;
 }
 
 .prose blockquote {
-  border-left: 2px solid var(--accent);
+  border-left: 3px solid var(--pop2);
   padding: 2px 0 2px 18px;
-  color: var(--muted);
+  color: var(--ink-soft);
 }
 
 .prose hr {
+  height: 0;
   border: 0;
-  border-top: 1px solid var(--rule);
+  border-top: 2px dashed var(--line);
   margin: 38px 0;
 }
 
-/* --- tables --- */
+/* ---------- tables ---------- */
 .tbl {
   overflow-x: auto;
-  border: 1px solid var(--rule);
-  border-radius: 9px;
-  background: var(--panel);
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.prose .tbl {
+  margin-top: 22px;
+}
+
+.prose .tbl + * {
+  margin-top: 26px;
 }
 
 .prose table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14.5px;
-  line-height: 1.55;
+  line-height: 1.45;
 }
 
 .prose th {
   text-align: left;
-  font: 400 11.5px/1 var(--mono);
+  font: 600 11.5px/1.2 var(--mono);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--muted);
-  padding: 13px 16px;
-  border-bottom: 1px solid var(--rule);
-  background: var(--sunk);
+  color: var(--ink-soft);
+  background: var(--sand);
+  padding: 11px 14px;
+  border-bottom: 2px solid var(--ink);
   white-space: nowrap;
 }
 
 .prose td {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--hair);
-  vertical-align: baseline;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.prose tbody tr:first-child td {
+  border-top: 0;
+}
+
+.prose tbody tr {
+  transition: background-color 0.12s;
+}
+
+.prose tbody tr:hover {
+  background: var(--pop-wash);
+}
+
+.prose td code {
+  font-size: 0.82em;
+}
+
+.prose td:first-child code {
+  color: var(--ink);
+  background: transparent;
+  border-color: transparent;
+  padding: 0;
+  font-weight: 600;
 }
 
 .prose [align="right"] {
@@ -182,43 +258,50 @@
   text-align: center;
 }
 
-.prose tr:last-child td {
-  border-bottom: 0;
-}
-
 .prose td.codes {
   white-space: nowrap;
 }
 
-.prose td:first-child {
-  color: var(--ink);
-}
-
-/* --- notes --- */
+/* ---------- notes ---------- */
 .note-box {
-  border: 1px solid var(--rule);
-  border-left: 2px solid var(--accent);
-  border-radius: 0 9px 9px 0;
-  background: var(--panel);
-  padding: 16px 18px;
-  font-size: 15.5px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-left-width: 8px;
+  border-radius: 14px;
+  box-shadow: 4px 4px 0 var(--ink);
+  padding: 16px 20px 18px;
+  font-size: 16px;
 }
 
 .note-box b {
   display: block;
   color: var(--ink);
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: 0.06em;
+  font: 700 11.5px/1 var(--mono);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .note-box.warn {
-  border-left-color: var(--warn);
+  border-left-color: var(--pop2);
 }
 
 .prose figure.code + p,
 .prose .tbl + p {
   margin-top: 20px;
+}
+
+@media (max-width: 880px) {
+  .prose h2 > a::after,
+  .prose h3 > a::after,
+  .prose h4 > a::after {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prose a,
+  .prose tbody tr {
+    transition: none;
+  }
 }

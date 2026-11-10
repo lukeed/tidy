@@ -10,9 +10,12 @@
 <html lang="{{ $site.lang }}">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <script
-    >document.documentElement.dataset.theme=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark")</script>
+    >(()=>{let s;try{s=localStorage.getItem("scheme")||""}catch(e){s=""}if(["cobalt","bubblegum","tangerine","sprout","candy","glow","crayon"].includes(s))document.documentElement.dataset.scheme=s})()</script>
     <title>{{ title }}</title>
     <meta name="description" content="{{ summary }}" />
     {{#if lost}}
@@ -38,30 +41,23 @@
     <meta property="og:image:alt" content="{{ alt }}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image:alt" content="{{ alt }}" />
-    <meta
-      name="theme-color"
-      media="(prefers-color-scheme: dark)"
-      content="#0A0B0C"
-    />
-    <meta
-      name="theme-color"
-      media="(prefers-color-scheme: light)"
-      content="#F6F7F3"
-    />
+    <meta name="theme-color" content="#2F57F5" />
     <link
       rel="icon"
       type="image/svg+xml"
       href="<bongo:asset src='img/favicon.svg' />"
     />
     <link rel="apple-touch-icon" href="<bongo:asset src='img/touch.png' />" />
-    <bongo:asset preload src="fonts/archivo.woff2" />
-    <bongo:asset preload src="fonts/ibm-plex-mono-400.woff2" />
+    <bongo:asset preload src="fonts/bricolage.woff2" />
+    <bongo:asset preload src="fonts/jetbrains-mono.woff2" />
     <bongo:style src="style.css"></bongo:style>
     {{#if $utils.production()}}
       <script defer src="/x/script.js" data-endpoint="/x"></script>
     {{/if}}
   </head>
-  <body {{#if home}} class="home"{{/if}}>
+  <body
+    class="{{#if home}}home{{#else}}paper{{/if}}{{#if docs}} docs{{/if}}"
+  >
     {{#partial src="header"}}
     {{{ $page.content }}}
     {{#partial src="search"}}

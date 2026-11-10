@@ -1,0 +1,35 @@
+{{#var schemes = [
+  ["cobalt", "Cobalt", "#2F57F5", "#FFE14D"],
+  ["bubblegum", "Bubblegum", "#FF94C2", "#8EF0CC"],
+  ["tangerine", "Tangerine", "#FF9A3D", "#C8A6FF"],
+  ["sprout", "Sprout", "#B6EE4C", "#7FD8FF"],
+  ["candy", "Candy", "#BDE3FF", "#FFC6E2"],
+  ["glow", "Glow", "#1A1340", "#F4FF61"],
+  ["crayon", "Crayon", "#D91E25", "#FFD500"],
+]}}
+<div class="paint">
+  <button
+    class="paint-btn"
+    type="button"
+    data-paint
+    aria-expanded="false"
+    aria-controls="tray"
+  ><span class="pot"></span><span class="lbl">Colors</span></button>
+  <div class="tray" id="tray" hidden>
+    <p>Pick a paint pot</p>
+    <div class="pots">
+      {{#each schemes as (scheme, i)}}
+        <button
+          class="opt"
+          type="button"
+          data-scheme="{{ scheme[0] }}"
+          aria-pressed="false"
+          style="--i:{{ i }}"
+        ><span
+            class="pot"
+            style="--a:{{ scheme[2] }};--b:{{ scheme[3] }}"
+          ></span><span>{{ scheme[1] }}</span></button>
+      {{/each}}
+    </div>
+  </div>
+</div>
