@@ -810,21 +810,22 @@
   align-items: center;
 }
 
-.cta .big {
+/* These read on the dark footer, and nowhere else. */
+.foot .cta .big {
   border-color: var(--on-ink);
   box-shadow: 5px 5px 0 var(--pop2);
 }
 
-.cta .big:hover {
+.foot .cta .big:hover {
   box-shadow: 6px 7px 0 var(--pop2);
 }
 
-.cta .ghost {
+.foot .cta .ghost {
   color: var(--on-ink);
   border-color: color-mix(in srgb, var(--on-ink) 35%, transparent);
 }
 
-.cta .ghost:hover {
+.foot .cta .ghost:hover {
   border-color: var(--on-ink);
 }
 

@@ -55,60 +55,98 @@ addEventListener("keydown", (event) => {
 // ───────────────────────────── on this page ─────────────────────────────
 
 /**
- * Mark the heading the reader is in, and spring the marker to it. The marker is
- * one sticker that moves, rather than a border on each link, so the list reads
- * as a single place you are in.
+ * Mark the heading the reader has reached, and spring the marker to it. The
+ * marker is one sticker that moves, rather than a border on each link, so the
+ * list reads as a single place you are in.
  */
-let watching: IntersectionObserver | undefined;
+let marks: { links: HTMLAnchorElement[]; heads: (HTMLElement | null)[] } = {
+  links: [],
+  heads: [],
+};
+let at = -2;
 
-function spy() {
-  watching?.disconnect();
+function place(index: number) {
+  if (index === at) return;
+  at = index;
 
-  let links = [...document.querySelectorAll<HTMLAnchorElement>(".toc a")];
+  let { links } = marks;
+  for (let [i, link] of links.entries()) {
+    link.toggleAttribute("aria-current", i === index);
+  }
+
   let marker = document.querySelector<HTMLElement>(".marker");
-  if (!links.length) return;
+  if (!marker) return;
 
-  let byId = new Map(
-    links.map((link) => [decodeURIComponent(link.hash.slice(1)), link]),
-  );
-  let seen = new Set<string>();
-
-  function place(link: HTMLAnchorElement | undefined) {
-    for (let other of links)
-      other.toggleAttribute("aria-current", other === link);
-    if (!marker) return;
-    if (!link) {
-      marker.style.height = "0px";
-      marker.style.borderWidth = "0";
-      return;
-    }
-    marker.style.borderWidth = "";
-    marker.style.transform = `translateY(${link.offsetTop}px)`;
-    marker.style.height = link.offsetHeight + "px";
+  let link = links[index];
+  if (!link) {
+    marker.style.height = "0px";
+    marker.style.borderWidth = "0";
+    return;
   }
 
-  watching = new IntersectionObserver(
-    (entries) => {
-      for (let entry of entries) {
-        if (entry.isIntersecting) seen.add(entry.target.id);
-        else seen.delete(entry.target.id);
-      }
-      let current = [...byId.keys()].find((id) => seen.has(id));
-      place(current ? byId.get(current) : links[0]);
-    },
-    { rootMargin: "-80px 0px -70% 0px" },
-  );
+  marker.style.borderWidth = "";
+  marker.style.transform = `translateY(${link.offsetTop}px)`;
+  marker.style.height = link.offsetHeight + "px";
 
-  for (let id of byId.keys()) {
-    let heading = document.getElementById(id);
-    if (heading) watching.observe(heading);
+  // A long list scrolls on its own, so keep the marker in sight.
+  let box = link.closest<HTMLElement>(".toc");
+  let list = link.offsetParent as HTMLElement | null;
+  if (!box || !list) return;
+  let top = list.offsetTop + link.offsetTop;
+  if (top >= box.scrollTop && top <= box.scrollTop + box.clientHeight - 60) {
+    return;
   }
-
-  void (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
-    let link = links.find((other) => other.hasAttribute("aria-current"));
-    place(link ?? links[0]);
+  box.scrollTo({
+    top: top - 80,
+    behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "auto"
+      : "smooth",
   });
 }
+
+/**
+ * The last heading above a line near the top of the window, rather than
+ * whichever one a band happens to hold: past the final heading the reader is
+ * still in its section, and a long table or code block leaves a band empty.
+ */
+function spy() {
+  let index = -1;
+  for (let [i, head] of marks.heads.entries()) {
+    if (head && head.getBoundingClientRect().top <= 140) index = i;
+  }
+  place(Math.max(0, index));
+}
+
+/** Read the list the page just rendered, then mark where the reader is. */
+function watch() {
+  let links = [...document.querySelectorAll<HTMLAnchorElement>(".toc a")];
+  marks = {
+    links,
+    heads: links.map((link) =>
+      document.getElementById(decodeURIComponent(link.hash.slice(1))),
+    ),
+  };
+  at = -2;
+  spy();
+}
+
+let pending = 0;
+addEventListener(
+  "scroll",
+  () => {
+    if (pending) return;
+    pending = requestAnimationFrame(() => {
+      pending = 0;
+      spy();
+    });
+  },
+  { passive: true },
+);
+
+addEventListener("resize", () => {
+  at = -2;
+  spy();
+});
 
 // ──────────────────────── sidebar and header ────────────────────────
 
@@ -130,10 +168,14 @@ function here(path: string) {
     else link.removeAttribute("aria-current");
   }
 
+  // Only the two sections, as the server renders them. The shortcuts beside
+  // them live under the docs, and would else mark a second link.
   for (let link of document.querySelectorAll<HTMLAnchorElement>(".top nav a")) {
     let href = link.getAttribute("href") ?? "";
-    let mine = href === "/docs/" ? path.startsWith("/docs/") : href === path;
-    link.toggleAttribute("aria-current", mine && href !== "/");
+    let mine =
+      (href === "/docs/" && path.startsWith("/docs/")) ||
+      (href === "/playground/" && path === "/playground/");
+    link.toggleAttribute("aria-current", mine);
   }
 }
 
@@ -266,11 +308,11 @@ customElements.define("tidy-playground", TidyPlayground);
 customElements.define("tidy-hero", TidyHero);
 
 paint();
-spy();
+watch();
 here(location.pathname);
 
 on("bongo:navigated", ({ to }) => {
   here(to.pathname);
   drawer(false);
-  spy();
+  watch();
 });

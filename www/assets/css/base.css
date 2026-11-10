@@ -240,10 +240,16 @@ body {
 }
 
 /* The docs and the playground read on paper; only the home page keeps the
-   bright band behind the whole document. */
+   bright band behind the whole document. The canvas has to follow, or a short
+   page and every overscroll show the band under it. */
+html:has(body.paper) {
+  background: var(--paper);
+}
+
 body.paper {
   background: var(--paper);
   color: var(--text);
+  min-height: 100vh;
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -391,14 +397,9 @@ body.paper :focus-visible {
   box-shadow: 4px 4px 0 var(--ink);
 }
 
+/* The second call gives up its fill, and keeps the sticker's shadow. */
 .big.ghost {
   background: transparent;
-  box-shadow: none;
-}
-
-.big.ghost:hover,
-.big.ghost:active {
-  box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
