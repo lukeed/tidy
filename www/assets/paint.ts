@@ -45,6 +45,11 @@ function unname(): () => void {
 /** Wipe the new scheme across the page, out from the pot that was pressed. */
 function wipe(from: Element, apply: () => void) {
   let rename = unname();
+  root.dataset.wiping = "";
+  let done = () => {
+    delete root.dataset.wiping;
+    rename();
+  };
   let box = from.getBoundingClientRect();
   let x = box.left + box.width / 2;
   let y = box.top + box.height / 2;
@@ -54,7 +59,7 @@ function wipe(from: Element, apply: () => void) {
   );
 
   let transition = document.startViewTransition(apply);
-  void transition.finished.then(rename, rename);
+  void transition.finished.then(done, done);
   void transition.ready
     .then(() =>
       root.animate(

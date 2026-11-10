@@ -164,15 +164,28 @@
   }
 }
 
-/* The splash wipes the new scheme across the page, so the browser's own
-   cross-fade has to stay out of the way. */
+/* A navigation swaps one page for another of the same shape, so a cross-fade
+   only blurs the text on its way across. The new page replaces the old at
+   once, and the sidebar sticker slides live as it arrives. */
 ::view-transition-old(root),
-::view-transition-new(root) {
+::view-transition-old(sidebar) {
+  animation: none;
+  opacity: 0;
+}
+
+::view-transition-new(root),
+::view-transition-new(sidebar) {
   animation: none;
   mix-blend-mode: normal;
 }
 
-::view-transition-new(root) {
+/* A scheme change is the one transition that keeps the old page: the splash
+   clips the new one in over it. */
+[data-wiping]::view-transition-old(root) {
+  opacity: 1;
+}
+
+[data-wiping]::view-transition-new(root) {
   z-index: 9999;
 }
 

@@ -355,7 +355,9 @@ watch();
 here(location.pathname);
 void (document.fonts ? document.fonts.ready : Promise.resolve()).then(restick);
 
-on("bongo:navigated", ({ to }) => {
+// `replaced` runs as the new page goes in, rather than once the transition
+// is over, so the sticker travels with the page rather than after it.
+on("bongo:replaced", ({ to }) => {
   here(to.pathname);
   drawer(false);
   watch();

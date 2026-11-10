@@ -93,7 +93,9 @@
   transform: translateX(3px);
 }
 
+/* Above the sticker, so the page you are on reads on top of it. */
 .side a[aria-current="page"] {
+  z-index: 3;
   color: var(--ink);
   font-weight: 700;
 }
@@ -110,7 +112,9 @@
   position: absolute;
   left: 0;
   top: 0;
-  z-index: 0;
+  /* Over the other links: it leans, so its corners and its shadow reach into
+     the rows either side, and a hovered neighbour would cut them off. */
+  z-index: 2;
   height: 0;
   rotate: -1deg;
   background: var(--pop);

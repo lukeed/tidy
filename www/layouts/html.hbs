@@ -59,7 +59,7 @@
     {{#partial src="header"}}
     {{{ $page.content }}}
     {{#partial src="search"}}
-    <bongo:client transitions prefetch />
+    <bongo:client transitions="initial" prefetch />
     <bongo:script src="main.ts"></bongo:script>
   </body>
 </html>
