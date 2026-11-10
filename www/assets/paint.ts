@@ -42,14 +42,37 @@ function unname(): () => void {
     named.forEach((el, i) => (el.style.viewTransitionName = names[i]));
 }
 
-/** Wipe the new scheme across the page, out from the pot that was pressed. */
+/**
+ * A press during a splash starts a second one, and the browser drops the first.
+ * Two things have to follow it out.
+ *
+ * The clip runs on a pseudo-element of the transition that was dropped, and an
+ * animation left on one of those takes the renderer down with it, so it is
+ * cancelled before the next begins. And the cleanup of a dropped transition
+ * must not run: it would take the names back while the live one still needs
+ * them gone, and `data-wiping` with them, which is what tells the new page to
+ * clip in over the old rather than above it.
+ */
+let splash = 0;
+let rename: (() => void) | undefined;
+let clip: Animation | undefined;
+
 function wipe(from: Element, apply: () => void) {
-  let rename = unname();
+  let mine = ++splash;
+  clip?.cancel();
+  // Only the first of a run reads the real names: by the second they are
+  // already gone, and restoring what it read would lose them for good.
+  rename ??= unname();
   root.dataset.wiping = "";
+
   let done = () => {
+    if (mine !== splash) return;
     delete root.dataset.wiping;
-    rename();
+    rename?.();
+    rename = undefined;
+    clip = undefined;
   };
+
   let box = from.getBoundingClientRect();
   let x = box.left + box.width / 2;
   let y = box.top + box.height / 2;
@@ -61,8 +84,9 @@ function wipe(from: Element, apply: () => void) {
   let transition = document.startViewTransition(apply);
   void transition.finished.then(done, done);
   void transition.ready
-    .then(() =>
-      root.animate(
+    .then(() => {
+      if (mine !== splash) return;
+      clip = root.animate(
         {
           clipPath: [
             `circle(0px at ${x}px ${y}px)`,
@@ -76,8 +100,8 @@ function wipe(from: Element, apply: () => void) {
           easing: "cubic-bezier(.3,.7,.2,1)",
           pseudoElement: "::view-transition-new(root)",
         },
-      ),
-    )
+      );
+    })
     .catch(() => {});
 }
 
@@ -125,6 +149,7 @@ export function paint() {
       apply();
       return;
     }
+
     wipe(from, apply);
   }
 

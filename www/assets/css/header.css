@@ -149,13 +149,15 @@
   background: var(--bg-deep);
 }
 
-/* Only the docs are searchable, so the button only belongs there. The header
-   is `transition:persist`, so it is one markup for every page and CSS decides. */
+/* Only the docs are searchable, so the button belongs on them and on the
+   playground, which is where you reach for the options. The header is
+   `transition:persist`, so it is one markup for every page and CSS decides. */
 [data-search] {
   display: none;
 }
 
-.docs [data-search] {
+.docs [data-search],
+.play [data-search] {
   display: grid;
 }
 

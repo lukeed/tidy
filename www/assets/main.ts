@@ -290,6 +290,9 @@ async function search() {
   let dialog = document.getElementById("search") as HTMLDialogElement | null;
   if (!dialog) return;
 
+  // The same key that opens it closes it.
+  if (dialog.open) return dialog.close();
+
   index ??= await fetch("/search.json").then(
     (response) => response.json() as Promise<Entry[]>,
   );
@@ -315,6 +318,11 @@ async function search() {
           .join("")
       : '<p class="empty">Nothing matches that.</p>';
   }
+
+  // A click on the backdrop lands on the dialog itself, never on its contents.
+  dialog.onclick = (event) => {
+    if (event.target === dialog) dialog.close();
+  };
 
   input.oninput = draw;
   draw();
