@@ -1,0 +1,57 @@
+name: vscode
+
+on:
+  push:
+    tags: ["vscode-v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The tag to release, such as vscode-v0.1.0
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vscode
+
+jobs:
+  publish:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: editors/vscode
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+        with:
+          install_args: bun rust
+          cache: false
+      - run: bun install --frozen-lockfile
+
+      - name: Check the tag matches the version
+        run: |
+          version=$(jq -r .version package.json)
+          if [ "$TAG" != "vscode-v$version" ]; then
+            echo "::error::$TAG does not match vscode-v$version in package.json"
+            exit 1
+          fi
+
+      - run: bun check
+      - run: bun test.ts
+      - run: bun run package --out tidy.vsix
+
+      - name: Publish to the Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: bunx vsce publish --packagePath tidy.vsix
+
+      - name: Publish to Open VSX
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: bunx ovsx publish tidy.vsix
