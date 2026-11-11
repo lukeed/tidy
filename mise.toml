@@ -54,7 +54,16 @@ run = [
   "cargo test -p tidy --no-default-features",
   "bun test --cwd crates/tidy_napi",
 ]
-depends = ["build:napi"]
+depends = ["build:napi", "test:nvim", "test:vscode"]
+
+[tasks."test:nvim"]
+description = "Run the Neovim plugin in headless Neovim"
+run = "nvim --headless --clean -l editors/nvim/test.lua"
+
+[tasks."test:vscode"]
+description = "Run the VS Code extension on a virtual display, in a Linux container off Linux"
+dir = "editors/vscode"
+run = ["bun install --frozen-lockfile", "bun check", "bun test.ts"]
 
 [tasks.ci]
 description = "Everything CI runs"
