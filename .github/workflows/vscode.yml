@@ -48,7 +48,7 @@ jobs:
 
       - run: bun check
       - run: bun test.ts
-      - run: bun run package --out tidy.vsix
+      - run: bun run vsix --out tidy.vsix
 
       - run: bunx vsce publish --packagePath tidy.vsix --oidc
       - run: bunx ovsx publish tidy.vsix --trusted-publishing

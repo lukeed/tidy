@@ -92,7 +92,7 @@
     "build": "bun build src/extension.ts --outdir dist --target node --format cjs --external vscode --minify",
     "typecheck": "bun check",
     "test": "bun test.ts",
-    "package": "bun run build && bunx vsce package --no-dependencies --readme-path readme.md"
+    "vsix": "bun run build && bunx vsce package --no-dependencies --readme-path readme.md"
   },
   "devDependencies": {
     "@types/bun": "1.4.4",
