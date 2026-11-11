@@ -1,40 +1,35 @@
 ---
 title: Editors
-summary: Format on save in VS Code, Zed, Neovim and JetBrains, by running the binary.
+summary: Format on save in VS Code, Neovim, Zed and JetBrains.
 group: Usage
 order: 6
 ---
 
-<!-- prettier-ignore -->
-> There is no tidy editor extension and no language server yet. Every recipe
-> below runs the binary on the file, which every editor can do.
-
-Because tidy is fast, running the whole binary on save costs a few milliseconds — about the same as an extension would, without one existing.
+Each editor below runs the `tidy` binary with the buffer on stdin and its path in `--stdin=<path>`. tidy uses the path to pick the language and find the config files, so the result is the same as `tidy up`. A run takes a few milliseconds.
 
 ## VS Code
 
-Install an extension that can run a command on save, such as **Run on Save** (`emeraldwalk.RunOnSave`), then:
+Install **tidy** (`lukeed.tidy`) from the Marketplace or Open VSX:
+
+```sh
+$ code --install-extension lukeed.tidy
+```
+
+Then make it the formatter, for every language or for the ones you choose:
 
 ```json [.vscode/settings.json]
 {
-  "emeraldwalk.runonsave": {
-    "commands": [
-      {
-        "match": "\\.(js|jsx|mjs|cjs|ts|tsx|mts|cts|css|scss|less|html|vue|hbs|md|json|jsonc|yaml|yml|toml|xml|svg|graphql)$",
-        "cmd": "tidy up ${file}"
-      }
-    ]
-  }
+  "editor.defaultFormatter": "lukeed.tidy",
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true
 }
 ```
 
-Turn off the built-in formatter for those languages so the two do not both write:
+The extension runs `tidy` from your `PATH`. To run another binary, set `tidy.path`. A relative path, such as `node_modules/.bin/tidy`, is relative to the workspace folder. In an untrusted workspace, the extension ignores the `tidy.path` of the workspace.
 
-```json [.vscode/settings.json]
-{
-  "editor.formatOnSave": false
-}
-```
+Format on paste and **Format Selection** format the whole file, not only the selection. If the file was already formatted, only the pasted text changes.
+
+When tidy fails, for example on a syntax error, the file stays as it is. The error shows in the language status item and in the **tidy** output channel.
 
 ## Zed
 
@@ -55,34 +50,32 @@ Zed can format with an external command, per language:
 }
 ```
 
-Repeat the block for each language. `--stdin=<path>` is what makes it work: tidy reads the buffer from stdin and uses the path only to pick the language and find the config files.
+Repeat the block for each language. Zed formats on save by default. There is no Zed extension: Zed extensions can add a language server, but not a formatter.
 
 ## Neovim
 
+The plugin is in `editors/nvim` of the repository. With lazy.nvim:
+
 ```lua
-vim.api.nvim_create_autocmd("BufWritePre", {
-	pattern = { "*.ts", "*.tsx", "*.js", "*.jsx", "*.css", "*.scss", "*.html", "*.vue", "*.md", "*.json", "*.yaml", "*.yml", "*.toml" },
-	callback = function(args)
-		local view = vim.fn.winsaveview()
-		vim.cmd("silent %!tidy --stdin=" .. vim.fn.shellescape(args.file))
-		if vim.v.shell_error ~= 0 then
-			vim.cmd("silent undo")
-		end
-		vim.fn.winrestview(view)
+{
+	"lukeed/tidy",
+	config = function(plugin)
+		vim.opt.rtp:append(plugin.dir .. "/editors/nvim")
+		require("tidy").setup()
 	end,
-})
+}
 ```
 
-The `shell_error` check matters: without it, a file that does not parse is replaced by tidy's error message. Saving the view and restoring it keeps the cursor where it was.
+It formats before each write, and `:Tidy` formats the current buffer. It replaces only the lines that change, so the cursor and marks stay. When tidy fails, the buffer stays as it is and the error shows with `vim.notify`. See `:help tidy` for the options: `cmd`, `format_on_save`, `timeout_ms` and `filetypes`.
 
-With **conform.nvim**:
+With **conform.nvim** instead:
 
 ```lua
 require("conform").setup({
 	formatters = {
 		tidy = {
 			command = "tidy",
-			args = { "--stdin=$FILENAME" },
+			args = { "--stdin=$FILENAME", "--skip-unknown" },
 			stdin = true,
 		},
 	},
