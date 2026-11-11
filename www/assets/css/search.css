@@ -53,6 +53,10 @@ dialog.search .results {
   overflow-y: auto;
   max-height: 420px;
   padding: 8px;
+  /* The arrow keys scroll a row only as far as the scrollport, which would
+     hold it flush against the clip edge. Keep the list's own padding clear,
+     so a row the keyboard reached sits where the pointer would find it. */
+  scroll-padding: 8px;
 }
 
 dialog.search .results a {
