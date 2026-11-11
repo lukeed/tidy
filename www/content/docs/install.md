@@ -117,7 +117,7 @@ $ packslip verify github.com/lukeed/tidy
 
 ```sh
 $ tidy --version
-$ echo '<p   >hi</p>' | tidy --stdin-filepath index.html
+$ echo '<p   >hi</p>' | tidy --stdin=index.html
 ```
 
 The second command prints `<p>hi</p>`. If the shell cannot find `tidy`, the install directory is not on your `PATH`:

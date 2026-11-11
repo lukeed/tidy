@@ -220,7 +220,7 @@ Shared options only. `css` covers SCSS and Less.
 | Prettier                        | Why not                                                       |
 | ------------------------------- | ------------------------------------------------------------- |
 | `parser`                        | A command-line flag, `--parser`, not a config key.            |
-| `filepath`                      | A flag, `--stdin-filepath`.                                   |
+| `filepath`                      | A flag, `--stdin=<path>`.                                     |
 | `plugins`                       | Only under `js`, and only for the import sorters named above. |
 | `rangeStart`, `rangeEnd`        | Not supported. Use an [ignore directive](/docs/ignore/).      |
 | `requirePragma`, `insertPragma` | Not supported.                                                |

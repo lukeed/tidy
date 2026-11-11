@@ -47,7 +47,7 @@ Zed can format with an external command, per language:
       "formatter": {
         "external": {
           "command": "tidy",
-          "arguments": ["--stdin-filepath", "{buffer_path}"]
+          "arguments": ["--stdin={buffer_path}"]
         }
       }
     }
@@ -55,7 +55,7 @@ Zed can format with an external command, per language:
 }
 ```
 
-Repeat the block for each language. `--stdin-filepath` is what makes it work: tidy reads the buffer from stdin and uses the path only to pick the language and find the config files.
+Repeat the block for each language. `--stdin=<path>` is what makes it work: tidy reads the buffer from stdin and uses the path only to pick the language and find the config files.
 
 ## Neovim
 
@@ -64,7 +64,7 @@ vim.api.nvim_create_autocmd("BufWritePre", {
 	pattern = { "*.ts", "*.tsx", "*.js", "*.jsx", "*.css", "*.scss", "*.html", "*.vue", "*.md", "*.json", "*.yaml", "*.yml", "*.toml" },
 	callback = function(args)
 		local view = vim.fn.winsaveview()
-		vim.cmd("silent %!tidy --stdin-filepath " .. vim.fn.shellescape(args.file))
+		vim.cmd("silent %!tidy --stdin=" .. vim.fn.shellescape(args.file))
 		if vim.v.shell_error ~= 0 then
 			vim.cmd("silent undo")
 		end
@@ -82,7 +82,7 @@ require("conform").setup({
 	formatters = {
 		tidy = {
 			command = "tidy",
-			args = { "--stdin-filepath", "$FILENAME" },
+			args = { "--stdin=$FILENAME" },
 			stdin = true,
 		},
 	},
@@ -115,9 +115,9 @@ Turn off "Auto-save edited files to trigger the watcher", or the watcher runs wh
 
 ## Which flag to use
 
-| Form                           | When                                                                          |
-| ------------------------------ | ----------------------------------------------------------------------------- |
-| `tidy up <path>`               | The editor can run a command on a saved file.                                 |
-| `tidy --stdin-filepath <path>` | The editor pipes the buffer in and takes stdout. Formats unsaved buffers too. |
+| Form                  | When                                                                          |
+| --------------------- | ----------------------------------------------------------------------------- |
+| `tidy up <path>`      | The editor can run a command on a saved file.                                 |
+| `tidy --stdin=<path>` | The editor pipes the buffer in and takes stdout. Formats unsaved buffers too. |
 
 Prefer the stdin form where the editor supports it: it never writes a half-formatted file if something goes wrong, and it works before the first save.
