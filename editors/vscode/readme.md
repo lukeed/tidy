@@ -8,7 +8,7 @@ The extension runs the `tidy` binary, so [install it](https://tidy.lukeed.com/do
 
 ```json
 {
-  "editor.defaultFormatter": "lukeed.tidy",
+  "editor.defaultFormatter": "lukeed.tidyup",
   "editor.formatOnSave": true,
   "editor.formatOnPaste": true
 }

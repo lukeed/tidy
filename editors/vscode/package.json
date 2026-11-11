@@ -1,5 +1,5 @@
 {
-  "name": "tidy",
+  "name": "tidyup",
   "displayName": "tidy up",
   "description": "A fast formatter for JavaScript, TypeScript, HTML, Vue, CSS, JSON, YAML, TOML, XML, Markdown and more, with Prettier's style by default",
   "version": "0.1.0",

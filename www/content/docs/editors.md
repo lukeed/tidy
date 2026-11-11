@@ -9,17 +9,17 @@ Each editor below runs the `tidy` binary with the buffer on stdin and its path i
 
 ## VS Code
 
-Install **tidy** (`lukeed.tidy`) from the Marketplace or Open VSX:
+Install **tidy up** (`lukeed.tidyup`) from the Marketplace or Open VSX:
 
 ```sh
-$ code --install-extension lukeed.tidy
+$ code --install-extension lukeed.tidyup
 ```
 
 Then make it the formatter, for every language or for the ones you choose:
 
 ```json [.vscode/settings.json]
 {
-  "editor.defaultFormatter": "lukeed.tidy",
+  "editor.defaultFormatter": "lukeed.tidyup",
   "editor.formatOnSave": true,
   "editor.formatOnPaste": true
 }

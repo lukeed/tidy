@@ -120,7 +120,7 @@ const tests: Record<string, () => Promise<void>> = {
 
 /** The entry that `@vscode/test-electron` calls inside VS Code. */
 export async function run(): Promise<void> {
-  await vscode.extensions.getExtension("lukeed.tidy")?.activate();
+  await vscode.extensions.getExtension("lukeed.tidyup")?.activate();
   let failed = 0;
   for (let [name, check] of Object.entries(tests)) {
     try {
