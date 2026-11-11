@@ -1,0 +1,104 @@
+{
+  "name": "tidy",
+  "displayName": "tidy",
+  "description": "A fast formatter for JavaScript, TypeScript, HTML, Vue, CSS, JSON, YAML, TOML, XML, Markdown and more, with Prettier's style by default",
+  "version": "0.1.0",
+  "publisher": "lukeed",
+  "license": "MIT",
+  "author": "Luke Edwards <luke.edwards05@gmail.com> (https://lukeed.com)",
+  "homepage": "https://tidy.lukeed.com/docs/editors/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lukeed/tidy.git",
+    "directory": "editors/vscode"
+  },
+  "bugs": "https://github.com/lukeed/tidy/issues",
+  "icon": "icon.png",
+  "galleryBanner": {
+    "color": "#2F57F5",
+    "theme": "dark"
+  },
+  "categories": [
+    "Formatters"
+  ],
+  "keywords": [
+    "formatter",
+    "prettier",
+    "html",
+    "css",
+    "markdown",
+    "json",
+    "yaml",
+    "toml"
+  ],
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "main": "./dist/extension.js",
+  "files": [
+    "dist/extension.js",
+    "icon.png"
+  ],
+  "activationEvents": [
+    "onLanguage:css",
+    "onLanguage:dockerfile",
+    "onLanguage:graphql",
+    "onLanguage:handlebars",
+    "onLanguage:html",
+    "onLanguage:ini",
+    "onLanguage:javascript",
+    "onLanguage:javascriptreact",
+    "onLanguage:json",
+    "onLanguage:json5",
+    "onLanguage:jsonc",
+    "onLanguage:less",
+    "onLanguage:markdown",
+    "onLanguage:mjml",
+    "onLanguage:properties",
+    "onLanguage:scss",
+    "onLanguage:svg",
+    "onLanguage:toml",
+    "onLanguage:typescript",
+    "onLanguage:typescriptreact",
+    "onLanguage:vue",
+    "onLanguage:xml",
+    "onLanguage:xsl",
+    "onLanguage:yaml"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In an untrusted workspace, tidy ignores the `tidy.path` of the workspace and runs the binary of your user settings or PATH.",
+      "restrictedConfigurations": [
+        "tidy.path"
+      ]
+    }
+  },
+  "contributes": {
+    "configuration": {
+      "title": "tidy",
+      "properties": {
+        "tidy.path": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "markdownDescription": "The `tidy` binary to run. Empty means `tidy` on your `PATH`. A relative path, such as `node_modules/.bin/tidy`, is relative to the workspace folder."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "bun build src/extension.ts --outdir dist --target node --format cjs --external vscode --minify",
+    "typecheck": "bun check",
+    "test": "bun test.ts",
+    "package": "bun run build && bunx vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.4",
+    "@types/node": "26.6.6",
+    "@types/vscode": "1.95.0",
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "4.1.0",
+    "ovsx": "1.4.0"
+  }
+}
