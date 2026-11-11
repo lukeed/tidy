@@ -31,8 +31,17 @@ impl Repo {
     std::fs::read_to_string(self.0.join(path)).expect("read file")
   }
 
+  /// Runs git without the user's config, which can sign commits with a key that fails under load.
   fn git(&self, args: &[&str]) -> Output {
-    Command::new("git").args(args).current_dir(&self.0).output().expect("run git")
+    let output = Command::new("git")
+      .args(args)
+      .current_dir(&self.0)
+      .env("GIT_CONFIG_GLOBAL", std::env::temp_dir().join("tidy-git-no-config"))
+      .env("GIT_CONFIG_NOSYSTEM", "1")
+      .output()
+      .expect("run git");
+    assert!(output.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&output.stderr));
+    output
   }
 
   fn commit(&self, message: &str) {
