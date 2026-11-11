@@ -46,6 +46,8 @@ const tests: Record<string, () => Promise<void>> = {
     await editor.edit((edit) =>
       edit.insert(new vscode.Position(1, 0), "b{color:blue}\n"),
     );
+    // VS Code drops a format on save if the editor changes during it, so let the edit settle as a person would.
+    await new Promise((resolve) => setTimeout(resolve, 250));
     await editor.document.save();
     let saved = fs.readFileSync(path.join(workspace, "wide/save.css"), "utf8");
     assert.equal(saved, "a {\n  color: red;\n}\nb {\n  color: blue;\n}\n");
