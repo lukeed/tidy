@@ -19,6 +19,10 @@ jobs:
   publish:
     timeout-minutes: 15
     runs-on: ubuntu-latest
+    # Both stores trust this workflow by OIDC, so no publishing token is stored.
+    permissions:
+      contents: read
+      id-token: write
     defaults:
       run:
         working-directory: editors/vscode
@@ -46,12 +50,5 @@ jobs:
       - run: bun test.ts
       - run: bun run package --out tidy.vsix
 
-      - name: Publish to the Marketplace
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: bunx vsce publish --packagePath tidy.vsix
-
-      - name: Publish to Open VSX
-        env:
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
-        run: bunx ovsx publish tidy.vsix
+      - run: bunx vsce publish --packagePath tidy.vsix --oidc
+      - run: bunx ovsx publish tidy.vsix --trusted-publishing
