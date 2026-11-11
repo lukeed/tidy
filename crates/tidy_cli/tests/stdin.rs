@@ -40,7 +40,13 @@ fn tidy(args: &[&str], input: &str, cwd: &Path) -> Output {
     .stderr(Stdio::piped())
     .spawn()
     .expect("run tidy");
-  child.stdin.take().expect("stdin is piped").write_all(input.as_bytes()).expect("write stdin");
+  let mut stdin = child.stdin.take().expect("stdin is piped");
+  // tidy exits before it reads stdin when it rejects its arguments.
+  match stdin.write_all(input.as_bytes()) {
+    Err(error) if error.kind() == std::io::ErrorKind::BrokenPipe => {}
+    other => other.expect("write stdin"),
+  }
+  drop(stdin);
   child.wait_with_output().expect("wait for tidy")
 }
 
