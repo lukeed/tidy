@@ -731,6 +731,15 @@ impl Resolver {
     Ok(options)
   }
 
+  /// The options of text with no path, such as stdin: Prettier's, then the fixed config, if there is one.
+  pub fn without_path(&self) -> Options {
+    let mut options = Options::default();
+    if let Some(config) = &self.fixed {
+      config.apply(&mut options);
+    }
+    options
+  }
+
   /// `path` from the root, without `.` and `..`, as Node's `path.resolve` gives it.
   fn absolute(&self, path: &Path) -> PathBuf {
     let mut absolute = PathBuf::new();

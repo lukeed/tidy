@@ -38,7 +38,7 @@ Bare `tidy` reads stdin when it gets no paths, and takes one file otherwise. `up
 ```sh
 $ tidy check          # the same as: tidy check .
 $ tidy check src      # or only part of the tree
-$ cat a.ts | tidy --stdin-filepath a.ts
+$ cat a.ts | tidy --stdin=a.ts
 ```
 
 A folder named `up` or `check` is read as the command, not as a path. Write `./up` to mean the folder.
@@ -81,11 +81,12 @@ When git names no file tidy can format, the run succeeds and prints nothing — 
 
 ## Choosing files
 
-| Flag                      | What it does                                                                                    |
-| ------------------------- | ----------------------------------------------------------------------------------------------- |
-| `--parser <name>`         | Force a language instead of guessing from the file name.                                        |
-| `--stdin-filepath <path>` | The path the text on stdin would have, which decides its language and which config files apply. |
-| `--threads <n>`           | How many files to format at once. Defaults to one per core; `1` uses a single thread.           |
+| Flag               | What it does                                                                                                                |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `--parser <name>`  | Force a language instead of guessing from the file name.                                                                    |
+| `--stdin[=<path>]` | Read the text from stdin. The path is the one the text would have, which decides its language and which config files apply. |
+| `--skip-unknown`   | Leave text in a language tidy can't tell as it is, instead of failing.                                                      |
+| `--threads <n>`    | How many files to format at once. Defaults to one per core; `1` uses a single thread.                                       |
 
 `--parser` takes `html`, `vue`, `mjml`, `handlebars`, `tempura`, `css`, `scss`, `less`, `json`, `jsonc`, `json5`, `json-stringify`, `yaml`, `toml`, `dockerfile`, `ini`, `gitconfig`, `graphql`, `babel`, `typescript`, `babel-ts`, `xml` or `markdown`. The names are Prettier's.
 
@@ -139,8 +140,13 @@ A `check` run that cannot parse a file exits `2`, not `1`, so a broken file is n
 ## stdin
 
 ```sh
-$ cat index.html | tidy --stdin-filepath index.html
-$ echo '{"a":1}' | tidy --parser json
+$ cat index.html | tidy --stdin=index.html
+$ echo '{"a":1}' | tidy --stdin --parser json
+$ cat src/a.ts | tidy check --stdin=src/a.ts
 ```
 
-Without `--stdin-filepath` or `--parser`, tidy treats stdin as HTML. `--stdin-filepath` is the better of the two, because it also decides which config files apply.
+`--stdin=<path>` is the better form, because the path also decides which config files apply. The file does not have to exist. Without a path, tidy reads no config files except one named with `--config`, and you must give `--parser`. If `--parser` is given, it wins over the path.
+
+Bare `tidy` and `tidy -` read stdin too, as `tidy --stdin` does. `tidy check --stdin` prints nothing, and exits `0` if the text is formatted or `1` if it is not. `tidy up --stdin` is an error, because there is no file to rewrite.
+
+If tidy can't tell the language, it fails. With `--skip-unknown`, it prints the text as it is, and `check` exits `0`. The flag also works with paths: a named file in an unknown language is skipped. Editors use it so that they can send any buffer to tidy.

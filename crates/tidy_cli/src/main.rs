@@ -42,7 +42,10 @@ Choosing files
                                   jsonc, json5, json-stringify, yaml, toml, dockerfile, ini,
                                   gitconfig, graphql, babel, typescript, babel-ts, xml, or
                                   markdown (default: by file name)
-  --stdin-filepath <path>         The path of the text on stdin, for its language and its configs
+  --stdin[=<path>]                Read the text from stdin; the path, if any, decides its
+                                  language and its configs
+  --skip-unknown                  Leave text in a language tidy can't tell as it is, instead of
+                                  failing
   --threads <n>                   How many files to format at once (default: all cores)
 
 Config
@@ -75,6 +78,7 @@ Examples
   $ tidy up . --width 100
   $ tidy up --staged
   $ tidy check --changed=main
+  $ cat a.ts | tidy --stdin=src/a.ts
 ";
 
 fn main() -> ExitCode {
@@ -113,10 +117,7 @@ fn run() -> Result<ExitCode, String> {
     let json = Language::Json(json::Dialect::Json);
     let text = tidy::format(&raw, json, &Options::default(), None, &mut Verbatim).unwrap_or(raw);
     // A closed pipe, as in `tidy schema | head`, is not an error worth reporting.
-    match std::io::stdout().write_all(text.as_bytes()) {
-      Err(error) if error.kind() == std::io::ErrorKind::BrokenPipe => {}
-      other => other.map_err(|error| error.to_string())?,
-    }
+    print(text.as_bytes())?;
     return Ok(ExitCode::SUCCESS);
   }
 
@@ -129,15 +130,21 @@ fn run() -> Result<ExitCode, String> {
     raw.remove(0);
   }
 
-  // `--changed` takes its value with `=`, because `--changed main` cannot be told
-  // apart from `--changed` followed by the path `main`.
-  let (mut staged, mut changed, mut rest) = (false, None, Vec::with_capacity(raw.len()));
+  // `--changed` and `--stdin` take their values with `=`, because `--changed main` cannot be
+  // told apart from `--changed` followed by the path `main`.
+  let (mut staged, mut changed, mut stdin, mut rest) =
+    (false, None, None, Vec::with_capacity(raw.len()));
   for arg in raw {
     match arg.to_str() {
       Some("--staged") => staged = true,
       Some("--changed") => changed = Some(None),
       Some(text) if text.starts_with("--changed=") => {
         changed = Some(Some(text["--changed=".len()..].to_owned()));
+      }
+      Some("--stdin") => stdin = Some(None),
+      Some("--stdin=") => return Err("--stdin= needs a path".into()),
+      Some(text) if text.starts_with("--stdin=") => {
+        stdin = Some(Some(PathBuf::from(&text["--stdin=".len()..])));
       }
       _ => rest.push(arg),
     }
@@ -195,7 +202,7 @@ fn run() -> Result<ExitCode, String> {
       Some(language)
     }
   };
-  let stdin: Option<PathBuf> = args.opt_value_from_str("--stdin-filepath").map_err(error)?;
+  let skip_unknown = args.contains("--skip-unknown");
   let fixed: Option<PathBuf> = args.opt_value_from_str("--config").map_err(error)?;
   let no_config = args.contains("--no-config");
   flags.shared = shared(&mut args)?;
@@ -207,12 +214,26 @@ fn run() -> Result<ExitCode, String> {
     }
     paths.push(PathBuf::from(arg));
   }
+  if stdin.is_none() && paths == [Path::new("-")] {
+    (stdin, paths) = (Some(None), Vec::new());
+  }
+  if stdin.is_some() {
+    if !paths.is_empty() {
+      return Err("--stdin takes no paths, name the text with --stdin=<path>".into());
+    }
+    if mode == Mode::Up {
+      return Err("`tidy up` can't rewrite stdin, use `tidy --stdin`".into());
+    }
+    if !matches!(scope, Scope::All) {
+      return Err("--stdin can't be used with --staged or --changed".into());
+    }
+  }
   let resolver = match (no_config, fixed) {
     (true, _) => None,
     (false, Some(path)) => Some(Resolver::fixed(Config::read(&path)?)),
     (false, None) => Some(Resolver::default()),
   };
-  let sources = Sources { resolver, flags };
+  let sources = Sources { resolver, flags, language, skip_unknown };
 
   // git names the files instead of a walk, filtered by the paths given, if any.
   let listed = match &scope {
@@ -263,37 +284,24 @@ fn run() -> Result<ExitCode, String> {
   };
 
   // `tidy` alone reads stdin; `up` and `check` alone take the current folder.
-  let paths = match paths.is_empty() && mode != Mode::Print && stdin.is_none() {
+  if let Some(path) = stdin {
+    return sources.stdin(path.as_deref(), check);
+  }
+  if mode == Mode::Print && paths.is_empty() {
+    return sources.stdin(None, false);
+  }
+  let paths = match paths.is_empty() {
     true => vec![PathBuf::from(".")],
     false => paths,
   };
-
-  if paths.is_empty() || paths == [Path::new("-")] {
-    let mut source = String::new();
-    std::io::stdin().read_to_string(&mut source).map_err(|error| error.to_string())?;
-    let language = language
-      .or_else(|| stdin.as_deref().and_then(|path| Language::of_path(&path.to_string_lossy())))
-      .unwrap_or(Language::Html);
-    let options = sources.options(stdin.as_deref())?;
-    let path = stdin.as_deref().map(|path| path.to_string_lossy());
-    let mut formatter = Formatter::default();
-    let output = formatter
-      .format(&source, language, &options, path.as_deref(), &mut Verbatim)
-      .map_err(|error| describe(&error, &source, path.as_deref().unwrap_or("stdin")))?;
-    if check {
-      return Ok(if output == source { ExitCode::SUCCESS } else { ExitCode::FAILURE });
-    }
-    std::io::stdout().write_all(output.as_bytes()).map_err(|error| error.to_string())?;
-    return Ok(ExitCode::SUCCESS);
-  }
 
   if !check && !write && paths.len() == 1 && paths[0].is_file() {
     let path = &paths[0];
     let source =
       std::fs::read_to_string(path).map_err(|error| format!("{}: {error}", shown(path)))?;
     let mut formatter = Formatter::default();
-    let output = sources.format(&mut formatter, &source, language, path)?;
-    std::io::stdout().write_all(output.as_bytes()).map_err(|error| error.to_string())?;
+    let output = sources.format(&mut formatter, &source, path)?.unwrap_or(&source);
+    print(output.as_bytes())?;
     return Ok(ExitCode::SUCCESS);
   }
   if !check && !write {
@@ -320,9 +328,10 @@ fn run() -> Result<ExitCode, String> {
         return Some(Output { value: Err(format!("{}: {error}", shown(&file.path))), write: None });
       }
     };
-    match sources.format(formatter, source, language, &file.path) {
-      Ok(output) if output == source => None,
-      Ok(output) => {
+    match sources.format(formatter, source, &file.path) {
+      Ok(None) => None,
+      Ok(Some(output)) if output == source => None,
+      Ok(Some(output)) => {
         Some(Output { value: Ok(()), write: write.then(|| output.as_bytes().to_vec()) })
       }
       Err(error) => Some(Output { value: Err(error), write: None }),
@@ -478,39 +487,91 @@ fn shared(args: &mut pico_args::Arguments) -> Result<Shared, String> {
   })
 }
 
+/// Writes to stdout. A closed pipe, as in `tidy schema | head`, is not an error worth reporting.
+fn print(bytes: &[u8]) -> Result<(), String> {
+  match std::io::stdout().write_all(bytes) {
+    Err(error) if error.kind() == std::io::ErrorKind::BrokenPipe => Ok(()),
+    other => other.map_err(|error| error.to_string()),
+  }
+}
+
 /// Where the options of each file come from: Prettier's, then the config files around it, then the flags.
 struct Sources {
   /// `None` with `--no-config`.
   resolver: Option<Resolver>,
   flags: Config,
+  /// The language `--parser` forces, instead of the one of each name.
+  language: Option<Language>,
+  skip_unknown: bool,
 }
 
 impl Sources {
   fn options(&self, path: Option<&Path>) -> Result<Options, String> {
     let mut options = match (&self.resolver, path) {
       (Some(resolver), Some(path)) => resolver.options(path)?,
-      _ => Options::default(),
+      (Some(resolver), None) => resolver.without_path(),
+      (None, _) => Options::default(),
     };
     self.flags.apply(&mut options);
     Ok(options)
   }
 
-  /// Formats the file at `path`, in `language` or the language of its name.
+  /// The language of the text at `path`, or of text with no path. `None` when tidy can't tell
+  /// and `--skip-unknown` says to leave the text as it is.
+  fn language(&self, path: Option<&str>) -> Result<Option<Language>, String> {
+    match self.language.or_else(|| path.and_then(Language::of_path)) {
+      Some(language) => Ok(Some(language)),
+      None if self.skip_unknown => Ok(None),
+      None => Err(match path {
+        Some(name) => format!("{name}: can't tell the language of this file, pass --parser"),
+        None => "can't tell the language of stdin, pass --parser or --stdin=<path>".into(),
+      }),
+    }
+  }
+
+  /// Formats the file at `path`, in the language `--parser` forces or the one of its name.
+  /// `None` when `--skip-unknown` leaves it as it is.
   fn format<'f>(
     &self,
     formatter: &'f mut Formatter,
     source: &str,
-    language: Option<Language>,
     path: &Path,
-  ) -> Result<&'f str, String> {
+  ) -> Result<Option<&'f str>, String> {
     let name = path.to_string_lossy();
-    let language = language
-      .or_else(|| Language::of_path(&name))
-      .ok_or_else(|| format!("{name}: can't tell the language of this file, pass --parser"))?;
+    let Some(language) = self.language(Some(&name))? else {
+      return Ok(None);
+    };
     let options = self.options(Some(path)).map_err(|error| format!("{name}: {error}"))?;
     formatter
       .format(source, language, &options, Some(&name), &mut Verbatim)
+      .map(Some)
       .map_err(|error| describe(&error, source, &name))
+  }
+
+  /// Formats stdin as if it were the file at `path`, and prints it, or with `check` only tells
+  /// whether it is formatted.
+  fn stdin(&self, path: Option<&Path>, check: bool) -> Result<ExitCode, String> {
+    let mut source = String::new();
+    std::io::stdin().read_to_string(&mut source).map_err(|error| format!("stdin: {error}"))?;
+    let name = path.map(Path::to_string_lossy);
+    let mut formatter = Formatter::default();
+    let output = match self.language(name.as_deref())? {
+      None => source.as_str(),
+      Some(language) => {
+        let options = match &name {
+          Some(name) => self.options(path).map_err(|error| format!("{name}: {error}"))?,
+          None => self.options(None)?,
+        };
+        formatter
+          .format(&source, language, &options, name.as_deref(), &mut Verbatim)
+          .map_err(|error| describe(&error, &source, name.as_deref().unwrap_or("stdin")))?
+      }
+    };
+    match check {
+      true if output == source => Ok(ExitCode::SUCCESS),
+      true => Ok(ExitCode::FAILURE),
+      false => print(output.as_bytes()).map(|()| ExitCode::SUCCESS),
+    }
   }
 }
 
