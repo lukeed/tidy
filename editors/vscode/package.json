@@ -38,7 +38,7 @@
   "files": [
     "dist/extension.js",
     "icon.png",
-    "LICENSE"
+    "license"
   ],
   "activationEvents": [
     "onLanguage:css",
