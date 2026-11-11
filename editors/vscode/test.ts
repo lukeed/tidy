@@ -97,7 +97,7 @@ let files: Record<string, string> = {
   "wide/tidy.json": "{}\n",
   ".vscode/settings.json": JSON.stringify({
     "tidy.path": "bin/tidy",
-    "editor.defaultFormatter": "lukeed.tidy",
+    "editor.defaultFormatter": "lukeed.tidyup",
     "editor.formatOnSave": true,
     "editor.formatOnPaste": true,
     "chat.disableAIFeatures": true,
