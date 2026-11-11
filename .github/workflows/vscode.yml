@@ -19,7 +19,7 @@ jobs:
   publish:
     timeout-minutes: 15
     runs-on: ubuntu-latest
-    # Both stores trust this workflow by OIDC, so no publishing token is stored.
+    # Both stores can trust this workflow by OIDC, so no publishing token has to be stored.
     permissions:
       contents: read
       id-token: write
@@ -51,4 +51,7 @@ jobs:
       - run: bun run vsix --out tidy.vsix
 
       - run: bunx vsce publish --packagePath tidy.vsix --oidc --skip-duplicate
-      - run: bunx ovsx publish tidy.vsix --trusted-publishing --skip-duplicate
+      # Open VSX uses the token while it is set, and trusted publishing once the secret is deleted.
+      - run: bunx ovsx publish tidy.vsix --skip-duplicate
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
