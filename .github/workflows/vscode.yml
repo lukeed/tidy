@@ -2,11 +2,11 @@ name: vscode
 
 on:
   push:
-    tags: ["vscode-v*"]
+    tags: ["vscode@*"]
   workflow_dispatch:
     inputs:
       tag:
-        description: The tag to release, such as vscode-v0.1.0
+        description: The tag to release, such as vscode@0.1.0
         required: true
 
 permissions:
@@ -41,8 +41,8 @@ jobs:
       - name: Check the tag matches the version
         run: |
           version=$(jq -r .version package.json)
-          if [ "$TAG" != "vscode-v$version" ]; then
-            echo "::error::$TAG does not match vscode-v$version in package.json"
+          if [ "$TAG" != "vscode@$version" ]; then
+            echo "::error::$TAG does not match vscode@$version in package.json"
             exit 1
           fi
 
@@ -50,5 +50,5 @@ jobs:
       - run: bun test.ts
       - run: bun run vsix --out tidy.vsix
 
-      - run: bunx vsce publish --packagePath tidy.vsix --oidc
-      - run: bunx ovsx publish tidy.vsix --trusted-publishing
+      - run: bunx vsce publish --packagePath tidy.vsix --oidc --skip-duplicate
+      - run: bunx ovsx publish tidy.vsix --trusted-publishing --skip-duplicate
