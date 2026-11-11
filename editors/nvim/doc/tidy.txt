@@ -1,0 +1,42 @@
+*tidy.txt*  Format buffers with tidy
+
+==============================================================================
+INTRODUCTION                                                            *tidy*
+
+tidy formats a buffer through the `tidy` binary. The buffer goes to tidy on
+stdin with its path, so the language and the config files are the ones that
+`tidy up` would use for that file. Unnamed buffers are formatted by filetype.
+
+Only the lines that change are replaced, so the cursor and marks stay.
+
+==============================================================================
+SETUP                                                             *tidy.setup()*
+
+>lua
+    require("tidy").setup({
+      cmd = "tidy",
+      format_on_save = true,
+      timeout_ms = 2000,
+      filetypes = { "css", "html", "markdown", "typescript" },
+    })
+<
+  cmd             The binary to run. Default: `tidy` on your `PATH`.
+  format_on_save  Format before each write. Default: `true`.
+  timeout_ms      How long to wait for tidy. Default: `2000`.
+  filetypes       The filetypes to format on save. Default: every
+                  filetype that tidy formats.
+
+==============================================================================
+COMMANDS                                                               *:Tidy*
+
+:Tidy           Format the current buffer.
+
+==============================================================================
+LUA                                                              *tidy.format()*
+
+tidy.format({bufnr})
+    Formats {bufnr}, or the current buffer when it is `nil` or `0`. Returns
+    `true` when it worked. When tidy fails, the buffer stays as it is and the
+    error is shown with |vim.notify()|.
+
+ vim:tw=78:ts=8:ft=help:norl:
