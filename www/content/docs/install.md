@@ -73,7 +73,7 @@ $ TIDY_INSTALL=/usr/local/bin curl -fsSL https://tidy.lukeed.com | sh
 
 ## Prebuilt binaries
 
-Each release on [GitHub](https://github.com/lukeed/tidy/releases) will carry an archive per platform, with a `.sha256` beside it:
+Each release on [GitHub](https://github.com/lukeed/tidy/releases) carries an archive per platform, with a `.sha256` beside it in the format `sha256sum -c` reads:
 
 | Platform             | Archive                                  |
 | -------------------- | ---------------------------------------- |
@@ -82,6 +82,7 @@ Each release on [GitHub](https://github.com/lukeed/tidy/releases) will carry an 
 | Linux, x86-64        | `tidy-x86_64-unknown-linux-musl.tar.gz`  |
 | Linux, ARM64         | `tidy-aarch64-unknown-linux-musl.tar.gz` |
 | Windows, x86-64      | `tidy-x86_64-pc-windows-msvc.zip`        |
+| Windows, ARM64       | `tidy-aarch64-pc-windows-msvc.zip`       |
 
 The Linux builds link against musl, so they run on any distribution and inside a `scratch` container.
 
