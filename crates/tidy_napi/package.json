@@ -4,6 +4,7 @@
   "description": "A fast formatter for JavaScript, TypeScript, HTML, Vue, Handlebars, CSS, JSON, YAML, TOML, XML, GraphQL, INI, Dockerfiles and Markdown, with Prettier's style by default",
   "license": "MIT",
   "author": "Luke Edwards <luke.edwards05@gmail.com> (https://lukeed.com)",
+  "homepage": "https://tidy.lukeed.com/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lukeed/tidy.git",
