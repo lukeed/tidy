@@ -1,12 +1,6 @@
 [workspace]
 resolver = "3"
-members = [
-  "crates/tidy",
-  "crates/tidy_cli",
-  "crates/tidy_napi",
-  "crates/tidy_wasm",
-  "crates/tidy_walk",
-]
+members = ["crates/tidy", "crates/tidy_napi", "crates/tidy_wasm"]
 exclude = [
   "bench/css",
   "bench/dprint",
@@ -27,8 +21,7 @@ repository = "https://github.com/lukeed/tidy"
 homepage = "https://tidy.lukeed.com/"
 
 [workspace.dependencies]
-tidy = { path = "crates/tidy" }
-tidy_walk = { path = "crates/tidy_walk" }
+tidy = { path = "crates/tidy", default-features = false }
 bumpalo = "3.19"
 
 [workspace.lints.rust]

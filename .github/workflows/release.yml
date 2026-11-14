@@ -55,9 +55,9 @@ jobs:
         run: |
           if [ -n "${{ matrix.zig }}" ]; then
             cargo install cargo-zigbuild --locked
-            cargo zigbuild --release -p tidy_cli --target ${{ matrix.target }}
+            cargo zigbuild --release -p tidy --target ${{ matrix.target }}
           else
-            cargo build --release -p tidy_cli --target ${{ matrix.target }}
+            cargo build --release -p tidy --target ${{ matrix.target }}
           fi
 
       # The archive holds the executable alone, at its root, so that a

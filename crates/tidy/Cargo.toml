@@ -10,6 +10,11 @@ homepage.workspace = true
 keywords = ["html", "markdown", "formatter", "prettier", "vue"]
 categories = ["text-processing", "development-tools"]
 
+[[bin]]
+name = "tidy"
+path = "src/main.rs"
+required-features = ["cli"]
+
 [dependencies]
 bitflags = "2"
 bumpalo = { workspace = true }
@@ -31,6 +36,7 @@ smallvec = { version = "1.16.4", features = ["union"] }
 unicode-ident = "1"
 unicode-width = "0.2"
 serde_json = { version = "1", optional = true }
+pico-args = { version = "0.5.0", features = ["eq-separator"], optional = true }
 
 [lints]
 workspace = true
@@ -39,7 +45,7 @@ workspace = true
 serde_json = "1"
 
 [features]
-default = ["js"]
+default = ["js", "cli"]
 # Formats JavaScript and TypeScript, and the scripts in markup and Markdown, with oxc's parser. Without it, they go to
 # the embed hook.
 js = [
@@ -57,3 +63,7 @@ js = [
 ]
 # Reads tidy.json, tidy.jsonc, tidy.toml and .editorconfig files, and adds json::value and toml::value.
 config = ["dep:serde_json", "dep:ec4rs"]
+# tidy::walk: a parallel walk that reads, works on and writes the files under the paths it is given.
+walk = []
+# The tidy command line, which `cargo install tidy` builds.
+cli = ["js", "walk", "config", "dep:pico-args"]

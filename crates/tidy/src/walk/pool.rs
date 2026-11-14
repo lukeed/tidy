@@ -169,12 +169,12 @@ pub(crate) fn run<S, T: Send>(walk: &Walk<'_, S, T>, tasks: Vec<Task>, hold: boo
   })
 }
 
-/// Spawns a thread with a [`STACK`](crate::STACK)-sized stack, as `scope.spawn` would.
+/// Spawns a thread with a [`STACK`](super::STACK)-sized stack, as `scope.spawn` would.
 fn spawn<'scope, R: Send + 'scope>(
   scope: &'scope std::thread::Scope<'scope, '_>,
   run: impl FnOnce() -> R + Send + 'scope,
 ) -> std::thread::ScopedJoinHandle<'scope, R> {
-  let builder = std::thread::Builder::new().stack_size(crate::STACK);
+  let builder = std::thread::Builder::new().stack_size(super::STACK);
   builder.spawn_scoped(scope, run).expect("failed to spawn thread")
 }
 

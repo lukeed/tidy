@@ -1,6 +1,8 @@
+#![cfg(feature = "walk")]
+
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
-use tidy_walk::{Error, Options, Output, Report, run};
+use tidy::walk::{Error, Options, Output, Report, run};
 
 /// A folder of files for one test, removed when dropped.
 struct Tree(PathBuf);

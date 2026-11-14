@@ -14,7 +14,7 @@ let run = spawnSync(binary, ["--no-config", join(dir, "routes.input.ts")], {
 });
 if (run.error) {
   console.error(
-    `cannot run ${binary} — build it first: cargo build --release -p tidy_cli`,
+    `cannot run ${binary} — build it first: cargo build --release -p tidy`,
   );
   process.exit(2);
 }

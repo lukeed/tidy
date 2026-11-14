@@ -57,16 +57,15 @@ Most of it is not clever. It is the absence of overhead:
 - **No garbage collector.** Trees are built in a bump allocator and dropped whole.
 - **Buffers are reused.** A `Formatter` keeps its scratch space between files, so a 12,000-file run does not allocate 12,000 times.
 - **Every core.** The walk and the formatting are spread across a thread pool. `--threads 1` turns that off.
-- **The walk is tuned too.** `tidy_walk` is a separate crate, with a thread count that measured best per platform.
+- **The walk is tuned too.** `tidy::walk` uses the thread count that measured best per platform.
 
 ## Repository layout
 
-| Crate              | What it is                                                                    |
-| ------------------ | ----------------------------------------------------------------------------- |
-| `crates/tidy`      | The library: every parser, printer, the document printer, and config reading. |
-| `crates/tidy_cli`  | The `tidy` command.                                                           |
-| `crates/tidy_napi` | The `tidyrs` npm package.                                                     |
-| `crates/tidy_walk` | The parallel directory walk.                                                  |
+| Crate              | What it is                                                                                                              |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `crates/tidy`      | The library: every parser, printer, the document printer, config reading and the parallel walk, and the `tidy` command. |
+| `crates/tidy_napi` | The `tidyrs` npm package.                                                                                               |
+| `crates/tidy_wasm` | The playground's WebAssembly build.                                                                                     |
 
 ## Licensing
 

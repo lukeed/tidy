@@ -1,5 +1,7 @@
 //! `--staged` and `--changed`, which ask git which files to format.
 
+#![cfg(feature = "cli")]
+
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 

@@ -15,7 +15,7 @@ if (!path)
   );
 
 let root = new URL("../../..", import.meta.url).pathname;
-await $`cargo build --release -p tidy_cli`.cwd(root).quiet();
+await $`cargo build --release -p tidy`.cwd(root).quiet();
 await $`cargo build --release -p tidy --example markdown_events`
   .cwd(root)
   .quiet();

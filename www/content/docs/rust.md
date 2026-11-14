@@ -125,12 +125,21 @@ pub enum Error {
 
 ## Features
 
-| Feature  | Default | What it adds                                                                                   |
-| -------- | ------- | ---------------------------------------------------------------------------------------------- |
-| `js`     | on      | oxc's parser, for JavaScript and TypeScript. Without it, scripts go to the embed hook instead. |
-| `config` | off     | `tidy::config`: reading `tidy.json`, `tidy.toml` and `.editorconfig`.                          |
+| Feature  | Default | What it adds                                                                                          |
+| -------- | ------- | ----------------------------------------------------------------------------------------------------- |
+| `js`     | on      | oxc's parser, for JavaScript and TypeScript. Without it, scripts go to the embed hook instead.        |
+| `config` | off     | `tidy::config`: reading `tidy.json`, `tidy.toml` and `.editorconfig`.                                 |
+| `walk`   | off     | `tidy::walk`: a parallel walk that reads each file under some paths, works on it, and writes it back. |
+| `cli`    | on      | The `tidy` binary. It turns on `js`, `config` and `walk`.                                             |
 
-Markup, style sheets, data formats and Markdown are always built in. Turning `js` off makes the crate smaller and much faster to build:
+A library doesn't need `cli`. To leave it out and keep `js`:
+
+```toml [Cargo.toml]
+[dependencies]
+tidy = { version = "0", default-features = false, features = ["js"] }
+```
+
+Markup, style sheets, data formats and Markdown are always built in. Turning `js` off too makes the crate smaller and much faster to build:
 
 ```toml [Cargo.toml]
 [dependencies]
@@ -139,8 +148,8 @@ tidy = { version = "0", default-features = false }
 
 ## The command
 
-The CLI lives in its own crate, `tidy_cli`, and installs a binary called `tidy`:
+The same crate builds the `tidy` binary, with the default `cli` feature:
 
 ```sh
-$ cargo install --git https://github.com/lukeed/tidy tidy_cli
+$ cargo install --git https://github.com/lukeed/tidy tidy
 ```

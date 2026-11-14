@@ -4,10 +4,10 @@ use std::process::ExitCode;
 
 use tidy::config::{Config, Resolver};
 use tidy::embed::Verbatim;
+use tidy::walk::Output;
 use tidy::{
   Error, Formatter, Language, Options, Shared, Whitespace, css, doc, handlebars, ini, js, json,
 };
-use tidy_walk::Output;
 
 const HELP: &str = "\
 tidy: a fast formatter for markup, scripts, style sheets and data
@@ -83,7 +83,7 @@ Examples
 
 fn main() -> ExitCode {
   // A main thread has 1 MiB on Windows and 8 MiB elsewhere, so run on a thread with the walk threads' stack.
-  let thread = std::thread::Builder::new().stack_size(tidy_walk::STACK).spawn(run);
+  let thread = std::thread::Builder::new().stack_size(tidy::walk::STACK).spawn(run);
   let result = match thread.map(std::thread::JoinHandle::join) {
     Ok(Ok(result)) => result,
     Ok(Err(panic)) => std::panic::resume_unwind(panic),
@@ -315,20 +315,20 @@ fn run() -> Result<ExitCode, String> {
     return Err("use `tidy up` or `tidy check` to format more than one file".into());
   }
 
-  let mut options = tidy_walk::Options { wanted: &wanted, ..tidy_walk::Options::default() };
+  let mut options = tidy::walk::Options { wanted: &wanted, ..tidy::walk::Options::default() };
   match threads.map(|threads| threads.max(1)) {
     Some(1) => (options.io, options.workers) = (1, 0),
     Some(threads) if options.workers == 0 => options.io = threads,
     Some(threads) => (options.io, options.workers) = (options.io.min(threads), threads),
     None => {}
   }
-  let listing = |dir: &Path, entries: &[tidy_walk::Entry]| {
+  let listing = |dir: &Path, entries: &[tidy::walk::Entry]| {
     if let Some(resolver) = &sources.resolver {
-      let configs = entries.iter().filter(|entry| entry.kind == tidy_walk::Kind::File);
+      let configs = entries.iter().filter(|entry| entry.kind == tidy::walk::Kind::File);
       resolver.listing(dir, configs.map(|entry| entry.name));
     }
   };
-  let report = tidy_walk::run(&paths, &options, listing, Formatter::default, |formatter, file| {
+  let report = tidy::walk::run(&paths, &options, listing, Formatter::default, |formatter, file| {
     let source = match std::str::from_utf8(&file.bytes) {
       Ok(source) => source,
       Err(error) => {

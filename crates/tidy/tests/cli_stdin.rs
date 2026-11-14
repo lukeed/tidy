@@ -1,5 +1,7 @@
 //! `--stdin`, `--parser` and `--skip-unknown`, as an editor runs them.
 
+#![cfg(feature = "cli")]
+
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};

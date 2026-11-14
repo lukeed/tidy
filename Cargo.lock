@@ -964,6 +964,7 @@ dependencies = [
  "oxc_semantic",
  "oxc_span",
  "oxc_syntax",
+ "pico-args",
  "pulldown-cmark",
  "regress",
  "rustc-hash",
@@ -971,15 +972,6 @@ dependencies = [
  "smallvec",
  "unicode-ident",
  "unicode-width",
-]
-
-[[package]]
-name = "tidy_cli"
-version = "0.2.1"
-dependencies = [
- "pico-args",
- "tidy",
- "tidy_walk",
 ]
 
 [[package]]
@@ -992,10 +984,6 @@ dependencies = [
  "serde_json",
  "tidy",
 ]
-
-[[package]]
-name = "tidy_walk"
-version = "0.2.1"
 
 [[package]]
 name = "tidy_wasm"
