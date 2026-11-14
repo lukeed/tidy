@@ -1,4 +1,4 @@
-//! Times ways to walk a folder tree, alone or with reading each matching file. It chose the design of `tidy_walk`.
+//! Times ways to walk a folder tree, alone or with reading each matching file. It chose the design of `tidy::walk`.
 //! `--real md` builds against mdtidy, which must sit next to this repo until it merges in.
 //!
 //!   walk-bench <strategy> <dir>... [--threads <n>] [--read] [--ext md,markdown] [--work <n>] [--real tidy|md]

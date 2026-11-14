@@ -1,5 +1,7 @@
 //! Deeply nested text: oxc's parser recurses without a limit, so every path must format it on a big stack.
 
+#![cfg(feature = "cli")]
+
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};

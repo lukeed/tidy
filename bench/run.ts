@@ -51,7 +51,7 @@ let build = (dir: string, out: string) =>
     .cwd(join(root, dir))
     .env({ ...process.env, CARGO_TARGET_DIR: join(target, out) })
     .quiet();
-await $`cargo build --release -p tidy_cli`
+await $`cargo build --release -p tidy`
   .cwd(root)
   .env({ ...process.env, CARGO_TARGET_DIR: target })
   .quiet();

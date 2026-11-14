@@ -23,7 +23,7 @@ run = "cargo build --workspace --exclude tidy_napi"
 
 [tasks.schema]
 description = "Write the JSON Schema of a tidy.json for npm and the site"
-run = "cargo run -q -p tidy_cli -- schema > crates/tidy_napi/tidy.schema.json"
+run = "cargo run -q -p tidy -- schema > crates/tidy_napi/tidy.schema.json"
 
 [tasks."build:wasm"]
 description = "Build the playground's wasm into www/assets/wasm"

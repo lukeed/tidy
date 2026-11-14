@@ -16,7 +16,7 @@ order: 1
 Building needs a Rust toolchain. It takes a few minutes the first time.
 
 ```sh
-$ cargo install --git https://github.com/lukeed/tidy tidy_cli
+$ cargo install --git https://github.com/lukeed/tidy tidy
 ```
 
 Or from a clone of the repository:
@@ -24,7 +24,7 @@ Or from a clone of the repository:
 ```sh
 $ git clone https://github.com/lukeed/tidy
 $ cd tidy
-$ cargo install --path crates/tidy_cli
+$ cargo install --path crates/tidy
 ```
 
 Either way the binary is called `tidy`, and lands in `~/.cargo/bin`.

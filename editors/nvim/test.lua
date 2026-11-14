@@ -5,7 +5,7 @@ vim.opt.runtimepath:prepend(here)
 
 local bin = os.getenv("TIDY_BIN")
 if not bin then
-	local build = vim.system({ "cargo", "build", "-q", "-p", "tidy_cli" }, { cwd = repo }):wait()
+	local build = vim.system({ "cargo", "build", "-q", "-p", "tidy" }, { cwd = repo }):wait()
 	assert(build.code == 0, build.stderr)
 	local metadata = vim.system({ "cargo", "metadata", "--format-version=1", "--no-deps" }, { cwd = repo }):wait()
 	bin = vim.fs.joinpath(vim.json.decode(metadata.stdout).target_directory, "debug", "tidy")

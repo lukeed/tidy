@@ -30,7 +30,7 @@ It's _fast_.<br>On a 12,000-file corpus of every language (except XML), tidy che
 Nothing is published yet. For now, build it from a clone of this repo:
 
 ```sh
-$ cargo install --path crates/tidy_cli
+$ cargo install --path crates/tidy
 ```
 
 ## Usage

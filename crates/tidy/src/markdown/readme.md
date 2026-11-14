@@ -20,7 +20,7 @@ It fixes how blocks are laid out &mdash; list markers, indentation, blank lines,
 
 ```sh
 $ cargo add tidy         # library
-$ cargo install tidy_cli # CLI
+$ cargo install tidy # CLI
 $ bun add tidyrs         # Node binding
 ```
 

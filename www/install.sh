@@ -42,7 +42,7 @@ main() {
 	fetch "$BASE/$version/$archive" "$tmp/$archive" || die "could not download $archive for $version.
 
 If tidy has not been released for your platform yet, build it from source:
-  cargo install --git https://github.com/$REPO tidy_cli"
+  cargo install --git https://github.com/ tidy"
 	fetch "$BASE/$version/$archive.sha256" "$tmp/$archive.sha256" ||
 		die "could not download $archive.sha256 for $version"
 	verify "$tmp" "$archive"
@@ -79,13 +79,13 @@ detect_target() {
 	case $arch in
 	arm64 | aarch64) arch=aarch64 ;;
 	x86_64 | amd64) arch=x86_64 ;;
-	*) die "unsupported architecture: $arch — build from source with cargo install --git https://github.com/$REPO tidy_cli" ;;
+	*) die "unsupported architecture: $arch — build from source with cargo install --git https://github.com/ tidy" ;;
 	esac
 
 	case $os in
 	Darwin) echo "$arch-apple-darwin" ;;
 	Linux) echo "$arch-unknown-linux-musl" ;;
-	*) die "unsupported system: $os — build from source with cargo install --git https://github.com/$REPO tidy_cli" ;;
+	*) die "unsupported system: $os — build from source with cargo install --git https://github.com/ tidy" ;;
 	esac
 }
 

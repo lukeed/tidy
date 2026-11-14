@@ -1,5 +1,7 @@
 //! The CLI as a user runs it, against folders made for each test.
 
+#![cfg(feature = "cli")]
+
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 

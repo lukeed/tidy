@@ -24,7 +24,7 @@ let only = option("--only")?.split(",");
 let root = new URL("..", import.meta.url).pathname;
 let bin = (name: string) => join(root, "node_modules/.bin", name);
 let target = join(root, "target");
-await $`cargo build --release -p tidy_cli`
+await $`cargo build --release -p tidy`
   .cwd(root)
   .env({ ...process.env, CARGO_TARGET_DIR: target })
   .quiet();

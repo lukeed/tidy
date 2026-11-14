@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo install --git https://github.com/lukeed/tidy tidy_cli
+      - run: cargo install --git https://github.com/lukeed/tidy tidy
       - run: tidy check .
 ```
 
@@ -68,7 +68,7 @@ tidy is one binary and one command, so it fits anywhere:
 format:
   image: rust:latest
   script:
-    - cargo install --git https://github.com/lukeed/tidy tidy_cli
+    - cargo install --git https://github.com/lukeed/tidy tidy
     - tidy check .
 ```
 

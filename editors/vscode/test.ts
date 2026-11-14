@@ -58,7 +58,7 @@ if (!process.env.DISPLAY) {
   process.exit(run.exitCode ?? 1);
 }
 
-let cargo = Bun.spawnSync(["cargo", "build", "-q", "-p", "tidy_cli"], {
+let cargo = Bun.spawnSync(["cargo", "build", "-q", "-p", "tidy"], {
   cwd: repo,
   stdio: inherit,
 });

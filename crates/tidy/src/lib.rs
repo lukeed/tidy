@@ -24,6 +24,8 @@ mod strings;
 mod syntax;
 mod text;
 pub mod toml;
+#[cfg(feature = "walk")]
+pub mod walk;
 pub mod xml;
 pub mod yaml;
 

@@ -13,7 +13,7 @@ homepage.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-tidy = { workspace = true, features = ["config"] }
+tidy = { workspace = true, features = ["js", "config"] }
 wasm-bindgen = "=0.2.130"
 
 [lints]
