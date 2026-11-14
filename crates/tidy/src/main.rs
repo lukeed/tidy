@@ -299,9 +299,17 @@ fn run() -> Result<ExitCode, String> {
   if mode == Mode::Print && paths.is_empty() {
     return sources.stdin(None, false);
   }
-  let paths = match paths.is_empty() {
+  // The folder tidy takes when given no paths goes unnamed in what it prints, as in ripgrep.
+  let implicit = paths.is_empty();
+  let paths = match implicit {
     true => vec![PathBuf::from(".")],
     false => paths,
+  };
+  let named = |path: &'_ Path| -> PathBuf {
+    match implicit {
+      true => path.strip_prefix(".").unwrap_or(path).to_path_buf(),
+      false => path.to_path_buf(),
+    }
   };
 
   if !check && !write && paths.len() == 1 && paths[0].is_file() {
@@ -332,13 +340,14 @@ fn run() -> Result<ExitCode, String> {
     }
   };
   let report = tidy::walk::run(&paths, &options, listing, Formatter::default, |formatter, file| {
+    let path = named(&file.path);
     let source = match std::str::from_utf8(&file.bytes) {
       Ok(source) => source,
       Err(error) => {
-        return Some(Output { value: Err(format!("{}: {error}", shown(&file.path))), write: None });
+        return Some(Output { value: Err(format!("{}: {error}", shown(&path))), write: None });
       }
     };
-    match sources.format(formatter, source, &file.path) {
+    match sources.format(formatter, source, &path) {
       Ok(None) => None,
       Ok(Some(output)) if output == source => None,
       Ok(Some(output)) => {
@@ -351,12 +360,12 @@ fn run() -> Result<ExitCode, String> {
   let (mut listed, mut errors) = (String::new(), String::new());
   for (path, outcome) in &report.results {
     match outcome {
-      Ok(()) => listed.push_str(&format!("{}\n", shown(path))),
+      Ok(()) => listed.push_str(&format!("{}\n", shown(&named(path)))),
       Err(error) => errors.push_str(&format!("tidy: {error}\n")),
     }
   }
   for (path, error) in &report.errors {
-    errors.push_str(&format!("tidy: {}: {error}\n", shown(path)));
+    errors.push_str(&format!("tidy: {}: {error}\n", shown(&named(path))));
   }
   std::io::stdout().write_all(listed.as_bytes()).map_err(|error| error.to_string())?;
   std::io::stderr().write_all(errors.as_bytes()).map_err(|error| error.to_string())?;
