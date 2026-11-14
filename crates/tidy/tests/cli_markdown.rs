@@ -69,3 +69,17 @@ fn reports_folders_it_cannot_read() {
   assert!(stderr.contains("docs/locked"), "{stderr}");
   assert_eq!(output.status.code(), Some(2));
 }
+
+#[test]
+fn names_files_from_the_folder_when_given_no_paths() {
+  let folder = Folder::new("implicit", &[("a.md", "* a\n"), ("docs/b.md", "* b\n")]);
+  let output = tidy(&["check"], &folder.0);
+  assert_eq!(String::from_utf8_lossy(&output.stdout), "a.md\ndocs/b.md\n");
+
+  let output = tidy(&["check", "."], &folder.0);
+  assert_eq!(
+    String::from_utf8_lossy(&output.stdout),
+    "./a.md\n./docs/b.md\n",
+    "a path given keeps its spelling"
+  );
+}
