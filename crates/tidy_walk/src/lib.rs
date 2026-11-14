@@ -26,6 +26,11 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 
+/// The stack of each walk thread. oxc's parser recurses without a limit on nested text, and a stack overflow aborts
+/// the whole process: bun's fixtures need up to 12 MiB, where a spawned thread has 2 MiB. Only the pages a thread
+/// touches take memory, so the room costs nothing on ordinary files.
+pub const STACK: usize = 64 << 20;
+
 /// How to walk.
 pub struct Options<'a> {
   /// Whether to work on a file found in a folder, by its folder and name. Files given as paths are always worked
