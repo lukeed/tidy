@@ -197,3 +197,21 @@ fn a_scope_needs_up_or_check() {
   assert_eq!(output.status.code(), Some(2));
   assert!(String::from_utf8_lossy(&output.stderr).contains("`tidy up` or `tidy check`"));
 }
+
+#[test]
+fn leaves_out_what_gitignore_ignores() {
+  let repo =
+    Repo::new("gitignore", &[(".gitignore", "gen/\n*.gen.ts\n"), ("a.ts", "const a = 1;\n")]);
+  repo.write("b.ts", "const b   =2\n");
+  repo.write("c.gen.ts", "const c   =3\n");
+  repo.write("gen/d.ts", "const d   =4\n");
+
+  let output = tidy(&["check", "."], &repo.0);
+  assert_eq!(lines(&output), ["./b.ts"]);
+
+  let output = tidy(&["check", ".", "--no-gitignore"], &repo.0);
+  assert_eq!(lines(&output), ["./b.ts", "./c.gen.ts", "./gen/d.ts"]);
+
+  let output = tidy(&["check", "c.gen.ts"], &repo.0);
+  assert_eq!(lines(&output), ["c.gen.ts"], "a path given is always formatted");
+}

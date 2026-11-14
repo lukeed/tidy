@@ -88,7 +88,7 @@ The name is per language too, so `"markdown": { "ignore": "tidy-ignore" }` chang
 
 ## Leaving paths out
 
-tidy skips `node_modules` and every folder whose name starts with `.` when it walks a folder. It does not read `.gitignore`, `.prettierignore` or any other ignore file.
+When tidy walks a folder, it skips `node_modules` and every folder whose name starts with `.`. Inside a git repository it also skips what git ignores: the `.gitignore` files, `.git/info/exclude` and your global excludes file, by git's rules. `--no-gitignore` turns that off. tidy does not read `.prettierignore`.
 
 To format part of a repository, name the parts:
 

@@ -19,6 +19,7 @@
 //! - Links found while walking are never followed.
 //! - Files with more than one hard link are set aside and worked on once each, after the walk.
 
+mod ignored;
 mod plan;
 mod pool;
 
@@ -45,6 +46,9 @@ pub struct Options<'a> {
   /// The most bytes in flight: files read and not yet worked on, and writes not yet done. One file is always let
   /// through.
   pub bytes: usize,
+  /// Whether to leave out what git ignores: the `.gitignore` files of a repository, its `.git/info/exclude`, and the
+  /// global excludes file. Paths given are always worked on.
+  pub gitignore: bool,
 }
 
 impl Default for Options<'_> {
@@ -57,7 +61,14 @@ impl Default for Options<'_> {
       true => (cores.min(6), cores),
       false => (cores, 0),
     };
-    Options { wanted: &everything, skip: &hidden_and_node_modules, io, workers, bytes: 256 << 20 }
+    Options {
+      wanted: &everything,
+      skip: &hidden_and_node_modules,
+      io,
+      workers,
+      bytes: 256 << 20,
+      gitignore: true,
+    }
   }
 }
 
@@ -145,6 +156,7 @@ pub fn run<S, T: Send>(
     state: &state,
     work: &work,
     arguments: &plan.arguments,
+    global: options.gitignore.then(ignored::global),
     nested: &plan.nested,
     claimed: plan.arguments.iter().map(|_| AtomicBool::new(false)).collect(),
   };

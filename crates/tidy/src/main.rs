@@ -46,6 +46,7 @@ Choosing files
                                   language and its configs
   --skip-unknown                  Leave text in a language tidy can't tell as it is, instead of
                                   failing
+  --no-gitignore                  Also format what .gitignore files leave out
   --threads <n>                   How many files to format at once (default: all cores)
 
 Config
@@ -210,6 +211,7 @@ fn run() -> Result<ExitCode, String> {
     }
   };
   let skip_unknown = args.contains("--skip-unknown");
+  let gitignore = !args.contains("--no-gitignore");
   let fixed: Option<PathBuf> = args.opt_value_from_str("--config").map_err(error)?;
   let no_config = args.contains("--no-config");
   flags.shared = shared(&mut args)?;
@@ -315,7 +317,8 @@ fn run() -> Result<ExitCode, String> {
     return Err("use `tidy up` or `tidy check` to format more than one file".into());
   }
 
-  let mut options = tidy::walk::Options { wanted: &wanted, ..tidy::walk::Options::default() };
+  let mut options =
+    tidy::walk::Options { wanted: &wanted, gitignore, ..tidy::walk::Options::default() };
   match threads.map(|threads| threads.max(1)) {
     Some(1) => (options.io, options.workers) = (1, 0),
     Some(threads) if options.workers == 0 => options.io = threads,

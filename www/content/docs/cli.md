@@ -85,12 +85,13 @@ When git names no file tidy can format, the run succeeds and prints nothing — 
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------- |
 | `--parser <name>`  | Force a language instead of guessing from the file name.                                                                    |
 | `--stdin[=<path>]` | Read the text from stdin. The path is the one the text would have, which decides its language and which config files apply. |
+| `--no-gitignore`   | Also format what `.gitignore` files leave out.                                                                              |
 | `--skip-unknown`   | Leave text in a language tidy can't tell as it is, instead of failing.                                                      |
 | `--threads <n>`    | How many files to format at once. Defaults to one per core; `1` uses a single thread.                                       |
 
 `--parser` takes `html`, `vue`, `mjml`, `handlebars`, `tempura`, `css`, `scss`, `less`, `json`, `jsonc`, `json5`, `json-stringify`, `yaml`, `toml`, `dockerfile`, `ini`, `gitconfig`, `graphql`, `babel`, `typescript`, `babel-ts`, `xml` or `markdown`. The names are Prettier's.
 
-When tidy walks a folder it skips `node_modules` and every folder whose name starts with `.`. It does not read `.gitignore`. To leave other paths out, pass the paths you do want, or see [Ignoring code](/docs/ignore/).
+When tidy walks a folder it skips `node_modules`, every folder whose name starts with `.`, and, inside a git repository, what git ignores: the `.gitignore` files, `.git/info/exclude` and your global excludes file. `--no-gitignore` formats those too. A path you name is always formatted. To leave other paths out, pass the paths you do want, or see [Ignoring code](/docs/ignore/).
 
 ## Config
 
