@@ -1,6 +1,6 @@
 {
   "name": "tidyrs",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A fast formatter for JavaScript, TypeScript, HTML, Vue, Handlebars, CSS, JSON, YAML, TOML, XML, GraphQL, INI, Dockerfiles and Markdown, with Prettier's style by default",
   "license": "MIT",
   "author": "Luke Edwards <luke.edwards05@gmail.com> (https://lukeed.com)",
