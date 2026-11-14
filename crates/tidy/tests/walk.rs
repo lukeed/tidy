@@ -247,3 +247,111 @@ fn sees_each_folder_before_its_files() {
   let docs = listed.iter().find(|(dir, _)| dir.ends_with("docs")).unwrap();
   assert!(docs.1.contains(&"tidy.json".to_owned()));
 }
+
+/// A git repository's files: a `.git` folder marks its root.
+fn repository(name: &str, files: &[(&str, &str)]) -> Tree {
+  let mut all = vec![(".git/HEAD", "ref: refs/heads/main\n")];
+  all.extend_from_slice(files);
+  Tree::new(name, &all)
+}
+
+#[test]
+fn leaves_out_what_gitignore_ignores() {
+  let tree = repository(
+    "gitignore",
+    &[
+      (".gitignore", "dist/\n*.gen.md\n"),
+      ("a.md", ""),
+      ("b.gen.md", ""),
+      ("dist/c.md", ""),
+      ("docs/d.md", ""),
+      ("docs/e.gen.md", ""),
+    ],
+  );
+  for options in shapes() {
+    assert_eq!(walk(&tree, std::slice::from_ref(&tree.0), &options).0, ["a.md", "docs/d.md"]);
+  }
+}
+
+#[test]
+fn applies_each_folders_gitignore_below_it_with_negations() {
+  let tree = repository(
+    "nested-gitignore",
+    &[
+      (".gitignore", "*.gen.md\n"),
+      ("a.gen.md", ""),
+      ("docs/.gitignore", "!keep.gen.md\ndrafts.md\n"),
+      ("docs/keep.gen.md", ""),
+      ("docs/other.gen.md", ""),
+      ("docs/drafts.md", ""),
+      ("drafts.md", ""),
+    ],
+  );
+  for options in shapes() {
+    assert_eq!(
+      walk(&tree, std::slice::from_ref(&tree.0), &options).0,
+      ["docs/keep.gen.md", "drafts.md"]
+    );
+  }
+}
+
+#[test]
+fn applies_the_gitignore_above_a_folder_it_is_given() {
+  let tree = repository(
+    "parent-gitignore",
+    &[(".gitignore", "build/\n"), ("src/a.md", ""), ("src/build/b.md", "")],
+  );
+  for options in shapes() {
+    assert_eq!(walk(&tree, &[tree.path("src")], &options).0, ["src/a.md"]);
+  }
+}
+
+#[test]
+fn reads_the_repositorys_exclude_file() {
+  let tree =
+    repository("exclude", &[(".git/info/exclude", "local.md\n"), ("a.md", ""), ("local.md", "")]);
+  for options in shapes() {
+    assert_eq!(walk(&tree, std::slice::from_ref(&tree.0), &options).0, ["a.md"]);
+  }
+}
+
+#[test]
+fn ignores_gitignore_outside_a_repository() {
+  let tree = Tree::new("no-repository", &[(".gitignore", "*.md\n"), ("a.md", "")]);
+  for options in shapes() {
+    assert_eq!(walk(&tree, std::slice::from_ref(&tree.0), &options).0, ["a.md"]);
+  }
+}
+
+#[test]
+fn starts_over_in_a_nested_repository() {
+  let tree = repository(
+    "nested-repository",
+    &[
+      (".gitignore", "*.gen.md\n"),
+      ("a.gen.md", ""),
+      ("vendor/.git/HEAD", ""),
+      ("vendor/b.gen.md", ""),
+    ],
+  );
+  for options in shapes() {
+    assert_eq!(walk(&tree, std::slice::from_ref(&tree.0), &options).0, ["vendor/b.gen.md"]);
+  }
+}
+
+#[test]
+fn works_on_ignored_files_it_is_given() {
+  let tree = repository("named-ignored", &[(".gitignore", "*.gen.md\n"), ("a.gen.md", "")]);
+  for options in shapes() {
+    assert_eq!(walk(&tree, &[tree.path("a.gen.md")], &options).0, ["a.gen.md"]);
+  }
+}
+
+#[test]
+fn can_leave_gitignore_alone() {
+  let tree = repository("no-gitignore", &[(".gitignore", "*.gen.md\n"), ("a.gen.md", "")]);
+  for options in shapes() {
+    let options = Options { gitignore: false, ..options };
+    assert_eq!(walk(&tree, std::slice::from_ref(&tree.0), &options).0, ["a.gen.md"]);
+  }
+}

@@ -1,6 +1,7 @@
 //! The threads of a walk: I/O threads, which list folders, read files and write them, and workers, which run the
 //! work. They share one state behind a mutex, with a condition variable for each kind of thread.
 
+use super::ignored::{self, Here};
 use super::plan::Argument;
 use super::{Entry, Error, File, Kind, Options, Output};
 use std::collections::{HashMap, VecDeque};
@@ -8,6 +9,7 @@ use std::ffi::OsString;
 use std::io::Read;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Condvar, Mutex, MutexGuard, PoisonError};
 
@@ -18,12 +20,18 @@ pub(crate) enum Task {
   Folder {
     path: PathBuf,
     canonical: Option<PathBuf>,
+    /// Set when the walk reads `.gitignore` files.
+    ignore: Option<Ignore>,
   },
   /// `argument` is the index of the argument that the path spells, if any.
-  File {
-    path: PathBuf,
-    argument: Option<usize>,
-  },
+  File { path: PathBuf, argument: Option<usize> },
+}
+
+/// Where a folder is, from the root, and the git rules in effect above it: `None` until they are found, for a folder
+/// the walk starts from.
+pub(crate) struct Ignore {
+  absolute: PathBuf,
+  above: Option<Here>,
 }
 
 /// New contents to write, and what the work returned for them.
@@ -47,6 +55,8 @@ pub(crate) struct Walk<'w, S, T> {
   pub(crate) state: &'w (dyn Fn() -> S + Sync),
   pub(crate) work: &'w (dyn Fn(&mut S, &File) -> Option<Output<T>> + Sync),
   pub(crate) arguments: &'w [Argument],
+  /// The global excludes file, when the walk reads `.gitignore` files.
+  pub(crate) global: Option<Arc<ignore::gitignore::Gitignore>>,
   pub(crate) nested: &'w HashMap<PathBuf, usize>,
   /// Whether each argument has been handled, by the walk reaching it or after the walk.
   pub(crate) claimed: Vec<AtomicBool>,
@@ -61,7 +71,14 @@ impl<S, T> Walk<'_, S, T> {
   pub(crate) fn argument(&self, index: usize) -> Task {
     let argument = &self.arguments[index];
     match argument.folder {
-      true => Task::Folder { path: argument.path.clone(), canonical: argument.canonical.clone() },
+      true => Task::Folder {
+        path: argument.path.clone(),
+        canonical: argument.canonical.clone(),
+        ignore: self
+          .global
+          .as_ref()
+          .map(|_| Ignore { absolute: ignored::absolute(&argument.path), above: None }),
+      },
       false => Task::File { path: argument.path.clone(), argument: Some(index) },
     }
   }
@@ -205,7 +222,9 @@ fn io<S, T: Send>(shared: &Shared<'_, '_, S, T>) -> Done<T> {
     };
     let _busy = Busy { shared, worker: false };
     match job {
-      Ok(Task::Folder { path, canonical }) => folder(shared, path, canonical, &mut done),
+      Ok(Task::Folder { path, canonical, ignore }) => {
+        folder(shared, path, canonical, ignore, &mut done)
+      }
       Ok(Task::File { path, argument }) => file(shared, path, argument, &mut done, &mut state),
       Err(pending) => write(shared, pending, &mut done),
     }
@@ -285,6 +304,7 @@ fn folder<S, T: Send>(
   shared: &Shared<'_, '_, S, T>,
   path: PathBuf,
   canonical: Option<PathBuf>,
+  ignore: Option<Ignore>,
   done: &mut Done<T>,
 ) {
   let walk = shared.walk;
@@ -310,6 +330,24 @@ fn folder<S, T: Send>(
       Err(error) => done.errors.push((path.join(&name), Error::Io(error))),
     }
   }
+  let here = ignore.as_ref().zip(walk.global.as_ref()).map(|(ignore, global)| {
+    let above = match &ignore.above {
+      Some(above) => Ok(above.clone()),
+      None => ignored::above(&ignore.absolute, global),
+    };
+    let git = list.iter().any(|(name, _)| name == ".git");
+    let gitignore = list.iter().any(|(name, kind)| name == ".gitignore" && *kind == Kind::File);
+    above.and_then(|above| ignored::enter(&above, &ignore.absolute, git, gitignore, global))
+  });
+  let here = match here {
+    Some(Ok(here)) => here,
+    Some(Err(error)) => return done.errors.push((path, Error::Io(error))),
+    None => None,
+  };
+  let ignored = |name: &std::ffi::OsStr, folder: bool| match (&here, &ignore) {
+    (Some(rules), Some(ignore)) => rules.ignores(&ignore.absolute.join(name), folder),
+    _ => false,
+  };
   let found = catch_unwind(AssertUnwindSafe(|| {
     let entries: Vec<Entry> = list.iter().map(|(name, kind)| Entry { name, kind: *kind }).collect();
     (walk.listing)(&path, &entries);
@@ -324,11 +362,17 @@ fn folder<S, T: Send>(
         continue;
       }
       match kind {
-        Kind::Folder if !(walk.options.skip)(&path, name) => found.push(Task::Folder {
-          path: path.join(name),
-          canonical: canonical.as_ref().map(|it| it.join(name)),
-        }),
-        Kind::File if (walk.options.wanted)(&path, name) => {
+        Kind::Folder if !(walk.options.skip)(&path, name) && !ignored(name, true) => {
+          found.push(Task::Folder {
+            path: path.join(name),
+            canonical: canonical.as_ref().map(|it| it.join(name)),
+            ignore: ignore.as_ref().map(|ignore| Ignore {
+              absolute: ignore.absolute.join(name),
+              above: Some(here.clone()),
+            }),
+          })
+        }
+        Kind::File if (walk.options.wanted)(&path, name) && !ignored(name, false) => {
           found.push(Task::File { path: path.join(name), argument: None })
         }
         _ => {}
