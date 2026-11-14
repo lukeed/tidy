@@ -154,10 +154,10 @@ pub(crate) fn run<S, T: Send>(walk: &Walk<'_, S, T>, tasks: Vec<Task>, hold: boo
     Shared { walk, state: Mutex::new(state), io: Condvar::new(), workers: Condvar::new(), hold };
   let shared = &shared;
   std::thread::scope(|scope| {
-    let io = (0..walk.options.io.max(1)).map(|_| scope.spawn(move || io(shared)));
+    let io = (0..walk.options.io.max(1)).map(|_| spawn(scope, move || io(shared)));
     let io: Vec<_> = io.collect();
     let workers: Vec<_> =
-      (0..walk.options.workers).map(|_| scope.spawn(move || worker(shared))).collect();
+      (0..walk.options.workers).map(|_| spawn(scope, move || worker(shared))).collect();
     let mut done = Done::default();
     for thread in io.into_iter().chain(workers) {
       let Ok(found) = thread.join() else { continue };
@@ -167,6 +167,15 @@ pub(crate) fn run<S, T: Send>(walk: &Walk<'_, S, T>, tasks: Vec<Task>, hold: boo
     }
     done
   })
+}
+
+/// Spawns a thread with a [`STACK`](crate::STACK)-sized stack, as `scope.spawn` would.
+fn spawn<'scope, R: Send + 'scope>(
+  scope: &'scope std::thread::Scope<'scope, '_>,
+  run: impl FnOnce() -> R + Send + 'scope,
+) -> std::thread::ScopedJoinHandle<'scope, R> {
+  let builder = std::thread::Builder::new().stack_size(crate::STACK);
+  builder.spawn_scoped(scope, run).expect("failed to spawn thread")
 }
 
 fn io<S, T: Send>(shared: &Shared<'_, '_, S, T>) -> Done<T> {

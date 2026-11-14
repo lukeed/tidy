@@ -82,7 +82,14 @@ Examples
 ";
 
 fn main() -> ExitCode {
-  match run() {
+  // A main thread has 1 MiB on Windows and 8 MiB elsewhere, so run on a thread with the walk threads' stack.
+  let thread = std::thread::Builder::new().stack_size(tidy_walk::STACK).spawn(run);
+  let result = match thread.map(std::thread::JoinHandle::join) {
+    Ok(Ok(result)) => result,
+    Ok(Err(panic)) => std::panic::resume_unwind(panic),
+    Err(error) => Err(format!("can't start: {error}")),
+  };
+  match result {
     Ok(code) => code,
     Err(error) => {
       eprintln!("tidy: {error}");
