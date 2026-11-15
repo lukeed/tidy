@@ -22,6 +22,21 @@ for name, text in pairs({ ["narrow/tidy.json"] = '{ "width": 20 }\n', ["wide/tid
 	vim.fn.writefile(vim.split(text, "\n", { trimempty = true }), vim.fs.joinpath(root, name))
 end
 
+-- Stand-ins that print a rewritten text and exit 0, so only the version check keeps them from formatting.
+local fakes = {
+	["html-tidy"] = "HTML Tidy for Mac OS X released on 31 October 2006 - Apple Inc. build 4474",
+	["old-tidy"] = "tidy 0.1.0",
+}
+for name, version in pairs(fakes) do
+	local script = vim.fs.joinpath(root, name)
+	vim.fn.writefile({
+		"#!/bin/sh",
+		('if [ "$1" = "--version" ]; then echo "%s"; exit 0; fi'):format(version),
+		("cat; echo '<!-- %s -->'"):format(name),
+	}, script)
+	vim.fn.setfperm(script, "rwxr-xr-x")
+end
+
 local errors = {}
 vim.notify = function(message)
 	table.insert(errors, message)
@@ -110,6 +125,25 @@ local tests = {
 		tidy.setup({ cmd = bin })
 		assert(vim.deep_equal(saved("wide/missing.css"), { "a{color:red}" }))
 		assert(#errors == 1 and errors[1]:find("can't run", 1, true), vim.inspect(errors))
+	end,
+
+	["refuses HTML Tidy, which macOS ships as tidy"] = function()
+		tidy.setup({ cmd = vim.fs.joinpath(root, "html-tidy") })
+		open("wide/html-tidy.html", { "<p>hi</p>" })
+		vim.cmd("silent write")
+		tidy.setup({ cmd = bin })
+		assert(vim.deep_equal(saved("wide/html-tidy.html"), { "<p>hi</p>" }), vim.inspect(saved("wide/html-tidy.html")))
+		assert(#errors == 1 and errors[1]:find("is HTML Tidy", 1, true), vim.inspect(errors))
+	end,
+
+	["refuses a tidy older than 0.2.0"] = function()
+		tidy.setup({ cmd = vim.fs.joinpath(root, "old-tidy") })
+		open("wide/old-tidy.html", { "<p   >hi</p>" })
+		vim.cmd("silent write")
+		vim.cmd("silent write")
+		tidy.setup({ cmd = bin })
+		assert(vim.deep_equal(saved("wide/old-tidy.html"), { "<p   >hi</p>" }))
+		assert(#errors == 1 and errors[1]:find("needs 0.2.0 or later", 1, true), "says it once: " .. vim.inspect(errors))
 	end,
 
 	["can leave saving alone"] = function()

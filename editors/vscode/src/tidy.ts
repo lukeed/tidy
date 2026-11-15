@@ -6,8 +6,8 @@ export type Result =
   { ok: true; output: string } | { ok: false; error: string; missing: boolean };
 
 /**
- * Runs the tidy binary with `input` on its stdin, and gives back its stdout or
- * its error.
+ * Runs the tidy binary with `input` on its stdin, or with no stdin when `input`
+ * is `undefined`, and gives back its stdout or its error.
  *
  * @example
  *   let result = await tidy.run("tidy", ["--stdin=/repo/a.ts"], "let a=1", "/repo", token);
@@ -16,21 +16,26 @@ export type Result =
 export function run(
   bin: string,
   args: string[],
-  input: string,
+  input: string | undefined,
   cwd: string,
   token: CancellationToken,
 ): Promise<Result> {
   return new Promise((resolve) => {
-    let child = spawn(bin, args, { cwd, windowsHide: true });
+    let stdin: "ignore" | "pipe" = input === undefined ? "ignore" : "pipe";
+    let child = spawn(bin, args, {
+      cwd,
+      windowsHide: true,
+      stdio: [stdin, "pipe", "pipe"],
+    });
     let cancel = token.onCancellationRequested(() => child.kill());
     let stdout: Buffer[] = [];
     let stderr: Buffer[] = [];
 
-    child.stdout.on("data", (chunk: Buffer) => stdout.push(chunk));
-    child.stderr.on("data", (chunk: Buffer) => stderr.push(chunk));
+    child.stdout?.on("data", (chunk: Buffer) => stdout.push(chunk));
+    child.stderr?.on("data", (chunk: Buffer) => stderr.push(chunk));
     // tidy exits before it reads all of stdin when it fails early; `close` reports why.
-    child.stdin.on("error", () => {});
-    child.on("spawn", () => child.stdin.end(input));
+    child.stdin?.on("error", () => {});
+    child.on("spawn", () => child.stdin?.end(input));
 
     child.on("error", (error: NodeJS.ErrnoException) => {
       cancel.dispose();

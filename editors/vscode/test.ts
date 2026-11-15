@@ -110,6 +110,16 @@ for (let [name, text] of Object.entries(files)) {
 }
 fs.mkdirSync(path.join(workspace, "bin"));
 fs.copyFileSync(bin, path.join(workspace, "bin", "tidy"));
+// Stand-ins that print a rewritten text and exit 0, so only the version check keeps them from formatting.
+let fakes: Record<string, string> = {
+  "html-tidy":
+    "HTML Tidy for Mac OS X released on 31 October 2006 - Apple Inc. build 4474",
+  "old-tidy": "tidy 0.1.0",
+};
+for (let [name, version] of Object.entries(fakes)) {
+  let script = `#!/bin/sh\nif [ "$1" = "--version" ]; then echo "${version}"; exit 0; fi\ncat; echo "<!-- ${name} -->"\n`;
+  fs.writeFileSync(path.join(workspace, "bin", name), script, { mode: 0o755 });
+}
 
 try {
   await runTests({

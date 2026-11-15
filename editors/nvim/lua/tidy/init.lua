@@ -37,6 +37,39 @@ local function notify(message)
 	vim.notify("tidy: " .. message, vim.log.levels.ERROR)
 end
 
+-- Binaries that passed the version check. One that failed is checked again, so a fix needs no restart.
+local checked = {}
+-- Problems already shown, so each is said once.
+local shown = {}
+
+--- Why `cmd` can't format, or nil once `cmd --version` shows tidy 0.2.0 or later, the first with `--stdin=<path>`
+--- and `--skip-unknown`. macOS ships HTML Tidy as /usr/bin/tidy, which takes any flags and rewrites what it reads.
+local function refused(cmd)
+	if checked[cmd] then
+		return nil
+	end
+	local ok, job = pcall(vim.system, { cmd, "--version" }, { text = true })
+	if not ok then
+		return ("can't run: %s"):format(job)
+	end
+	local result = job:wait(config.timeout_ms)
+	if result.code ~= 0 then
+		return ("fails: %s"):format(vim.trim(result.stderr or ""))
+	end
+	local first = vim.split(result.stdout or "", "\n", { plain = true })[1] or ""
+	if vim.startswith(first, "HTML Tidy") then
+		return "is HTML Tidy, which macOS ships as /usr/bin/tidy, not tidy"
+	end
+	local major, minor, patch = first:match("^tidy (%d+)%.(%d+)%.(%d+)")
+	if not major then
+		return ('is not tidy: it printed "%s"'):format(first)
+	end
+	if tonumber(major) == 0 and tonumber(minor) < 2 then
+		return ("is tidy %s.%s.%s, and this plugin needs 0.2.0 or later"):format(major, minor, patch)
+	end
+	checked[cmd] = true
+end
+
 --- Replaces the lines of `bufnr` with `lines`, hunk by hunk, so that marks and the cursor outside a change stay.
 local function apply(bufnr, before, lines)
 	local diff = vim.text and vim.text.diff or vim.diff
@@ -67,6 +100,16 @@ function M.format(bufnr)
 	local dir = vim.fs.dirname(path)
 	local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
 	local input = table.concat(lines, "\n") .. "\n"
+
+	local problem = refused(config.cmd)
+	if problem then
+		local message = ("`%s` %s. Install tidy, or set `cmd` in setup()."):format(config.cmd, problem)
+		if not shown[message] then
+			shown[message] = true
+			notify(message)
+		end
+		return false
+	end
 
 	local ok, job = pcall(vim.system, { config.cmd, "--stdin=" .. path, "--skip-unknown" }, {
 		stdin = input,
