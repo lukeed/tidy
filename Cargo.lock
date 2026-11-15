@@ -1054,7 +1054,7 @@ dependencies = [
 
 [[package]]
 name = "tidy"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "bitflags",
  "bumpalo",
@@ -1082,7 +1082,7 @@ dependencies = [
 
 [[package]]
 name = "tidy_napi"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "napi",
  "napi-build",
@@ -1093,7 +1093,7 @@ dependencies = [
 
 [[package]]
 name = "tidy_wasm"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "tidy",
  "wasm-bindgen",
