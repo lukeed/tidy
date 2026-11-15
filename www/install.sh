@@ -56,12 +56,24 @@ If tidy has not been released for your platform yet, build it from source:
 
 	say "installed $("$dest/tidy" --version) to $dest/tidy"
 
+	# macOS ships HTML Tidy as /usr/bin/tidy, which a PATH can find first.
+	found=$(command -v tidy 2>/dev/null || true)
 	case ":${PATH}:" in
-	*":$dest:"*) ;;
+	*":$dest:"*)
+		if [ -n "$found" ] && [ "$found" != "$dest/tidy" ]; then
+			say ""
+			say "warning: \`tidy\` runs $found, which comes before $dest on your PATH."
+			say "Put $dest first in your shell profile:"
+			say "  export PATH=\"$dest:\$PATH\""
+		fi
+		;;
 	*)
 		say ""
 		say "$dest is not on your PATH. Add this to your shell profile:"
 		say "  export PATH=\"$dest:\$PATH\""
+		if [ -n "$found" ]; then
+			say "Until you do, \`tidy\` runs $found."
+		fi
 		;;
 	esac
 
