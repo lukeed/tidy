@@ -121,13 +121,23 @@ $ tidy --version
 $ echo '<p   >hi</p>' | tidy --stdin=index.html
 ```
 
-The second command prints `<p>hi</p>`. If the shell cannot find `tidy`, the install directory is not on your `PATH`:
+The first command prints `tidy` and its version, and the second prints `<p>hi</p>`. If the shell cannot find `tidy`, the install directory is not on your `PATH`:
 
 ```sh
 $ export PATH="$HOME/.local/bin:$PATH"
 ```
 
 Add that to your shell profile to make it stick. For a cargo install, the directory is `~/.cargo/bin`.
+
+### HTML Tidy on macOS
+
+macOS comes with an unrelated program of the same name, HTML Tidy, at `/usr/bin/tidy`. If `tidy --version` prints `HTML Tidy for Mac OS X`, your `PATH` finds that one first. Put the install directory before `/usr/bin`, with the `export` line above, and check which one runs:
+
+```sh
+$ which tidy
+```
+
+The editor plugins check the version before they format, so they refuse to run HTML Tidy. The install script warns you when HTML Tidy comes first.
 
 ## Next
 
