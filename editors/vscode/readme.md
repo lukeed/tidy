@@ -2,7 +2,7 @@
 
 Formats your files with [tidy](https://tidy.lukeed.com), on save and on paste.
 
-The extension runs the `tidy` binary, so [install it](https://tidy.lukeed.com/docs/install/) first. Each file uses the same `tidy.json`, `tidy.toml` and `.editorconfig` that `tidy up` would use for it.
+The extension runs the `tidy` binary, 0.2.0 or later, so [install it](https://tidy.lukeed.com/docs/install/) first. It checks the version before it formats: macOS ships an unrelated HTML Tidy as `/usr/bin/tidy`, which the extension refuses to run. Each file uses the same `tidy.json`, `tidy.toml` and `.editorconfig` that `tidy up` would use for it.
 
 ## Setup
 

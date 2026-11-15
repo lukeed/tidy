@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 
 import * as languages from "./languages";
 import * as tidy from "./tidy";
+import * as version from "./version";
 
 /**
  * Registers tidy as a formatter of every language it knows, for whole documents
@@ -21,7 +22,42 @@ export function activate(context: vscode.ExtensionContext): void {
   status.name = "tidy";
   status.text = "tidy";
   status.command = { title: "Show Output", command: "tidy.output" };
-  let warned = false;
+  // Binaries that passed the version check. One that failed is checked again, so a fix needs no reload.
+  let checked = new Set<string>();
+  // Problems already shown, so each pops up once.
+  let shown = new Set<string>();
+  let never = new vscode.CancellationTokenSource().token;
+
+  /** Why `bin` can't format, or `undefined` once `tidy --version` shows it can. */
+  async function refused(
+    bin: string,
+    cwd: string,
+  ): Promise<string | undefined> {
+    if (checked.has(bin)) return undefined;
+    let result = await tidy.run(bin, ["--version"], undefined, cwd, never);
+    let problem = result.ok
+      ? version.problem(result.output)
+      : result.missing
+        ? "can't be found"
+        : `fails: ${result.error}`;
+    if (!problem) checked.add(bin);
+    return problem;
+  }
+
+  function fail(error: string, popup?: string): void {
+    log.error(error);
+    status.severity = vscode.LanguageStatusSeverity.Error;
+    status.detail = error;
+    if (!popup || shown.has(popup)) return;
+    shown.add(popup);
+    vscode.window.showErrorMessage(popup, "Open Settings").then((choice) => {
+      if (choice)
+        vscode.commands.executeCommand(
+          "workbench.action.openSettings",
+          "tidy.path",
+        );
+    });
+  }
 
   async function format(
     document: vscode.TextDocument,
@@ -42,6 +78,14 @@ export function activate(context: vscode.ExtensionContext): void {
     let bin = binary(folder);
     let input = document.getText();
 
+    let problem = await refused(bin, cwd);
+    if (token.isCancellationRequested) return [];
+    if (problem) {
+      let message = `tidy: \`${bin}\` ${problem}. Install tidy, or set \`tidy.path\`.`;
+      fail(message, message);
+      return [];
+    }
+
     log.trace(`${bin} --stdin=${file} --skip-unknown`);
     let result = await tidy.run(
       bin,
@@ -53,22 +97,8 @@ export function activate(context: vscode.ExtensionContext): void {
     if (token.isCancellationRequested) return [];
 
     if (!result.ok) {
-      log.error(result.error);
-      status.severity = vscode.LanguageStatusSeverity.Error;
-      status.detail = result.error;
-      if (result.missing && !warned) {
-        warned = true;
-        let message = `tidy: can't run \`${bin}\`. Install tidy, or set \`tidy.path\`.`;
-        vscode.window
-          .showErrorMessage(message, "Open Settings")
-          .then((choice) => {
-            if (choice)
-              vscode.commands.executeCommand(
-                "workbench.action.openSettings",
-                "tidy.path",
-              );
-          });
-      }
+      checked.delete(bin);
+      fail(result.error);
       return [];
     }
 

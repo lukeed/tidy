@@ -118,6 +118,50 @@ const tests: Record<string, () => Promise<void>> = {
   },
 };
 
+/** Formats `name` with `tidy.path` set to `bin`, and gives back the text after. */
+async function formatWith(
+  bin: string,
+  name: string,
+  text: string,
+): Promise<string> {
+  let config = vscode.workspace.getConfiguration("tidy");
+  let before = config.inspect<string>("path")?.workspaceValue;
+  await config.update("path", bin, vscode.ConfigurationTarget.Workspace);
+  try {
+    let editor = await open(name, text);
+    await vscode.commands.executeCommand("editor.action.formatDocument");
+    return editor.document.getText();
+  } finally {
+    await config.update("path", before, vscode.ConfigurationTarget.Workspace);
+  }
+}
+
+const more: Record<string, () => Promise<void>> = {
+  async "refuses HTML Tidy, which macOS ships as tidy"() {
+    let html = "<!DOCTYPE html>\n<title>x</title>\n<p>hi</p>\n";
+    assert.equal(
+      await formatWith("bin/html-tidy", "wide/html-tidy.html", html),
+      html,
+    );
+  },
+
+  async "refuses a tidy older than 0.2.0"() {
+    let html = "<p   >hi</p>\n";
+    assert.equal(
+      await formatWith("bin/old-tidy", "wide/old-tidy.html", html),
+      html,
+    );
+  },
+
+  async "formats again once the binary is right"() {
+    await formatWith("bin/html-tidy", "wide/again.html", "<p   >hi</p>\n");
+    let editor = await open("wide/again.css", "a{color:red}");
+    await vscode.commands.executeCommand("editor.action.formatDocument");
+    assert.equal(editor.document.getText(), "a {\n  color: red;\n}\n");
+  },
+};
+Object.assign(tests, more);
+
 /** The entry that `@vscode/test-electron` calls inside VS Code. */
 export async function run(): Promise<void> {
   await vscode.extensions.getExtension("lukeed.tidyup")?.activate();
