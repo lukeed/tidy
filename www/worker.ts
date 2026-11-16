@@ -35,7 +35,13 @@ const CLI = /^(curl|wget|libfetch|httpie|python-requests|powershell|fetch)/i;
 const RELEASE =
   /^\/download\/(v\d+\.\d+\.\d+[\w.+-]*)\/(tidy-([a-z\d_-]+)\.(tar\.gz|zip)(\.sha256)?)$/;
 
+/** `/<version>/schema.json`, such as `/0.4.0/schema.json`. */
+const SCHEMA = /^\/(\d+\.\d+\.\d+[\w.+-]*)\/schema\.json$/;
+
 const TEXT = "text/plain; charset=utf-8";
+
+/** Editors and the playground fetch the schema from other origins. */
+const CORS = { "access-control-allow-origin": "*" };
 
 const SCRIPT_HEADERS = {
   "content-type": "text/x-shellscript; charset=utf-8",
@@ -54,6 +60,8 @@ const SCRIPT_HEADERS = {
  * - `/download/latest` names the newest tag, and `/download/<tag>/<archive>`
  *   serves that file out of R2, which the release workflow fills from the same
  *   artifacts it attaches to the GitHub release.
+ * - `/<version>/schema.json` serves the JSON Schema of `tidy.json` that the
+ *   release uploaded, and `/schema.json` redirects to the latest one.
  *
  * A fetch of the installer counts an `installer` event, and a fetch of an
  * archive counts a `download` event. One install is one of each: the installer
@@ -80,6 +88,31 @@ export default {
         "content-type": TEXT,
         // Short, so a new release shows up without a purge.
         "cache-control": "public, max-age=60",
+      });
+    }
+
+    if (isRead && pathname === "/schema.json") {
+      let latest = await env.RELEASES.get("latest");
+      if (!latest) return missing();
+      let tag = (await new Response(latest.body).text()).trim();
+      return new Response(null, {
+        status: 302,
+        headers: {
+          ...CORS,
+          location: `/${tag.replace(/^v/, "")}/schema.json`,
+          // Short, so a new release takes over without a purge.
+          "cache-control": "public, max-age=300",
+        },
+      });
+    }
+
+    let schema = isRead && SCHEMA.exec(pathname);
+    if (schema) {
+      return release(req, env, `v${schema[1]}/schema.json`, {
+        ...CORS,
+        "content-type": "application/schema+json",
+        // A version never changes, so its schema never does either.
+        "cache-control": "public, max-age=31536000, immutable",
       });
     }
 
@@ -137,12 +170,7 @@ async function release(
       ? await env.RELEASES.head(key)
       : await env.RELEASES.get(key);
 
-  if (!object) {
-    return new Response("not found\n", {
-      status: 404,
-      headers: { "content-type": TEXT, "cache-control": "no-store" },
-    });
-  }
+  if (!object) return missing();
 
   return new Response(object.body ?? null, {
     headers: {
@@ -150,6 +178,14 @@ async function release(
       etag: object.httpEtag,
       "content-length": String(object.size),
     },
+  });
+}
+
+/** A 404 that says so in plain text. */
+function missing(): Response {
+  return new Response("not found\n", {
+    status: 404,
+    headers: { "content-type": TEXT, "cache-control": "no-store" },
   });
 }
 

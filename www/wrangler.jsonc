@@ -9,13 +9,15 @@
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
     // The Worker runs only on these: crowne.io's two paths, the install script,
-    // the release downloads, and `/`, where it chooses between the script and
-    // the home page by user agent.
+    // the release downloads, the versioned JSON Schemas, and `/`, where it
+    // chooses between the script and the home page by user agent.
     "run_worker_first": [
       "/x/script.js",
       "/x",
       "/install.sh",
       "/download/*",
+      "/schema.json",
+      "/*/schema.json",
       "/",
     ],
   },
