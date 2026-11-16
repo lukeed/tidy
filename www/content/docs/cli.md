@@ -6,15 +6,13 @@ order: 2
 ---
 
 ```sh
-$ tidy [paths...] [options]          # print the formatted file
-$ tidy up [paths...] [options]       # rewrite files in place
-$ tidy check [paths...] [options]    # list what isn't formatted
+$ tidy check [paths] [options]    # list what isn't formatted
+$ tidy up [paths] [options]       # rewrite it in place
+$ tidy init                       # write a tidy.json here
+$ tidy schema                     # print the JSON Schema of tidy.json
 ```
 
 ```sh
-# print one file, formatted
-$ tidy index.html
-
 # list what isn't formatted below here; exits 1 if any
 $ tidy check
 
@@ -23,29 +21,33 @@ $ tidy up
 
 # or name the paths, and the options
 $ tidy up src tests --width 100
+
+# format stdin, as the file it would be, and print it
+$ cat a.ts | tidy up --stdin=src/a.ts
 ```
 
 ## Commands
 
-| Command      | What it does                                                                                    |
-| ------------ | ----------------------------------------------------------------------------------------------- |
-| `tidy`       | Print the formatted result to stdout.                                                           |
-| `tidy up`    | Rewrite each file in place, and print what it rewrote. Files already formatted are not touched. |
-| `tidy check` | Print the paths that are not formatted. Changes nothing. Exits 1 if any.                        |
+| Command       | What it does                                                                                    |
+| ------------- | ----------------------------------------------------------------------------------------------- |
+| `tidy check`  | Print the paths that are not formatted. Changes nothing. Exits 1 if any.                        |
+| `tidy up`     | Rewrite each file in place, and print what it rewrote. Files already formatted are not touched. |
+| `tidy init`   | Write a `tidy.json` in this folder. See [init](#init).                                          |
+| `tidy schema` | Print the JSON Schema of `tidy.json`.                                                           |
 
-Bare `tidy` reads stdin when it gets no paths, and takes one file otherwise. `up` and `check` take as many paths as you like, and the current folder when you give none.
+`up` and `check` take as many paths as you like, and the current folder when you give none. Bare `tidy` prints the help, and `tidy <command> --help` prints a command's own.
 
 ```sh
 $ tidy check          # the same as: tidy check .
 $ tidy check src      # or only part of the tree
-$ cat a.ts | tidy --stdin=a.ts
+$ cat a.ts | tidy up --stdin=a.ts
 ```
 
 A folder named `up` or `check` is read as the command, not as a path. Write `./up` to mean the folder.
 
 ## Only what git says changed
 
-Instead of naming paths, let git name them. Both work with `up` and `check`, and not with bare `tidy`.
+Instead of naming paths, let git name them. Both work with `up` and `check`.
 
 | Flag                | What it does                                                                                                 |
 | ------------------- | ------------------------------------------------------------------------------------------------------------ |
@@ -102,6 +104,10 @@ When tidy walks a folder it skips `node_modules`, every folder whose name starts
 
 Without either, each file takes the nearest `tidy.json`, `tidy.jsonc` or `tidy.toml`, on top of any `.editorconfig` that applies. Options given on the command line override both. See [Configuration file](/docs/configuration/).
 
+## init
+
+`tidy init` writes a `tidy.json` in this folder, with every option whose default is the same in every language, and a `$schema` for this version of tidy. It leaves out `width` and `whitespace`, because a value at the top level would also change the languages whose default differs: Dockerfiles at 120 columns, and XML's `strict` whitespace. It does nothing if a `tidy.json`, `tidy.jsonc` or `tidy.toml` is already there.
+
 ## Style
 
 Every one of these has a config equivalent, documented in [Options](/docs/options/).
@@ -141,13 +147,13 @@ A `check` run that cannot parse a file exits `2`, not `1`, so a broken file is n
 ## stdin
 
 ```sh
-$ cat index.html | tidy --stdin=index.html
-$ echo '{"a":1}' | tidy --stdin --parser json
+$ cat index.html | tidy up --stdin=index.html
+$ echo '{"a":1}' | tidy up --stdin --parser json
 $ cat src/a.ts | tidy check --stdin=src/a.ts
 ```
 
-`--stdin=<path>` is the better form, because the path also decides which config files apply. The file does not have to exist. Without a path, tidy reads no config files except one named with `--config`, and you must give `--parser`. If `--parser` is given, it wins over the path.
+`tidy up --stdin` prints the formatted text, because there is no file to rewrite. `tidy check --stdin` prints nothing, and exits `0` if the text is formatted or `1` if it is not.
 
-Bare `tidy` and `tidy -` read stdin too, as `tidy --stdin` does. `tidy check --stdin` prints nothing, and exits `0` if the text is formatted or `1` if it is not. `tidy up --stdin` is an error, because there is no file to rewrite.
+`--stdin=<path>` is the better form, because the path also decides which config files apply. The file does not have to exist. Without a path, tidy reads no config files except one named with `--config`, and you must give `--parser`. If `--parser` is given, it wins over the path.
 
 If tidy can't tell the language, it fails. With `--skip-unknown`, it prints the text as it is, and `check` exits `0`. The flag also works with paths: a named file in an unknown language is skipped. Editors use it so that they can send any buffer to tidy.

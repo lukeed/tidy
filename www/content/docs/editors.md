@@ -42,7 +42,7 @@ Zed can format with an external command, per language:
       "formatter": {
         "external": {
           "command": "tidy",
-          "arguments": ["--stdin={buffer_path}"]
+          "arguments": ["up", "--stdin={buffer_path}"]
         }
       }
     }
@@ -75,7 +75,7 @@ require("conform").setup({
 	formatters = {
 		tidy = {
 			command = "tidy",
-			args = { "--stdin=$FILENAME", "--skip-unknown" },
+			args = { "up", "--stdin=$FILENAME", "--skip-unknown" },
 			stdin = true,
 		},
 	},
@@ -108,9 +108,9 @@ Turn off "Auto-save edited files to trigger the watcher", or the watcher runs wh
 
 ## Which flag to use
 
-| Form                  | When                                                                          |
-| --------------------- | ----------------------------------------------------------------------------- |
-| `tidy up <path>`      | The editor can run a command on a saved file.                                 |
-| `tidy --stdin=<path>` | The editor pipes the buffer in and takes stdout. Formats unsaved buffers too. |
+| Form                     | When                                                                          |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| `tidy up <path>`         | The editor can run a command on a saved file.                                 |
+| `tidy up --stdin=<path>` | The editor pipes the buffer in and takes stdout. Formats unsaved buffers too. |
 
 Prefer the stdin form where the editor supports it: it never writes a half-formatted file if something goes wrong, and it works before the first save.

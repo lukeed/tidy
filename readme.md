@@ -36,9 +36,6 @@ $ cargo install --path crates/tidy
 ## Usage
 
 ```sh
-# print one file, formatted
-$ tidy index.html
-
 # list what isn't formatted below here; exits 1 if any
 $ tidy check
 
@@ -49,7 +46,7 @@ $ tidy up
 $ tidy up src tests
 ```
 
-`up` and `check` take this folder when you name none. Bare `tidy` reads stdin. Run `tidy --help` for every flag.
+`up` and `check` take this folder when you name none, or stdin with `--stdin`. Run `tidy --help` for every flag.
 
 ### Config
 
