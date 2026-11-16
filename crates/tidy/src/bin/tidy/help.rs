@@ -34,22 +34,22 @@ pub(crate) fn global() -> String {
     $ tidy <command> [options]
 
   Available Commands
-    check     List unformatted files
     up        Format files in place
-    init      Write a config file
+    check     List unformatted files
     schema    Print the config's JSON Schema
+    init      Write a config file
 
   For more info, run any command with the `--help` flag
-    $ tidy check --help
     $ tidy up --help
+    $ tidy check --help
 
   Options
     -v, --version    Displays current version
     -h, --help       Displays this message
 
   Examples
-    $ tidy check
     $ tidy up src
+    $ tidy check
     $ cat a.ts | tidy up --stdin=src/a.ts
     $ cat a.ts | tidy up --stdin --lang ts
     $ tidy init
