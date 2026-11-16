@@ -72,7 +72,7 @@ fn siblings(name: &str) -> Folder {
 #[test]
 fn takes_the_config_next_to_the_path() {
   let folder = siblings("config");
-  let output = tidy(&["--stdin=narrow/x.html"], LONG, &folder.0);
+  let output = tidy(&["up", "--stdin=narrow/x.html"], LONG, &folder.0);
   assert_eq!(stdout(&output), NARROW, "{}", stderr(&output));
   assert_eq!(output.status.code(), Some(0));
 }
@@ -80,61 +80,56 @@ fn takes_the_config_next_to_the_path() {
 #[test]
 fn takes_the_config_of_the_path_not_of_the_folder_it_runs_in() {
   let folder = siblings("cwd");
-  let output = tidy(&["--stdin=../narrow/x.html"], LONG, &folder.path("wide"));
+  let output = tidy(&["up", "--stdin=../narrow/x.html"], LONG, &folder.path("wide"));
   assert_eq!(stdout(&output), NARROW, "{}", stderr(&output));
 
   let absolute = folder.path("wide/x.html");
-  let output = tidy(&[&format!("--stdin={}", absolute.display())], LONG, &folder.path("narrow"));
+  let output =
+    tidy(&["up", &format!("--stdin={}", absolute.display())], LONG, &folder.path("narrow"));
   assert_eq!(stdout(&output), WIDE, "{}", stderr(&output));
 }
 
 #[test]
 fn takes_the_language_from_the_path() {
   let folder = Folder::new("language", &[]);
-  let output = tidy(&["--stdin=a.css"], "a{color:red}", &folder.0);
+  let output = tidy(&["up", "--stdin=a.css"], "a{color:red}", &folder.0);
   assert_eq!(stdout(&output), "a {\n  color: red;\n}\n");
 }
 
 #[test]
 fn parser_wins_over_the_path() {
   let folder = Folder::new("parser-wins", &[]);
-  let output = tidy(&["--stdin=a.html", "--parser", "css"], "a{color:red}", &folder.0);
+  let output = tidy(&["up", "--stdin=a.html", "--parser", "css"], "a{color:red}", &folder.0);
   assert_eq!(stdout(&output), "a {\n  color: red;\n}\n");
 }
 
 #[test]
 fn bare_stdin_takes_a_parser() {
   let folder = Folder::new("bare", &[("tidy.json", "{ \"js\": { \"semi\": false } }\n")]);
-  let output = tidy(&["--stdin", "--parser", "typescript"], "const a   =1", &folder.0);
+  let output = tidy(&["up", "--stdin", "--parser", "typescript"], "const a   =1", &folder.0);
   assert_eq!(stdout(&output), "const a = 1;\n", "no path, so no config: {}", stderr(&output));
 }
 
 #[test]
 fn bare_stdin_takes_a_named_config() {
   let folder = Folder::new("named", &[("cfg.json", "{ \"js\": { \"semi\": false } }\n")]);
-  let args = ["--stdin", "--parser", "typescript", "--config", "cfg.json"];
+  let args = ["up", "--stdin", "--parser", "typescript", "--config", "cfg.json"];
   let output = tidy(&args, "const a   =1", &folder.0);
   assert_eq!(stdout(&output), "const a = 1\n", "{}", stderr(&output));
 }
 
 #[test]
-fn reads_stdin_without_the_flag() {
-  let folder = Folder::new("implicit", &[]);
-  let output = tidy(&["--parser", "json"], "{\"a\":1}", &folder.0);
-  assert_eq!(stdout(&output), "{ \"a\": 1 }\n");
-}
-
-#[test]
-fn reads_stdin_for_a_dash() {
-  let folder = Folder::new("dash", &[]);
-  let output = tidy(&["-", "--parser", "json"], "{\"a\":1}", &folder.0);
-  assert_eq!(stdout(&output), "{ \"a\": 1 }\n");
-
-  let output = tidy(&["check", "-", "--parser", "json"], "{\"a\":1}", &folder.0);
-  assert_eq!((stdout(&output).as_str(), output.status.code()), ("", Some(1)));
-
-  let output = tidy(&["up", "-", "--parser", "json"], "{\"a\":1}", &folder.0);
-  assert_eq!(stderr(&output), "tidy: `tidy up` can't rewrite stdin, use `tidy --stdin`\n");
+fn stdin_needs_a_command() {
+  let folder = Folder::new("no-command", &[]);
+  for args in [&["--stdin=a.css"][..], &["--stdin", "--parser", "css"][..]] {
+    let output = tidy(args, "a{color:red}", &folder.0);
+    assert_eq!(
+      stderr(&output),
+      "tidy: --stdin needs a command: `tidy up --stdin` prints the result, `tidy check --stdin` checks it\n",
+      "{args:?}"
+    );
+    assert_eq!((stdout(&output).as_str(), output.status.code()), ("", Some(2)), "{args:?}");
+  }
 }
 
 #[test]
@@ -157,7 +152,7 @@ fn check_with_stdin_ignores_the_folder() {
 #[test]
 fn fails_on_an_unknown_language() {
   let folder = Folder::new("unknown", &[]);
-  let output = tidy(&["--stdin=a.unknown"], "a{color:red}", &folder.0);
+  let output = tidy(&["up", "--stdin=a.unknown"], "a{color:red}", &folder.0);
   assert_eq!(stdout(&output), "");
   assert_eq!(
     stderr(&output),
@@ -169,7 +164,7 @@ fn fails_on_an_unknown_language() {
 #[test]
 fn fails_without_a_language() {
   let folder = Folder::new("no-language", &[]);
-  for args in [&[][..], &["--stdin"][..], &["check", "--stdin"][..]] {
+  for args in [&["up", "--stdin"][..], &["check", "--stdin"][..]] {
     let output = tidy(args, "<p>hi</p>", &folder.0);
     assert_eq!(
       stderr(&output),
@@ -183,10 +178,10 @@ fn fails_without_a_language() {
 #[test]
 fn skip_unknown_prints_the_text_unchanged() {
   let folder = Folder::new("skip", &[]);
-  let output = tidy(&["--stdin=a.unknown", "--skip-unknown"], "a{color:red}", &folder.0);
+  let output = tidy(&["up", "--stdin=a.unknown", "--skip-unknown"], "a{color:red}", &folder.0);
   assert_eq!((stdout(&output).as_str(), output.status.code()), ("a{color:red}", Some(0)));
 
-  let output = tidy(&["--stdin", "--skip-unknown"], "a{color:red}", &folder.0);
+  let output = tidy(&["up", "--stdin", "--skip-unknown"], "a{color:red}", &folder.0);
   assert_eq!((stdout(&output).as_str(), output.status.code()), ("a{color:red}", Some(0)));
 
   let output = tidy(&["check", "--stdin=a.unknown", "--skip-unknown"], "a{color:red}", &folder.0);
@@ -203,22 +198,25 @@ fn skip_unknown_skips_named_files() {
   assert_eq!((stdout(&output).as_str(), stderr(&output).as_str()), ("b.ts\n", ""));
   assert_eq!(output.status.code(), Some(1));
 
-  let output = tidy(&["a.unknown", "--skip-unknown"], "", &folder.0);
-  assert_eq!((stdout(&output).as_str(), output.status.code()), ("a", Some(0)));
+  let output = tidy(&["up", "a.unknown", "--skip-unknown"], "", &folder.0);
+  assert_eq!((stdout(&output).as_str(), output.status.code()), ("", Some(0)));
+  assert_eq!(std::fs::read_to_string(folder.path("a.unknown")).expect("read"), "a");
 }
 
 #[test]
 fn rejects_stdin_where_it_cannot_work() {
   let folder = Folder::new("rejects", &[("a.ts", "const a = 1;\n")]);
-  let cases: [(&[&str], &str); 5] = [
-    (&["up", "--stdin=a.ts"], "tidy: `tidy up` can't rewrite stdin, use `tidy --stdin`\n"),
-    (&["--stdin", "a.ts"], "tidy: --stdin takes no paths, name the text with --stdin=<path>\n"),
+  let cases: [(&[&str], &str); 4] = [
+    (
+      &["up", "--stdin", "a.ts"],
+      "tidy: --stdin takes no paths, name the text with --stdin=<path>\n",
+    ),
     (&["check", "--stdin", "--staged"], "tidy: --stdin can't be used with --staged or --changed\n"),
     (
       &["check", "--stdin=a.ts", "--changed"],
       "tidy: --stdin can't be used with --staged or --changed\n",
     ),
-    (&["--stdin="], "tidy: --stdin= needs a path\n"),
+    (&["up", "--stdin="], "tidy: --stdin= needs a path\n"),
   ];
   for (args, message) in cases {
     let output = tidy(args, "const a = 1;\n", &folder.0);
@@ -230,10 +228,10 @@ fn rejects_stdin_where_it_cannot_work() {
 #[test]
 fn reports_syntax_errors_at_the_path() {
   let folder = Folder::new("syntax", &[]);
-  let output = tidy(&["--stdin=src/a.css"], "a {", &folder.0);
+  let output = tidy(&["up", "--stdin=src/a.css"], "a {", &folder.0);
   assert_eq!(stderr(&output), "tidy: src/a.css:1:1: Unclosed block\n");
   assert_eq!(output.status.code(), Some(2));
 
-  let output = tidy(&["--stdin", "--parser", "css"], "a {", &folder.0);
+  let output = tidy(&["up", "--stdin", "--parser", "css"], "a {", &folder.0);
   assert_eq!(stderr(&output), "tidy: stdin:1:1: Unclosed block\n");
 }
