@@ -114,7 +114,7 @@ fs.copyFileSync(bin, path.join(workspace, "bin", "tidy"));
 let fakes: Record<string, string> = {
   "html-tidy":
     "HTML Tidy for Mac OS X released on 31 October 2006 - Apple Inc. build 4474",
-  "old-tidy": "tidy 0.1.0",
+  "old-tidy": "tidy 0.3.0",
 };
 for (let [name, version] of Object.entries(fakes)) {
   let script = `#!/bin/sh\nif [ "$1" = "--version" ]; then echo "${version}"; exit 0; fi\ncat; echo "<!-- ${name} -->"\n`;

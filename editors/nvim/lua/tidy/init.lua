@@ -42,8 +42,8 @@ local checked = {}
 -- Problems already shown, so each is said once.
 local shown = {}
 
---- Why `cmd` can't format, or nil once `cmd --version` shows tidy 0.2.0 or later, the first with `--stdin=<path>`
---- and `--skip-unknown`. macOS ships HTML Tidy as /usr/bin/tidy, which takes any flags and rewrites what it reads.
+--- Why `cmd` can't format, or nil once `cmd --version` shows tidy 0.4.0 or later, the first with
+--- `tidy up --stdin=<path>`. macOS ships HTML Tidy as /usr/bin/tidy, which takes any flags and rewrites what it reads.
 local function refused(cmd)
 	if checked[cmd] then
 		return nil
@@ -64,8 +64,8 @@ local function refused(cmd)
 	if not major then
 		return ('is not tidy: it printed "%s"'):format(first)
 	end
-	if tonumber(major) == 0 and tonumber(minor) < 2 then
-		return ("is tidy %s.%s.%s, and this plugin needs 0.2.0 or later"):format(major, minor, patch)
+	if tonumber(major) == 0 and tonumber(minor) < 4 then
+		return ("is tidy %s.%s.%s, and this plugin needs 0.4.0 or later"):format(major, minor, patch)
 	end
 	checked[cmd] = true
 end
@@ -111,7 +111,7 @@ function M.format(bufnr)
 		return false
 	end
 
-	local ok, job = pcall(vim.system, { config.cmd, "--stdin=" .. path, "--skip-unknown" }, {
+	local ok, job = pcall(vim.system, { config.cmd, "up", "--stdin=" .. path, "--skip-unknown" }, {
 		stdin = input,
 		text = true,
 		cwd = vim.fn.isdirectory(dir) == 1 and dir or nil,

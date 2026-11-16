@@ -2,7 +2,7 @@
 
 Formats buffers with [tidy](https://tidy.lukeed.com) on save, and with `:Tidy`. Needs Neovim 0.10 or later and the `tidy` binary.
 
-Each buffer uses the same `tidy.json`, `tidy.toml` and `.editorconfig` that `tidy up` would use for its file. Only the lines that change are replaced, so the cursor and marks stay. Before it formats, the plugin checks that the binary is tidy 0.2.0 or later: macOS ships an unrelated HTML Tidy as `/usr/bin/tidy`, which it refuses to run.
+Each buffer uses the same `tidy.json`, `tidy.toml` and `.editorconfig` that `tidy up` would use for its file. Only the lines that change are replaced, so the cursor and marks stay. Before it formats, the plugin checks that the binary is tidy 0.4.0 or later: macOS ships an unrelated HTML Tidy as `/usr/bin/tidy`, which it refuses to run.
 
 ## Install
 

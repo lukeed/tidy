@@ -9,7 +9,7 @@ stdin with its path, so the language and the config files are the ones that
 
 Only the lines that change are replaced, so the cursor and marks stay.
 
-Before it formats, the plugin checks that `cmd --version` prints tidy 0.2.0
+Before it formats, the plugin checks that `cmd --version` prints tidy 0.4.0
 or later. macOS ships an unrelated HTML Tidy as /usr/bin/tidy, which the
 plugin refuses to run.
 

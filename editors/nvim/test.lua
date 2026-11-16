@@ -25,7 +25,7 @@ end
 -- Stand-ins that print a rewritten text and exit 0, so only the version check keeps them from formatting.
 local fakes = {
 	["html-tidy"] = "HTML Tidy for Mac OS X released on 31 October 2006 - Apple Inc. build 4474",
-	["old-tidy"] = "tidy 0.1.0",
+	["old-tidy"] = "tidy 0.3.0",
 }
 for name, version in pairs(fakes) do
 	local script = vim.fs.joinpath(root, name)
@@ -136,14 +136,14 @@ local tests = {
 		assert(#errors == 1 and errors[1]:find("is HTML Tidy", 1, true), vim.inspect(errors))
 	end,
 
-	["refuses a tidy older than 0.2.0"] = function()
+	["refuses a tidy older than 0.4.0"] = function()
 		tidy.setup({ cmd = vim.fs.joinpath(root, "old-tidy") })
 		open("wide/old-tidy.html", { "<p   >hi</p>" })
 		vim.cmd("silent write")
 		vim.cmd("silent write")
 		tidy.setup({ cmd = bin })
 		assert(vim.deep_equal(saved("wide/old-tidy.html"), { "<p   >hi</p>" }))
-		assert(#errors == 1 and errors[1]:find("needs 0.2.0 or later", 1, true), "says it once: " .. vim.inspect(errors))
+		assert(#errors == 1 and errors[1]:find("needs 0.4.0 or later", 1, true), "says it once: " .. vim.inspect(errors))
 	end,
 
 	["can leave saving alone"] = function()

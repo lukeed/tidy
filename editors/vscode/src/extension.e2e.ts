@@ -145,7 +145,7 @@ const more: Record<string, () => Promise<void>> = {
     );
   },
 
-  async "refuses a tidy older than 0.2.0"() {
+  async "refuses a tidy older than 0.4.0"() {
     let html = "<p   >hi</p>\n";
     assert.equal(
       await formatWith("bin/old-tidy", "wide/old-tidy.html", html),

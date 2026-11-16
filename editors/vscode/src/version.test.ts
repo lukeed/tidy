@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 
 import * as version from "./version";
 
-test("accepts tidy 0.2.0 and later", () => {
-  expect(version.problem("tidy 0.2.0\n")).toBeUndefined();
+test("accepts tidy 0.4.0 and later", () => {
+  expect(version.problem("tidy 0.4.0\n")).toBeUndefined();
   expect(version.problem("tidy 0.10.3\n")).toBeUndefined();
   expect(version.problem("tidy 1.0.0\n")).toBeUndefined();
 });
@@ -22,8 +22,8 @@ test("refuses another program", () => {
   );
 });
 
-test("refuses a tidy without --stdin=<path>", () => {
-  expect(version.problem("tidy 0.1.0\n")).toBe(
-    "is tidy 0.1.0, and this extension needs 0.2.0 or later",
+test("refuses a tidy without `tidy up --stdin`", () => {
+  expect(version.problem("tidy 0.3.0\n")).toBe(
+    "is tidy 0.3.0, and this extension needs 0.4.0 or later",
   );
 });

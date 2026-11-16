@@ -86,10 +86,10 @@ export function activate(context: vscode.ExtensionContext): void {
       return [];
     }
 
-    log.trace(`${bin} --stdin=${file} --skip-unknown`);
+    log.trace(`${bin} up --stdin=${file} --skip-unknown`);
     let result = await tidy.run(
       bin,
-      [`--stdin=${file}`, "--skip-unknown"],
+      ["up", `--stdin=${file}`, "--skip-unknown"],
       input,
       cwd,
       token,
