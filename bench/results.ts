@@ -54,7 +54,7 @@ export async function record(
   mkdirSync(dirname(file), { recursive: true });
   await Bun.write(
     file,
-    format(lines.join("\n"), { parser: "markdown", embedded: false }),
+    format(lines.join("\n"), { lang: "md", embedded: false }),
   );
 }
 

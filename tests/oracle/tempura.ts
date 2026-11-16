@@ -6,6 +6,7 @@ import { $ } from "bun";
 import { join } from "node:path";
 import * as prettier from "prettier";
 import { format, type EmbedRequest } from "../../crates/tidy_napi/index.js";
+import { parser } from "./lang.ts";
 import { transform } from "tempura";
 
 let home = process.env.HOME!;
@@ -25,7 +26,7 @@ async function run(source: string, filepath: string) {
   // Some requests depend on earlier answers, so this runs until nothing new is asked.
   for (let round = 0; round < 8; round++) {
     let missing: EmbedRequest[] = [];
-    output = format(source, { parser: "handlebars", filepath }, (request) => {
+    output = format(source, { lang: "hbs", filepath }, (request) => {
       let id = JSON.stringify(request);
       if (!answers.has(id)) missing.push(request);
       return answers.get(id);
@@ -34,9 +35,9 @@ async function run(source: string, filepath: string) {
     for (let request of missing) {
       let width = request.width - request.indent * 2;
       let options = {
-        parser: request.language,
+        parser: parser(request),
         printWidth: width,
-        singleQuote: request.kind === "attribute",
+        singleQuote: request.attribute,
       };
       let text = await prettier
         .format(request.code, options)
@@ -72,7 +73,7 @@ for (let file of files) {
     if ((await run(once, file)) !== once) throw new Error("not stable");
     // Only the template is compared: style sheets are formatted, which changes more than whitespace.
     let verbatim = format(source, {
-      parser: "handlebars",
+      lang: "hbs",
       filepath: file,
       embedded: false,
     });

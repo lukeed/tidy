@@ -13,6 +13,7 @@ import { homedir } from "node:os";
 import { extname, join } from "node:path";
 import * as prettier from "prettier";
 import { format, type EmbedRequest } from "../../crates/tidy_napi/index.js";
+import { parser } from "./lang.ts";
 
 let args = Bun.argv.slice(2).filter((arg) => !arg.startsWith("--"));
 let option = (name: string) =>
@@ -77,9 +78,8 @@ async function prettierHook(
       .join("\n");
   try {
     // Prettier's HTML printer passes options for these that no caller can, so the declaration is formatted.
-    let binding = /^__vue(_ts)?_(bindings|for_left|generic)$/.exec(
-      request.language,
-    );
+    let name = parser(request);
+    let binding = /^__vue(_ts)?_(bindings|for_left|generic)$/.exec(name);
     if (binding) {
       let generic = binding[2] === "generic";
       let [code, start, end] = generic
@@ -97,11 +97,11 @@ async function prettierHook(
       return indent(many ? `(${inner})` : inner);
     }
     let settings = {
-      parser: request.language,
+      parser: name,
       printWidth: request.width,
       tabWidth: 2,
       useTabs: false,
-      ...(request.kind === "attribute" ? { singleQuote: true } : {}),
+      ...(request.attribute ? { singleQuote: true } : {}),
       ...(request.module ? {} : { filepath: "script.cjs" }),
     };
     let { builders, printer } = prettier.doc;
@@ -121,7 +121,7 @@ async function prettierHook(
     ).formatted;
     formatted = formatted.replace(/^\n[\t ]*/, "").replace(/\s+$/, "");
     // `__isHtmlInlineEventHandler`: no semicolon after a single expression statement.
-    if (request.kind === "attribute" && request.language === "babel") {
+    if (request.attribute && name === "babel") {
       let { ast } = await prettier.__debug.parse(request.code, {
         parser: "babel",
       });
@@ -150,7 +150,7 @@ async function withHook(text: string, filepath: string) {
   for (let round = 0; round < 8; round++) {
     let missing = new Map<string, EmbedRequest>();
     output = format(text, { filepath }, (request) => {
-      if (!javascript.test(request.language)) return undefined;
+      if (!javascript.test(parser(request))) return undefined;
       let id = JSON.stringify(request);
       if (!answers.has(id)) missing.set(id, request);
       return answers.get(id);

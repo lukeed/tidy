@@ -79,7 +79,7 @@ for (let path of dirs.flatMap(files)) {
     let expected = await prettier
       .format(text, { parser: "graphql", ...set.prettier })
       .catch(() => undefined);
-    let tidy = attempt(() => format(text, { parser: "graphql", ...set.tidy }));
+    let tidy = attempt(() => format(text, { lang: "graphql", ...set.tidy }));
     if (expected === undefined && tidy === undefined) {
       counts.rejected++;
     } else if (tidy === undefined) {
@@ -95,9 +95,7 @@ for (let path of dirs.flatMap(files)) {
       report(`different, ${set.name}: ${path}`, text, expected, tidy);
     }
     if (tidy !== undefined) {
-      let again = attempt(() =>
-        format(tidy, { parser: "graphql", ...set.tidy }),
-      );
+      let again = attempt(() => format(tidy, { lang: "graphql", ...set.tidy }));
       if (again !== tidy) {
         counts.unstable++;
         report(`unstable, ${set.name}: ${path}`, tidy, again ?? "!error");

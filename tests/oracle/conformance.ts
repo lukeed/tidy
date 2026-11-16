@@ -13,6 +13,7 @@ import {
   type EmbedRequest,
   type FormatOptions,
 } from "../../crates/tidy_napi/index.js";
+import { languageOf, parser } from "./lang.ts";
 
 let args = Bun.argv.slice(2).filter((arg) => !arg.startsWith("--"));
 let show = Number(
@@ -99,7 +100,7 @@ function settings(
       return undefined;
     }
     return {
-      parser: script,
+      ...languageOf(script),
       quote: options.singleQuote ? "single" : "double",
       js: {
         ...scripts(options),
@@ -151,7 +152,7 @@ function settings(
     (options.htmlWhitespaceSensitivity as string) ?? "css"
   ];
   return {
-    parser,
+    ...languageOf(parser),
     quote: options.singleQuote ? "single" : "double",
     css: { trailingComma: options.trailingComma !== "none" },
     js: scripts(options),
@@ -191,8 +192,10 @@ function scripts(options: Record<string, unknown>) {
 function key(request: EmbedRequest) {
   return JSON.stringify([
     request.code,
-    request.language,
+    request.lang,
     request.kind,
+    request.host,
+    request.attribute,
     request.indent,
     request.prefix,
     request.suffix,
@@ -209,25 +212,28 @@ async function parameters(
   extra: Record<string, unknown>,
   width: number,
 ) {
-  let ts = request.language.includes("_ts_");
-  let wrap = request.language.endsWith("generic")
+  let name = parser(request);
+  let ts = name.includes("_ts_");
+  let wrap = name.endsWith("generic")
     ? (code: string) => [`type T<${code}> = any`, "type T<", "> = any;"]
     : (code: string) => [`function _(${code}) {}`, "function _(", ") {}"];
   let [code, start, end] = wrap(request.code);
-  let parser =
-    ts || request.language.endsWith("generic") ? "babel-ts" : "babel";
+  let script = ts || name.endsWith("generic") ? "babel-ts" : "babel";
   let formatted = (
-    await prettier.format(code, { ...extra, parser, printWidth: 2 ** 31 - 1 })
+    await prettier.format(code, {
+      ...extra,
+      parser: script,
+      printWidth: 2 ** 31 - 1,
+    })
   ).trim();
   if (!formatted.startsWith(start) || !formatted.endsWith(end))
     return undefined;
   let inner = formatted.slice(start.length, -end.length);
-  let { ast } = await prettier.__debug.parse(code, { parser });
+  let { ast } = await prettier.__debug.parse(code, { parser: script });
   let many =
     (ast as { program: { body: { params?: unknown[] }[] } }).program.body[0]
       .params?.length !== 1;
-  let text =
-    request.language.includes("for_left") && many ? `(${inner})` : inner;
+  let text = name.includes("for_left") && many ? `(${inner})` : inner;
   return indent(text, request);
 }
 
@@ -268,20 +274,20 @@ async function embedded(
   options: FormatOptions,
   extra: Record<string, unknown>,
 ) {
-  if (/__vue(_ts)?_(bindings|for_left|generic)$/.test(request.language)) {
+  let name = parser(request);
+  if (/__vue(_ts)?_(bindings|for_left|generic)$/.test(name)) {
     try {
       return await parameters(request, extra, request.width);
     } catch {
       return undefined;
     }
   }
-  let script =
-    request.kind === "attribute" && request.language in scriptParserSet;
-  let handler = request.kind === "attribute" && request.language === "babel";
+  let script = request.attribute && name in scriptParserSet;
+  let handler = request.attribute && name === "babel";
   try {
     let settings = {
       ...extra,
-      ...(request.kind === "attribute" && !script ? { singleQuote: true } : {}),
+      ...(request.attribute && !script ? { singleQuote: true } : {}),
       ...(script
         ? {
             plugins: [internal],
@@ -290,7 +296,7 @@ async function embedded(
           }
         : {}),
       ...(handler ? { __isHtmlInlineEventHandler: true } : {}),
-      parser: request.language,
+      parser: name,
       // Prettier parses a classic script with `__babelSourceType`, which only its HTML printer can pass.
       ...(request.module ? {} : { filepath: "script.cjs" }),
       printWidth: request.width,
@@ -402,10 +408,10 @@ for (let test of all) {
       actual = format(test.input, options, (request) => {
         if (
           off ||
-          (builtinCss && ["css", "scss", "less"].includes(request.language))
+          (builtinCss && ["css", "scss", "less"].includes(request.lang))
         )
           return undefined;
-        if (builtinJs && javascript.test(request.language)) return undefined;
+        if (builtinJs && javascript.test(parser(request))) return undefined;
         let id = key(request);
         if (!answers.has(id)) missing.set(id, request);
         return answers.get(id);
@@ -419,8 +425,7 @@ for (let test of all) {
   }
   if (
     actual === test.output ||
-    (options.parser &&
-      options.parser in scriptParserSet &&
+    (["js", "ts"].includes(options.lang ?? "") &&
       actual === (await scriptFixedPoint(test.output, test.options, test.file)))
   )
     passed++;

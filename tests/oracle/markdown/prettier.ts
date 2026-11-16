@@ -69,7 +69,7 @@ for (let corpus of corpora.map((corpus) => resolve(corpus))) {
     let text = await Bun.file(path).text();
     await Bun.write(
       path,
-      format(text, { parser: "markdown", embedded: false, markdown: { wrap } }),
+      format(text, { lang: "md", embedded: false, markdown: { wrap } }),
     );
   }
 

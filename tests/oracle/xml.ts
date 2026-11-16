@@ -18,6 +18,7 @@ import {
   type EmbedRequest,
   type FormatOptions,
 } from "../../crates/tidy_napi/index.js";
+import { parser } from "./lang.ts";
 
 let args = Bun.argv.slice(2).filter((arg) => !arg.startsWith("--"));
 let option = (name: string) =>
@@ -156,12 +157,12 @@ async function embedded(
   request: EmbedRequest,
   options: Record<string, unknown>,
 ) {
-  if (builtinCss && ["css", "scss", "less"].includes(request.language))
+  if (builtinCss && ["css", "scss", "less"].includes(request.lang))
     return undefined;
   try {
     let formatted = await prettier.format(request.code, {
       ...options,
-      parser: request.language,
+      parser: parser(request),
       printWidth: request.width,
     });
     return formatted.replace(/\n+$/, "");
@@ -176,8 +177,8 @@ function tidy(
   answers: Map<string, string | undefined>,
   missing: Map<string, EmbedRequest>,
 ) {
-  return format(source, { parser: "xml", ...options }, (request) => {
-    let id = JSON.stringify([request.code, request.language, request.width]);
+  return format(source, { lang: "xml", ...options }, (request) => {
+    let id = JSON.stringify([request.code, request.lang, request.width]);
     if (!answers.has(id)) missing.set(id, request);
     return answers.get(id);
   });

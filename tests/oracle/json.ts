@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { parsing, transform } from "json-test-suite";
 import * as prettier from "prettier";
 import { format, type FormatOptions } from "../../crates/tidy_napi/index.js";
+import { languageOf } from "./lang.ts";
 
 let args = Bun.argv.slice(2).filter((arg) => !arg.startsWith("--"));
 let option = (name: string) =>
@@ -135,10 +136,7 @@ for (let set of sets) {
     }
     let actual: string;
     try {
-      actual = format(file.source, {
-        parser: parser as FormatOptions["parser"],
-        ...set.tidy,
-      });
+      actual = format(file.source, { ...languageOf(parser), ...set.tidy });
     } catch (error) {
       actual = `!error ${(error as Error).message}`;
     }

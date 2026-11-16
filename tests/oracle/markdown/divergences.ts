@@ -158,7 +158,7 @@ for (let entry of cases) {
   let expected =
     await $`bunx ${PRETTIER} ${flags} --stdin-filepath x.md < ${file}`.text();
   let actual = format(input, {
-    parser: "markdown",
+    lang: "md",
     embedded: false,
     width: Number(width),
     markdown: { wrap },
@@ -175,7 +175,7 @@ for (let entry of cases) {
     block("tidy", actual),
   );
 }
-let doc = format(sections.join("\n"), { parser: "markdown", embedded: false });
+let doc = format(sections.join("\n"), { lang: "md", embedded: false });
 await Bun.write(join(root, "docs/markdown-divergences.md"), doc);
 console.log(
   `docs/markdown-divergences.md: ${cases.length} cases, ${stale} stale`,

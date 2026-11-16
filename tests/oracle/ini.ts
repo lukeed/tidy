@@ -84,9 +84,9 @@ async function compare(
   result: Result,
 ) {
   for (let set of sets) {
-    let parser = git ? "gitconfig" : "ini";
-    let tidy = format(text, { parser, ...set.tidy });
-    let again = format(tidy, { parser, ...set.tidy });
+    let lang = git ? "gitconfig" : "ini";
+    let tidy = format(text, { lang, ...set.tidy });
+    let again = format(tidy, { lang, ...set.tidy });
     if (again !== tidy) {
       result.unstable++;
       report(result, `unstable, ${set.name}: ${name}`, text, tidy, again);

@@ -226,7 +226,7 @@ async function parses(file: string, source: string, path: string) {
   }
   if (file.endsWith(".toml")) {
     try {
-      tidyFormat(source, { parser: "toml" });
+      tidyFormat(source, { lang: "toml" });
       return true;
     } catch {
       return false;
