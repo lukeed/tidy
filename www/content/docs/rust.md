@@ -105,12 +105,12 @@ pub trait Embed {
 
 ```rust
 let mut embed = |request: tidy::embed::Request<'_>| {
-    (request.language == "scss").then(|| my_scss_formatter(request.code))
+    (request.lang == "scss").then(|| my_scss_formatter(request.code))
 };
 let output = tidy::format(source, language, &options, None, &mut embed)?;
 ```
 
-Returning `None` leaves that piece as written.
+tidy asks the hook first. `Request` has the code, its `lang` (`js`, `ts`, `css`, …), its `kind`, its `host` (`vue` or `ng`, if any), whether it is an `attribute` value, and where it sits. Returning `None` declines: tidy then formats the piece itself if it knows the language and `format_embedded` is on, and leaves it as written if not.
 
 ## Errors
 

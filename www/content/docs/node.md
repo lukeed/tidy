@@ -74,31 +74,33 @@ There is no config file search: options come from the object you pass. If you wa
 
 ## Embedded code
 
-By default, `format` handles the embedded languages it knows and leaves the rest. The third argument is a hook that gets the pieces it declines, so a host can format languages tidy does not know:
+By default, `format` formats the embedded languages it knows and leaves the rest. The third argument is a hook: tidy asks it first for each piece of embedded code, so a host can format languages tidy does not know, or format a known one its own way:
 
 ```js
 import { format } from "tidyrs";
 
 format(source, { filepath: "README.md" }, (request) => {
-  if (request.language !== "scss") return undefined;
+  if (request.lang !== "scss") return undefined;
   return mySassFormatter(request.code, request.width - request.indent * 2);
 });
 ```
 
-The request describes the hole the code sits in:
+The request tells what the code is and where it sits:
 
-| Field      | What it is                                                                                                   |
-| ---------- | ------------------------------------------------------------------------------------------------------------ |
-| `code`     | The source to format.                                                                                        |
-| `language` | Prettier's parser name: `babel`, `typescript`, `css`, `json`, …                                              |
-| `kind`     | `block`, `expression`, `attribute` or `frontmatter`.                                                         |
-| `indent`   | How many indents the code starts at. Indent every line after the first by this much.                         |
-| `prefix`   | The width before the code on its first line, after the indents — such as `name="` before an attribute value. |
-| `suffix`   | The width after the code on its last line — such as the `"` that closes it.                                  |
-| `width`    | The configured line width.                                                                                   |
-| `module`   | Whether JavaScript here is a module rather than a classic script.                                            |
+| Field       | What it is                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------------ |
+| `code`      | The source to format.                                                                                        |
+| `lang`      | The language, by the name `lang` takes: `js`, `ts`, `css`, `scss`, `json`, `yaml`, `md`, …                   |
+| `kind`      | `block`, `expression`, `event`, `bindings`, `for`, `generic`, `directive` or `frontmatter`.                  |
+| `host`      | `vue` or `ng` where the code follows that framework's rules, such as a Vue filter. Otherwise absent.         |
+| `attribute` | Whether the code is an attribute value, such as `style="…"` or `@click="…"`.                                 |
+| `indent`    | How many indents the code starts at. Indent every line after the first by this much.                         |
+| `prefix`    | The width before the code on its first line, after the indents — such as `name="` before an attribute value. |
+| `suffix`    | The width after the code on its last line — such as the `"` that closes it.                                  |
+| `width`     | The configured line width.                                                                                   |
+| `module`    | Whether JavaScript here is a module rather than a classic script.                                            |
 
-Return `undefined` to leave that piece as written.
+Return `undefined` to decline. tidy then formats the piece itself if it knows the language, and leaves it as written if not.
 
 Set `embedded: false` to turn the whole mechanism off, including the hook.
 
