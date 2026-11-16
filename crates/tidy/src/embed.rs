@@ -123,7 +123,8 @@ impl<'a> Request<'a> {
   }
 }
 
-/// Formats the code of another language. `None` leaves it as it is written.
+/// Formats the code of another language. tidy asks it first; on `None`, tidy formats the code itself if it knows the
+/// language and formats embedded code, and leaves it as written if not.
 pub trait Embed {
   fn format(&mut self, request: Request<'_>) -> Option<String>;
 }
