@@ -110,8 +110,13 @@ fn sources(args: &mut pico_args::Arguments, mode: Mode) -> Result<Sources, Strin
   let error = |error: pico_args::Error| error.to_string();
   let mut flags = Config::default();
   let lang: Option<String> = args.opt_value_from_str("--lang").map_err(error)?;
-  let language = match lang {
-    Some(name) => Some(Language::of_name(&name).ok_or_else(|| {
+  let language = match lang.as_deref() {
+    // A dialect of Handlebars, which tidy otherwise tells from the template.
+    Some("tempura") => {
+      flags.handlebars.dialect = Some(tidy::handlebars::Dialect::Tempura);
+      Some(Language::Handlebars)
+    }
+    Some(name) => Some(Language::of_name(name).ok_or_else(|| {
       let command = if mode == Mode::Up { "up" } else { "check" };
       format!("unknown language `{name}`, see `tidy {command} --help`")
     })?),

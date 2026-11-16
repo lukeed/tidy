@@ -42,7 +42,7 @@ fn stderr(output: &Output) -> String {
 }
 
 /// The names the help lists for `--lang`: those of code fences, and extensions.
-const LANGUAGES: [&str; 22] = [
+const LANGUAGES: [&str; 23] = [
   "css",
   "scss",
   "less",
@@ -50,6 +50,7 @@ const LANGUAGES: [&str; 22] = [
   "vue",
   "mjml",
   "hbs",
+  "tempura",
   "js",
   "jsx",
   "ts",
@@ -159,6 +160,19 @@ fn takes_the_names_of_code_fences_and_extensions() {
       String::from_utf8_lossy(&result.stderr)
     );
   }
+  // Handlebars prints `{{value}}`, and tempura `{{ value }}`; neither adds a final newline, as in Prettier.
+  let mut child = std::process::Command::new(env!("CARGO_BIN_EXE_tidy"))
+    .args(["up", "--stdin", "--lang", "tempura"])
+    .current_dir(&folder.0)
+    .stdin(std::process::Stdio::piped())
+    .stdout(std::process::Stdio::piped())
+    .spawn()
+    .expect("run tidy");
+  use std::io::Write;
+  child.stdin.take().expect("stdin").write_all(b"<p>{{value}}</p>").expect("write");
+  let result = child.wait_with_output().expect("wait");
+  assert_eq!(String::from_utf8_lossy(&result.stdout), "<p>{{ value }}</p>");
+
   let output = tidy(&["check", "--stdin", "--lang", "cobol"], &folder.0);
   assert_eq!(stderr(&output), "tidy: unknown language `cobol`, see `tidy check --help`\n");
   let output = tidy(&["check", "--stdin", "--parser", "css"], &folder.0);

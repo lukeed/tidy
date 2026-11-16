@@ -18,8 +18,8 @@ const FORMATTING: &str = "  Formatting Options
 ";
 
 const LANGUAGES: &str = "  Languages
-    css, scss, less, html, vue, mjml, hbs, js, jsx, ts, tsx, json, jsonc, json5,
-    yaml, toml, md, graphql, xml, dockerfile, ini, gitconfig
+    css, scss, less, html, vue, mjml, hbs, tempura, js, jsx, ts, tsx, json, jsonc,
+    json5, yaml, toml, md, graphql, xml, dockerfile, ini, gitconfig
 ";
 
 /// The help of `tidy` alone.

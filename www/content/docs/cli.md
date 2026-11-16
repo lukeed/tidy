@@ -91,7 +91,7 @@ When git names no file tidy can format, the run succeeds and prints nothing — 
 | `--skip-unknown`   | Leave text in a language tidy can't tell as it is, instead of failing.                                                      |
 | `--threads <n>`    | How many files to format at once. Defaults to one per core; `1` uses a single thread.                                       |
 
-`--lang` takes the name a code fence would: `css`, `scss`, `less`, `html`, `vue`, `mjml`, `hbs`, `js`, `jsx`, `ts`, `tsx`, `json`, `jsonc`, `json5`, `yaml`, `toml`, `md`, `graphql`, `dockerfile`, `ini` or `gitconfig`, and their longer forms, such as `typescript` or `markdown`. It also takes a file extension, such as `xml`, `svg` or `mts`. See [Languages](/docs/languages/#language-names).
+`--lang` takes the name a code fence would: `css`, `scss`, `less`, `html`, `vue`, `mjml`, `hbs`, `tempura`, `js`, `jsx`, `ts`, `tsx`, `json`, `jsonc`, `json5`, `yaml`, `toml`, `md`, `graphql`, `dockerfile`, `ini` or `gitconfig`, and their longer forms, such as `typescript` or `markdown`. It also takes a file extension, such as `xml`, `svg` or `mts`. See [Languages](/docs/languages/#language-names).
 
 When tidy walks a folder it skips `node_modules`, every folder whose name starts with `.`, and, inside a git repository, what git ignores: the `.gitignore` files, `.git/info/exclude` and your global excludes file. `--no-gitignore` formats those too. A path you name is always formatted. To leave other paths out, pass the paths you do want, or see [Ignoring code](/docs/ignore/).
 

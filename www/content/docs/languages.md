@@ -56,9 +56,9 @@ $ cat config | tidy up --stdin --lang ini
 
 `--lang` takes the name you would put on a code fence, the same names tidy reads from the code blocks of Markdown:
 
-`css`, `scss`, `less`, `html`, `vue`, `mjml`, `hbs`, `js`, `jsx`, `ts`, `tsx`, `json`, `jsonc`, `json5`, `yaml`, `toml`, `md`, `graphql`, `dockerfile`, `ini`, `gitconfig`.
+`css`, `scss`, `less`, `html`, `vue`, `mjml`, `hbs`, `tempura`, `js`, `jsx`, `ts`, `tsx`, `json`, `jsonc`, `json5`, `yaml`, `toml`, `md`, `graphql`, `dockerfile`, `ini`, `gitconfig`.
 
-Their longer forms work too, such as `javascript`, `typescript`, `yml`, `handlebars` and `markdown`. So does a file extension, such as `xml`, `svg` or `mts`: tidy takes the language a file with that extension would get.
+Their longer forms work too, such as `javascript`, `typescript`, `yml`, `handlebars` and `markdown`. `tempura` is Handlebars in tempura's dialect, which tidy otherwise tells from the template. So does a file extension, such as `xml`, `svg` or `mts`: tidy takes the language a file with that extension would get.
 
 ## Dialects within a language
 
