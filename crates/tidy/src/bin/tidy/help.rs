@@ -44,8 +44,8 @@ pub(crate) fn global() -> String {
     $ tidy check --help
 
   Options
-    -v, --version    Displays current version
-    -h, --help       Displays this message
+    --version, -v    Displays current version
+    --help, -h       Displays this message
 
   Examples
     $ tidy up src
@@ -71,7 +71,7 @@ fn files(stdin: &str, staged: &str) -> String {
     --config <path>      Use this config file
     --no-config          Ignore config files
     --skip-unknown       Skip unknown languages
-    -h, --help           Displays this message
+    --help, -h           Displays this message
 
 {FORMATTING}
 {LANGUAGES}"
@@ -138,7 +138,7 @@ pub(crate) fn init() -> String {
   Options
     --json        Write a JSON file
     --toml        Write a TOML file
-    -h, --help    Displays this message
+    --help, -h    Displays this message
 
   Examples
     $ tidy init
