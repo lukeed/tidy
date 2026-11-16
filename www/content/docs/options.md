@@ -15,10 +15,12 @@ tidy ships a JSON Schema for its own config. Point `$schema` at it and an editor
 
 ```json [tidy.json]
 {
-  "$schema": "https://tidy.lukeed.com/tidy.schema.json",
+  "$schema": "https://tidy.lukeed.com/schema.json",
   "width": 100
 }
 ```
+
+`/schema.json` is the latest release's schema. Each version also has its own, which never changes, such as `https://tidy.lukeed.com/0.4.0/schema.json`. `tidy init` writes the one for the version that runs it.
 
 The same file is in the `tidyrs` package, for a project that would rather not fetch it:
 

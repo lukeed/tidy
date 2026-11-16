@@ -48,8 +48,8 @@ A file whose name tidy does not recognise is skipped. It is never an error to po
 To format something whose name does not say what it is, name the parser:
 
 ```sh
-$ tidy --parser yaml .github/dependabot.yaml.tpl
-$ cat config | tidy --parser ini
+$ tidy up --parser yaml .github/dependabot.yaml.tpl
+$ cat config | tidy up --stdin --parser ini
 ```
 
 ## Parser names

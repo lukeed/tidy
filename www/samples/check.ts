@@ -9,8 +9,10 @@ import { spawnSync } from "node:child_process";
 let dir = import.meta.dirname;
 let binary = join(dir, "../../target/release/tidy");
 
-let run = spawnSync(binary, ["--no-config", join(dir, "routes.input.ts")], {
+let input = join(dir, "routes.input.ts");
+let run = spawnSync(binary, ["up", "--no-config", `--stdin=${input}`], {
   encoding: "utf8",
+  input: readFileSync(input, "utf8"),
 });
 if (run.error) {
   console.error(
@@ -25,7 +27,7 @@ if (run.stdout !== expected) {
     "samples/routes.output.ts is not what tidy prints. Regenerate it:",
   );
   console.error(
-    `  ${binary} --no-config samples/routes.input.ts > samples/routes.output.ts`,
+    `  ${binary} up --no-config --stdin=samples/routes.input.ts < samples/routes.input.ts > samples/routes.output.ts`,
   );
   process.exit(1);
 }
