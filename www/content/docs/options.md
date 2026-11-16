@@ -219,13 +219,13 @@ Shared options only. `css` covers SCSS and Less.
 
 ## Prettier options with no equivalent
 
-| Prettier                        | Why not                                                       |
-| ------------------------------- | ------------------------------------------------------------- |
-| `parser`                        | A command-line flag, `--parser`, not a config key.            |
-| `filepath`                      | A flag, `--stdin=<path>`.                                     |
-| `plugins`                       | Only under `js`, and only for the import sorters named above. |
-| `rangeStart`, `rangeEnd`        | Not supported. Use an [ignore directive](/docs/ignore/).      |
-| `requirePragma`, `insertPragma` | Not supported.                                                |
-| `endOfLine: "auto"`             | Not supported. Name the ending you want.                      |
-| `overrides`                     | Not supported. Use a `tidy.json` in the folder instead.       |
-| `jsxBracketSameLine`            | Removed in Prettier 3. Use `bracketSameLine`.                 |
+| Prettier                        | Why not                                                         |
+| ------------------------------- | --------------------------------------------------------------- |
+| `parser`                        | A command-line flag, `--lang`, which takes a code fence's name. |
+| `filepath`                      | A flag, `--stdin=<path>`.                                       |
+| `plugins`                       | Only under `js`, and only for the import sorters named above.   |
+| `rangeStart`, `rangeEnd`        | Not supported. Use an [ignore directive](/docs/ignore/).        |
+| `requirePragma`, `insertPragma` | Not supported.                                                  |
+| `endOfLine: "auto"`             | Not supported. Name the ending you want.                        |
+| `overrides`                     | Not supported. Use a `tidy.json` in the folder instead.         |
+| `jsxBracketSameLine`            | Removed in Prettier 3. Use `bracketSameLine`.                   |

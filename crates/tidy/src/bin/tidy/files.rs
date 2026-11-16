@@ -86,7 +86,7 @@ fn parse(mode: Mode, raw: Vec<OsString>) -> Result<Request, String> {
   let error = |error: pico_args::Error| error.to_string();
   let threads: Option<usize> = args.opt_value_from_str("--threads").map_err(error)?;
   let gitignore = !args.contains("--no-gitignore");
-  let sources = sources(&mut args)?;
+  let sources = sources(&mut args, mode)?;
   let mut paths = Vec::new();
   for arg in args.finish() {
     let text = arg.to_string_lossy();
@@ -106,15 +106,15 @@ fn parse(mode: Mode, raw: Vec<OsString>) -> Result<Request, String> {
 }
 
 /// The options and languages the flags choose, on top of the config files.
-fn sources(args: &mut pico_args::Arguments) -> Result<Sources, String> {
+fn sources(args: &mut pico_args::Arguments, mode: Mode) -> Result<Sources, String> {
   let error = |error: pico_args::Error| error.to_string();
   let mut flags = Config::default();
-  let parser: Option<String> = args.opt_value_from_str("--parser").map_err(error)?;
-  let language = match parser.as_deref().map(flags::parser).transpose()? {
-    Some((language, dialect)) => {
-      flags.handlebars.dialect = dialect;
-      Some(language)
-    }
+  let lang: Option<String> = args.opt_value_from_str("--lang").map_err(error)?;
+  let language = match lang {
+    Some(name) => Some(Language::of_name(&name).ok_or_else(|| {
+      let command = if mode == Mode::Up { "up" } else { "check" };
+      format!("unknown language `{name}`, see `tidy {command} --help`")
+    })?),
     None => None,
   };
   let skip_unknown = args.contains("--skip-unknown");

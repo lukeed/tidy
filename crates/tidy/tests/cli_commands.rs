@@ -41,32 +41,31 @@ fn stderr(output: &Output) -> String {
   String::from_utf8_lossy(&output.stderr).into_owned()
 }
 
-const PARSERS: [&str; 23] = [
-  "babel",
-  "babel-ts",
+/// The names the help lists for `--lang`: those of code fences, and extensions.
+const LANGUAGES: [&str; 22] = [
   "css",
-  "dockerfile",
-  "gitconfig",
-  "graphql",
-  "handlebars",
-  "html",
-  "ini",
-  "json",
-  "json-stringify",
-  "json5",
-  "jsonc",
-  "less",
-  "markdown",
-  "mjml",
   "scss",
-  "tempura",
-  "toml",
-  "typescript",
+  "less",
+  "html",
   "vue",
-  "xml",
+  "mjml",
+  "hbs",
+  "js",
+  "jsx",
+  "ts",
+  "tsx",
+  "json",
+  "jsonc",
+  "json5",
   "yaml",
+  "toml",
+  "md",
+  "graphql",
+  "xml",
+  "dockerfile",
+  "ini",
+  "gitconfig",
 ];
-
 #[test]
 fn prints_help_without_a_command() {
   let folder = Folder::new("help", &[]);
@@ -78,12 +77,15 @@ fn prints_help_without_a_command() {
     for section in ["Usage", "Available Commands", "Options", "Examples"] {
       assert!(help.contains(&format!("\n  {section}\n")), "{section} in {help}");
     }
-    for only_up_and_check in ["Formatting Options", "Parsers", "--parser", "--width", "--staged"] {
+    for only_up_and_check in
+      ["Formatting Options", "Languages", "--lang <name>", "--width", "--staged"]
+    {
       assert!(
         !help.contains(only_up_and_check),
         "{only_up_and_check} stays out of the global help"
       );
     }
+    assert!(help.contains("tidy up --stdin --lang ts"), "{help}");
     assert!(help.lines().all(|line| line.len() <= 100), "no long lines: {help}");
   }
 }
@@ -96,13 +98,13 @@ fn up_and_check_list_everything_they_take() {
     let help = stdout(&output);
     assert_eq!(output.status.code(), Some(0), "{command}");
     assert!(help.contains("Documentation: https://tidy.lukeed.com/docs/cli/"), "{help}");
-    for section in ["Usage", "Options", "Formatting Options", "Parsers", "Examples"] {
+    for section in ["Usage", "Options", "Formatting Options", "Languages", "Examples"] {
       assert!(help.contains(&format!("\n  {section}\n")), "{command}: {section} in {help}");
     }
     for flag in [
       "--stdin",
       "--staged",
-      "--parser <name>",
+      "--lang <name>",
       "--config",
       "--skip-unknown",
       "--width",
@@ -110,21 +112,57 @@ fn up_and_check_list_everything_they_take() {
     ] {
       assert!(help.contains(flag), "{command}: {flag} in {help}");
     }
-    for parser in PARSERS {
-      assert!(help.contains(parser), "{command}: {parser} in {help}");
+    for language in LANGUAGES {
+      assert!(help.contains(language), "{command}: {language} in {help}");
     }
-    assert!(help.contains(&format!("tidy {command} --stdin --parser typescript")), "{help}");
+    assert!(help.contains(&format!("tidy {command} --stdin --lang ts")), "{help}");
     assert!(help.lines().all(|line| line.len() <= 100), "no long lines: {help}");
   }
 }
 
 #[test]
-fn every_parser_in_the_help_works() {
-  let folder = Folder::new("parsers", &[]);
-  for parser in PARSERS {
-    let output = tidy(&["check", "--stdin", "--parser", parser], &folder.0);
-    assert!(!stderr(&output).contains("unknown parser"), "{parser}: {}", stderr(&output));
+fn every_language_in_the_help_works() {
+  let folder = Folder::new("languages", &[]);
+  for language in LANGUAGES {
+    let output = tidy(&["check", "--stdin", "--lang", language], &folder.0);
+    assert!(!stderr(&output).contains("unknown language"), "{language}: {}", stderr(&output));
   }
+}
+
+#[test]
+fn takes_the_names_of_code_fences_and_extensions() {
+  let folder = Folder::new("lang-names", &[]);
+  let cases = [
+    ("typescript", "const a   =1", "const a = 1;\n"),
+    ("javascript", "const a   =1", "const a = 1;\n"),
+    ("yml", "a:   1", "a: 1\n"),
+    ("markdown", "*  a", "- a\n"),
+    ("svg", "<svg  />", "<svg />\n"),
+    ("mts", "export   const a=1", "export const a = 1;\n"),
+  ];
+  for (name, input, output) in cases {
+    let mut child = std::process::Command::new(env!("CARGO_BIN_EXE_tidy"))
+      .args(["up", "--stdin", "--lang", name])
+      .current_dir(&folder.0)
+      .stdin(std::process::Stdio::piped())
+      .stdout(std::process::Stdio::piped())
+      .stderr(std::process::Stdio::piped())
+      .spawn()
+      .expect("run tidy");
+    use std::io::Write;
+    child.stdin.take().expect("stdin").write_all(input.as_bytes()).expect("write");
+    let result = child.wait_with_output().expect("wait");
+    assert_eq!(
+      String::from_utf8_lossy(&result.stdout),
+      output,
+      "{name}: {}",
+      String::from_utf8_lossy(&result.stderr)
+    );
+  }
+  let output = tidy(&["check", "--stdin", "--lang", "cobol"], &folder.0);
+  assert_eq!(stderr(&output), "tidy: unknown language `cobol`, see `tidy check --help`\n");
+  let output = tidy(&["check", "--stdin", "--parser", "css"], &folder.0);
+  assert_eq!(stderr(&output), "tidy: unknown flag `--parser`, see `tidy check --help`\n");
 }
 
 #[test]

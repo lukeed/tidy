@@ -1,35 +1,6 @@
-//! What the flags choose: the language of `--parser`, and the formatting options.
+//! The formatting options the flags choose.
 
-use tidy::{Language, Shared, Whitespace, css, doc, handlebars, ini, js, json};
-
-/// The language a `--parser` name stands for, and the Handlebars dialect it implies.
-pub(crate) fn parser(name: &str) -> Result<(Language, Option<handlebars::Dialect>), String> {
-  Ok(match name {
-    "html" => (Language::Html, None),
-    "vue" => (Language::Vue, None),
-    "mjml" => (Language::Mjml, None),
-    "handlebars" => (Language::Handlebars, None),
-    "tempura" => (Language::Handlebars, Some(handlebars::Dialect::Tempura)),
-    "css" => (Language::Css(css::Dialect::Css), None),
-    "scss" => (Language::Css(css::Dialect::Scss), None),
-    "less" => (Language::Css(css::Dialect::Less), None),
-    "json" => (Language::Json(json::Dialect::Json), None),
-    "jsonc" => (Language::Json(json::Dialect::Jsonc), None),
-    "json5" => (Language::Json(json::Dialect::Json5), None),
-    "json-stringify" => (Language::Json(json::Dialect::Stringify), None),
-    "toml" => (Language::Toml, None),
-    "dockerfile" => (Language::Dockerfile, None),
-    "ini" => (Language::Ini(ini::Dialect::Ini), None),
-    "gitconfig" => (Language::Ini(ini::Dialect::Git), None),
-    "graphql" => (Language::Graphql, None),
-    "babel" => (Language::Js(js::Dialect::Js), None),
-    "typescript" | "babel-ts" => (Language::Js(js::Dialect::Ts), None),
-    "yaml" => (Language::Yaml, None),
-    "xml" => (Language::Xml, None),
-    "markdown" => (Language::Markdown, None),
-    other => return Err(format!("unknown parser `{other}`")),
-  })
-}
+use tidy::{Shared, Whitespace, doc};
 
 /// The shared choices that the flags make.
 pub(crate) fn shared(args: &mut pico_args::Arguments) -> Result<Shared, String> {

@@ -3,24 +3,23 @@
 const DOCS: &str = "https://tidy.lukeed.com/docs/cli/";
 
 const FORMATTING: &str = "  Formatting Options
-    --width <n>                    Line width  (default 80, and 120 for Dockerfiles)
+    --width <n>                    Line width  (default 80)
     --indent <n>                   Indent width  (default 2)
     --tabs                         Indent with tabs
     --eol <eol>                    lf, crlf or cr  (default lf)
     --quote <quote>                double or single  (default double)
-    --whitespace <how>             strict, auto or ignore  (default auto, and strict for XML)
-    --no-trailing-comma            Leave out trailing commas
-    --no-bracket-spacing           No spaces inside the braces of objects
-    --single-attribute-per-line    Put each attribute on its own line
-    --bracket-same-line            Keep the > of a multi-line tag on its last line
-    --ignore <name>                The ignore directive  (default prettier-ignore)
-    --no-embedded                  Leave the code of other languages as it is
+    --whitespace <how>             strict, auto or ignore  (default auto)
+    --no-trailing-comma            No trailing commas
+    --no-bracket-spacing           No spaces inside braces
+    --single-attribute-per-line    One attribute per line
+    --bracket-same-line            Keep a tag's > on its last line
+    --ignore <name>                Ignore directive  (default prettier-ignore)
+    --no-embedded                  Skip embedded code
 ";
 
-const PARSERS: &str = "  Parsers
-    babel, babel-ts, css, dockerfile, gitconfig, graphql, handlebars, html, ini, json,
-    json-stringify, json5, jsonc, less, markdown, mjml, scss, tempura, toml, typescript,
-    vue, xml, yaml
+const LANGUAGES: &str = "  Languages
+    css, scss, less, html, vue, mjml, hbs, js, jsx, ts, tsx, json, jsonc, json5,
+    yaml, toml, md, graphql, xml, dockerfile, ini, gitconfig
 ";
 
 /// The help of `tidy` alone.
@@ -35,10 +34,10 @@ pub(crate) fn global() -> String {
     $ tidy <command> [options]
 
   Available Commands
-    check     List the files that aren't formatted, and exit 1 if any
-    up        Rewrite the files that aren't formatted
-    init      Write a config in this folder
-    schema    Print the JSON Schema of tidy.json
+    check     List unformatted files
+    up        Format files in place
+    init      Write a config file
+    schema    Print the config's JSON Schema
 
   For more info, run any command with the `--help` flag
     $ tidy check --help
@@ -52,31 +51,30 @@ pub(crate) fn global() -> String {
     $ tidy check
     $ tidy up src
     $ cat a.ts | tidy up --stdin=src/a.ts
+    $ cat a.ts | tidy up --stdin --lang ts
     $ tidy init
 
 "
   )
 }
 
-/// The options, formatting options and parsers that `up` and `check` share, worded for each.
-fn files(verb: &str, stdin: &str) -> String {
+/// The options, formatting options and languages that `up` and `check` share.
+fn files(stdin: &str, staged: &str) -> String {
   format!(
     "  Options
     --stdin[=<path>]     {stdin}
-    --staged             Only the files staged in git{staged}
-    --changed[=<ref>]    Only the files that differ from <ref>  (default: the default branch)
-    --no-gitignore       Also {verb} what .gitignore leaves out
-    --threads <n>        Files to {verb} at once  (default: all cores)
-    --parser <name>      {Verb} as this language, from Parsers below
-    --config <path>      Use this config for every file
-    --no-config          Read no tidy.json and no .editorconfig
-    --skip-unknown       Leave text in a language tidy can't tell as it is
+    --staged             {staged}
+    --changed[=<ref>]    Only files changed from <ref>  (default: main branch)
+    --no-gitignore       Include gitignored files
+    --threads <n>        Threads to use  (default: all cores)
+    --lang <name>        Force a language, as in a code fence
+    --config <path>      Use this config file
+    --no-config          Ignore config files
+    --skip-unknown       Skip unknown languages
     -h, --help           Displays this message
 
 {FORMATTING}
-{PARSERS}",
-    staged = if verb == "format" { ", and stage them again" } else { "" },
-    Verb = if verb == "format" { "Format" } else { "Check" },
+{LANGUAGES}"
   )
 }
 
@@ -85,7 +83,7 @@ pub(crate) fn check() -> String {
   format!(
     "
   Description
-    List the files that aren't formatted, and exit 1 if any.
+    List unformatted files, and exit 1 if any.
     Documentation: {DOCS}
 
   Usage
@@ -96,10 +94,10 @@ pub(crate) fn check() -> String {
     $ tidy check
     $ tidy check src --changed=main
     $ cat a.ts | tidy check --stdin=src/a.ts
-    $ cat a.ts | tidy check --stdin --parser typescript
+    $ cat a.ts | tidy check --stdin --lang ts
 
 ",
-    options = files("check", "Check stdin as <path>, or as --parser: exit 1 if it isn't formatted"),
+    options = files("Check stdin", "Only staged files"),
   )
 }
 
@@ -108,7 +106,7 @@ pub(crate) fn up() -> String {
   format!(
     "
   Description
-    Rewrite the files that aren't formatted, in place.
+    Format files in place.
     Documentation: {DOCS}
 
   Usage
@@ -119,10 +117,10 @@ pub(crate) fn up() -> String {
     $ tidy up
     $ tidy up --staged
     $ cat a.ts | tidy up --stdin=src/a.ts
-    $ cat a.ts | tidy up --stdin --parser typescript
+    $ cat a.ts | tidy up --stdin --lang ts
 
 ",
-    options = files("format", "Format stdin as <path>, or as --parser, and print it"),
+    options = files("Format stdin, and print it", "Only staged files, and restage them"),
   )
 }
 
@@ -131,15 +129,15 @@ pub(crate) fn init() -> String {
   format!(
     "
   Description
-    Write a config with the default options in this folder: tidy.jsonc, unless asked for another.
+    Write a config file with the default options.
     Documentation: {DOCS}
 
   Usage
     $ tidy init [options]
 
   Options
-    --json        Write tidy.json, which can't hold the comment that links to the docs
-    --toml        Write tidy.toml
+    --json        Write a JSON file
+    --toml        Write a TOML file
     -h, --help    Displays this message
 
   Examples
@@ -155,7 +153,7 @@ pub(crate) fn schema() -> String {
   format!(
     "
   Description
-    Print the JSON Schema of tidy.json.
+    Print the config's JSON Schema.
     Documentation: {DOCS}
 
   Usage

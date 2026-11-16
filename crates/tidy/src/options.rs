@@ -31,6 +31,45 @@ pub enum Language {
 }
 
 impl Language {
+  /// The language that `name` stands for, as in a code fence (`ts`, `yml`, `hbs`, `md`) or as a file extension
+  /// (`xml`, `svg`, `mts`), or `None` if tidy doesn't format it.
+  ///
+  /// # Example
+  /// ```
+  /// use tidy::Language;
+  /// assert_eq!(Language::of_name("yml"), Language::of_path("a.yaml"));
+  /// assert_eq!(Language::of_name("cobol"), None);
+  /// ```
+  pub fn of_name(name: &str) -> Option<Language> {
+    let parser = crate::languages::parser(name).or_else(|| crate::embed::own(name));
+    let named = parser.and_then(|parser| match parser {
+      #[cfg(feature = "js")]
+      "babel" => Some(Language::Js(js::Dialect::Js)),
+      #[cfg(feature = "js")]
+      "typescript" | "babel-ts" => Some(Language::Js(js::Dialect::Ts)),
+      "css" => Some(Language::Css(css::Dialect::Css)),
+      "scss" => Some(Language::Css(css::Dialect::Scss)),
+      "less" => Some(Language::Css(css::Dialect::Less)),
+      "json" => Some(Language::Json(json::Dialect::Json)),
+      "jsonc" => Some(Language::Json(json::Dialect::Jsonc)),
+      "json5" => Some(Language::Json(json::Dialect::Json5)),
+      "json-stringify" => Some(Language::Json(json::Dialect::Stringify)),
+      "yaml" => Some(Language::Yaml),
+      "toml" => Some(Language::Toml),
+      "dockerfile" => Some(Language::Dockerfile),
+      "ini" => Some(Language::Ini(ini::Dialect::Ini)),
+      "gitconfig" => Some(Language::Ini(ini::Dialect::Git)),
+      "graphql" => Some(Language::Graphql),
+      "html" => Some(Language::Html),
+      "vue" => Some(Language::Vue),
+      "mjml" => Some(Language::Mjml),
+      "glimmer" => Some(Language::Handlebars),
+      "markdown" => Some(Language::Markdown),
+      _ => None,
+    });
+    named.or_else(|| Language::of_path(&format!("stdin.{name}")))
+  }
+
   /// The language of the file at `path`, by its name, or `None` if tidy doesn't format it.
   pub fn of_path(path: &str) -> Option<Language> {
     if let Some(dialect) = css::Dialect::of_path(path) {

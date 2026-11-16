@@ -31,7 +31,7 @@ $ bun add tidyrs         # Node binding
 ```sh
 $ tidy check docs                    # list files that aren't formatted
 $ tidy up .                          # rewrite in place
-$ cat notes.md | tidy up --stdin --parser markdown
+$ cat notes.md | tidy up --stdin --lang md
 ```
 
 Run `tidy --help` for every flag. Markdown's own options go in the `markdown` section of a `tidy.json`.

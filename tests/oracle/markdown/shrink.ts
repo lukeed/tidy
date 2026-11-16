@@ -50,7 +50,7 @@ async function broken(lines: string[]): Promise<boolean> {
 }
 
 async function format(source: string): Promise<string> {
-  return $`${tidy} up --stdin --parser markdown --config ${settings} < ${new Response(source)}`.text();
+  return $`${tidy} up --stdin --lang md --config ${settings} < ${new Response(source)}`.text();
 }
 
 async function events(source: string): Promise<string> {

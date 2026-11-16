@@ -1,4 +1,4 @@
-//! `--stdin`, `--parser` and `--skip-unknown`, as an editor runs them.
+//! `--stdin`, `--lang` and `--skip-unknown`, as an editor runs them.
 
 #![cfg(feature = "cli")]
 
@@ -99,21 +99,21 @@ fn takes_the_language_from_the_path() {
 #[test]
 fn parser_wins_over_the_path() {
   let folder = Folder::new("parser-wins", &[]);
-  let output = tidy(&["up", "--stdin=a.html", "--parser", "css"], "a{color:red}", &folder.0);
+  let output = tidy(&["up", "--stdin=a.html", "--lang", "css"], "a{color:red}", &folder.0);
   assert_eq!(stdout(&output), "a {\n  color: red;\n}\n");
 }
 
 #[test]
 fn bare_stdin_takes_a_parser() {
   let folder = Folder::new("bare", &[("tidy.json", "{ \"js\": { \"semi\": false } }\n")]);
-  let output = tidy(&["up", "--stdin", "--parser", "typescript"], "const a   =1", &folder.0);
+  let output = tidy(&["up", "--stdin", "--lang", "ts"], "const a   =1", &folder.0);
   assert_eq!(stdout(&output), "const a = 1;\n", "no path, so no config: {}", stderr(&output));
 }
 
 #[test]
 fn bare_stdin_takes_a_named_config() {
   let folder = Folder::new("named", &[("cfg.json", "{ \"js\": { \"semi\": false } }\n")]);
-  let args = ["up", "--stdin", "--parser", "typescript", "--config", "cfg.json"];
+  let args = ["up", "--stdin", "--lang", "ts", "--config", "cfg.json"];
   let output = tidy(&args, "const a   =1", &folder.0);
   assert_eq!(stdout(&output), "const a = 1\n", "{}", stderr(&output));
 }
@@ -121,7 +121,7 @@ fn bare_stdin_takes_a_named_config() {
 #[test]
 fn stdin_needs_a_command() {
   let folder = Folder::new("no-command", &[]);
-  for args in [&["--stdin=a.css"][..], &["--stdin", "--parser", "css"][..]] {
+  for args in [&["--stdin=a.css"][..], &["--stdin", "--lang", "css"][..]] {
     let output = tidy(args, "a{color:red}", &folder.0);
     assert_eq!(
       stderr(&output),
@@ -138,7 +138,7 @@ fn check_exits_1_when_not_formatted() {
   let output = tidy(&["check", "--stdin=a.ts"], "const a   =1", &folder.0);
   assert_eq!((stdout(&output).as_str(), output.status.code()), ("", Some(1)));
 
-  let output = tidy(&["check", "--stdin", "--parser", "typescript"], "const a = 1;\n", &folder.0);
+  let output = tidy(&["check", "--stdin", "--lang", "ts"], "const a = 1;\n", &folder.0);
   assert_eq!((stdout(&output).as_str(), output.status.code()), ("", Some(0)));
 }
 
@@ -156,7 +156,7 @@ fn fails_on_an_unknown_language() {
   assert_eq!(stdout(&output), "");
   assert_eq!(
     stderr(&output),
-    "tidy: a.unknown: can't tell the language of this file, pass --parser\n"
+    "tidy: a.unknown: can't tell the language of this file, pass --lang\n"
   );
   assert_eq!(output.status.code(), Some(2));
 }
@@ -168,7 +168,7 @@ fn fails_without_a_language() {
     let output = tidy(args, "<p>hi</p>", &folder.0);
     assert_eq!(
       stderr(&output),
-      "tidy: can't tell the language of stdin, pass --parser or --stdin=<path>\n",
+      "tidy: can't tell the language of stdin, pass --lang or --stdin=<path>\n",
       "{args:?}"
     );
     assert_eq!(output.status.code(), Some(2), "{args:?}");
@@ -232,6 +232,6 @@ fn reports_syntax_errors_at_the_path() {
   assert_eq!(stderr(&output), "tidy: src/a.css:1:1: Unclosed block\n");
   assert_eq!(output.status.code(), Some(2));
 
-  let output = tidy(&["up", "--stdin", "--parser", "css"], "a {", &folder.0);
+  let output = tidy(&["up", "--stdin", "--lang", "css"], "a {", &folder.0);
   assert_eq!(stderr(&output), "tidy: stdin:1:1: Unclosed block\n");
 }

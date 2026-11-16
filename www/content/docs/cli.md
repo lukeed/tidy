@@ -85,13 +85,13 @@ When git names no file tidy can format, the run succeeds and prints nothing — 
 
 | Flag               | What it does                                                                                                                |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| `--parser <name>`  | Force a language instead of guessing from the file name.                                                                    |
+| `--lang <name>`    | Force a language instead of guessing from the file name.                                                                    |
 | `--stdin[=<path>]` | Read the text from stdin. The path is the one the text would have, which decides its language and which config files apply. |
 | `--no-gitignore`   | Also format what `.gitignore` files leave out.                                                                              |
 | `--skip-unknown`   | Leave text in a language tidy can't tell as it is, instead of failing.                                                      |
 | `--threads <n>`    | How many files to format at once. Defaults to one per core; `1` uses a single thread.                                       |
 
-`--parser` takes `html`, `vue`, `mjml`, `handlebars`, `tempura`, `css`, `scss`, `less`, `json`, `jsonc`, `json5`, `json-stringify`, `yaml`, `toml`, `dockerfile`, `ini`, `gitconfig`, `graphql`, `babel`, `typescript`, `babel-ts`, `xml` or `markdown`. The names are Prettier's.
+`--lang` takes the name a code fence would: `css`, `scss`, `less`, `html`, `vue`, `mjml`, `hbs`, `js`, `jsx`, `ts`, `tsx`, `json`, `jsonc`, `json5`, `yaml`, `toml`, `md`, `graphql`, `dockerfile`, `ini` or `gitconfig`, and their longer forms, such as `typescript` or `markdown`. It also takes a file extension, such as `xml`, `svg` or `mts`. See [Languages](/docs/languages/#language-names).
 
 When tidy walks a folder it skips `node_modules`, every folder whose name starts with `.`, and, inside a git repository, what git ignores: the `.gitignore` files, `.git/info/exclude` and your global excludes file. `--no-gitignore` formats those too. A path you name is always formatted. To leave other paths out, pass the paths you do want, or see [Ignoring code](/docs/ignore/).
 
@@ -148,12 +148,12 @@ A `check` run that cannot parse a file exits `2`, not `1`, so a broken file is n
 
 ```sh
 $ cat index.html | tidy up --stdin=index.html
-$ echo '{"a":1}' | tidy up --stdin --parser json
+$ echo '{"a":1}' | tidy up --stdin --lang json
 $ cat src/a.ts | tidy check --stdin=src/a.ts
 ```
 
 `tidy up --stdin` prints the formatted text, because there is no file to rewrite. `tidy check --stdin` prints nothing, and exits `0` if the text is formatted or `1` if it is not.
 
-`--stdin=<path>` is the better form, because the path also decides which config files apply. The file does not have to exist. Without a path, tidy reads no config files except one named with `--config`, and you must give `--parser`. If `--parser` is given, it wins over the path.
+`--stdin=<path>` is the better form, because the path also decides which config files apply. The file does not have to exist. Without a path, tidy reads no config files except one named with `--config`, and you must give `--lang`. If `--lang` is given, it wins over the path.
 
 If tidy can't tell the language, it fails. With `--skip-unknown`, it prints the text as it is, and `check` exits `0`. The flag also works with paths: a named file in an unknown language is skipped. Editors use it so that they can send any buffer to tidy.

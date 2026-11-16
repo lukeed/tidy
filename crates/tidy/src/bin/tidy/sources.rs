@@ -15,7 +15,7 @@ pub(crate) struct Sources {
   /// `None` with `--no-config`.
   pub(crate) resolver: Option<Resolver>,
   pub(crate) flags: Config,
-  /// The language `--parser` forces, instead of the one of each name.
+  /// The language `--lang` forces, instead of the one of each name.
   pub(crate) language: Option<Language>,
   pub(crate) skip_unknown: bool,
 }
@@ -38,13 +38,13 @@ impl Sources {
       Some(language) => Ok(Some(language)),
       None if self.skip_unknown => Ok(None),
       None => Err(match path {
-        Some(name) => format!("{name}: can't tell the language of this file, pass --parser"),
-        None => "can't tell the language of stdin, pass --parser or --stdin=<path>".into(),
+        Some(name) => format!("{name}: can't tell the language of this file, pass --lang"),
+        None => "can't tell the language of stdin, pass --lang or --stdin=<path>".into(),
       }),
     }
   }
 
-  /// Formats the file at `path`, in the language `--parser` forces or the one of its name.
+  /// Formats the file at `path`, in the language `--lang` forces or the one of its name.
   /// `None` when `--skip-unknown` leaves it as it is.
   pub(crate) fn format<'f>(
     &self,

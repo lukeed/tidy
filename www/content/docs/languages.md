@@ -45,20 +45,20 @@ Walking a folder, tidy picks up:
 
 A file whose name tidy does not recognise is skipped. It is never an error to point tidy at a folder of mixed content.
 
-To format something whose name does not say what it is, name the parser:
+To format something whose name does not say what it is, name the language:
 
 ```sh
-$ tidy up --parser yaml .github/dependabot.yaml.tpl
-$ cat config | tidy up --stdin --parser ini
+$ tidy up --lang yaml .github/dependabot.yaml.tpl
+$ cat config | tidy up --stdin --lang ini
 ```
 
-## Parser names
+## Language names
 
-`--parser` takes Prettier's names, so a Prettier config translates directly:
+`--lang` takes the name you would put on a code fence, the same names tidy reads from the code blocks of Markdown:
 
-`html`, `vue`, `mjml`, `handlebars`, `tempura`, `css`, `scss`, `less`, `json`, `jsonc`, `json5`, `json-stringify`, `yaml`, `toml`, `dockerfile`, `ini`, `gitconfig`, `graphql`, `babel`, `typescript`, `babel-ts`, `xml`, `markdown`.
+`css`, `scss`, `less`, `html`, `vue`, `mjml`, `hbs`, `js`, `jsx`, `ts`, `tsx`, `json`, `jsonc`, `json5`, `yaml`, `toml`, `md`, `graphql`, `dockerfile`, `ini`, `gitconfig`.
 
-`babel` and `babel-ts` are Prettier's JavaScript parsers; in tidy they select the same printer as `typescript`, with the dialect the name implies.
+Their longer forms work too, such as `javascript`, `typescript`, `yml`, `handlebars` and `markdown`. So does a file extension, such as `xml`, `svg` or `mts`: tidy takes the language a file with that extension would get.
 
 ## Dialects within a language
 
