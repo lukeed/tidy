@@ -116,7 +116,7 @@ fn sources(args: &mut pico_args::Arguments, mode: Mode) -> Result<Sources, Strin
       flags.handlebars.dialect = Some(tidy::handlebars::Dialect::Tempura);
       Some(Language::Handlebars)
     }
-    Some(name) => Some(Language::of_name(name).ok_or_else(|| {
+    Some(name) => Some(Language::hint(name).ok_or_else(|| {
       let command = if mode == Mode::Up { "up" } else { "check" };
       format!("unknown language `{name}`, see `tidy {command} --help`")
     })?),

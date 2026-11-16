@@ -37,10 +37,10 @@ impl Language {
   /// # Example
   /// ```
   /// use tidy::Language;
-  /// assert_eq!(Language::of_name("yml"), Language::of_path("a.yaml"));
-  /// assert_eq!(Language::of_name("cobol"), None);
+  /// assert_eq!(Language::hint("yml"), Language::of_path("a.yaml"));
+  /// assert_eq!(Language::hint("cobol"), None);
   /// ```
-  pub fn of_name(name: &str) -> Option<Language> {
+  pub fn hint(name: &str) -> Option<Language> {
     let parser = crate::languages::parser(name).or_else(|| crate::embed::own(name));
     let named = parser.and_then(|parser| match parser {
       #[cfg(feature = "js")]
