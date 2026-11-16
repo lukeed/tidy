@@ -4,11 +4,11 @@ summary: Format code with tidy in your browser. The same Rust, compiled to WebAs
 ---
 
 {{#var languages = [
-  ["typescript", "TypeScript"],
-  ["babel", "JavaScript"],
+  ["ts", "TypeScript"],
+  ["js", "JavaScript"],
   ["html", "HTML"],
   ["vue", "Vue"],
-  ["handlebars", "Handlebars"],
+  ["hbs", "Handlebars"],
   ["css", "CSS"],
   ["scss", "SCSS"],
   ["less", "Less"],
@@ -17,7 +17,7 @@ summary: Format code with tidy in your browser. The same Rust, compiled to WebAs
   ["json5", "JSON5"],
   ["yaml", "YAML"],
   ["toml", "TOML"],
-  ["markdown", "Markdown"],
+  ["md", "Markdown"],
   ["graphql", "GraphQL"],
   ["xml", "XML"],
   ["dockerfile", "Dockerfile"],
@@ -32,11 +32,11 @@ summary: Format code with tidy in your browser. The same Rust, compiled to WebAs
   <div class="play-bar">
     <label class="pick">
       <span>Language</span>
-      <select data-parser aria-label="Language">
+      <select data-lang aria-label="Language">
         {{#each languages as lang}}
           <option
             value="{{ lang[0] }}"
-            {{#if lang[0] === 'typescript'}} selected{{/if}}
+            {{#if lang[0] === 'ts'}} selected{{/if}}
           >{{ lang[1] }}</option>
         {{/each}}
       </select>

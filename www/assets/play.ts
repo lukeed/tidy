@@ -11,15 +11,15 @@ import { language as yaml } from "@twinkleplop/yaml";
 import init, { format, version } from "./wasm/tidy.js";
 
 /**
- * A grammar per parser; one tidy formats but twinkleplop has no grammar for
- * stays plain.
+ * A grammar per language, by the names `--lang` takes; one tidy formats but
+ * twinkleplop has no grammar for stays plain.
  */
 const GRAMMAR: Record<string, () => (code: string) => string> = {
-  typescript,
-  babel: javascript,
+  ts: typescript,
+  js: javascript,
   html,
   vue: html,
-  handlebars: html,
+  hbs: html,
   xml: html,
   css,
   scss: css,
@@ -29,17 +29,17 @@ const GRAMMAR: Record<string, () => (code: string) => string> = {
   json5: json,
   yaml,
   toml,
-  markdown,
+  md: markdown,
   dockerfile: bash,
 };
 
 let grammars = new Map<string, (code: string) => string>();
 
-function paint(code: string, parser: string): string {
-  let make = GRAMMAR[parser];
+function paint(code: string, lang: string): string {
+  let make = GRAMMAR[lang];
   if (!make) return escape(code);
-  let run = grammars.get(parser) ?? make();
-  grammars.set(parser, run);
+  let run = grammars.get(lang) ?? make();
+  grammars.set(lang, run);
   try {
     let html = run(code);
     // The grammars return a full <pre><code> frame; the shade supplies its own.
@@ -61,14 +61,12 @@ function escape(text: string): string {
   return text.replace(/[&<>]/g, (char) => ESCAPE[char]);
 }
 
-type Parser = string;
-
 const SAMPLES: Record<string, string> = {
-  typescript: `import {readFile} from 'node:fs/promises'\n\ntype Route={\npath:string,run:(req:Request)=>Promise<Response>}\n\nconst routes:Route[]=[\n{path:'/',run:()=>page("index.html")},\n  {path:"/up",run:async()=>new Response('ok')},\n]\n`,
-  babel: `const routes=[{path:'/',run:()=>page("index.html")},{path:"/up",run:async()=>new Response('ok')}]\n\nexport function match(path){return routes.find(r=>r.path===path)??null}\n`,
+  ts: `import {readFile} from 'node:fs/promises'\n\ntype Route={\npath:string,run:(req:Request)=>Promise<Response>}\n\nconst routes:Route[]=[\n{path:'/',run:()=>page("index.html")},\n  {path:"/up",run:async()=>new Response('ok')},\n]\n`,
+  js: `const routes=[{path:'/',run:()=>page("index.html")},{path:"/up",run:async()=>new Response('ok')}]\n\nexport function match(path){return routes.find(r=>r.path===path)??null}\n`,
   html: `<section class=hero><h1 class="title">tidy</h1><p>Prettier's style, at native speed.</p>\n<a class=btn href="/docs/">Docs</a><a class=btn href=https://github.com/lukeed/tidy>Source</a></section>\n`,
   vue: `<template><div   class="card"><slot/></div></template>\n<script setup lang="ts">const a   =1</script>\n<style scoped>.card{padding:1rem;color:red}</style>\n`,
-  handlebars: `{{#if user}}<p class=greeting>Hello {{user.name}}</p>{{else}}<p>Hello stranger</p>{{/if}}\n`,
+  hbs: `{{#if user}}<p class=greeting>Hello {{user.name}}</p>{{else}}<p>Hello stranger</p>{{/if}}\n`,
   css: `:root{--gap:1rem;--brand:#FF4D00}\n.card,.panel{display:grid;gap:var(--gap);padding:calc(var(--gap)*1.5)}\n@media (max-width:640px){.card{grid-template-columns:1fr}}\n`,
   scss: `$gap:1rem;\n.card{padding:$gap;&:hover{box-shadow:0 1px 2px rgba(0,0,0,.06)}\n.title{font-weight:600}}\n`,
   less: `@gap:1rem;\n.card{padding:@gap;.title{font-weight:600}}\n`,
@@ -77,38 +75,17 @@ const SAMPLES: Record<string, string> = {
   json5: `{width:100,js:{semi:false,quote:'single'},}\n`,
   yaml: `name:   ci\non:\n  push:\n    branches:   [main]\njobs:\n  test:\n    runs-on:   ubuntu-latest\n`,
   toml: `[package]\nname="tidy"\nversion="0.1.0"\n[dependencies]\nserde={version="1",features=["derive"]}\n`,
-  markdown: `#  tidy\n\n*  Prettier's style\n*  at native speed\n\n|  a |  b |\n| -- | -- |\n|  1 |  2 |\n`,
+  md: `#  tidy\n\n*  Prettier's style\n*  at native speed\n\n|  a |  b |\n| -- | -- |\n|  1 |  2 |\n`,
   graphql: `query User($id:ID!){user(id:$id){id,name,email,posts(first:10){title}}}\n`,
   xml: `<note><to>You</to><from>tidy</from><body   attr="1">Read me</body></note>\n`,
   dockerfile: `FROM   node:22-alpine\nWORKDIR   /app\nCOPY package.json .\nRUN npm ci --omit=dev\nCMD ["node","index.js"]\n`,
   ini: `[server]\nhost=localhost\nport=8080\n[client]\nretries=3\n`,
 };
 
-const EXTENSION: Record<string, string> = {
-  typescript: "ts",
-  babel: "js",
-  html: "html",
-  vue: "vue",
-  handlebars: "hbs",
-  css: "css",
-  scss: "scss",
-  less: "less",
-  json: "json",
-  jsonc: "jsonc",
-  json5: "json5",
-  yaml: "yaml",
-  toml: "toml",
-  markdown: "md",
-  graphql: "graphql",
-  xml: "xml",
-  dockerfile: "Dockerfile",
-  ini: "ini",
-};
-
 let input: HTMLTextAreaElement;
 let config: HTMLTextAreaElement;
 let output: HTMLPreElement;
-let parser: HTMLSelectElement;
+let lang: HTMLSelectElement;
 let state: HTMLElement;
 let inStat: HTMLElement;
 let outStat: HTMLElement;
@@ -124,7 +101,7 @@ let loading: Promise<unknown> | undefined;
 /** The whole page state, small enough to live in the URL. */
 function share(): string {
   let payload = JSON.stringify({
-    p: parser.value,
+    p: lang.value,
     s: input.value,
     c: config.value,
   });
@@ -137,7 +114,7 @@ function restore(): boolean {
   try {
     let bytes = Uint8Array.from(atob(hash), (char) => char.charCodeAt(0));
     let { p, s, c } = JSON.parse(new TextDecoder().decode(bytes));
-    if (typeof p === "string") parser.value = p;
+    if (typeof p === "string") lang.value = p;
     if (typeof s === "string") input.value = s;
     if (typeof c === "string") config.value = c;
     return true;
@@ -147,12 +124,12 @@ function restore(): boolean {
 }
 
 /** The shade must end in a line break, or the last empty line has no height. */
-function shade(target: HTMLElement, text: string, parser: string) {
-  target.innerHTML = paint(text.endsWith("\n") ? text : `${text}\n`, parser);
+function shade(target: HTMLElement, text: string, lang: string) {
+  target.innerHTML = paint(text.endsWith("\n") ? text : `${text}\n`, lang);
 }
 
 function run() {
-  shade(inShade, input.value, parser.value);
+  shade(inShade, input.value, lang.value);
   shade(
     cfgShade,
     config.value,
@@ -170,13 +147,13 @@ function run() {
     return;
   }
 
-  let name = EXTENSION[parser.value];
-  let filepath = name === "Dockerfile" ? name : `playground.${name}`;
+  let filepath =
+    lang.value === "dockerfile" ? "Dockerfile" : `playground.${lang.value}`;
   let clock = performance.now();
   try {
-    let text = format(source, parser.value, config.value, filepath);
+    let text = format(source, lang.value, config.value, filepath);
     let took = performance.now() - clock;
-    output.innerHTML = paint(text, parser.value);
+    output.innerHTML = paint(text, lang.value);
     output.classList.remove("failed");
     outStat.textContent = `${took < 1 ? took.toFixed(2) : Math.round(took)} ms`;
   } catch (error) {
@@ -187,7 +164,7 @@ function run() {
 }
 
 function sample() {
-  input.value = SAMPLES[parser.value] ?? "";
+  input.value = SAMPLES[lang.value] ?? "";
 }
 
 /** Which editor the left column shows; the output stays beside it either way. */
@@ -463,7 +440,7 @@ export function mount(root: HTMLElement) {
   input = root.querySelector<HTMLTextAreaElement>("[data-input]")!;
   config = root.querySelector<HTMLTextAreaElement>("[data-config]")!;
   output = root.querySelector<HTMLPreElement>("[data-output]")!;
-  parser = root.querySelector<HTMLSelectElement>("[data-parser]")!;
+  lang = root.querySelector<HTMLSelectElement>("[data-lang]")!;
   state = root.querySelector<HTMLElement>("[data-state]")!;
   inStat = root.querySelector<HTMLElement>("[data-in-stat]")!;
   outStat = root.querySelector<HTMLElement>("[data-out-stat]")!;
@@ -494,7 +471,7 @@ export function mount(root: HTMLElement) {
       /* completion is a bonus; the pane still works without it */
     });
 
-  parser.addEventListener("change", () => {
+  lang.addEventListener("change", () => {
     sample();
     run();
   });
