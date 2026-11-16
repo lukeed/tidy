@@ -73,13 +73,13 @@ fn rewrites_a_folder() {
 }
 
 #[test]
-fn prints_one_file() {
-  let folder = Folder::new("print");
-  handled(&tidy(&["src/deep.ts"], "", &folder.0), 0);
+fn rewrites_one_file() {
+  let folder = Folder::new("one");
+  handled(&tidy(&["up", "src/deep.ts"], "", &folder.0), 0);
 }
 
 #[test]
 fn formats_stdin() {
   let folder = Folder::new("stdin");
-  handled(&tidy(&["--stdin=deep.ts"], &deep(), &folder.0), 0);
+  handled(&tidy(&["up", "--stdin=deep.ts"], &deep(), &folder.0), 0);
 }

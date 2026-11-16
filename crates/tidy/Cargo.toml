@@ -12,7 +12,7 @@ categories = ["text-processing", "development-tools"]
 
 [[bin]]
 name = "tidy"
-path = "src/main.rs"
+path = "src/bin/tidy/main.rs"
 required-features = ["cli"]
 
 [dependencies]
