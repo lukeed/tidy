@@ -277,6 +277,11 @@ fn properties(options: &[Opt]) -> Map<String, Value> {
   options.iter().map(|option| (option.name.to_owned(), property(option))).collect()
 }
 
+/// Where this version's schema lives. `https://tidy.lukeed.com/schema.json` redirects to the latest.
+pub fn url() -> String {
+  format!("https://tidy.lukeed.com/{}/schema.json", env!("CARGO_PKG_VERSION"))
+}
+
 /// The JSON Schema of a `tidy.json`, as pretty-printed JSON.
 ///
 /// # Example
@@ -287,6 +292,10 @@ fn properties(options: &[Opt]) -> Map<String, Value> {
 /// ```
 pub fn schema() -> String {
   let mut root = properties(&shared());
+  root.insert(
+    "$schema".into(),
+    json!({ "type": "string", "description": "The JSON Schema of this file, for editors." }),
+  );
 
   for name in SECTIONS {
     // A section takes the shared options too, with its own on top.
@@ -305,7 +314,7 @@ pub fn schema() -> String {
 
   let document = json!({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://tidy.lukeed.com/tidy.schema.json",
+    "$id": url(),
     "title": "tidy",
     "description": "Options for tidy, a code formatter with Prettier's style. https://tidy.lukeed.com/docs/options/",
     "type": "object",
