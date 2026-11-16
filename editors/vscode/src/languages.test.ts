@@ -21,7 +21,7 @@ test("tidy knows the name of each untitled document", () => {
     true,
   );
   for (let extension of Object.values(languages.EXTENSIONS)) {
-    let run = Bun.spawnSync([bin, `--stdin=untitled.${extension}`], {
+    let run = Bun.spawnSync([bin, "up", `--stdin=untitled.${extension}`], {
       stdin: Buffer.from(""),
     });
     expect({ extension, error: run.stderr.toString() }).toEqual({

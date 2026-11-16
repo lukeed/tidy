@@ -10,7 +10,7 @@ export type Result =
  * is `undefined`, and gives back its stdout or its error.
  *
  * @example
- *   let result = await tidy.run("tidy", ["--stdin=/repo/a.ts"], "let a=1", "/repo", token);
+ *   let result = await tidy.run("tidy", ["up", "--stdin=/repo/a.ts"], "let a=1", "/repo", token);
  *   if (result.ok) console.log(result.output); //=> "let a = 1;\n"
  */
 export function run(
