@@ -2,15 +2,6 @@
 
 const DOCS: &str = "https://tidy.lukeed.com/docs/cli/";
 
-const GLOBAL_OPTIONS: &str = "  Options
-    --parser <name>      Format as this language, from Parsers below
-    --config <path>      Use this config for every file
-    --no-config          Read no tidy.json and no .editorconfig
-    --skip-unknown       Leave text in a language tidy can't tell as it is
-    -v, --version        Displays current version
-    -h, --help           Displays this message
-";
-
 const FORMATTING: &str = "  Formatting Options
     --width <n>                    Line width  (default 80, and 120 for Dockerfiles)
     --indent <n>                   Indent width  (default 2)
@@ -53,20 +44,21 @@ pub(crate) fn global() -> String {
     $ tidy check --help
     $ tidy up --help
 
-{GLOBAL_OPTIONS}
-{FORMATTING}
-{PARSERS}
+  Options
+    -v, --version    Displays current version
+    -h, --help       Displays this message
+
   Examples
     $ tidy check
-    $ tidy up src --width 100
+    $ tidy up src
     $ cat a.ts | tidy up --stdin=src/a.ts
-    $ cat a.ts | tidy up --stdin --parser typescript
+    $ tidy init
 
 "
   )
 }
 
-/// The options `up` and `check` share, worded for each.
+/// The options, formatting options and parsers that `up` and `check` share, worded for each.
 fn files(verb: &str, stdin: &str) -> String {
   format!(
     "  Options
@@ -75,11 +67,16 @@ fn files(verb: &str, stdin: &str) -> String {
     --changed[=<ref>]    Only the files that differ from <ref>  (default: the default branch)
     --no-gitignore       Also {verb} what .gitignore leaves out
     --threads <n>        Files to {verb} at once  (default: all cores)
+    --parser <name>      {Verb} as this language, from Parsers below
+    --config <path>      Use this config for every file
+    --no-config          Read no tidy.json and no .editorconfig
+    --skip-unknown       Leave text in a language tidy can't tell as it is
     -h, --help           Displays this message
 
-  Takes the options and formatting options of `tidy --help` too.
-",
+{FORMATTING}
+{PARSERS}",
     staged = if verb == "format" { ", and stage them again" } else { "" },
+    Verb = if verb == "format" { "Format" } else { "Check" },
   )
 }
 
@@ -99,6 +96,7 @@ pub(crate) fn check() -> String {
     $ tidy check
     $ tidy check src --changed=main
     $ cat a.ts | tidy check --stdin=src/a.ts
+    $ cat a.ts | tidy check --stdin --parser typescript
 
 ",
     options = files("check", "Check stdin as <path>, or as --parser: exit 1 if it isn't formatted"),
@@ -121,6 +119,7 @@ pub(crate) fn up() -> String {
     $ tidy up
     $ tidy up --staged
     $ cat a.ts | tidy up --stdin=src/a.ts
+    $ cat a.ts | tidy up --stdin --parser typescript
 
 ",
     options = files("format", "Format stdin as <path>, or as --parser, and print it"),

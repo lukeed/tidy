@@ -75,16 +75,45 @@ fn prints_help_without_a_command() {
     let help = stdout(&output);
     assert_eq!(output.status.code(), Some(0), "{args:?}");
     assert!(help.contains("Documentation: https://tidy.lukeed.com/docs/cli/"), "{help}");
-    for section in
-      ["Usage", "Available Commands", "Options", "Formatting Options", "Parsers", "Examples"]
-    {
+    for section in ["Usage", "Available Commands", "Options", "Examples"] {
       assert!(help.contains(&format!("\n  {section}\n")), "{section} in {help}");
     }
-    for parser in PARSERS {
-      assert!(help.contains(parser), "{parser} in {help}");
+    for only_up_and_check in ["Formatting Options", "Parsers", "--parser", "--width", "--staged"] {
+      assert!(
+        !help.contains(only_up_and_check),
+        "{only_up_and_check} stays out of the global help"
+      );
     }
-    assert!(help.contains("tidy up --stdin --parser typescript"), "{help}");
-    assert!(!help.contains("--staged"), "command options stay out of the global help");
+    assert!(help.lines().all(|line| line.len() <= 100), "no long lines: {help}");
+  }
+}
+
+#[test]
+fn up_and_check_list_everything_they_take() {
+  let folder = Folder::new("format-help", &[]);
+  for command in ["up", "check"] {
+    let output = tidy(&[command, "--help"], &folder.0);
+    let help = stdout(&output);
+    assert_eq!(output.status.code(), Some(0), "{command}");
+    assert!(help.contains("Documentation: https://tidy.lukeed.com/docs/cli/"), "{help}");
+    for section in ["Usage", "Options", "Formatting Options", "Parsers", "Examples"] {
+      assert!(help.contains(&format!("\n  {section}\n")), "{command}: {section} in {help}");
+    }
+    for flag in [
+      "--stdin",
+      "--staged",
+      "--parser <name>",
+      "--config",
+      "--skip-unknown",
+      "--width",
+      "--no-embedded",
+    ] {
+      assert!(help.contains(flag), "{command}: {flag} in {help}");
+    }
+    for parser in PARSERS {
+      assert!(help.contains(parser), "{command}: {parser} in {help}");
+    }
+    assert!(help.contains(&format!("tidy {command} --stdin --parser typescript")), "{help}");
     assert!(help.lines().all(|line| line.len() <= 100), "no long lines: {help}");
   }
 }
