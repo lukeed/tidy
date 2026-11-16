@@ -3,13 +3,30 @@
 /// What a piece of embedded code is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
-  /// The contents of a `<script>`, a `<style>`, or a block of a Vue file.
+  /// A whole script, style sheet or document: a `<script>`, a `<style>`, a block of a Vue file, a code block.
   Block,
-  /// An expression in a template, as in `{{ value }}`.
+  /// An expression, as in `{{ value }}` or `:value="..."`.
   Expression,
-  /// The value of an attribute that holds code, as in `style="..."` or `onclick="..."`.
-  Attribute,
+  /// The statements of an event handler, as in `@click="..."`.
+  Event,
+  /// The parameters of a slot, as in `v-slot="{ item }"`.
+  Bindings,
+  /// The left side of a loop, as in `v-for="(item, index) in list"`.
+  For,
+  /// The type parameters of a component, as in `<script setup generic="T">`.
+  Generic,
+  /// A structural directive's microsyntax, as in `*ngFor="..."`.
+  Directive,
   /// The front matter of a file.
+  FrontMatter,
+}
+
+/// Where tidy's printers find a piece of code, before its parser tells what it is.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Hole {
+  Block,
+  Expression,
+  Attribute,
   FrontMatter,
 }
 
@@ -17,9 +34,15 @@ pub enum Kind {
 #[derive(Clone, Copy, Debug)]
 pub struct Request<'a> {
   pub code: &'a str,
-  /// Prettier's name for the parser of the code: `babel`, `typescript`, `css`, `scss`, `json`, `yaml`, ...
-  pub language: &'a str,
+  /// The language of the code, by the name `--lang` takes: `js`, `ts`, `css`, `scss`, `json`, `yaml`, `md`, ...
+  pub lang: &'a str,
   pub kind: Kind,
+  /// The framework whose rules the code follows, where they differ from the language's own: `vue`, whose
+  /// expressions may hold filters, or `ng`, for Angular's directives.
+  pub host: Option<&'static str>,
+  /// The code is the value of an attribute, as in `style="..."` or `@click="..."`, where a host may prefer single
+  /// quotes.
+  pub attribute: bool,
   /// How many indents the code starts at. Lines after the first are indented by the host.
   pub indent: usize,
   /// The width of the text before the code on its first line, after the indents, as `name="` before an attribute
@@ -32,6 +55,72 @@ pub struct Request<'a> {
   /// JavaScript that is a module, not a classic script: Prettier's `__babelSourceType`. Only a `<script>` in HTML is
   /// a classic script, unless its `type` makes it a module.
   pub module: bool,
+}
+
+impl<'a> Request<'a> {
+  /// The request for `code`, which tidy's printers name by Prettier's parser, found in `hole`, at no indent, with a
+  /// width of 80, as a module.
+  pub(crate) fn new(code: &'a str, parser: &'a str, hole: Hole) -> Request<'a> {
+    let block = if hole == Hole::FrontMatter { Kind::FrontMatter } else { Kind::Block };
+    let (lang, kind, host) = match parser {
+      "babel" => ("js", block, None),
+      "typescript" => ("ts", block, None),
+      "markdown" => ("md", block, None),
+      "glimmer" => ("hbs", block, None),
+      "angular" => ("html", block, Some("ng")),
+      "__js_expression" => ("js", Kind::Expression, None),
+      "__ts_expression" => ("ts", Kind::Expression, None),
+      "__vue_expression" => ("js", Kind::Expression, Some("vue")),
+      "__vue_ts_expression" => ("ts", Kind::Expression, Some("vue")),
+      "__vue_event_binding" => ("js", Kind::Event, Some("vue")),
+      "__vue_ts_event_binding" => ("ts", Kind::Event, Some("vue")),
+      "__vue_bindings" => ("js", Kind::Bindings, Some("vue")),
+      "__vue_ts_bindings" => ("ts", Kind::Bindings, Some("vue")),
+      "__vue_for_left" => ("js", Kind::For, Some("vue")),
+      "__vue_ts_for_left" => ("ts", Kind::For, Some("vue")),
+      "__vue_generic" => ("ts", Kind::Generic, Some("vue")),
+      "__ng_directive" => ("js", Kind::Directive, Some("ng")),
+      other => (other, block, None),
+    };
+    let attribute = hole == Hole::Attribute;
+    Request {
+      code,
+      lang,
+      kind,
+      host,
+      attribute,
+      indent: 0,
+      prefix: 0,
+      suffix: 0,
+      width: 80,
+      module: true,
+    }
+  }
+
+  /// Prettier's name for the parser of the code, which tidy's printers still go by: [`Request::new`] backwards.
+  pub(crate) fn parser(&self) -> &'a str {
+    let block = matches!(self.kind, Kind::Block | Kind::FrontMatter);
+    match (self.lang, self.kind, self.host) {
+      ("js", _, None) if block => "babel",
+      ("ts", _, None) if block => "typescript",
+      ("md", _, None) if block => "markdown",
+      ("hbs", _, None) if block => "glimmer",
+      ("html", _, Some("ng")) if block => "angular",
+      ("js", Kind::Expression, None) => "__js_expression",
+      ("ts", Kind::Expression, None) => "__ts_expression",
+      ("js", Kind::Expression, Some("vue")) => "__vue_expression",
+      ("ts", Kind::Expression, Some("vue")) => "__vue_ts_expression",
+      ("js", Kind::Event, Some("vue")) => "__vue_event_binding",
+      ("ts", Kind::Event, Some("vue")) => "__vue_ts_event_binding",
+      ("js", Kind::Bindings, Some("vue")) => "__vue_bindings",
+      ("ts", Kind::Bindings, Some("vue")) => "__vue_ts_bindings",
+      ("js", Kind::For, Some("vue")) => "__vue_for_left",
+      ("ts", Kind::For, Some("vue")) => "__vue_ts_for_left",
+      (_, Kind::Generic, Some("vue")) => "__vue_generic",
+      (_, Kind::Directive, Some("ng")) => "__ng_directive",
+      (lang, ..) => lang,
+    }
+  }
 }
 
 /// Formats the code of another language. `None` leaves it as it is written.
@@ -115,16 +204,7 @@ pub(crate) fn code_block(
   embed: &mut dyn Embed,
 ) -> Option<String> {
   let language = crate::languages::parser(code.lang).or(own(code.lang))?;
-  let request = Request {
-    code: code.text,
-    language,
-    kind: Kind::Block,
-    indent: 0,
-    prefix: 0,
-    suffix: 0,
-    width: code.width,
-    module: true,
-  };
+  let request = Request { width: code.width, ..Request::new(code.text, language, Hole::Block) };
   embed
     .format(request)
     .or_else(|| {
@@ -242,22 +322,23 @@ pub(crate) fn builtin_in(
   host: Host,
 ) -> Option<String> {
   use crate::{dockerfile, graphql, ini, json, toml, yaml};
+  let parser = request.parser();
   #[cfg(feature = "js")]
-  if crate::js::template::formats(request.language) {
+  if crate::js::template::formats(parser) {
     let options = script_options(request, tab_width, tabs, scripts);
     return crate::js::template::format(request, &options, host);
   }
   #[cfg(not(feature = "js"))]
   let _ = (scripts, host);
   if host == Host::Markdown
-    && let Some(parser) = markup(request.language)
+    && let Some(markup) = markup(parser)
   {
-    return markup_block(request, parser, tab_width, tabs, scripts);
+    return markup_block(request, markup, tab_width, tabs, scripts);
   }
-  if request.language == "markdown" && request.indent == 0 {
+  if parser == "markdown" && request.indent == 0 {
     return Some(markdown(request, tab_width, tabs, scripts).trim_end().to_owned());
   }
-  let dialect = match request.language {
+  let dialect = match parser {
     "json" => json::Dialect::Json,
     "jsonc" => json::Dialect::Jsonc,
     "json5" => json::Dialect::Json5,
@@ -285,7 +366,7 @@ pub(crate) fn builtin_in(
       return graphql::Formatter::default().embedded(request.code, &options).map(str::to_owned);
     }
     "ini" | "gitconfig" if request.indent == 0 => {
-      let dialect = if request.language == "ini" { ini::Dialect::Ini } else { ini::Dialect::Git };
+      let dialect = if parser == "ini" { ini::Dialect::Ini } else { ini::Dialect::Git };
       let options = ini::Options { dialect, tab_width, tabs, ..ini::Options::default() };
       let formatted = ini::format(request.code, &options).ok()?;
       return Some(formatted.trim_end().to_owned());

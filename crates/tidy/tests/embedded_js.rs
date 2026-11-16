@@ -43,7 +43,7 @@ fn leaves_code_that_does_not_parse() {
 
 #[test]
 fn prefers_the_hook() {
-  let mut hook = |request: Request<'_>| (request.language == "babel").then(|| "hook()".to_owned());
+  let mut hook = |request: Request<'_>| (request.lang == "js").then(|| "hook()".to_owned());
   let source = "<script>\nlet  a\n</script>\n";
   let formatted = tidy::format(source, Language::Html, &Options::default(), None, &mut hook);
   assert_eq!(formatted.unwrap(), "<script>\n  hook()\n</script>\n");

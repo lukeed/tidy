@@ -8,7 +8,7 @@ use super::ast::{self, Call, Head, Kind, NOTHING, Node, NodeId, Range, Tree};
 use super::lexer::id_len;
 use super::tokenizer::is_void_tag;
 use crate::doc::{Align, Branch, Docs, Mark};
-use crate::embed::{Embed, Kind as Purpose, Request};
+use crate::embed::{Embed, Hole as Purpose, Request};
 use crate::stack::Stack;
 use crate::strings;
 use std::borrow::Cow;
@@ -407,14 +407,8 @@ impl<'a> Printer<'a, '_> {
     let mut formatted = String::new();
     if !value.is_empty() {
       let request = Request {
-        code: value,
-        language,
-        kind: Purpose::FrontMatter,
-        indent: 0,
-        prefix: 0,
-        suffix: 0,
         width: self.options.width,
-        module: true,
+        ..Request::new(value, language, Purpose::FrontMatter)
       };
       let options = self.options;
       let builtin = || {
@@ -464,14 +458,9 @@ impl<'a> Printer<'a, '_> {
     }
     let code = std::str::from_utf8(self.text(chars)).ok()?;
     let request = Request {
-      code,
-      language: "css",
-      kind: Purpose::Block,
       indent: self.indents,
-      prefix: 0,
-      suffix: 0,
       width: self.options.width,
-      module: true,
+      ..Request::new(code, "css", Purpose::Block)
     };
     let Some(formatted) = self.embed.format(request) else {
       if !self.options.formats_embedded {
@@ -1046,14 +1035,9 @@ impl<'a> Printer<'a, '_> {
   ) -> Option<String> {
     let code = std::str::from_utf8(code).ok()?;
     let request = Request {
-      code,
-      language: "__js_expression",
-      kind,
       indent: self.indents + extra,
-      prefix: 0,
-      suffix: 0,
       width: self.options.width.saturating_sub(reserved),
-      module: true,
+      ..Request::new(code, "__js_expression", kind)
     };
     let options = self.options;
     let builtin = || {

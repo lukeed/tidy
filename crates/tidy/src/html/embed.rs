@@ -10,7 +10,7 @@ use super::utilities::{
 };
 use super::{Parser, angular};
 use crate::doc::{Align, Branch};
-use crate::embed::{Kind as Purpose, Request};
+use crate::embed::{Hole as Purpose, Request};
 use crate::strings;
 use crate::{front_matter, languages};
 
@@ -31,14 +31,12 @@ pub(crate) struct Embedded<'c> {
 impl<'c> Embedded<'c> {
   pub(crate) fn request(&self, indents: usize, options: &super::Context<'_>) -> Request<'c> {
     Request {
-      code: self.code,
-      language: self.language,
-      kind: self.kind,
       indent: indents + self.extra,
       prefix: self.prefix,
       suffix: self.suffix,
       width: options.width,
       module: self.module,
+      ..Request::new(self.code, self.language, self.kind)
     }
   }
 }
@@ -422,16 +420,7 @@ fn value_of<'v>(
   } else if full == b"style" && embedded {
     let code = text(unescaped);
     let width = printer.options.width;
-    let request = Request {
-      code: &code,
-      language: "css",
-      kind: Purpose::Attribute,
-      indent: 0,
-      prefix: 0,
-      suffix: 0,
-      width,
-      module: true,
-    };
+    let request = Request { width, ..Request::new(&code, "css", Purpose::Attribute) };
     match printer.embed.format(request) {
       Some(formatted) => Some(Value::Style(formatted)),
       None => style_sheet(printer, "css", &code, true).map(Value::Css),

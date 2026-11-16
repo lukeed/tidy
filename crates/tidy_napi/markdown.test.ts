@@ -37,12 +37,12 @@ describe("markdown", () => {
       "```js\nlet  x\n```\n\n```txt\nkeep  me\n```\n",
       markdown,
       (request) => {
-        seen.push([request.language, request.code, request.width]);
+        seen.push([request.lang, request.code, request.width]);
         return request.code.replace("  ", " ");
       },
     );
     expect(output).toBe("```js\nlet x\n```\n\n```txt\nkeep  me\n```\n");
-    expect(seen).toEqual([["babel", "let  x\n", 80]]);
+    expect(seen).toEqual([["js", "let  x\n", 80]]);
   });
 
   test("formats style sheets itself when the hook declines", () => {

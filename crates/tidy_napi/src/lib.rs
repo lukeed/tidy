@@ -9,10 +9,17 @@ use tidy::{Formatter, Language, Options};
 #[napi(object)]
 pub struct EmbedRequest {
   pub code: String,
-  /// Prettier's name for the parser: `babel`, `typescript`, `css`, `json`, ...
-  pub language: String,
-  #[napi(ts_type = "'block' | 'expression' | 'attribute' | 'frontmatter'")]
+  /// The language, by the name `lang` takes: `js`, `ts`, `css`, `scss`, `json`, `yaml`, `md`, ...
+  pub lang: String,
+  #[napi(
+    ts_type = "'block' | 'expression' | 'event' | 'bindings' | 'for' | 'generic' | 'directive' | 'frontmatter'"
+  )]
   pub kind: String,
+  /// The framework whose rules the code follows, where they differ from the language's own.
+  #[napi(ts_type = "'vue' | 'ng'")]
+  pub host: Option<String>,
+  /// The code is the value of an attribute, as in `style="..."` or `@click="..."`.
+  pub attribute: bool,
   /// How many indents the code starts at. Indent the lines after the first by this much.
   pub indent: u32,
   /// The width of the text before the code on its first line, after the indents, as `name="` before an attribute
@@ -142,13 +149,19 @@ pub fn format(
     let kind = match request.kind {
       Kind::Block => "block",
       Kind::Expression => "expression",
-      Kind::Attribute => "attribute",
+      Kind::Event => "event",
+      Kind::Bindings => "bindings",
+      Kind::For => "for",
+      Kind::Generic => "generic",
+      Kind::Directive => "directive",
       Kind::FrontMatter => "frontmatter",
     };
     let request = EmbedRequest {
       code: request.code.to_string(),
-      language: request.language.to_string(),
+      lang: request.lang.to_string(),
       kind: kind.to_string(),
+      host: request.host.map(str::to_string),
+      attribute: request.attribute,
       indent: request.indent as u32,
       prefix: request.prefix as u32,
       suffix: request.suffix as u32,

@@ -125,7 +125,7 @@ pub(crate) fn format(
   options: &crate::js::Options,
   host: Host,
 ) -> Option<String> {
-  let root = Root::of(request.language)?;
+  let root = Root::of(request.parser())?;
   with_buffers(|buffers| format_in(request, options, host, root, buffers))
 }
 
@@ -137,10 +137,10 @@ pub(crate) fn format_for(
   right: &str,
   options: &crate::js::Options,
 ) -> Option<String> {
-  let root = Root::of(left.language)?;
+  let root = Root::of(left.parser())?;
   let Root::Binding(Binding::ForLeft, ts) = root else { return None };
-  let language = if ts { "__ts_expression" } else { "__js_expression" };
-  let right = Request { code: right, language, ..*left };
+  let lang = if ts { "ts" } else { "js" };
+  let right = Request { code: right, lang, kind: Kind::Expression, host: None, ..*left };
   with_buffers(|buffers| format_for_in(left, root, operator, &right, options, buffers))
 }
 
@@ -177,7 +177,8 @@ fn format_in(
 ) -> Option<String> {
   let Buffers { allocator, scratch } = buffers;
   allocator.reset();
-  let is_script = matches!(root, Root::Program(_)) && request.kind == Kind::Block;
+  let is_script =
+    matches!(root, Root::Program(_)) && request.kind == Kind::Block && !request.attribute;
   let sorts = options.sort_imports.clone().filter(|_| is_script);
   let options =
     FormatOptions { sort_imports: sorts.clone(), ..options_for(request, options, host, root) };
@@ -330,11 +331,11 @@ fn options_for(
   root: Root,
 ) -> FormatOptions {
   let options = FormatOptions::from(options);
-  let is_in_attribute = request.kind == Kind::Attribute;
+  let is_in_attribute = request.attribute;
   let in_html = InHtml {
     root: root.html_root(),
     is_in_attribute,
-    is_in_interpolation: request.kind == Kind::Expression,
+    is_in_interpolation: request.kind == Kind::Expression && !request.attribute,
     is_inline_event_handler: is_in_attribute && root == Root::Program(Syntax::Babel),
     quote_style: options.quote_style,
     has_babel_tree: root.has_babel_tree(),

@@ -125,12 +125,12 @@ describe("embed", () => {
     let html =
       '<div><script>let  a</script><style>a{b:c}</style><p style="color:red">x</p></div>';
     format(html, { lang: "html" }, (request) => void requests.push(request));
-    let common = { prefix: 0, suffix: 0, width: 80 };
+    let common = { prefix: 0, suffix: 0, width: 80, attribute: false };
     expect(requests).toEqual([
       {
         ...common,
         code: "let  a",
-        language: "babel",
+        lang: "js",
         kind: "block",
         indent: 2,
         module: false,
@@ -138,7 +138,7 @@ describe("embed", () => {
       {
         ...common,
         code: "a{b:c}",
-        language: "css",
+        lang: "css",
         kind: "block",
         indent: 2,
         module: true,
@@ -146,11 +146,27 @@ describe("embed", () => {
       {
         ...common,
         code: "color:red",
-        language: "css",
-        kind: "attribute",
+        lang: "css",
+        kind: "block",
+        attribute: true,
         indent: 0,
         module: true,
       },
+    ]);
+  });
+
+  test("names the framework whose rules the code follows", () => {
+    let seen: string[] = [];
+    let vue = '<template><p :a="b" v-for="x in y">{{ c }}</p></template>';
+    format(vue, { lang: "vue" }, ({ code, lang, kind, host, attribute }) => {
+      seen.push([lang, kind, host ?? "-", attribute].join("/"));
+      return code;
+    });
+    expect(seen).toEqual([
+      "js/expression/vue/true",
+      "js/for/vue/true",
+      "js/expression/-/true",
+      "js/expression/vue/false",
     ]);
   });
 

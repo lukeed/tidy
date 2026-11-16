@@ -4,7 +4,7 @@ use super::ast::{Attribute, Doctype, Element, External, Item, Prolog, Span, Top,
 use super::{Options, Quotes, sort};
 use crate::Whitespace;
 use crate::doc::{Align, Docs};
-use crate::embed::{Embed, Kind as Purpose, Request};
+use crate::embed::{Embed, Hole as Purpose, Request};
 use crate::stack::Stack;
 use crate::strings;
 
@@ -367,16 +367,8 @@ impl<'a> Printer<'_, 'a> {
       return false;
     }
     let code = &self.text[first.start(self.tree) as usize..last.span(self.tree).end as usize];
-    let request = Request {
-      code,
-      language,
-      kind: Purpose::Block,
-      indent: 0,
-      prefix: 0,
-      suffix: 0,
-      width: self.options.width,
-      module: true,
-    };
+    let request =
+      Request { width: self.options.width, ..Request::new(code, language, Purpose::Block) };
     let (options, scripts) = (self.options, self.scripts);
     let formatted = self.embed.format(request).or_else(|| {
       let builtin = options.format_embedded.then_some(request)?;

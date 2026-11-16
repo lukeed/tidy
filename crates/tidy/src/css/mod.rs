@@ -20,7 +20,7 @@ pub(crate) use self::sink::Document;
 use self::sink::{Output, Sink};
 use crate::Error;
 use crate::doc;
-use crate::embed::{Embed, Kind as Purpose, Request};
+use crate::embed::{Embed, Hole as Purpose, Request};
 use crate::stack::Stack;
 use std::borrow::Cow;
 
@@ -331,16 +331,8 @@ fn print_front_matter(raw: &[u8], sink: &mut Sink<'_>, options: &Options, embed:
     if value.is_empty() {
       return Some(String::new());
     }
-    let request = Request {
-      code: value,
-      language,
-      kind: Purpose::FrontMatter,
-      indent: 0,
-      prefix: 0,
-      suffix: 0,
-      width: options.width,
-      module: true,
-    };
+    let request =
+      Request { width: options.width, ..Request::new(value, language, Purpose::FrontMatter) };
     let builtin = || {
       options.format_embedded.then(|| {
         crate::embed::builtin(&request, options.tab_width, options.tabs, &Default::default())
