@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { check, format } from "./index.js";
 
-let markdown = { parser: "markdown" } as const;
+let markdown = { lang: "md" } as const;
 
 describe("markdown", () => {
   test("uses the Prettier preset by default", () => {
@@ -70,6 +70,6 @@ describe("check", () => {
     expect(
       check("* one\n", { ...markdown, markdown: { preset: "preserve" } }),
     ).toBe(true);
-    expect(check("<p>x</p>\n", { parser: "html" })).toBe(true);
+    expect(check("<p>x</p>\n", { lang: "html" })).toBe(true);
   });
 });

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { check, format, type EmbedRequest } from "./index.js";
 
-let js = { parser: "babel" } as const;
+let js = { lang: "js" } as const;
 
 describe("format", () => {
   test("finds the language by the file's path", () => {
@@ -32,11 +32,29 @@ describe("format", () => {
       expect(format(source, { filepath })).toBe(output);
   });
 
-  test("takes the parser over the path, and HTML without either", () => {
-    expect(format("a{color:red}", { filepath: "a.txt", parser: "css" })).toBe(
+  test("takes the language over the path, and fails without either", () => {
+    expect(format("a{color:red}", { filepath: "a.txt", lang: "css" })).toBe(
       "a {\n  color: red;\n}\n",
     );
-    expect(format("<p   >x</p>")).toBe("<p>x</p>\n");
+    expect(() => format("<p   >x</p>")).toThrow(
+      "can't tell the language: pass `lang` or `filepath`",
+    );
+    expect(() => format("x", { filepath: "a.txt" })).toThrow(
+      "a.txt: can't tell the language of this file, pass `lang`",
+    );
+  });
+
+  test("takes the names of code fences, as the command line does", () => {
+    let cases = [
+      ["ts", "let a:number=1", "let a: number = 1;\n"],
+      ["typescript", "let a:number=1", "let a: number = 1;\n"],
+      ["yml", "a:   1", "a: 1\n"],
+      ["md", "*  a", "- a\n"],
+      ["xml", "<a  />", "<a />\n"],
+      ["tempura", "<p>{{value}}</p>", "<p>{{ value }}</p>"],
+    ] as const;
+    for (let [lang, source, output] of cases)
+      expect(format(source, { lang })).toBe(output);
   });
 
   test("applies the shared options", () => {
@@ -74,7 +92,7 @@ describe("format", () => {
       }),
     ).toBe('let a = "b";\n');
     expect(
-      format("a{content:'x'}", { parser: "css", css: { quote: "single" } }),
+      format("a{content:'x'}", { lang: "css", css: { quote: "single" } }),
     ).toBe("a {\n  content: 'x';\n}\n");
   });
 
@@ -82,9 +100,12 @@ describe("format", () => {
     expect(() => format("let = ;", js)).toThrow("Unexpected token");
   });
 
-  test("rejects unknown parsers, keys and values", () => {
-    expect(() => format("x", { parser: "nope" as never })).toThrow(
-      "unknown parser: nope",
+  test("rejects unknown languages, keys and values", () => {
+    expect(() => format("x", { lang: "nope" })).toThrow(
+      "unknown language: nope",
+    );
+    expect(() => format("x", { lang: "json.stringify" })).toThrow(
+      "unknown language: json.stringify",
     );
     expect(() => format("x", { ...js, eol: "lfcr" as never })).toThrow(
       '`eol` must be "lf", "crlf" or "cr"',
@@ -103,7 +124,7 @@ describe("embed", () => {
     let requests: EmbedRequest[] = [];
     let html =
       '<div><script>let  a</script><style>a{b:c}</style><p style="color:red">x</p></div>';
-    format(html, { parser: "html" }, (request) => void requests.push(request));
+    format(html, { lang: "html" }, (request) => void requests.push(request));
     let common = { prefix: 0, suffix: 0, width: 80 };
     expect(requests).toEqual([
       {
@@ -136,7 +157,7 @@ describe("embed", () => {
   test("prints what the hook returns", () => {
     let vue =
       '<template><p :a="b  +  c">{{ x  +  y }}</p></template>\n<script setup lang="ts">let  a</script>';
-    let output = format(vue, { parser: "vue" }, (request) =>
+    let output = format(vue, { lang: "vue" }, (request) =>
       request.code.replace(/\s+/g, " ").trim(),
     );
     expect(output).toBe(
@@ -145,11 +166,11 @@ describe("embed", () => {
   });
 
   test("formats what the hook declines itself, unless embedded is off", () => {
-    expect(format("<style>a{b:c}</style>", { parser: "html" })).toBe(
+    expect(format("<style>a{b:c}</style>", { lang: "html" })).toBe(
       "<style>\n  a {\n    b: c;\n  }\n</style>\n",
     );
     expect(
-      format("<style>a{b:c}</style>", { parser: "html", embedded: false }),
+      format("<style>a{b:c}</style>", { lang: "html", embedded: false }),
     ).toBe("<style>\n  a{b:c}\n</style>\n");
   });
 
@@ -158,7 +179,7 @@ describe("embed", () => {
       throw new Error("boom");
     };
     expect(() =>
-      format("<style>a{b:c}</style>", { parser: "html" }, hook),
+      format("<style>a{b:c}</style>", { lang: "html" }, hook),
     ).toThrow("boom");
   });
 });

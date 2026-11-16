@@ -173,8 +173,13 @@ fn takes_the_names_of_code_fences_and_extensions() {
   let result = child.wait_with_output().expect("wait");
   assert_eq!(String::from_utf8_lossy(&result.stdout), "<p>{{ value }}</p>");
 
-  let output = tidy(&["check", "--stdin", "--lang", "cobol"], &folder.0);
-  assert_eq!(stderr(&output), "tidy: unknown language `cobol`, see `tidy check --help`\n");
+  for name in ["cobol", "json.stringify", "babel"] {
+    let output = tidy(&["check", "--stdin", "--lang", name], &folder.0);
+    assert_eq!(
+      stderr(&output),
+      format!("tidy: unknown language `{name}`, see `tidy check --help`\n")
+    );
+  }
   let output = tidy(&["check", "--stdin", "--parser", "css"], &folder.0);
   assert_eq!(stderr(&output), "tidy: unknown flag `--parser`, see `tidy check --help`\n");
 }

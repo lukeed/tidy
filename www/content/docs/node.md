@@ -55,10 +55,10 @@ function check(
 
 `FormatOptions` takes the keys of a [`tidy.json`](/docs/options/), plus two that say what is being formatted:
 
-| Key        | Type   | What it does                                                  |
-| ---------- | ------ | ------------------------------------------------------------- |
-| `filepath` | string | The file's path, which decides the language and some details. |
-| `parser`   | string | Force a language instead of using `filepath`.                 |
+| Key        | Type   | What it does                                                                                                                  |
+| ---------- | ------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `filepath` | string | The file's path, which decides the language and some details.                                                                 |
+| `lang`     | string | Force a language instead of using `filepath`, by the name a code fence would give it, as `--lang` takes: `ts`, `css`, `md`, … |
 
 ```js
 format(source, {
@@ -68,7 +68,7 @@ format(source, {
 });
 ```
 
-With neither `filepath` nor `parser`, the source is treated as HTML.
+With neither `filepath` nor `lang`, or with a `filepath` whose language tidy can't tell, `format` throws, as `tidy up --stdin` fails.
 
 There is no config file search: options come from the object you pass. If you want a project's `tidy.json`, read it yourself and spread it in.
 

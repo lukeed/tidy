@@ -53,7 +53,8 @@ impl Language {
       "json" => Some(Language::Json(json::Dialect::Json)),
       "jsonc" => Some(Language::Json(json::Dialect::Jsonc)),
       "json5" => Some(Language::Json(json::Dialect::Json5)),
-      "json-stringify" => Some(Language::Json(json::Dialect::Stringify)),
+      // Prettier's own name, `json.stringify`, which no code fence uses: tidy picks the dialect by file name.
+      "json-stringify" => None,
       "yaml" => Some(Language::Yaml),
       "toml" => Some(Language::Toml),
       "dockerfile" => Some(Language::Dockerfile),

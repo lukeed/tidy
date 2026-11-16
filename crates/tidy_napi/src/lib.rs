@@ -3,7 +3,7 @@ use napi_derive::napi;
 use serde_json::{Map, Value};
 use tidy::config::Config;
 use tidy::embed::{Kind, Request};
-use tidy::{Formatter, Language, Options, css, ini, js, json};
+use tidy::{Formatter, Language, Options};
 
 /// A piece of embedded code for the host to format.
 #[napi(object)]
@@ -32,11 +32,12 @@ type Callback<'a> = Function<'a, EmbedRequest, Option<String>>;
 #[napi(object)]
 #[derive(Default)]
 pub struct FormatOptions {
-  /// The language. Default: by `filepath`, and HTML without one.
+  /// The language, by the name a code fence would give it, such as `ts`, `css` or `md`, or by a file extension,
+  /// such as `xml`. Default: by `filepath`.
   #[napi(
-    ts_type = "'html' | 'vue' | 'mjml' | 'handlebars' | 'tempura' | 'css' | 'scss' | 'less' | 'json' | 'jsonc' | 'json5' | 'json-stringify' | 'yaml' | 'toml' | 'dockerfile' | 'ini' | 'gitconfig' | 'graphql' | 'babel' | 'typescript' | 'babel-ts' | 'xml' | 'markdown'"
+    ts_type = "'css' | 'scss' | 'less' | 'html' | 'vue' | 'mjml' | 'hbs' | 'tempura' | 'js' | 'jsx' | 'ts' | 'tsx' | 'json' | 'jsonc' | 'json5' | 'yaml' | 'toml' | 'md' | 'graphql' | 'xml' | 'dockerfile' | 'ini' | 'gitconfig' | (string & {})"
   )]
-  pub parser: Option<String>,
+  pub lang: Option<String>,
   /// The file's path, which decides the language and some details.
   pub filepath: Option<String>,
   /// Hand embedded code to `embed`, and format the style sheets, JSON, YAML and TOML it declines. Default: true.
@@ -185,38 +186,21 @@ pub fn check(
   Ok(formatted == source)
 }
 
-/// The language of `parser`, or of `filepath`, and the Handlebars dialect that `parser` asks for.
+/// The language of `lang`, or of `filepath`, and the Handlebars dialect that `lang` asks for, as the command line
+/// reads `--lang`.
 fn language(input: &FormatOptions) -> napi::Result<(Language, Option<tidy::handlebars::Dialect>)> {
-  use tidy::handlebars::Dialect;
-  Ok(match input.parser.as_deref() {
-    Some("html") => (Language::Html, None),
-    Some("vue") => (Language::Vue, None),
-    Some("mjml") => (Language::Mjml, None),
-    Some("handlebars") => (Language::Handlebars, None),
-    Some("tempura") => (Language::Handlebars, Some(Dialect::Tempura)),
-    Some("css") => (Language::Css(css::Dialect::Css), None),
-    Some("scss") => (Language::Css(css::Dialect::Scss), None),
-    Some("less") => (Language::Css(css::Dialect::Less), None),
-    Some("json") => (Language::Json(json::Dialect::Json), None),
-    Some("jsonc") => (Language::Json(json::Dialect::Jsonc), None),
-    Some("json5") => (Language::Json(json::Dialect::Json5), None),
-    Some("json-stringify") => (Language::Json(json::Dialect::Stringify), None),
-    Some("toml") => (Language::Toml, None),
-    Some("dockerfile") => (Language::Dockerfile, None),
-    Some("ini") => (Language::Ini(ini::Dialect::Ini), None),
-    Some("gitconfig") => (Language::Ini(ini::Dialect::Git), None),
-    Some("graphql") => (Language::Graphql, None),
-    Some("babel") => (Language::Js(js::Dialect::Js), None),
-    Some("typescript" | "babel-ts") => (Language::Js(js::Dialect::Ts), None),
-    Some("yaml") => (Language::Yaml, None),
-    Some("xml") => (Language::Xml, None),
-    Some("markdown") => (Language::Markdown, None),
-    Some(other) => return Err(napi::Error::from_reason(format!("unknown parser: {other}"))),
-    None => {
-      let language = input.filepath.as_deref().and_then(Language::of_path);
-      (language.unwrap_or(Language::Html), None)
-    }
-  })
+  let fail = |message: String| napi::Error::from_reason(message);
+  match (input.lang.as_deref(), input.filepath.as_deref()) {
+    // A dialect of Handlebars, which tidy otherwise tells from the template.
+    (Some("tempura"), _) => Ok((Language::Handlebars, Some(tidy::handlebars::Dialect::Tempura))),
+    (Some(name), _) => Language::hint(name)
+      .map(|it| (it, None))
+      .ok_or_else(|| fail(format!("unknown language: {name}"))),
+    (None, Some(path)) => Language::of_path(path)
+      .map(|it| (it, None))
+      .ok_or_else(|| fail(format!("{path}: can't tell the language of this file, pass `lang`"))),
+    (None, None) => Err(fail("can't tell the language: pass `lang` or `filepath`".into())),
+  }
 }
 
 /// The options as a config, which reads and checks them as it reads a `tidy.json` file.
