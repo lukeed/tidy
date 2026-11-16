@@ -215,6 +215,9 @@ impl Config {
         "yaml" => config.yaml = yaml(section("yaml")?)?,
         "xml" => config.xml = xml(section("xml")?)?,
         "markdown" => config.markdown = markdown(section("markdown")?)?,
+        // Editors find the JSON Schema of the file here; tidy has nothing to do with it.
+        "$schema" if value.is_string() => {}
+        "$schema" => return Err("`$schema` must be a string".into()),
         _ if shared(&mut config.shared, key, value, "")? => {}
         _ => return Err(format!("unknown option `{key}`")),
       }

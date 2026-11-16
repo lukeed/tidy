@@ -43,12 +43,15 @@ fn parsed_keys() -> BTreeSet<String> {
   keys
 }
 
-/// Every key the schema describes, at the top level or in a section.
+/// Every key the schema describes, at the top level or in a section, read from the schema itself.
 fn schema_keys() -> BTreeSet<String> {
-  let mut keys: BTreeSet<String> = shared().iter().map(|it| it.name.to_owned()).collect();
-  for name in SECTIONS {
-    keys.insert((*name).to_owned());
-    keys.extend(section(name).iter().map(|it| it.name.to_owned()));
+  let document: serde_json::Value = serde_json::from_str(&schema()).expect("the schema is JSON");
+  let root = document["properties"].as_object().expect("the schema has properties");
+  let mut keys: BTreeSet<String> = root.keys().cloned().collect();
+  for value in root.values() {
+    if let Some(inner) = value["properties"].as_object() {
+      keys.extend(inner.keys().cloned());
+    }
   }
   keys
 }
