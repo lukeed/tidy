@@ -8,7 +8,7 @@ order: 2
 ```sh
 $ tidy check [paths] [options]    # list what isn't formatted
 $ tidy up [paths] [options]       # rewrite it in place
-$ tidy init                       # write a tidy.json here
+$ tidy init                       # write a tidy.jsonc here
 $ tidy schema                     # print the JSON Schema of tidy.json
 ```
 
@@ -32,7 +32,7 @@ $ cat a.ts | tidy up --stdin=src/a.ts
 | ------------- | ----------------------------------------------------------------------------------------------- |
 | `tidy check`  | Print the paths that are not formatted. Changes nothing. Exits 1 if any.                        |
 | `tidy up`     | Rewrite each file in place, and print what it rewrote. Files already formatted are not touched. |
-| `tidy init`   | Write a `tidy.json` in this folder. See [init](#init).                                          |
+| `tidy init`   | Write a config in this folder. See [init](#init).                                               |
 | `tidy schema` | Print the JSON Schema of `tidy.json`.                                                           |
 
 `up` and `check` take as many paths as you like, and the current folder when you give none. Bare `tidy` prints the help, and `tidy <command> --help` prints a command's own.
@@ -106,7 +106,7 @@ Without either, each file takes the nearest `tidy.json`, `tidy.jsonc` or `tidy.t
 
 ## init
 
-`tidy init` writes a `tidy.json` in this folder, with every option whose default is the same in every language, and a `$schema` for this version of tidy. It leaves out `width` and `whitespace`, because a value at the top level would also change the languages whose default differs: Dockerfiles at 120 columns, and XML's `strict` whitespace. It does nothing if a `tidy.json`, `tidy.jsonc` or `tidy.toml` is already there.
+`tidy init` writes a `tidy.jsonc` in this folder, with a comment that links to these docs, every option whose default is the same in every language, and a `$schema` for this version of tidy. `--json` writes a `tidy.json` instead, which can't hold the comment, and `--toml` writes a `tidy.toml`, with the schema in taplo's `#:schema` line. It leaves out `width` and `whitespace`, because a value at the top level would also change the languages whose default differs: Dockerfiles at 120 columns, and XML's `strict` whitespace. It does nothing if a `tidy.json`, `tidy.jsonc` or `tidy.toml` is already there.
 
 ## Style
 

@@ -131,7 +131,7 @@ fn every_parser_in_the_help_works() {
 fn prints_each_commands_help() {
   let folder = Folder::new("command-help", &[]);
   for (command, flag) in
-    [("check", "--staged"), ("up", "--stdin"), ("init", "tidy.json"), ("schema", "Schema")]
+    [("check", "--staged"), ("up", "--stdin"), ("init", "--toml"), ("schema", "Schema")]
   {
     let output = tidy(&[command, "--help"], &folder.0);
     assert_eq!(output.status.code(), Some(0), "{command}");
@@ -152,24 +152,26 @@ fn rejects_what_is_not_a_command() {
   assert_eq!(output.status.code(), Some(2));
 }
 
-#[test]
-fn init_writes_a_config_that_tidy_reads() {
-  let folder = Folder::new("init", &[("a.css", "a{color:red}\n")]);
-  let output = tidy(&["init"], &folder.0);
-  assert_eq!(output.status.code(), Some(0), "{}", stderr(&output));
-  assert_eq!(stderr(&output), "tidy: wrote tidy.json\n");
+/// Runs `tidy init` with `args`, and checks the file it writes: its name, its first lines, the options it holds,
+/// that tidy reads it, and that it is formatted already.
+fn init(args: &[&str], name: &str, head: &[String], key: impl Fn(&str) -> String) {
+  let folder = Folder::new(&format!("init-{name}"), &[("a.css", "a{color:red}\n")]);
+  let output = tidy(&[&["init"], args].concat(), &folder.0);
+  assert_eq!(output.status.code(), Some(0), "{args:?}: {}", stderr(&output));
+  assert_eq!(stderr(&output), format!("tidy: wrote {name}\n"));
 
-  let config = folder.read("tidy.json");
-  let schema =
-    format!("\"$schema\": \"https://tidy.lukeed.com/{}/schema.json\"", env!("CARGO_PKG_VERSION"));
-  assert!(config.contains(&schema), "{config}");
-  for key in
+  let config = folder.read(name);
+  let lines: Vec<&str> = config.lines().collect();
+  for (index, line) in head.iter().enumerate() {
+    assert_eq!(lines[index], line, "{args:?}: line {} of {config}", index + 1);
+  }
+  for option in
     ["indent", "tabs", "eol", "quote", "trailingComma", "bracketSpacing", "ignore", "embedded"]
   {
-    assert!(config.contains(&format!("\"{key}\":")), "{key} in {config}");
+    assert!(config.contains(&key(option)), "{option} in {config}");
   }
-  for key in ["width", "whitespace"] {
-    assert!(!config.contains(&format!("\"{key}\":")), "{key} differs by language, so it stays out");
+  for option in ["width", "whitespace"] {
+    assert!(!config.contains(&key(option)), "{option} differs by language, so it stays out");
   }
 
   let output = tidy(&["check"], &folder.0);
@@ -179,7 +181,7 @@ fn init_writes_a_config_that_tidy_reads() {
     "{}",
     stderr(&output)
   );
-  let output = tidy(&["check", "tidy.json"], &folder.0);
+  let output = tidy(&["check", name], &folder.0);
   assert_eq!(
     output.status.code(),
     Some(0),
@@ -188,11 +190,45 @@ fn init_writes_a_config_that_tidy_reads() {
   );
 }
 
+const DOCS: &str = "https://tidy.lukeed.com/docs/configuration/";
+
+fn schema_url() -> String {
+  format!("https://tidy.lukeed.com/{}/schema.json", env!("CARGO_PKG_VERSION"))
+}
+
+#[test]
+fn init_writes_jsonc_with_a_link_to_the_docs() {
+  let head = [format!("// {DOCS}"), "{".into(), format!("  \"$schema\": \"{}\",", schema_url())];
+  init(&[], "tidy.jsonc", &head, |option| format!("\"{option}\":"));
+}
+
+#[test]
+fn init_writes_json_when_asked() {
+  let head = ["{".into(), format!("  \"$schema\": \"{}\",", schema_url())];
+  init(&["--json"], "tidy.json", &head, |option| format!("\"{option}\":"));
+}
+
+#[test]
+fn init_writes_toml_when_asked() {
+  let head = [format!("#:schema {}", schema_url()), format!("# {DOCS}")];
+  init(&["--toml"], "tidy.toml", &head, |option| format!("{option} = "));
+}
+
+#[test]
+fn init_takes_one_format() {
+  let folder = Folder::new("init-both", &[]);
+  let output = tidy(&["init", "--json", "--toml"], &folder.0);
+  assert_eq!(stderr(&output), "tidy: pick one of --json and --toml\n");
+  assert_eq!(output.status.code(), Some(2));
+  let output = tidy(&["init", "--yaml"], &folder.0);
+  assert_eq!(stderr(&output), "tidy: unknown flag `--yaml`, see `tidy init --help`\n");
+}
+
 #[test]
 fn init_leaves_a_config_alone() {
   for name in ["tidy.json", "tidy.jsonc", "tidy.toml"] {
     let folder = Folder::new("init-exists", &[(name, "{}\n")]);
-    let output = tidy(&["init"], &folder.0);
+    let output = tidy(&["init", "--toml"], &folder.0);
     assert_eq!(stderr(&output), format!("tidy: {name} is here already\n"));
     assert_eq!(output.status.code(), Some(2));
     assert_eq!(folder.read(name), "{}\n");

@@ -37,7 +37,7 @@ pub(crate) fn global() -> String {
   Available Commands
     check     List the files that aren't formatted, and exit 1 if any
     up        Rewrite the files that aren't formatted
-    init      Write a tidy.json in this folder
+    init      Write a config in this folder
     schema    Print the JSON Schema of tidy.json
 
   For more info, run any command with the `--help` flag
@@ -131,11 +131,20 @@ pub(crate) fn init() -> String {
   format!(
     "
   Description
-    Write a tidy.json with the default options in this folder.
+    Write a config with the default options in this folder: tidy.jsonc, unless asked for another.
     Documentation: {DOCS}
 
   Usage
+    $ tidy init [options]
+
+  Options
+    --json        Write tidy.json, which can't hold the comment that links to the docs
+    --toml        Write tidy.toml
+    -h, --help    Displays this message
+
+  Examples
     $ tidy init
+    $ tidy init --toml
 
 "
   )

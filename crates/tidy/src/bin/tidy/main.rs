@@ -55,16 +55,16 @@ fn run() -> Result<ExitCode, String> {
         let text = if command == "init" { help::init() } else { help::schema() };
         return print(text.as_bytes()).map(|()| ExitCode::SUCCESS);
       }
+      if command == "init" {
+        return init::run(init::Format::of(rest)?).map(|()| ExitCode::SUCCESS);
+      }
       if let Some(arg) = rest.first() {
         return Err(format!(
-          "`tidy {command}` takes no arguments, but got `{}`",
+          "`tidy schema` takes no arguments, but got `{}`",
           arg.to_string_lossy()
         ));
       }
-      return match command {
-        "init" => init::run().map(|()| ExitCode::SUCCESS),
-        _ => schema(),
-      };
+      return schema();
     }
     Some(flag) if flag.starts_with('-') => {
       let stdin = raw
