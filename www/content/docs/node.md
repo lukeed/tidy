@@ -23,11 +23,7 @@ let output = format("<p   >hi</p>", { filepath: "index.html" });
 ```
 
 ```ts
-function format(
-  source: string,
-  options?: FormatOptions,
-  embed?: (request: EmbedRequest) => string | undefined,
-): string;
+function format(source: string, options?: Options): string;
 ```
 
 It throws if the source does not parse. The error message carries the line and column.
@@ -42,23 +38,20 @@ check("<p>hi</p>\n", { filepath: "index.html" });
 ```
 
 ```ts
-function check(
-  source: string,
-  options?: FormatOptions,
-  embed?: (request: EmbedRequest) => string | undefined,
-): boolean;
+function check(source: string, options?: Options): boolean;
 ```
 
 `check` answers whether the source is already formatted. It is the API behind `tidy check`, and cheaper than comparing `format(source) === source` yourself.
 
 ## Options
 
-`FormatOptions` takes the keys of a [`tidy.json`](/docs/options/), plus two that say what is being formatted:
+`Options` takes the keys of a [`tidy.json`](/docs/options/), plus three of its own:
 
-| Key        | Type   | What it does                                                                                                                  |
-| ---------- | ------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| `filepath` | string | The file's path, which decides the language and some details.                                                                 |
-| `lang`     | string | Force a language instead of using `filepath`, by the name a code fence would give it, as `--lang` takes: `ts`, `css`, `md`, … |
+| Key        | Type                               | What it does                                                                                                                  |
+| ---------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `filepath` | `string`                           | The file's path, which decides the language and some details.                                                                 |
+| `lang`     | `Lang`                             | Force a language instead of using `filepath`, by the name a code fence would give it, as `--lang` takes: `ts`, `css`, `md`, … |
+| `embed`    | `(request) => string \| undefined` | A hook for embedded code. See [Embedded code](#embedded-code).                                                                |
 
 ```js
 format(source, {
@@ -72,20 +65,29 @@ With neither `filepath` nor `lang`, or with a `filepath` whose language tidy can
 
 There is no config file search: options come from the object you pass. If you want a project's `tidy.json`, read it yourself and spread it in.
 
+The package types every option from the same schema as `tidy.json`: `Options.Common` holds the ones every language takes, and `Options.Languages` each language's section. A misspelled key or a wrong value is a type error, and `format` throws on it too.
+
+```ts
+import type { Embed, Lang, Options } from "tidyrs";
+```
+
 ## Embedded code
 
-By default, `format` formats the embedded languages it knows and leaves the rest. The third argument is a hook: tidy asks it first for each piece of embedded code, so a host can format languages tidy does not know, or format a known one its own way:
+By default, `format` formats the embedded languages it knows and leaves the rest. `embed` is a hook: tidy asks it first for each piece of embedded code, so a host can format languages tidy does not know, or format a known one its own way:
 
 ```js
 import { format } from "tidyrs";
 
-format(source, { filepath: "README.md" }, (request) => {
-  if (request.lang !== "scss") return undefined;
-  return mySassFormatter(request.code, request.width - request.indent * 2);
+format(source, {
+  filepath: "README.md",
+  embed(request) {
+    if (request.lang !== "scss") return undefined;
+    return mySassFormatter(request.code, request.width - request.indent * 2);
+  },
 });
 ```
 
-The request tells what the code is and where it sits:
+The request, an `Embed.Request`, tells what the code is and where it sits:
 
 | Field       | What it is                                                                                                   |
 | ----------- | ------------------------------------------------------------------------------------------------------------ |
@@ -102,7 +104,7 @@ The request tells what the code is and where it sits:
 
 Return `undefined` to decline. tidy then formats the piece itself if it knows the language, and leaves it as written if not.
 
-Set `embedded: false` to turn the whole mechanism off, including the hook.
+Set `embedded: false` to leave embedded code as written. tidy then never calls the hook. Like any option, it can be set for one language only, as `vue: { embedded: false }`.
 
 ## Platforms
 
