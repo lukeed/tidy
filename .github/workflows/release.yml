@@ -112,8 +112,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag || github.ref_name }}
         run: |
+          flags=()
+          case $TAG in *-*) flags=(--prerelease) ;; esac
           if ! gh release view "$TAG" > /dev/null 2>&1; then
-            gh release create "$TAG" --title "$TAG" --generate-notes
+            gh release create "$TAG" --title "$TAG" --generate-notes "${flags[@]}"
           fi
           gh release upload "$TAG" dist/* --clobber
 
@@ -168,6 +170,13 @@ jobs:
           done
           # Before latest moves, so /schema.json never points at a schema that isn't there.
           put crates/tidy_napi/tidy.schema.json "$TAG/schema.json"
+
+          case $TAG in
+          *-*)
+            echo "latest stays where it is: $TAG is a prerelease"
+            exit 0
+            ;;
+          esac
 
           code=$(s3 -o current -w '%{http_code}' -H 'x-amz-content-sha256: UNSIGNED-PAYLOAD' "$R2/latest")
           case $code in
@@ -277,7 +286,52 @@ jobs:
           path: crates/tidy_napi
       - run: bunx napi create-npm-dirs
       - run: bunx napi artifacts --output-dir artifacts
+      # A prerelease publishes under its identifier, as `rc`, for every package.
+      - name: Pick the dist-tag
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          case $TAG in
+          *-*) pre=${TAG#*-}; echo "NPM_CONFIG_TAG=${pre%%.*}" >> "$GITHUB_ENV" ;;
+          esac
       # npm authenticates from the job's OIDC token, so no long-lived secret.
       # Each platform package has its own trusted publisher, as tidyrs does.
       - run: bunx napi pre-publish -t npm --no-gh-release
       - run: npm publish
+
+  # crates.io trusts this workflow's OIDC token; a rerun skips a published version.
+  crates:
+    timeout-minutes: 30
+    name: crates
+    needs: [cli, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
+        with:
+          install_args: rust
+          cache: false
+      - name: Check crates.io
+        id: published
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -A 'tidy-release (github.com/lukeed/tidy)' \
+            "https://crates.io/api/v1/crates/tidy/${TAG#v}")
+          case $code in
+          200) echo "tidy ${TAG#v} is on crates.io already"; echo "done=true" >> "$GITHUB_OUTPUT" ;;
+          404) ;;
+          *) echo "::error::could not read crates.io: HTTP $code"; exit 1 ;;
+          esac
+      - uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
+        if: steps.published.outputs.done != 'true'
+        id: auth
+      - run: cargo publish -p tidy --locked
+        if: steps.published.outputs.done != 'true'
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
