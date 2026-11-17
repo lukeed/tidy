@@ -50,7 +50,7 @@ $ tidy up src tests
 
 ### Config
 
-Each file uses the nearest `tidy.json`, `tidy.jsonc` or `tidy.toml`, on top of `.editorconfig`. Shared keys apply everywhere, and a language section overrides them:
+Each file uses the nearest `tidy.json`, `tidy.jsonc` or `tidy.toml`, on top of `.editorconfig`. `tidy init` writes one for you, and if you've got a Prettier or oxfmt config, it migrates that instead. Shared keys apply everywhere, and a language section overrides them:
 
 ```json
 {

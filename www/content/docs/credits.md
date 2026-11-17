@@ -32,7 +32,7 @@ The authoritative list is [`docs/credits.md`](https://github.com/lukeed/tidy/blo
 
 ## Apache 2.0
 
-- **[@trivago/prettier-plugin-sort-imports](https://github.com/trivago/prettier-plugin-sort-imports)**, **[@ianvs/prettier-plugin-sort-imports](https://github.com/ianvs/prettier-plugin-sort-imports)** and TypeScript's `organizeImports.ts` — the import sorters, through Bun's port. © Microsoft Corporation and the respective authors. They run when [`js.sortImports` or `js.plugins`](/docs/options/#js) asks for it.
+- **[@trivago/prettier-plugin-sort-imports](https://github.com/trivago/prettier-plugin-sort-imports)**, **[@ianvs/prettier-plugin-sort-imports](https://github.com/ianvs/prettier-plugin-sort-imports)** and TypeScript's `organizeImports.ts` — the import sorters, through Bun's port. © Microsoft Corporation and the respective authors. They run when [`js.sortImports`](/docs/options/#sorting-imports) picks one.
 - **[@xml-tools/parser](https://github.com/SAP/xml-tools)** 1.0.12 — the XML lexer and grammar. © SAP SE or an SAP affiliate company. The port in `crates/tidy/src/xml` is a hand-written lexer and parser rather than chevrotain's, rejects the same input instead of recovering, and reads a hexadecimal character reference whole.
 
 ## tidy itself

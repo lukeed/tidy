@@ -37,7 +37,7 @@ The trade is scope. tidy has no plugin system, so the languages it formats are t
 - **You are starting fresh and like another style.** Biome's or dprint's defaults are good, and matching Prettier buys you nothing.
 - **You want one tool for formatting and linting.** tidy does not lint. Biome does both.
 - **You need a formatter for a language tidy does not know.** Prettier's plugin ecosystem is the reason to stay.
-- **You rely on a Prettier plugin for style.** Plugins that change printing, such as Tailwind class sorting, have no equivalent here. Import sorting is the exception: see [Options](/docs/options/#js).
+- **You rely on a Prettier plugin for style.** Plugins that change printing, such as Tailwind class sorting, have no equivalent here. Import sorting is the exception: see [Options](/docs/options/#sorting-imports).
 
 ## On being a port
 

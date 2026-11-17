@@ -7,6 +7,8 @@ order: 1
 
 tidy reads one config file per file it formats: the nearest one above it. There is no `extends`, no cascade of several configs, and no plugin resolution.
 
+`tidy init` writes one in the current folder. If a Prettier or oxfmt config is there, it migrates that config. See [init](/docs/cli/#init).
+
 ## File names
 
 In each folder, tidy looks for these, in this order, and uses the first it finds:

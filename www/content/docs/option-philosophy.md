@@ -14,7 +14,7 @@ An option exists in tidy if and only if Prettier has it, or a plugin tidy absorb
 That gives three groups:
 
 1. **Prettier's own options**, under their own names: `width` for `printWidth`, `quote` for `singleQuote`, and so on. See [Options](/docs/options/) for the mapping.
-2. **The options of plugins tidy built in.** `toml.*` is taplo's set, `dockerfile.*` is dprint-plugin-dockerfile's, `xml.*` is `@prettier/plugin-xml`'s, `ini.spaceAroundEquals` is `prettier-plugin-ini`'s. They keep their own names, under their language.
+2. **The options of plugins tidy built in.** `toml.*` is taplo's set, `dockerfile.*` is dprint-plugin-dockerfile's, `xml.*` is `@prettier/plugin-xml`'s, `ini.spaceAroundEquals` is `prettier-plugin-ini`'s, and `js.importOrder*` and `js.organizeImports*` are the import sorters'. They keep their own names, under their language.
 3. **`markdown.*`.** Prettier has one Markdown option; tidy has nine. This is the one real departure, and it exists because Prettier's Markdown printer normalises markers with no way to opt out. `markdown.preset: "preserve"` keeps them as written. The default, `"prettier"`, is Prettier's behaviour exactly.
 
 ## Why not more
@@ -28,7 +28,7 @@ So tidy will not grow an option for a style Prettier does not support. If you wa
 Every default is Prettier's default, with two exceptions, both visible and both reversible:
 
 - **JSDoc comments are formatted**, as `prettier-plugin-jsdoc` does. Turn it off with `"js": { "jsdoc": false }`.
-- **Imports are not sorted.** Turn it on with `js.sortImports`. See [Options](/docs/options/#js).
+- **Imports are not sorted.** Turn it on with `js.sortImports`. See [Options](/docs/options/#sorting-imports).
 
 Anything else that differs from Prettier's output is a bug or a listed [deviation](/docs/deviations/), not a default.
 
