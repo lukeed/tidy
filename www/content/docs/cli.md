@@ -6,21 +6,21 @@ order: 2
 ---
 
 ```sh
+$ tidy up [paths] [options]       # format files in place
 $ tidy check [paths] [options]    # list what isn't formatted
-$ tidy up [paths] [options]       # rewrite it in place
-$ tidy init                       # write a tidy.jsonc here
 $ tidy schema                     # print the JSON Schema of tidy.json
+$ tidy init                       # write a tidy.jsonc here
 ```
 
 ```sh
-# list what isn't formatted below here; exits 1 if any
-$ tidy check
-
-# rewrite it all in place
+# format everything below here, in place
 $ tidy up
 
 # or name the paths, and the options
 $ tidy up src tests --width 100
+
+# list what isn't formatted; exits 1 if any
+$ tidy check
 
 # format stdin, as the file it would be, and print it
 $ cat a.ts | tidy up --stdin=src/a.ts
@@ -30,10 +30,10 @@ $ cat a.ts | tidy up --stdin=src/a.ts
 
 | Command       | What it does                                                                                    |
 | ------------- | ----------------------------------------------------------------------------------------------- |
-| `tidy check`  | Print the paths that are not formatted. Changes nothing. Exits 1 if any.                        |
 | `tidy up`     | Rewrite each file in place, and print what it rewrote. Files already formatted are not touched. |
-| `tidy init`   | Write a config in this folder. See [init](#init).                                               |
+| `tidy check`  | Print the paths that are not formatted. Changes nothing. Exits 1 if any.                        |
 | `tidy schema` | Print the JSON Schema of `tidy.json`.                                                           |
+| `tidy init`   | Write a config in this folder. See [init](#init).                                               |
 
 `up` and `check` take as many paths as you like, and the current folder when you give none. Bare `tidy` prints the help, and `tidy <command> --help` prints a command's own.
 
