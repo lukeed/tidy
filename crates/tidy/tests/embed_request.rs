@@ -96,3 +96,35 @@ fn a_hook_can_replace_what_it_is_given() {
   let output = tidy::format(html, Language::Html, &Options::default(), Some("a.html"), &mut hook);
   assert_eq!(output.expect("formats"), "<style>\n  /* hooked */\n</style>\n");
 }
+
+#[test]
+fn never_asks_the_hook_when_embedded_formatting_is_off() {
+  let cases = [
+    ("<div onclick=\"go()\" style=\"color:red\"><script>let  a</script></div>\n", "a.html"),
+    (
+      "<template><p :a=\"b\" @click=\"c()\">{{ d }}</p></template>\n<script>let  a</script>\n",
+      "a.vue",
+    ),
+    ("---\na:  1\n---\n{{x}}\n", "a.hbs"),
+    ("---\na:  1\n---\na{}\n", "a.css"),
+    ("<svg><style type=\"text/css\">a{}</style></svg>\n", "a.xml"),
+    ("```js\nlet  a\n```\n", "a.md"),
+  ];
+  let mut off = Options::default();
+  off.share(&tidy::Shared { format_embedded: Some(false), ..Default::default() });
+  let asked = |text: &str, path: &str, options: &Options| {
+    let mut asked = Vec::new();
+    let mut hook = |request: Request<'_>| {
+      asked.push(request.code.to_owned());
+      None
+    };
+    let language = Language::of_path(path).expect("a known language");
+    let output = tidy::format(text, language, options, Some(path), &mut hook);
+    assert!(output.is_ok(), "{path}: {output:?}");
+    asked
+  };
+  for (text, path) in cases {
+    assert_ne!(asked(text, path, &Options::default()), Vec::<String>::new(), "{path}, on");
+    assert_eq!(asked(text, path, &off), Vec::<String>::new(), "{path}, off");
+  }
+}
