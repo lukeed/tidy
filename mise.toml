@@ -58,6 +58,7 @@ run = [
   "cargo test --workspace",
   "cargo test -p tidy --no-default-features",
   "bun test --cwd crates/tidy_napi",
+  "bun check --cwd crates/tidy_napi",
 ]
 depends = ["build:napi", "test:nvim", "test:vscode"]
 
