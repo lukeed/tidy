@@ -12,6 +12,7 @@ mod flags;
 mod git;
 mod help;
 mod init;
+mod migrate;
 mod sources;
 
 const STDIN_NEEDS_COMMAND: &str =
@@ -56,7 +57,7 @@ fn run() -> Result<ExitCode, String> {
         return print(text.as_bytes()).map(|()| ExitCode::SUCCESS);
       }
       if command == "init" {
-        return init::run(init::Format::of(rest)?).map(|()| ExitCode::SUCCESS);
+        return init::run(init::Args::of(rest)?).map(|()| ExitCode::SUCCESS);
       }
       if let Some(arg) = rest.first() {
         return Err(format!(

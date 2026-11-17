@@ -129,20 +129,22 @@ pub(crate) fn init() -> String {
   format!(
     "
   Description
-    Write a config file with the default options.
+    Write a config file, migrated from Prettier or oxfmt if one is here.
     Documentation: {DOCS}
 
   Usage
     $ tidy init [options]
 
   Options
-    --json        Write a JSON file
-    --toml        Write a TOML file
-    --help, -h    Displays this message
+    --json           Write a JSON file
+    --toml           Write a TOML file
+    --from <file>    Migrate this config
+    --help, -h       Displays this message
 
   Examples
     $ tidy init
     $ tidy init --toml
+    $ tidy init --from .prettierrc.json
 
 "
   )
