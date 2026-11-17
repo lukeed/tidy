@@ -14,8 +14,12 @@ mod lexer;
 mod print;
 mod scalar;
 mod transform;
+#[cfg(feature = "config")]
+mod value;
 
 pub use ast::{Chomping, Id, Kind, Node, Point, Position, Root};
+#[cfg(feature = "config")]
+pub use value::value;
 
 use crate::Error;
 use crate::stack::Stack;
