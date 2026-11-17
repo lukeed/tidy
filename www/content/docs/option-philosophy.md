@@ -28,7 +28,7 @@ So tidy will not grow an option for a style Prettier does not support. If you wa
 Every default is Prettier's default, with two exceptions, both visible and both reversible:
 
 - **JSDoc comments are formatted**, as `prettier-plugin-jsdoc` does. Turn it off with `"js": { "jsdoc": false }`.
-- **Imports are not sorted.** Turn it on with `js.sortImports`, or by listing a sorting plugin in `js.plugins`. See [Options](/docs/options/#js).
+- **Imports are not sorted.** Turn it on with `js.sortImports`. See [Options](/docs/options/#js).
 
 Anything else that differs from Prettier's output is a bug or a listed [deviation](/docs/deviations/), not a default.
 

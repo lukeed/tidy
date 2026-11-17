@@ -100,26 +100,52 @@ Covers JavaScript, TypeScript, JSX and TSX, and JavaScript wherever tidy formats
 
 #### Sorting imports
 
-Off by default. Two ways to turn it on:
+Off by default. `sortImports` turns it on, and picks how imports sort:
 
-```json [tidy.json]
-{
-  "js": { "sortImports": true }
-}
-```
+| `sortImports`        | Sorts as                                                                                               |
+| -------------------- | ------------------------------------------------------------------------------------------------------ |
+| `true`               | `bun fmt`: in groups, with the names inside braces sorted and the imports of a module merged into one. |
+| `"trivago"`          | `@trivago/prettier-plugin-sort-imports`                                                                |
+| `"ianvs"`            | `@ianvs/prettier-plugin-sort-imports`                                                                  |
+| `"organize-imports"` | `prettier-plugin-organize-imports`, which also removes the imports that are not used.                  |
 
-That is oxfmt's sorter. Or name a Prettier plugin you already configure, and give it its own options:
+`true` never moves an import across a side-effect import, such as `import "./polyfill"`, because that can change what runs first. An object turns it on with options:
 
 ```json [tidy.json]
 {
   "js": {
-    "plugins": ["@ianvs/prettier-plugin-sort-imports"],
-    "importOrder": ["^node:", "<THIRD_PARTY_MODULES>", "^[./]"]
+    "sortImports": {
+      "groups": [
+        "builtin",
+        "external",
+        "internal",
+        ["parent", "sibling", "index"]
+      ],
+      "newlinesBetween": false
+    }
   }
 }
 ```
 
-The plugins understood are `@trivago/prettier-plugin-sort-imports`, `@ianvs/prettier-plugin-sort-imports` and `prettier-plugin-organize-imports`. tidy does not load the package — it ports the sorter and reads that plugin's option names, so the behaviour follows the config you already have. No other Prettier plugin is supported.
+The other three take the options of their plugin, by the same names, next to `sortImports`:
+
+```json [tidy.json]
+{
+  "js": {
+    "sortImports": "ianvs",
+    "importOrder": ["<BUILTIN_MODULES>", "<THIRD_PARTY_MODULES>", "", "^[./]"]
+  }
+}
+```
+
+| Options                                                                                                                                                                                                                                    | For                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- |
+| `importOrder`, `importOrderParserPlugins`                                                                                                                                                                                                  | `"trivago"`, `"ianvs"` |
+| `importOrderSeparation`, `importOrderSortSpecifiers`, `importOrderGroupNamespaceSpecifiers`, `importOrderCaseInsensitive`, `importOrderSideEffects`, `importOrderSortByLength`, `importOrderImportAttributesKeyword`, `importOrderExclude` | `"trivago"`            |
+| `importOrderTypeScriptVersion`, `importOrderCaseSensitive`, `importOrderSafeSideEffects`                                                                                                                                                   | `"ianvs"`              |
+| `organizeImportsSkipDestructiveCodeActions`, `organizeImportsTypeOrder`                                                                                                                                                                    | `"organize-imports"`   |
+
+tidy runs no plugins: it has its own port of each sorter. An option for a sorter that `sortImports` doesn't pick is an error, so a typo can't silently do nothing.
 
 ### `markdown`
 
@@ -223,9 +249,9 @@ Shared options only. `css` covers SCSS and Less.
 | ------------------------------- | --------------------------------------------------------------- |
 | `parser`                        | A command-line flag, `--lang`, which takes a code fence's name. |
 | `filepath`                      | A flag, `--stdin=<path>`.                                       |
-| `plugins`                       | Only under `js`, and only for the import sorters named above.   |
+| `plugins`                       | tidy runs no plugins. Import sorters are `js.sortImports`.      |
 | `rangeStart`, `rangeEnd`        | Not supported. Use an [ignore directive](/docs/ignore/).        |
 | `requirePragma`, `insertPragma` | Not supported.                                                  |
 | `endOfLine: "auto"`             | Not supported. Name the ending you want.                        |
-| `overrides`                     | Not supported. Use a `tidy.json` in the folder instead.         |
+| `overrides`                     | A language's section, or a `tidy.json` in the folder.           |
 | `jsxBracketSameLine`            | Removed in Prettier 3. Use `bracketSameLine`.                   |
