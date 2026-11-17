@@ -25,6 +25,11 @@ run = "cargo build --workspace --exclude tidy_napi"
 description = "Write the JSON Schema of a tidy.json for npm and the site"
 run = "cargo run -q -p tidy -- schema > crates/tidy_napi/tidy.schema.json"
 
+[tasks.types]
+description = "Write the types that index.d.ts opens with, from the JSON Schema"
+run = "bun crates/tidy_napi/types.ts | cargo run -q -p tidy -- up --stdin=crates/tidy_napi/header.d.ts > crates/tidy_napi/header.d.ts"
+depends = ["schema"]
+
 [tasks."build:wasm"]
 description = "Build the playground's wasm into www/assets/wasm"
 tools = { "cargo:wasm-bindgen-cli" = "0.2.130", "aqua:WebAssembly/binaryen" = "133" }

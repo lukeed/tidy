@@ -55,6 +55,17 @@ steps {
     check = "cargo run -q -p tidy -- schema | diff -u crates/tidy_napi/tidy.schema.json -"
     fix = "mise run schema"
   }
+
+  // The types of the Node binding's options come from the shipped schema.
+  ["types"] = new Step {
+    glob = List(
+      "crates/tidy_napi/types.ts",
+      "crates/tidy_napi/tidy.schema.json",
+      "crates/tidy_napi/header.d.ts",
+    )
+    check = "bun crates/tidy_napi/types.ts | cargo run -q -p tidy -- up --stdin=crates/tidy_napi/header.d.ts | diff -u crates/tidy_napi/header.d.ts -"
+    fix = "mise run types"
+  }
 }
 
 hooks {

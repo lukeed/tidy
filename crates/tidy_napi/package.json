@@ -32,6 +32,7 @@
   ],
   "napi": {
     "binaryName": "tidyrs",
+    "dtsHeaderFile": "header.d.ts",
     "targets": [
       "aarch64-apple-darwin",
       "x86_64-apple-darwin",

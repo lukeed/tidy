@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { check, format, type EmbedRequest } from "./index.js";
+import { check, format, type Embed } from "./index.js";
 
 let js = { lang: "js" } as const;
 
@@ -107,24 +107,34 @@ describe("format", () => {
     expect(() => format("x", { lang: "json.stringify" })).toThrow(
       "unknown language: json.stringify",
     );
-    expect(() => format("x", { ...js, eol: "lfcr" as never })).toThrow(
+    // @ts-expect-error: not an eol
+    expect(() => format("x", { ...js, eol: "lfcr" })).toThrow(
       '`eol` must be "lf", "crlf" or "cr"',
     );
+    // @ts-expect-error: not an option
+    expect(() => format("x", { ...js, semicolons: false })).toThrow(
+      "unknown option `semicolons`",
+    );
+    // @ts-expect-error: not an option of js
     expect(() => format("x", { ...js, js: { semicolons: false } })).toThrow(
       "unknown option `js.semicolons`",
     );
+    // @ts-expect-error: not a flag
     expect(() => format("x", { ...js, js: { semi: "no" } })).toThrow(
       "`js.semi` must be true or false",
     );
+    // @ts-expect-error: not a string
+    expect(() => format("x", { lang: 1 })).toThrow("`lang` must be a string");
   });
 });
 
 describe("embed", () => {
   test("asks the hook for each piece of code in another language", () => {
-    let requests: EmbedRequest[] = [];
+    let requests: Embed.Request[] = [];
     let html =
       '<div><script>let  a</script><style>a{b:c}</style><p style="color:red">x</p></div>';
-    format(html, { lang: "html" }, (request) => void requests.push(request));
+    let embed = (request: Embed.Request) => void requests.push(request);
+    format(html, { lang: "html", embed });
     let common = { prefix: 0, suffix: 0, width: 80, attribute: false };
     expect(requests).toEqual([
       {
@@ -158,10 +168,11 @@ describe("embed", () => {
   test("names the framework whose rules the code follows", () => {
     let seen: string[] = [];
     let vue = '<template><p :a="b" v-for="x in y">{{ c }}</p></template>';
-    format(vue, { lang: "vue" }, ({ code, lang, kind, host, attribute }) => {
+    let embed: Embed.Hook = ({ code, lang, kind, host, attribute }) => {
       seen.push([lang, kind, host ?? "-", attribute].join("/"));
       return code;
-    });
+    };
+    format(vue, { lang: "vue", embed });
     expect(seen).toEqual([
       "js/expression/vue/true",
       "js/for/vue/true",
@@ -173,9 +184,10 @@ describe("embed", () => {
   test("prints what the hook returns", () => {
     let vue =
       '<template><p :a="b  +  c">{{ x  +  y }}</p></template>\n<script setup lang="ts">let  a</script>';
-    let output = format(vue, { lang: "vue" }, (request) =>
-      request.code.replace(/\s+/g, " ").trim(),
-    );
+    let output = format(vue, {
+      lang: "vue",
+      embed: (request) => request.code.replace(/\s+/g, " ").trim(),
+    });
     expect(output).toBe(
       '<template>\n  <p :a="b + c">{{ x + y }}</p>\n</template>\n<script setup lang="ts">\nlet a\n</script>\n',
     );
@@ -190,13 +202,38 @@ describe("embed", () => {
     ).toBe("<style>\n  a{b:c}\n</style>\n");
   });
 
+  test("never asks the hook when embedded is off", () => {
+    let asked: string[] = [];
+    let embed: Embed.Hook = (request) => void asked.push(request.code);
+    let html =
+      '<div onclick="go()" style="color:red"><script>let  a</script><style>a{b:c}</style></div>';
+    let vue =
+      '<template><p :a="b" @click="c()">{{ d }}</p></template>\n<script>let  a</script>';
+    let cases: [string, Parameters<typeof format>[1]][] = [
+      [html, { lang: "html", embedded: false, embed }],
+      [vue, { lang: "vue", vue: { embedded: false }, embed }],
+      ["---\na:  1\n---\n{{x}}", { lang: "hbs", embedded: false, embed }],
+      ["---\na:  1\n---\na{}", { lang: "css", embedded: false, embed }],
+      ["```js\nlet  a\n```\n", { lang: "md", embedded: false, embed }],
+    ];
+    for (let [source, options] of cases) format(source, options);
+    expect(asked).toEqual([]);
+  });
+
   test("throws what the hook throws", () => {
-    let hook = () => {
+    let embed = () => {
       throw new Error("boom");
     };
     expect(() =>
-      format("<style>a{b:c}</style>", { lang: "html" }, hook),
+      format("<style>a{b:c}</style>", { lang: "html", embed }),
     ).toThrow("boom");
+  });
+
+  test("rejects a hook that isn't a function", () => {
+    // @ts-expect-error: not a function
+    expect(() => format("x", { ...js, embed: "f" })).toThrow(
+      "`embed` must be a function",
+    );
   });
 });
 

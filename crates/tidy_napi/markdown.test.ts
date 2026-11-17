@@ -27,20 +27,20 @@ describe("markdown", () => {
 
   test("rejects unknown option values", () => {
     expect(() =>
+      // @ts-expect-error: not a wrap
       format("x\n", { ...markdown, markdown: { wrap: "sometimes" } }),
     ).toThrow("unknown wrap `sometimes`");
   });
 
   test("hands code blocks in a language Prettier knows to the hook", () => {
     let seen: [string, string, number][] = [];
-    let output = format(
-      "```js\nlet  x\n```\n\n```txt\nkeep  me\n```\n",
-      markdown,
-      (request) => {
+    let output = format("```js\nlet  x\n```\n\n```txt\nkeep  me\n```\n", {
+      ...markdown,
+      embed: (request) => {
         seen.push([request.lang, request.code, request.width]);
         return request.code.replace("  ", " ");
       },
-    );
+    });
     expect(output).toBe("```js\nlet x\n```\n\n```txt\nkeep  me\n```\n");
     expect(seen).toEqual([["js", "let  x\n", 80]]);
   });
@@ -56,8 +56,11 @@ describe("markdown", () => {
 
   test("throws what the hook throws", () => {
     expect(() =>
-      format("```js\nx\n```\n", markdown, () => {
-        throw new Error("boom");
+      format("```js\nx\n```\n", {
+        ...markdown,
+        embed: () => {
+          throw new Error("boom");
+        },
       }),
     ).toThrow("boom");
   });
