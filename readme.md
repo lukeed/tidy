@@ -125,15 +125,15 @@ Every tool checks every file of each corpus, using all cores, on an M1 Max. Time
 
 With embedded code formatted too, the gap grows: on all but XML, tidy takes 286 ms, bun fmt 609 ms, oxfmt 2.4 s, and Prettier 30.9 s.
 
-The full tables, with one-thread times, Biome, taplo, yamlfmt, lightningcss and oxc's CSS formatter, are in [`bench/results/format`](bench/results/format). The scripts are [`bench/run.ts`](bench/run.ts) and [`bench/js.ts`](bench/js.ts).
+The full tables, with one-thread times, Biome, taplo, yamlfmt, lightningcss and oxc's CSS formatter, are in [`bench/results/format`](https://github.com/lukeed/tidy/tree/main/bench/results/format). The scripts are [`bench/run.ts`](https://github.com/lukeed/tidy/blob/main/bench/run.ts) and [`bench/js.ts`](https://github.com/lukeed/tidy/blob/main/bench/js.ts).
 
 ## Differences from Prettier
 
-tidy prints something else on purpose in a few places: where Prettier's output changes what your code means, where it would change again on the next run, and a few choices, like formatting JSDoc comments by default, as `prettier-plugin-jsdoc` does. Turn that off with `"js": { "jsdoc": false }`. Each case is listed, with an example, in [`docs/deviations.md`](docs/deviations.md).
+tidy prints something else on purpose in a few places: where Prettier's output changes what your code means, where it would change again on the next run, and a few choices, like formatting JSDoc comments by default, as `prettier-plugin-jsdoc` does. Turn that off with `"js": { "jsdoc": false }`. Each case is listed, with an example, in [`docs/deviations.md`](https://github.com/lukeed/tidy/blob/main/docs/deviations.md).
 
 ## Credits
 
-tidy ports a lot of great work: Prettier, Biome, oxc, Bun's Rust ports, taplo, dprint, and more. See [`docs/credits.md`](docs/credits.md) for all of them.
+tidy ports a lot of great work: Prettier, Biome, oxc, Bun's Rust ports, taplo, dprint, and more. See [`docs/credits.md`](https://github.com/lukeed/tidy/blob/main/docs/credits.md) for all of them.
 
 ## License
 

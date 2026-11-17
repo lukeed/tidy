@@ -7,6 +7,7 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
+readme = "../../readme.md"
 keywords = ["html", "markdown", "formatter", "prettier", "vue"]
 categories = ["text-processing", "development-tools"]
 
