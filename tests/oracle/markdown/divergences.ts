@@ -1,6 +1,6 @@
 import { $ } from "bun";
 import { join } from "node:path";
-import { format } from "../../../crates/tidy_napi/index.js";
+import { format, type Options } from "../../../crates/tidy_napi/index.js";
 
 // Usage: mise run oracle:markdown:divergences
 // Runs each case in tests/oracle/markdown/divergences through Prettier and tidy's Prettier preset, with code blocks
@@ -16,7 +16,7 @@ type Case = {
   why: string;
   kind: Kind;
   signed: string;
-  wrap?: string;
+  wrap?: NonNullable<Options["markdown"]>["wrap"];
   width?: number;
 };
 

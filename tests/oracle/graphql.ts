@@ -8,7 +8,7 @@ import { readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import * as prettier from "prettier";
-import { format, type FormatOptions } from "../../crates/tidy_napi/index.js";
+import { format, type Options } from "../../crates/tidy_napi/index.js";
 
 let args = Bun.argv.slice(2).filter((arg) => !arg.startsWith("--"));
 let option = (name: string) =>
@@ -27,7 +27,7 @@ let dirs = args.length
 let sets: {
   name: string;
   prettier: Record<string, unknown>;
-  tidy: FormatOptions;
+  tidy: Options;
 }[] = [
   { name: "default", prettier: {}, tidy: {} },
   {

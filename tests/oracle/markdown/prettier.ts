@@ -19,7 +19,9 @@ let args = Bun.argv.slice(2);
 let option = (name: string) =>
   args.includes(name) ? args[args.indexOf(name) + 1] : undefined;
 let show = option("--show");
-let wrap = option("--wrap") ?? "preserve";
+let wraps = ["preserve", "always", "never"] as const;
+let wrap = wraps.find((it) => it === (option("--wrap") ?? "preserve"));
+if (!wrap) throw new Error(`--wrap takes ${wraps.join(", ")}`);
 let corpora = args.filter(
   (arg, index) => !arg.startsWith("--") && !args[index - 1]?.startsWith("--"),
 );

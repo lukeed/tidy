@@ -8,7 +8,7 @@ import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import plugin from "prettier-plugin-ini";
 import * as prettier from "prettier";
-import { format, type FormatOptions } from "../../crates/tidy_napi/index.js";
+import { format, type Options } from "../../crates/tidy_napi/index.js";
 
 // tidy's deviations from the plugin's output, applied to the plugin's tree: an empty section has one blank line after
 // it, and a list without values is a key with an empty value.
@@ -49,7 +49,7 @@ let show = Number(option("show") ?? 5);
 let sets: {
   name: string;
   prettier: Record<string, unknown>;
-  tidy: FormatOptions;
+  tidy: Options;
 }[] = [
   {
     name: "default",

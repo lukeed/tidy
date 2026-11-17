@@ -1,8 +1,5 @@
 // Prettier's parser names, which the oracles pass to Prettier, against the binding's `lang` and hook requests.
-import type {
-  EmbedRequest,
-  FormatOptions,
-} from "../../crates/tidy_napi/index.js";
+import type { Embed, Options } from "../../crates/tidy_napi/index.js";
 
 let langs: Record<string, string> = {
   babel: "js",
@@ -21,9 +18,7 @@ let langs: Record<string, string> = {
  * The options that pick the language of Prettier's `parser`. JSON.stringify's
  * has no `lang`, only file names.
  */
-export function languageOf(
-  parser: string,
-): Pick<FormatOptions, "lang" | "filepath"> {
+export function languageOf(parser: string): Pick<Options, "lang" | "filepath"> {
   if (parser === "json-stringify") return { filepath: "package.json" };
   return { lang: langs[parser] ?? parser };
 }
@@ -55,7 +50,7 @@ let hosted: Record<string, string> = {
  * Prettier's parser for the code of `request`, as tidy's `Request::parser`
  * names it.
  */
-export function parser({ lang, kind, host }: EmbedRequest): string {
+export function parser({ lang, kind, host }: Embed.Request): string {
   let named = host && hosted[`${host}/${kind}/${lang}`];
   if (named) return named;
   if (!host && kind === "expression" && (lang === "js" || lang === "ts"))

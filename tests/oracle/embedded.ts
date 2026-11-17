@@ -12,7 +12,7 @@ import { readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { extname, join } from "node:path";
 import * as prettier from "prettier";
-import { format, type EmbedRequest } from "../../crates/tidy_napi/index.js";
+import { format, type Embed } from "../../crates/tidy_napi/index.js";
 import { parser } from "./lang.ts";
 
 let args = Bun.argv.slice(2).filter((arg) => !arg.startsWith("--"));
@@ -66,7 +66,7 @@ async function parameters(code: string, parser: string) {
 
 /** What Prettier prints for `request`, inside its indents. */
 async function prettierHook(
-  request: EmbedRequest,
+  request: Embed.Request,
 ): Promise<string | undefined> {
   let tab = "  ";
   let indent = (text: string) =>
@@ -148,12 +148,15 @@ async function withHook(text: string, filepath: string) {
   let answers = new Map<string, string | undefined>();
   let output = "";
   for (let round = 0; round < 8; round++) {
-    let missing = new Map<string, EmbedRequest>();
-    output = format(text, { filepath }, (request) => {
-      if (!javascript.test(parser(request))) return undefined;
-      let id = JSON.stringify(request);
-      if (!answers.has(id)) missing.set(id, request);
-      return answers.get(id);
+    let missing = new Map<string, Embed.Request>();
+    output = format(text, {
+      filepath,
+      embed: (request) => {
+        if (!javascript.test(parser(request))) return undefined;
+        let id = JSON.stringify(request);
+        if (!answers.has(id)) missing.set(id, request);
+        return answers.get(id);
+      },
     });
     if (missing.size === 0) break;
     for (let [id, request] of missing)

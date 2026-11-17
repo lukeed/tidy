@@ -15,8 +15,8 @@ import plugin from "@prettier/plugin-xml";
 import * as prettier from "prettier";
 import {
   format,
-  type EmbedRequest,
-  type FormatOptions,
+  type Embed,
+  type Options,
 } from "../../crates/tidy_napi/index.js";
 import { parser } from "./lang.ts";
 
@@ -65,7 +65,7 @@ let extensions = plugin.languages
 let sets: {
   name: string;
   prettier: Record<string, unknown>;
-  tidy: FormatOptions;
+  tidy: Options;
 }[] = [
   { name: "default", prettier: {}, tidy: {} },
   {
@@ -154,7 +154,7 @@ for (let path of listed.split("\n").filter(Boolean)) {
 }
 
 async function embedded(
-  request: EmbedRequest,
+  request: Embed.Request,
   options: Record<string, unknown>,
 ) {
   if (builtinCss && ["css", "scss", "less"].includes(request.lang))
@@ -173,14 +173,18 @@ async function embedded(
 
 function tidy(
   source: string,
-  options: FormatOptions,
+  options: Options,
   answers: Map<string, string | undefined>,
-  missing: Map<string, EmbedRequest>,
+  missing: Map<string, Embed.Request>,
 ) {
-  return format(source, { lang: "xml", ...options }, (request) => {
-    let id = JSON.stringify([request.code, request.lang, request.width]);
-    if (!answers.has(id)) missing.set(id, request);
-    return answers.get(id);
+  return format(source, {
+    lang: "xml",
+    ...options,
+    embed: (request) => {
+      let id = JSON.stringify([request.code, request.lang, request.width]);
+      if (!answers.has(id)) missing.set(id, request);
+      return answers.get(id);
+    },
   });
 }
 
@@ -207,7 +211,7 @@ for (let set of sets) {
     try {
       let answers = new Map<string, string | undefined>();
       for (let round = 0; round < 4; round++) {
-        let missing = new Map<string, EmbedRequest>();
+        let missing = new Map<string, Embed.Request>();
         actual = tidy(file.source, set.tidy, answers, missing);
         if (missing.size === 0) break;
         for (let [id, request] of missing)

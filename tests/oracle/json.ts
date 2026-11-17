@@ -11,7 +11,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { parsing, transform } from "json-test-suite";
 import * as prettier from "prettier";
-import { format, type FormatOptions } from "../../crates/tidy_napi/index.js";
+import { format, type Options } from "../../crates/tidy_napi/index.js";
 import { languageOf } from "./lang.ts";
 
 let args = Bun.argv.slice(2).filter((arg) => !arg.startsWith("--"));
@@ -25,7 +25,7 @@ type Set = {
   name: string;
   parser?: string;
   prettier: Record<string, unknown>;
-  tidy: FormatOptions;
+  tidy: Options;
 };
 
 /**

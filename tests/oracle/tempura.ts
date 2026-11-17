@@ -5,7 +5,7 @@
 import { $ } from "bun";
 import { join } from "node:path";
 import * as prettier from "prettier";
-import { format, type EmbedRequest } from "../../crates/tidy_napi/index.js";
+import { format, type Embed } from "../../crates/tidy_napi/index.js";
 import { parser } from "./lang.ts";
 import { transform } from "tempura";
 
@@ -25,11 +25,15 @@ async function run(source: string, filepath: string) {
   let output = "";
   // Some requests depend on earlier answers, so this runs until nothing new is asked.
   for (let round = 0; round < 8; round++) {
-    let missing: EmbedRequest[] = [];
-    output = format(source, { lang: "hbs", filepath }, (request) => {
-      let id = JSON.stringify(request);
-      if (!answers.has(id)) missing.push(request);
-      return answers.get(id);
+    let missing: Embed.Request[] = [];
+    output = format(source, {
+      lang: "hbs",
+      filepath,
+      embed: (request) => {
+        let id = JSON.stringify(request);
+        if (!answers.has(id)) missing.push(request);
+        return answers.get(id);
+      },
     });
     if (!missing.length) break;
     for (let request of missing) {

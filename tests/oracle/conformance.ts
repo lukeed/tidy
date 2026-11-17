@@ -10,8 +10,8 @@ import { join, relative } from "node:path";
 import * as prettier from "prettier";
 import {
   format,
-  type EmbedRequest,
-  type FormatOptions,
+  type Embed,
+  type Options,
 } from "../../crates/tidy_napi/index.js";
 import { languageOf, parser } from "./lang.ts";
 
@@ -87,7 +87,7 @@ let scriptParsers: Record<string, string> = {
 function settings(
   options: Record<string, unknown>,
   file: string,
-): FormatOptions | undefined {
+): Options | undefined {
   let parsers = options.parsers as string[];
   let script = parsers?.map((name) => scriptParsers[name]).find(Boolean);
   if (script) {
@@ -139,7 +139,7 @@ function settings(
             ],
           }
         : {}),
-    } as FormatOptions;
+    } as Options;
   }
   let parser: string = parsers?.[0] === "glimmer" ? "handlebars" : parsers?.[0];
   if (
@@ -189,7 +189,7 @@ function scripts(options: Record<string, unknown>) {
   return { jsdoc: false, ...Object.fromEntries(set) };
 }
 
-function key(request: EmbedRequest) {
+function key(request: Embed.Request) {
   return JSON.stringify([
     request.code,
     request.lang,
@@ -208,7 +208,7 @@ function key(request: EmbedRequest) {
  * printer can pass.
  */
 async function parameters(
-  request: EmbedRequest,
+  request: Embed.Request,
   extra: Record<string, unknown>,
   width: number,
 ) {
@@ -239,7 +239,7 @@ async function parameters(
 
 let tab = "  ";
 
-function indent(text: string, request: EmbedRequest) {
+function indent(text: string, request: Embed.Request) {
   let prefix = tab.repeat(request.indent);
   return text
     .split("\n")
@@ -270,8 +270,8 @@ let internal = {
 } as prettier.Plugin;
 
 async function embedded(
-  request: EmbedRequest,
-  options: FormatOptions,
+  request: Embed.Request,
+  options: Options,
   extra: Record<string, unknown>,
 ) {
   let name = parser(request);
@@ -404,17 +404,20 @@ for (let test of all) {
     let off = test.options.embeddedLanguageFormatting === "off";
     // Some requests depend on earlier answers, so this runs until nothing new is asked.
     for (let round = 0; round < 8; round++) {
-      let missing = new Map<string, EmbedRequest>();
-      actual = format(test.input, options, (request) => {
-        if (
-          off ||
-          (builtinCss && ["css", "scss", "less"].includes(request.lang))
-        )
-          return undefined;
-        if (builtinJs && javascript.test(parser(request))) return undefined;
-        let id = key(request);
-        if (!answers.has(id)) missing.set(id, request);
-        return answers.get(id);
+      let missing = new Map<string, Embed.Request>();
+      actual = format(test.input, {
+        ...options,
+        embed: (request) => {
+          if (
+            off ||
+            (builtinCss && ["css", "scss", "less"].includes(request.lang))
+          )
+            return undefined;
+          if (builtinJs && javascript.test(parser(request))) return undefined;
+          let id = key(request);
+          if (!answers.has(id)) missing.set(id, request);
+          return answers.get(id);
+        },
       });
       if (missing.size === 0) break;
       for (let [id, request] of missing)
