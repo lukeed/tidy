@@ -106,7 +106,19 @@ Without either, each file takes the nearest `tidy.json`, `tidy.jsonc` or `tidy.t
 
 ## init
 
-`tidy init` writes a `tidy.jsonc` in this folder, with a comment that links to these docs, every option whose default is the same in every language, and a `$schema` for this version of tidy. `--json` writes a `tidy.json` instead, which can't hold the comment, and `--toml` writes a `tidy.toml`, with the schema in taplo's `#:schema` line. It leaves out `width` and `whitespace`, because a value at the top level would also change the languages whose default differs: Dockerfiles at 120 columns, and XML's `strict` whitespace. It does nothing if a `tidy.json`, `tidy.jsonc` or `tidy.toml` is already there.
+`tidy init` writes a `tidy.jsonc` in this folder, with a comment that links to these docs and a `$schema` for this version of tidy. `--json` writes a `tidy.json` instead, which can't hold the comment, and `--toml` writes a `tidy.toml`, with the schema in taplo's `#:schema` line. It does nothing if a `tidy.json`, `tidy.jsonc` or `tidy.toml` is already there.
+
+If a Prettier or oxfmt config is in this folder, `tidy init` migrates it: each option under tidy's name, an override for one language as that language's section, and the import sorter that `plugins` names as `js.sortImports`. It prints each option that doesn't carry over, and why.
+
+```sh
+$ tidy init
+tidy: wrote tidy.jsonc from .prettierrc.json
+tidy: .prettierrc.json: the plugin `prettier-plugin-tailwindcss`: tidy runs no plugins
+```
+
+It reads `.prettierrc` in JSON or YAML, `.prettierrc.json`, `.json5`, `.yaml`, `.yml` and `.toml`, the `prettier` key of `package.json`, `.oxfmtrc.json` and `.oxfmtrc.jsonc`, and the JavaScript and TypeScript configs of both: `prettier.config.js`, `oxfmt.config.ts` and the rest. It reads a script without running it, so a value that only running it would tell, such as a spread or a function call, doesn't carry over, and tidy says on which line. If there is more than one config, `--from <file>` picks one; it also takes a config in another folder.
+
+Without a config to migrate, it writes every option whose default is the same in every language. It leaves out `width` and `whitespace`, because a value at the top level would also change the languages whose default differs: Dockerfiles at 120 columns, and XML's `strict` whitespace.
 
 ## Style
 
