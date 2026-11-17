@@ -132,7 +132,7 @@ pub struct Js {
   pub experimental_operator_position: Option<crate::js::OperatorPosition>,
   /// Format JSDoc comments as prettier-plugin-jsdoc does.
   pub jsdoc: Option<bool>,
-  /// How to sort imports: from `sortImports`, or from `plugins` and the options of the plugins it lists. See
+  /// How to sort imports: from `sortImports`, and the options of the sorter it picks. See
   /// [`crate::js::SortSettings`].
   pub sort_imports: Option<Option<Arc<crate::js::SortImports>>>,
 }

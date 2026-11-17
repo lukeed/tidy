@@ -1,4 +1,4 @@
-//! Sorts a file's imports the way Prettier's plugins and oxfmt do.
+//! Sorts a file's imports the way `bun fmt` and Prettier's plugins do.
 //!
 //! Prettier's plugins are preprocessors: they turn a file's text into another text, which Prettier then parses and
 //! formats. [`sorted_text`] returns that text. It matches the plugin's output byte for byte, so the formatter handles
@@ -31,9 +31,9 @@ use crate::js::ast::File;
 enum How {
   Trivago(trivago::Options),
   Ianvs(ianvs::Options),
-  Oxfmt(oxfmt::Options),
-  /// `sortImports` from bunfig.toml or `--sort-imports`. Runs oxfmt's sorter plus `native.rs`.
-  Native(oxfmt::Options),
+  /// `bun fmt`'s, which is oxfmt's sorter with side-effect imports as barriers, plus `native.rs`, which sorts the names
+  /// inside braces and merges the imports of a module.
+  Bun(oxfmt::Options),
   Organize(organize::Options),
 }
 
@@ -53,9 +53,9 @@ impl PartialEq for SortImports {
 impl Eq for SortImports {}
 
 impl SortImports {
-  /// True if the formatter sorts the imports as it prints them, as oxfmt does, rather than a plugin before parsing.
+  /// True if the formatter sorts the imports as it prints them, as bun does, rather than a plugin before parsing.
   pub(crate) fn is_applied_by_format(&self) -> bool {
-    matches!(self.how, How::Oxfmt(_) | How::Native(_))
+    matches!(self.how, How::Bun(_))
   }
 
   /// True if it also sorts the imports of code in other languages. `prettier-plugin-organize-imports` only sorts files.
@@ -64,7 +64,7 @@ impl SortImports {
   }
 }
 
-/// How to sort the imports of the scripts in markup: oxfmt sorts those of a Vue file itself, and Prettier's plugins
+/// How to sort the imports of the scripts in markup: bun sorts those of a Vue file itself, and Prettier's plugins
 /// those of other markup, which Prettier formats with `babel` or `typescript`. A plugin sorts a Vue file's scripts
 /// before the file is parsed.
 pub(crate) fn in_markup(how: Option<&Arc<SortImports>>, vue: bool) -> Option<Arc<SortImports>> {
@@ -84,10 +84,10 @@ pub(crate) fn in_markdown(how: Option<&Arc<SortImports>>) -> Option<Arc<SortImpo
 /// `file`'s text with its imports sorted. It has to be parsed and formatted in place of `file`. Returns `None` if
 /// formatting `file` gives the same result.
 pub(crate) fn sorted_text<'a>(file: &'a File<'a>, how: &SortImports) -> Option<Vec<u8>> {
-  if file.has_parse_errors() || matches!(how.how, How::Oxfmt(_)) {
+  if file.has_parse_errors() {
     return None;
   }
-  if matches!(how.how, How::Native(_)) {
+  if matches!(how.how, How::Bun(_)) {
     return native::preprocess(file);
   }
   // Prettier's `guessEndOfLine`
@@ -103,6 +103,6 @@ pub(crate) fn sorted_text<'a>(file: &'a File<'a>, how: &SortImports) -> Option<V
   match &how.how {
     How::Trivago(options) => trivago::preprocess(&mut model, options, end_of_line),
     How::Ianvs(options) => ianvs::preprocess(&mut model, options, end_of_line),
-    How::Oxfmt(_) | How::Native(_) | How::Organize(_) => None,
+    How::Bun(_) | How::Organize(_) => None,
   }
 }

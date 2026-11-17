@@ -9,7 +9,11 @@ type Property = {
   anyOf?: Property[];
   items?: Property;
   properties?: Record<string, Property>;
+  title?: string;
 };
+
+/** The object types that have a `title`, which `Options` declares by that name. */
+let named = new Map<string, Property>();
 
 let langs = [
   "css",
@@ -48,18 +52,39 @@ function type(property: Property): string {
       return "number";
     case "string":
       return "string";
-    case "array":
-      return `${type(property.items!)}[]`;
+    case "array": {
+      let item = type(property.items!);
+      return item.includes(" | ") ? `(${item})[]` : `${item}[]`;
+    }
+    case "object": {
+      let entries = Object.entries(property.properties!);
+      if (property.title) {
+        named.set(property.title, property);
+        return property.title;
+      }
+      if (entries.some(([, it]) => it.description))
+        throw new Error(
+          `a documented object needs a title: ${JSON.stringify(property)}`,
+        );
+      return `{ ${entries.map(([name, it]) => `${name}?: ${type(it)}`).join("; ")} }`;
+    }
   }
   throw new Error(`no type for ${JSON.stringify(property)}`);
 }
 
 function doc(property: Property): string {
-  let lines = [property.description ?? ""];
+  let lines = property.description ? [property.description] : [];
   let empty = Array.isArray(property.default) && property.default.length === 0;
   if (property.default !== undefined && !empty)
-    lines.push(`@default ${JSON.stringify(property.default)}`);
-  return `/**\n${lines.map((line) => ` * ${line}`).join("\n")}\n */`;
+    lines.push(`@default ${literal(property.default)}`);
+  if (!lines.length) return "";
+  return `/**\n${lines.map((line) => ` * ${line}`).join("\n")}\n */\n`;
+}
+
+/** `value` as JSON, with a space after each comma, as tidy prints it. */
+function literal(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(literal).join(", ")}]`;
+  return JSON.stringify(value);
 }
 
 /**
@@ -74,10 +99,13 @@ function indented(text: string, depth: number): string {
     .join("\n");
 }
 
-function members(properties: [string, Property][], depth: number): string {
-  return properties
-    .map(([name, it]) => indented(`${doc(it)}\n${name}?: ${type(it)};`, depth))
-    .join("\n\n");
+/**
+ * The members of an object type, at no indent: a nested object's are one
+ * deeper.
+ */
+function members(properties: [string, Property][]): string {
+  let all = properties.map(([name, it]) => `${doc(it)}${name}?: ${type(it)};`);
+  return all.join(all.some((it) => it.includes("\n")) ? "\n\n" : "\n");
 }
 
 let all = Object.entries(schema.properties as Record<string, Property>);
@@ -97,11 +125,32 @@ function section([name, it]: [string, Property]): string {
     ? `Omit<Common, ${replaced.join(" | ")}>`
     : "Common";
   let head = indented(
-    `${doc({ description: it.description })}\n${name}?: ${base}`,
+    `${doc({ description: it.description })}${name}?: ${base}`,
     2,
   );
-  let body = own.length ? ` & {\n${members(own, 3)}\n${indented("}", 2)}` : "";
+  let body = own.length
+    ? ` & {\n${indented(members(own), 3)}\n${indented("}", 2)}`
+    : "";
   return `${head}${body};`;
+}
+
+/** The types in `named`, including those that their members name. */
+function hoisted(): string {
+  let done = new Set<string>();
+  let out: string[] = [];
+  for (let next of named.keys()) {
+    if (done.has(next)) continue;
+    done.add(next);
+    let it = named.get(next)!;
+    let body = indented(members(Object.entries(it.properties!)), 1);
+    out.push(
+      indented(
+        `${doc({ description: it.description })}export type ${next} = {\n${body}\n};`,
+        1,
+      ),
+    );
+  }
+  return out.join("\n\n");
 }
 
 let output = `// Generated from tidy.schema.json by types.ts: run \`mise run types\`.
@@ -123,13 +172,15 @@ export type Options = Options.Common &
 export namespace Options {
   /** The options every language takes, at the top level and in each language's own section. */
   export type Common = {
-${members(common, 2)}
+${indented(members(common), 2)}
   };
 
   /** The options of one language, over the common ones. */
   export type Languages = {
 ${sections.map(section).join("\n\n")}
   };
+
+${hoisted()}
 }
 
 export namespace Embed {

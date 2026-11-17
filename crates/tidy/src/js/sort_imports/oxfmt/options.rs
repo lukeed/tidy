@@ -127,7 +127,8 @@ pub(crate) struct Options {
   /// A group matches all side-effect imports, so they're moved there even though they aren't sorted.
   pub(super) regroups_side_effect: bool,
   pub(super) regroups_side_effect_style: bool,
-  /// Treat side-effect imports as barriers. oxfmt only keeps them at their index and lets other imports move past them.
+  /// Treat side-effect imports as barriers, as bun does. oxfmt only keeps them at their index and lets other imports
+  /// move past them, which can change what a module runs first.
   pub(super) stops_at_side_effects: bool,
 }
 
@@ -186,17 +187,36 @@ fn printable(name: &[u8]) -> std::borrow::Cow<'_, str> {
   String::from_utf8_lossy(name)
 }
 
+/// The keys of `sortImports` as an object.
+pub(crate) const KEYS: [&str; 9] = [
+  "customGroups",
+  "groups",
+  "ignoreCase",
+  "internalPattern",
+  "newlinesBetween",
+  "order",
+  "partitionByComment",
+  "partitionByNewline",
+  "sortSideEffects",
+];
+
 /// Returns `None` if imports are left as they are.
-pub(crate) fn compile(
-  value: &Json,
-  stops_at_side_effects: bool,
-) -> Result<Option<Options>, String> {
+pub(crate) fn compile(value: &Json) -> Result<Option<Options>, String> {
   let config = match value {
     Json::Bool(false) => return Ok(None),
     Json::Bool(true) => Json::Object(serde_json::Map::new()),
     config @ Json::Object(_) => config.clone(),
     _ => return Err(invalid("it must be a boolean or an object")),
   };
+  if let Some(key) = config
+    .as_object()
+    .into_iter()
+    .flatten()
+    .map(|it| it.0)
+    .find(|key| !KEYS.contains(&key.as_str()))
+  {
+    return Err(invalid(&format!("unknown option `{key}`")));
+  }
   let present = |name: &str| config.get(name).filter(|value| !matches!(value, Json::Null));
 
   // The names in `groups`, and the markers between them.
@@ -377,8 +397,7 @@ pub(crate) fn compile(
     },
     regroups_side_effect: has_catch_all_group_for(Selector::SideEffect),
     regroups_side_effect_style: has_catch_all_group_for(Selector::SideEffectStyle),
-    stops_at_side_effects: stops_at_side_effects
-      && !sort_side_effects
+    stops_at_side_effects: !sort_side_effects
       && !has_catch_all_group_for(Selector::SideEffect)
       && !has_catch_all_group_for(Selector::SideEffectStyle),
     newline_boundary_overrides,

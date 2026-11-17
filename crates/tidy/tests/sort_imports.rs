@@ -4,14 +4,16 @@
 //! (`test/cli/format/sort-imports`, MIT): the inputs of `@trivago/prettier-plugin-sort-imports`,
 //! `@ianvs/prettier-plugin-sort-imports` (both Apache-2.0, see `LICENSE`) and oxc's formatter, and generated ones,
 //! each with its options and with the output of Prettier 3.9.9 with the plugin (with TypeScript 5.9 for
-//! `prettier-plugin-organize-imports`) or of oxfmt 0.72. `native.json` is bun's `sortImports` from bunfig.toml.
+//! `prettier-plugin-organize-imports`). `native.json` and `oxc.json`, the inputs of oxc's formatter, hold the output of
+//! `bun fmt` 1.4.4 with `sortImports` from bunfig.toml, which is tidy's `sortImports: true`.
 
 use serde_json::Value;
 use std::path::Path;
 use tidy::js::{self, Dialect, Options, SortSettings};
 
-/// Formats each case of `fixtures/sort_imports/<tool>.json` with the plugin `plugin` listed.
-fn matches(tool: &str, plugin: Option<&str>) {
+/// Formats each case of `fixtures/sort_imports/<tool>.json`, with `sortImports` set to `sorter` unless the case sets
+/// it.
+fn matches(tool: &str, sorter: Option<&str>) {
   let path =
     Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("tests/fixtures/sort_imports/{tool}.json"));
   let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
@@ -21,8 +23,8 @@ fn matches(tool: &str, plugin: Option<&str>) {
     let mut options =
       Options { dialect: Dialect::of_path(filename).unwrap(), jsdoc: false, ..Options::default() };
     let mut settings = SortSettings::default();
-    if let Some(plugin) = plugin {
-      settings.set("plugins", Value::from(vec![plugin]));
+    if let Some(sorter) = sorter {
+      settings.set("sortImports", Value::from(sorter));
     }
     for (key, value) in case["options"].as_object().unwrap() {
       match key.as_str() {
@@ -46,27 +48,27 @@ fn matches(tool: &str, plugin: Option<&str>) {
 
 #[test]
 fn matches_trivago() {
-  matches("trivago", Some("@trivago/prettier-plugin-sort-imports"));
+  matches("trivago", Some("trivago"));
 }
 
 #[test]
 fn matches_ianvs() {
-  matches("ianvs", Some("@ianvs/prettier-plugin-sort-imports"));
+  matches("ianvs", Some("ianvs"));
 }
 
 #[test]
 fn matches_organize_imports() {
-  matches("organize", Some("prettier-plugin-organize-imports"));
-}
-
-#[test]
-fn matches_oxfmt() {
-  matches("oxfmt", None);
+  matches("organize", Some("organize-imports"));
 }
 
 #[test]
 fn matches_bun() {
   matches("native", None);
+}
+
+#[test]
+fn matches_bun_on_the_inputs_of_oxc() {
+  matches("oxc", None);
 }
 
 fn sorted(input: &str, settings: &[(&str, Value)]) -> String {
@@ -88,23 +90,69 @@ fn is_off_by_default() {
 }
 
 #[test]
-fn is_off_with_the_options_of_a_plugin_that_isnt_listed() {
-  let settings =
-    [("importOrder", Value::from(vec!["^[./]"])), ("importOrderSeparation", Value::Bool(true))];
-  assert_eq!(sorted(UNSORTED, &settings), UNSORTED);
+fn is_on_with_each_sorter_and_no_options() {
+  for sorter in [
+    Value::Bool(true),
+    Value::from("trivago"),
+    Value::from("ianvs"),
+    Value::from("organize-imports"),
+  ] {
+    let used = "a(b);\n";
+    let output = sorted(&format!("{UNSORTED}{used}"), &[("sortImports", sorter.clone())]);
+    assert!(output.starts_with(SORTED), "{sorter}: {output}");
+  }
 }
 
 #[test]
-fn is_on_with_a_listed_plugin_and_no_options() {
-  let plugins = |name: &str| [("plugins", Value::from(vec![name]))];
-  assert_eq!(sorted(UNSORTED, &plugins("@ianvs/prettier-plugin-sort-imports")), SORTED);
-  assert_eq!(sorted(UNSORTED, &[("sortImports", Value::Bool(true))]), SORTED);
+fn rejects_an_option_of_another_sorter() {
+  let error = |settings: &[(&str, Value)]| {
+    let mut sort = SortSettings::default();
+    for (name, value) in settings {
+      sort.set(name, value.clone());
+    }
+    sort.compile().unwrap_err()
+  };
+  let order = ("importOrder", Value::from(vec!["^[./]"]));
+  assert_eq!(
+    error(std::slice::from_ref(&order)),
+    "`importOrder` needs `sortImports` set to \"trivago\" or \"ianvs\""
+  );
+  let separation = ("importOrderSeparation", Value::Bool(true));
+  assert_eq!(
+    error(&[("sortImports", Value::from("ianvs")), separation]),
+    "`importOrderSeparation` needs `sortImports` set to \"trivago\""
+  );
+  let skip = ("organizeImportsSkipDestructiveCodeActions", Value::Bool(true));
+  assert_eq!(
+    error(&[("sortImports", Value::Bool(true)), skip]),
+    "`organizeImportsSkipDestructiveCodeActions` needs `sortImports` set to \"organize-imports\""
+  );
+  assert!(error(&[("sortImports", Value::from("oxfmt"))]).contains("must be true, false"));
+  assert!(
+    error(&[("sortImports", serde_json::json!({ "sorter": "bun" }))])
+      .contains("unknown option `sorter`")
+  );
+}
+
+#[test]
+fn keeps_side_effect_imports_in_place() {
+  let input = "import z from \"z\";\nimport \"polyfill\";\nimport a from \"a\";\n";
+  assert_eq!(sorted(input, &[("sortImports", Value::Bool(true))]), input);
+}
+
+#[test]
+fn sorts_names_and_merges_the_imports_of_a_module() {
+  let input = "import { b, a } from \"x\";\nimport { c } from \"x\";\n";
+  assert_eq!(
+    sorted(input, &[("sortImports", Value::Bool(true))]),
+    "import { a, b, c } from \"x\";\n"
+  );
 }
 
 #[test]
 fn rejects_an_invalid_regular_expression() {
   let mut sort = SortSettings::default();
-  sort.set("plugins", Value::from(vec!["@trivago/prettier-plugin-sort-imports"]));
+  sort.set("sortImports", Value::from("trivago"));
   sort.set("importOrder", Value::from(vec!["("]));
   assert!(sort.compile().unwrap_err().contains("importOrder"));
 }
@@ -119,11 +167,13 @@ fn reads_the_config_keys() {
     js::format(UNSORTED, "a.ts", &options.js).unwrap()
   };
   assert_eq!(read(r#"{ "js": { "sortImports": { "order": "asc" } } }"#), SORTED);
-  assert_eq!(read(r#"{ "js": { "plugins": ["@trivago/prettier-plugin-sort-imports"] } }"#), SORTED);
+  assert_eq!(read(r#"{ "js": { "sortImports": "trivago" } }"#), SORTED);
   assert_eq!(read(r#"{ "js": { "semi": true } }"#), UNSORTED);
   let invalid = r#"{ "js": { "sortImports": { "order": "up" } } }"#;
   assert!(tidy::config::Config::json(invalid).is_err());
   assert!(tidy::config::Config::json(r#"{ "js": { "tsconfig.jsx": "react" } }"#).is_err());
+  assert!(tidy::config::Config::json(r#"{ "js": { "plugins": ["a"] } }"#).is_err());
+  assert!(tidy::config::Config::json(r#"{ "js": { "bun.sortImports": true } }"#).is_err());
 }
 
 /// Formats the Vue, HTML, Markdown and other files of `fixtures/sort_imports/hosts.json` (bun's tests) with the config
@@ -138,6 +188,11 @@ fn matches_hosts(name: &str, skips: &[&str]) {
   for (key, value) in config.as_object().unwrap() {
     match key.as_str() {
       "printWidth" => drop(shared.insert("width".to_owned(), value.clone())),
+      "plugins" => {
+        let plugin = value[0].as_str().unwrap();
+        let sorter = if plugin.starts_with("@ianvs/") { "ianvs" } else { "trivago" };
+        js.insert("sortImports".to_owned(), Value::from(sorter));
+      }
       _ => drop(js.insert(key.clone(), value.clone())),
     }
   }
@@ -172,14 +227,13 @@ fn matches_ianvs_in_hosts() {
 
 #[test]
 #[cfg(feature = "config")]
-fn matches_oxfmt_in_hosts() {
-  matches_hosts("oxfmt, sortImports", &[]);
+fn matches_bun_in_hosts() {
+  matches_hosts("sortImports", &[]);
 }
 
 #[test]
 #[cfg(feature = "config")]
-fn matches_oxfmt_with_jsdoc_in_hosts() {
-  // oxfmt leaves HTML to Prettier, without prettier-plugin-jsdoc. tidy formats JSDoc in the scripts of HTML as the
-  // plugin does.
-  matches_hosts("oxfmt, sortImports and jsdoc", &["jsdoc.html"]);
+fn matches_bun_with_jsdoc_in_hosts() {
+  // bun leaves JSDoc in the scripts of HTML as written. tidy formats it as prettier-plugin-jsdoc does.
+  matches_hosts("sortImports and jsdoc", &["jsdoc.html"]);
 }

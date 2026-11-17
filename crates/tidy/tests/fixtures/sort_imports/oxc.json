@@ -595,7 +595,7 @@
    }
   },
   "input": "\"use strict\";\n\n// after\n/**\n * doc\n */\nimport bun from \"bun:test\"; // t\nimport \"./style.css\"; // t\nimport q from \"./q?raw\";\nimport { g } from \"../x\"; /* t */\n// c\n// d\nimport dom from \"react-dom\";\n// c\n\nimport bun from \"bun:test\"; /* t\n  u */\nfoo();\n",
-  "output": "\"use strict\";\n\n// after\n/**\n * doc\n */\nimport bun from \"bun:test\"; // t\n\nimport \"./style.css\"; // t\nimport bun from \"bun:test\"; /* t\n  u */\n\n// c\n// d\nimport dom from \"react-dom\";\n\nimport q from \"./q?raw\";\n// c\nimport { g } from \"../x\"; /* t */\nfoo();\n"
+  "output": "\"use strict\";\n\n// after\n/**\n * doc\n */\nimport bun from \"bun:test\"; // t\nimport \"./style.css\"; // t\nimport bun from \"bun:test\"; /* t\n  u */\n\n// c\n// d\nimport dom from \"react-dom\";\n\nimport q from \"./q?raw\";\n// c\nimport { g } from \"../x\"; /* t */\nfoo();\n"
  },
  {
   "name": "oxfmt-lines/288/8",
@@ -613,7 +613,7 @@
    }
   },
   "input": "\"use strict\";\n/* c */\nimport { type U, v } from \"@ui/u\";\nimport q from \"./q?raw\";\nimport s from \"#sub\";\n// c\n\nimport type { T } from \"t\";\n// c\n// d\nimport { b, a, type C } from \"./x\"; /* t */\n/* c */ import {\n  long1,\n  long2,\n} from \"~/long\";\n// c\n// d\nimport i from \"./index\";\n\n\n\nexport default 1;\n",
-  "output": "\"use strict\";\n/* c */ import { long1, long2 } from \"~/long\";\n// c\n// d\nimport { b, a, type C } from \"./x\"; /* t */\nimport q from \"./q?raw\";\n// c\n// c\n// d\nimport i from \"./index\";\nimport s from \"#sub\";\n\nimport type { T } from \"t\";\n/* c */\nimport { type U, v } from \"@ui/u\";\n\nexport default 1;\n"
+  "output": "\"use strict\";\n/* c */ import { long1, long2 } from \"~/long\";\n// c\n// d\nimport { a, b, type C } from \"./x\"; /* t */\nimport q from \"./q?raw\";\n// c\n// c\n// d\nimport i from \"./index\";\nimport s from \"#sub\";\n\nimport type { T } from \"t\";\n/* c */\nimport { type U, v } from \"@ui/u\";\n\nexport default 1;\n"
  },
  {
   "name": "oxfmt-tokens/8/9",
@@ -628,6 +628,6 @@
    }
   },
   "input": "// c\n// d\nimport z from \"z\";\nimport { b, a as c, type C } from \"./x\";\nimport * as ns from \"ns\";\n\nfoo();\n",
-  "output": "// c\n// d\nimport * as ns from \"ns\";\nimport z from \"z\";\nimport { b, a as c, type C } from \"./x\";\n\nfoo();\n"
+  "output": "// c\n// d\nimport * as ns from \"ns\";\nimport z from \"z\";\nimport { a as c, b, type C } from \"./x\";\n\nfoo();\n"
  }
 ]

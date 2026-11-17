@@ -56,6 +56,13 @@ fn schema_keys() -> BTreeSet<String> {
   keys
 }
 
+/// `key` set to `value` in the section `name`, with the `sortImports` that the option needs.
+fn section_json(name: &str, option: &tidy::schema::Opt, value: &str) -> String {
+  let sorter =
+    option.needs.first().map(|it| format!(", \"sortImports\": {it:?}")).unwrap_or_default();
+  format!("{{ {name:?}: {{ {:?}: {value}{sorter} }} }}", option.name)
+}
+
 /// The values of a choice are part of the contract too, so a renamed variant fails here.
 #[test]
 fn the_parser_accepts_every_key_the_schema_describes() {
@@ -65,7 +72,7 @@ fn the_parser_accepts_every_key_the_schema_describes() {
   }
   for name in SECTIONS {
     for option in shared().into_iter().chain(section(name)) {
-      let json = format!("{{ {name:?}: {{ {:?}: {} }} }}", option.name, option.default);
+      let json = section_json(name, &option, &option.default.to_string());
       Config::json(&json).unwrap_or_else(|error| panic!("{name}.{}: {error}", option.name));
     }
   }
@@ -83,7 +90,7 @@ fn every_choice_is_one_the_parser_takes() {
     for option in shared().into_iter().chain(section(name)) {
       let tidy::schema::Kind::Choice(values) = option.kind else { continue };
       for value in values {
-        let json = format!("{{ {name:?}: {{ {:?}: {value:?} }} }}", option.name);
+        let json = section_json(name, &option, &format!("{value:?}"));
         Config::json(&json)
           .unwrap_or_else(|error| panic!("{name}.{} = {value:?}: {error}", option.name));
       }

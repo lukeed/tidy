@@ -540,6 +540,83 @@
           "description": "The name of the ignore directive.",
           "type": "string"
         },
+        "importOrder": {
+          "description": "The order of the groups of imports, as regular expressions of module names. `<THIRD_PARTY_MODULES>` is the modules that match none. With `\"ianvs\"`, `<BUILTIN_MODULES>` is Node's modules, `<TYPES>` marks type imports, and `\"\"` puts a blank line between two groups. Only with `sortImports` set to `\"trivago\"` or `\"ianvs\"`.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "importOrderCaseInsensitive": {
+          "default": false,
+          "description": "Ignore case when sorting. Only with `sortImports` set to `\"trivago\"`.",
+          "type": "boolean"
+        },
+        "importOrderCaseSensitive": {
+          "default": false,
+          "description": "Sort with case sensitivity. Only with `sortImports` set to `\"ianvs\"`.",
+          "type": "boolean"
+        },
+        "importOrderExclude": {
+          "default": [],
+          "description": "Files whose imports stay as they are, as globs. Only with `sortImports` set to `\"trivago\"`.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "importOrderGroupNamespaceSpecifiers": {
+          "default": false,
+          "description": "Put namespace imports first in their group. Only with `sortImports` set to `\"trivago\"`.",
+          "type": "boolean"
+        },
+        "importOrderImportAttributesKeyword": {
+          "default": "with",
+          "description": "The keyword of import attributes. Only with `sortImports` set to `\"trivago\"`.",
+          "enum": ["with", "assert", "with-legacy"],
+          "type": "string"
+        },
+        "importOrderParserPlugins": {
+          "default": ["typescript", "jsx"],
+          "description": "The Babel plugins of the original plugin. With `\"ianvs\"`, type and value imports of a module combine only if it holds `typescript`. Only with `sortImports` set to `\"trivago\"` or `\"ianvs\"`.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "importOrderSafeSideEffects": {
+          "default": [],
+          "description": "Side-effect imports that may move, as regular expressions of module names. Only with `sortImports` set to `\"ianvs\"`.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "importOrderSeparation": {
+          "default": false,
+          "description": "A blank line between the groups of `importOrder`. Only with `sortImports` set to `\"trivago\"`.",
+          "type": "boolean"
+        },
+        "importOrderSideEffects": {
+          "default": true,
+          "description": "Sort side-effect imports too. Otherwise, no import moves across one. Only with `sortImports` set to `\"trivago\"`.",
+          "type": "boolean"
+        },
+        "importOrderSortByLength": {
+          "description": "Sort by the length of the import, not by name. Only with `sortImports` set to `\"trivago\"`.",
+          "enum": ["asc", "desc"],
+          "type": "string"
+        },
+        "importOrderSortSpecifiers": {
+          "default": false,
+          "description": "Sort the names inside braces. Only with `sortImports` set to `\"trivago\"`.",
+          "type": "boolean"
+        },
+        "importOrderTypeScriptVersion": {
+          "default": "1.0.0",
+          "description": "The project's TypeScript version. Type and value imports of a module combine from 4.5.0. Only with `sortImports` set to `\"ianvs\"`.",
+          "type": "string"
+        },
         "indent": {
           "default": 2,
           "description": "The width of one indent.",
@@ -562,13 +639,15 @@
           "enum": ["preserve", "collapse"],
           "type": "string"
         },
-        "plugins": {
-          "default": [],
-          "description": "Import sorters to follow: `@trivago/prettier-plugin-sort-imports`, `@ianvs/prettier-plugin-sort-imports` or `prettier-plugin-organize-imports`.",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
+        "organizeImportsSkipDestructiveCodeActions": {
+          "default": false,
+          "description": "Keep the imports that are not used. Only with `sortImports` set to `\"organize-imports\"`.",
+          "type": "boolean"
+        },
+        "organizeImportsTypeOrder": {
+          "description": "Where type imports go among the names inside braces. Default: as TypeScript does. Only with `sortImports` set to `\"organize-imports\"`.",
+          "enum": ["last", "inline", "first"],
+          "type": "string"
         },
         "quote": {
           "default": "double",
@@ -593,9 +672,151 @@
           "type": "boolean"
         },
         "sortImports": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "enum": ["trivago", "ianvs", "organize-imports"]
+            },
+            {
+              "additionalProperties": false,
+              "description": "Sort as `true` does, with these options.",
+              "properties": {
+                "customGroups": {
+                  "default": [],
+                  "description": "Groups of your own, which `groups` can name. An import goes to the first group it matches, before the predefined ones.",
+                  "items": {
+                    "additionalProperties": false,
+                    "description": "A group of your own.",
+                    "properties": {
+                      "elementNamePattern": {
+                        "description": "Globs that the module name must match.",
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "groupName": {
+                        "description": "The name that `groups` gives the group.",
+                        "type": "string"
+                      },
+                      "modifiers": {
+                        "description": "Properties that the import must all have.",
+                        "items": {
+                          "enum": [
+                            "side_effect",
+                            "type",
+                            "value",
+                            "default",
+                            "wildcard",
+                            "named"
+                          ]
+                        },
+                        "type": "array"
+                      },
+                      "selector": {
+                        "description": "The kind of import.",
+                        "enum": [
+                          "type",
+                          "side_effect_style",
+                          "side_effect",
+                          "style",
+                          "index",
+                          "sibling",
+                          "parent",
+                          "subpath",
+                          "internal",
+                          "builtin",
+                          "external",
+                          "import"
+                        ]
+                      }
+                    },
+                    "title": "CustomGroup",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "groups": {
+                  "default": [
+                    "builtin",
+                    "external",
+                    ["internal", "subpath"],
+                    ["parent", "sibling", "index"],
+                    "style",
+                    "unknown"
+                  ],
+                  "description": "The groups, in order: predefined ones, such as `builtin`, `external`, `internal`, `parent`, `sibling`, `index`, `style` and `unknown`, or the names of `customGroups`. An array sorts its groups as one. A `newlinesBetween` object between two groups overrides `newlinesBetween` there.",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "newlinesBetween": {
+                            "type": "boolean"
+                          }
+                        },
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "type": "array"
+                },
+                "ignoreCase": {
+                  "default": true,
+                  "description": "Ignore case when sorting.",
+                  "type": "boolean"
+                },
+                "internalPattern": {
+                  "default": ["~/", "@/", "#"],
+                  "description": "The prefixes of internal modules.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "newlinesBetween": {
+                  "default": true,
+                  "description": "A blank line between groups.",
+                  "type": "boolean"
+                },
+                "order": {
+                  "default": "asc",
+                  "description": "Sort up or down.",
+                  "enum": ["asc", "desc"]
+                },
+                "partitionByComment": {
+                  "default": false,
+                  "description": "Sort the imports between comments apart.",
+                  "type": "boolean"
+                },
+                "partitionByNewline": {
+                  "default": false,
+                  "description": "Sort the imports between blank lines apart.",
+                  "type": "boolean"
+                },
+                "sortSideEffects": {
+                  "default": false,
+                  "description": "Sort side-effect imports too. Otherwise, no import moves across one.",
+                  "type": "boolean"
+                }
+              },
+              "title": "SortImports",
+              "type": "object"
+            }
+          ],
           "default": false,
-          "description": "Sort imports, with oxfmt's sorter.",
-          "type": "boolean"
+          "description": "Sort imports: `true` as `bun fmt` does, or as `\"trivago\"` (`@trivago/prettier-plugin-sort-imports`), `\"ianvs\"` (`@ianvs/prettier-plugin-sort-imports`) or `\"organize-imports\"` (`prettier-plugin-organize-imports`) does. `true` never moves an import across a side-effect import."
         },
         "tabs": {
           "default": false,

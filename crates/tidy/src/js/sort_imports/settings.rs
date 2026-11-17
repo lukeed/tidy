@@ -9,23 +9,23 @@ use crate::js::strings;
 use serde_json::Value;
 use std::sync::Arc;
 
-/// The import-related options, by name, with their JSON values. The last of `sortImports` and `bun.sortImports` that is
-/// set wins. Without either, `plugins` picks the plugin, and the options of a plugin it doesn't list are ignored, as
-/// Prettier does.
+/// The import-related options, by name, with their JSON values. `sortImports` picks the sorter; the other options
+/// belong to one of them, and it's an error to set one for another.
 ///
-/// | owner | options |
+/// | `sortImports` | options |
 /// | --- | --- |
-/// | both plugins | `plugins`, `importOrder`, `importOrderParserPlugins` |
-/// | `@trivago/prettier-plugin-sort-imports` | `importOrderSeparation`, `importOrderSortSpecifiers`, `importOrderGroupNamespaceSpecifiers`, `importOrderCaseInsensitive`, `importOrderSideEffects`, `importOrderSortByLength`, `importOrderImportAttributesKeyword`, `importOrderExclude` |
-/// | `@ianvs/prettier-plugin-sort-imports` | `importOrderTypeScriptVersion`, `importOrderCaseSensitive`, `importOrderSafeSideEffects` |
-/// | `prettier-plugin-organize-imports` | `organizeImportsSkipDestructiveCodeActions`, `organizeImportsTypeOrder` |
-/// | the `compilerOptions` in the file's `tsconfig.json`, which that plugin reads | `tsconfig.jsx`, `tsconfig.jsxFactory`, `tsconfig.jsxFragmentFactory`, `tsconfig.reactNamespace` |
-/// | oxfmt | `sortImports`: true, false, or an object of `groups`, `customGroups`, `order`, `ignoreCase`, `newlinesBetween`, `internalPattern`, `sortSideEffects`, `partitionByNewline` and `partitionByComment` |
-/// | Bun | `bun.sortImports`, `sortImports` under `[fmt]` in bunfig.toml: oxfmt's, which then sorts the names in braces and merges the imports of a module |
+/// | `true`, or an object of `groups`, `customGroups`, `order`, `ignoreCase`, `newlinesBetween`, `internalPattern`, `sortSideEffects`, `partitionByNewline` and `partitionByComment` | `bun fmt`'s: oxfmt's sorter with side-effect imports as barriers, which then sorts the names in braces and merges the imports of a module |
+/// | `"trivago"` and `"ianvs"` | `importOrder`, `importOrderParserPlugins` |
+/// | `"trivago"`: `@trivago/prettier-plugin-sort-imports` | `importOrderSeparation`, `importOrderSortSpecifiers`, `importOrderGroupNamespaceSpecifiers`, `importOrderCaseInsensitive`, `importOrderSideEffects`, `importOrderSortByLength`, `importOrderImportAttributesKeyword`, `importOrderExclude` |
+/// | `"ianvs"`: `@ianvs/prettier-plugin-sort-imports` | `importOrderTypeScriptVersion`, `importOrderCaseSensitive`, `importOrderSafeSideEffects` |
+/// | `"organize-imports"`: `prettier-plugin-organize-imports` | `organizeImportsSkipDestructiveCodeActions`, `organizeImportsTypeOrder`, and from the library only, the `compilerOptions` that plugin reads from `tsconfig.json`: `tsconfig.jsx`, `tsconfig.jsxFactory`, `tsconfig.jsxFragmentFactory`, `tsconfig.reactNamespace` |
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Settings {
   entries: Vec<(String, Value)>,
 }
+
+/// The options of both Prettier plugins that sort imports.
+const SHARED_OPTIONS: [&str; 2] = ["importOrder", "importOrderParserPlugins"];
 
 const TRIVAGO_OPTIONS: [&str; 8] = [
   "importOrderSeparation",
@@ -41,11 +41,44 @@ const TRIVAGO_OPTIONS: [&str; 8] = [
 const IANVS_OPTIONS: [&str; 3] =
   ["importOrderTypeScriptVersion", "importOrderCaseSensitive", "importOrderSafeSideEffects"];
 
-/// The suffix shared by the names of `@trivago/prettier-plugin-sort-imports`, `@ianvs/prettier-plugin-sort-imports` and
-/// their forks.
-const SORT_IMPORTS: &str = "/prettier-plugin-sort-imports";
-const ORGANIZE_IMPORTS: &str = "prettier-plugin-organize-imports";
-const BUN_OPTION: &str = "bun.sortImports";
+const ORGANIZE_OPTIONS: [&str; 6] = [
+  "organizeImportsSkipDestructiveCodeActions",
+  "organizeImportsTypeOrder",
+  "tsconfig.jsx",
+  "tsconfig.jsxFactory",
+  "tsconfig.jsxFragmentFactory",
+  "tsconfig.reactNamespace",
+];
+
+/// Which sorter `sortImports` picks.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Sorter {
+  Bun,
+  Trivago,
+  Ianvs,
+  Organize,
+}
+
+impl Sorter {
+  fn name(self) -> &'static str {
+    match self {
+      Sorter::Bun => "true",
+      Sorter::Trivago => "\"trivago\"",
+      Sorter::Ianvs => "\"ianvs\"",
+      Sorter::Organize => "\"organize-imports\"",
+    }
+  }
+
+  /// The sorters that read the option `name`.
+  fn of_option(name: &str) -> &'static [Sorter] {
+    match name {
+      _ if SHARED_OPTIONS.contains(&name) => &[Sorter::Trivago, Sorter::Ianvs],
+      _ if TRIVAGO_OPTIONS.contains(&name) => &[Sorter::Trivago],
+      _ if IANVS_OPTIONS.contains(&name) => &[Sorter::Ianvs],
+      _ => &[Sorter::Organize],
+    }
+  }
+}
 
 fn invalid(name: &str, value: &Value) -> String {
   format!("Invalid {name} value: {value}.")
@@ -54,19 +87,11 @@ fn invalid(name: &str, value: &Value) -> String {
 impl Settings {
   /// Stores the option `name` if it's import-related. A later value replaces an earlier one.
   pub fn set(&mut self, name: &str, value: Value) -> bool {
-    let is_known = matches!(
-      name,
-      "plugins" | "importOrder" | "importOrderParserPlugins" | "sortImports" | BUN_OPTION
-    ) || name.starts_with("organizeImports")
-      || matches!(
-        name,
-        "tsconfig.jsx"
-          | "tsconfig.jsxFactory"
-          | "tsconfig.jsxFragmentFactory"
-          | "tsconfig.reactNamespace"
-      )
+    let is_known = name == "sortImports"
+      || SHARED_OPTIONS.contains(&name)
       || TRIVAGO_OPTIONS.contains(&name)
-      || IANVS_OPTIONS.contains(&name);
+      || IANVS_OPTIONS.contains(&name)
+      || ORGANIZE_OPTIONS.contains(&name);
     if is_known {
       self.entries.retain(|entry| entry.0 != name);
       self.entries.push((name.to_owned(), value));
@@ -74,21 +99,9 @@ impl Settings {
     is_known
   }
 
-  /// The `plugins`: a string or an array of strings.
-  fn plugins(&self) -> impl Iterator<Item = &str> {
-    let plugins = self.get("plugins");
-    let one = plugins.and_then(Value::as_str);
-    let many = plugins.and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str);
-    one.into_iter().chain(many)
-  }
-
-  /// True if one of the `plugins` is `name`, or ends with it.
-  fn lists_plugin(&self, name: &str) -> bool {
-    self.plugins().any(|plugin| plugin.contains(name))
-  }
-
+  /// The value of `name`, where `null` is the same as no value.
   fn get(&self, name: &str) -> Option<&Value> {
-    self.entries.iter().find(|entry| entry.0 == name).map(|entry| &entry.1)
+    self.entries.iter().find(|entry| entry.0 == name && !entry.1.is_null()).map(|entry| &entry.1)
   }
 
   fn text(&self, name: &str) -> Option<&str> {
@@ -117,27 +130,6 @@ impl Settings {
     let strings: Option<Vec<Vec<u8>>> =
       items.iter().map(|item| item.as_str().map(|it| it.as_bytes().to_vec())).collect();
     strings.map(Some).ok_or_else(|| invalid(name, value))
-  }
-
-  /// True to behave like `@ianvs/prettier-plugin-sort-imports` where it differs from
-  /// `@trivago/prettier-plugin-sort-imports`, which it's a fork of. Decided by, in this order: the plugin that's
-  /// listed, then an option or a special word that only one of them has. Otherwise it falls back to trivago's, the
-  /// more popular one.
-  fn is_ianvs(&self, order: Option<&[Vec<u8>]>) -> bool {
-    let names = |name: &str| self.plugins().any(|plugin| plugin.contains(name));
-    if names("@ianvs/prettier-plugin-sort-imports")
-      || names("@trivago/prettier-plugin-sort-imports")
-    {
-      return names("@ianvs/prettier-plugin-sort-imports");
-    }
-    let has_any = |names: &[&str]| self.entries.iter().any(|entry| names.contains(&&*entry.0));
-    if has_any(&IANVS_OPTIONS) || has_any(&TRIVAGO_OPTIONS) {
-      return has_any(&IANVS_OPTIONS);
-    }
-    order
-      .unwrap_or_default()
-      .iter()
-      .any(|group| group.trim_ascii().is_empty() || strings::contains(group, b"<TYPES>"))
   }
 
   fn trivago(&self, order: Option<Vec<Vec<u8>>>) -> Result<trivago::Options, String> {
@@ -247,59 +239,65 @@ impl Settings {
   /// invalid.
   pub fn compile(&self) -> Result<Option<Arc<SortImports>>, String> {
     let settings = self.clone();
-    // The last one set wins.
-    let is_sort_imports_option =
-      |it: &&(String, Value)| matches!(&*it.0, "sortImports" | BUN_OPTION);
-    if let Some((name, value)) = self.entries.iter().rfind(is_sort_imports_option) {
-      let is_native = name == BUN_OPTION;
-      return Ok(super::oxfmt::compile(value, is_native)?.map(|options| {
-        Arc::new(SortImports {
-          how: match is_native {
-            true => How::Native(options),
-            false => How::Oxfmt(options),
-          },
-          settings,
-        })
-      }));
-    }
-    // Prettier doesn't know the options of a plugin that isn't listed.
-    if !self.lists_plugin(SORT_IMPORTS) {
-      if !self.lists_plugin(ORGANIZE_IMPORTS) {
-        return Ok(None);
+    let value = self.get("sortImports").unwrap_or(&Value::Bool(false));
+    let sorter = match value {
+      Value::Bool(false) => None,
+      Value::Bool(true) | Value::Object(_) => Some(Sorter::Bun),
+      Value::String(name) if name == "trivago" => Some(Sorter::Trivago),
+      Value::String(name) if name == "ianvs" => Some(Sorter::Ianvs),
+      Value::String(name) if name == "organize-imports" => Some(Sorter::Organize),
+      _ => {
+        return Err(format!(
+          "`sortImports` must be true, false, \"trivago\", \"ianvs\", \"organize-imports\" or an object, not {value}"
+        ));
       }
-      let options = organize::Options {
-        skips_destructive_code_actions: self
-          .boolean("organizeImportsSkipDestructiveCodeActions", false)?,
-        type_order: match self.get("organizeImportsTypeOrder") {
-          None => None,
-          Some(value) => match value.as_str() {
-            Some("last") => Some(TypeOrder::Last),
-            Some("first") => Some(TypeOrder::First),
-            Some("inline") => Some(TypeOrder::Inline),
-            _ => return Err(invalid("organizeImportsTypeOrder", value)),
-          },
-        },
-        jsx_needs_import: matches!(self.text("tsconfig.jsx"), Some("react" | "react-native")),
-        jsx_namespace: (self.text("tsconfig.jsxFactory").map(first_name))
-          .or_else(|| self.text("tsconfig.reactNamespace"))
-          .unwrap_or("React")
-          .as_bytes()
-          .into(),
-        jsx_fragment_factory: self
-          .text("tsconfig.jsxFragmentFactory")
-          .map(|it| first_name(it).as_bytes().into()),
-      };
-      return Ok(Some(Arc::new(SortImports { how: How::Organize(options), settings })));
+    };
+    for (name, _) in self.entries.iter().filter(|it| it.0 != "sortImports" && !it.1.is_null()) {
+      let sorters = Sorter::of_option(name);
+      if !sorter.is_some_and(|it| sorters.contains(&it)) {
+        let names: Vec<&str> = sorters.iter().map(|it| it.name()).collect();
+        return Err(format!("`{name}` needs `sortImports` set to {}", names.join(" or ")));
+      }
     }
-    let order = self.strings("importOrder")?;
-    let how = match self.is_ianvs(order.as_deref()) {
-      true => match self.ianvs(order)? {
+    let how = match sorter {
+      None => return Ok(None),
+      Some(Sorter::Bun) => match super::oxfmt::compile(value)? {
+        Some(options) => How::Bun(options),
+        None => return Ok(None),
+      },
+      Some(Sorter::Organize) => How::Organize(self.organize()?),
+      Some(Sorter::Trivago) => How::Trivago(self.trivago(self.strings("importOrder")?)?),
+      Some(Sorter::Ianvs) => match self.ianvs(self.strings("importOrder")?)? {
         Some(options) => How::Ianvs(options),
         None => return Ok(None),
       },
-      false => How::Trivago(self.trivago(order)?),
     };
     Ok(Some(Arc::new(SortImports { how, settings })))
+  }
+
+  fn organize(&self) -> Result<organize::Options, String> {
+    Ok(organize::Options {
+      skips_destructive_code_actions: self
+        .boolean("organizeImportsSkipDestructiveCodeActions", false)?,
+      type_order: match self.get("organizeImportsTypeOrder") {
+        None => None,
+        Some(value) => match value.as_str() {
+          Some("last") => Some(TypeOrder::Last),
+          Some("first") => Some(TypeOrder::First),
+          Some("inline") => Some(TypeOrder::Inline),
+          _ => return Err(invalid("organizeImportsTypeOrder", value)),
+        },
+      },
+      jsx_needs_import: matches!(self.text("tsconfig.jsx"), Some("react" | "react-native")),
+      jsx_namespace: (self.text("tsconfig.jsxFactory").map(first_name))
+        .or_else(|| self.text("tsconfig.reactNamespace"))
+        .unwrap_or("React")
+        .as_bytes()
+        .into(),
+      jsx_fragment_factory: self
+        .text("tsconfig.jsxFragmentFactory")
+        .map(|it| first_name(it).as_bytes().into()),
+    })
   }
 }
 

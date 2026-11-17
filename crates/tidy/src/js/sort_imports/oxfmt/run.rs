@@ -14,7 +14,7 @@ use std::sync::Arc;
 impl SortImports {
   fn as_oxfmt(&self) -> Option<&Options> {
     match &self.how {
-      How::Oxfmt(options) | How::Native(options) => Some(options),
+      How::Bun(options) => Some(options),
       _ => None,
     }
   }

@@ -209,6 +209,104 @@ export namespace Options {
       experimentalTernaries?: boolean;
 
       /**
+       * The order of the groups of imports, as regular expressions of module
+       * names. `<THIRD_PARTY_MODULES>` is the modules that match none. With
+       * `"ianvs"`, `<BUILTIN_MODULES>` is Node's modules, `<TYPES>` marks type
+       * imports, and `""` puts a blank line between two groups. Only with
+       * `sortImports` set to `"trivago"` or `"ianvs"`.
+       */
+      importOrder?: string[];
+
+      /**
+       * Ignore case when sorting. Only with `sortImports` set to `"trivago"`.
+       *
+       * @default false
+       */
+      importOrderCaseInsensitive?: boolean;
+
+      /**
+       * Sort with case sensitivity. Only with `sortImports` set to `"ianvs"`.
+       *
+       * @default false
+       */
+      importOrderCaseSensitive?: boolean;
+
+      /**
+       * Files whose imports stay as they are, as globs. Only with `sortImports`
+       * set to `"trivago"`.
+       */
+      importOrderExclude?: string[];
+
+      /**
+       * Put namespace imports first in their group. Only with `sortImports` set
+       * to `"trivago"`.
+       *
+       * @default false
+       */
+      importOrderGroupNamespaceSpecifiers?: boolean;
+
+      /**
+       * The keyword of import attributes. Only with `sortImports` set to
+       * `"trivago"`.
+       *
+       * @default "with"
+       */
+      importOrderImportAttributesKeyword?: "with" | "assert" | "with-legacy";
+
+      /**
+       * The Babel plugins of the original plugin. With `"ianvs"`, type and
+       * value imports of a module combine only if it holds `typescript`. Only
+       * with `sortImports` set to `"trivago"` or `"ianvs"`.
+       *
+       * @default ["typescript", "jsx"]
+       */
+      importOrderParserPlugins?: string[];
+
+      /**
+       * Side-effect imports that may move, as regular expressions of module
+       * names. Only with `sortImports` set to `"ianvs"`.
+       */
+      importOrderSafeSideEffects?: string[];
+
+      /**
+       * A blank line between the groups of `importOrder`. Only with
+       * `sortImports` set to `"trivago"`.
+       *
+       * @default false
+       */
+      importOrderSeparation?: boolean;
+
+      /**
+       * Sort side-effect imports too. Otherwise, no import moves across one.
+       * Only with `sortImports` set to `"trivago"`.
+       *
+       * @default true
+       */
+      importOrderSideEffects?: boolean;
+
+      /**
+       * Sort by the length of the import, not by name. Only with `sortImports`
+       * set to `"trivago"`.
+       */
+      importOrderSortByLength?: "asc" | "desc";
+
+      /**
+       * Sort the names inside braces. Only with `sortImports` set to
+       * `"trivago"`.
+       *
+       * @default false
+       */
+      importOrderSortSpecifiers?: boolean;
+
+      /**
+       * The project's TypeScript version. Type and value imports of a module
+       * combine from 4.5.0. Only with `sortImports` set to `"ianvs"`.
+       *
+       * @default "1.0.0"
+       */
+      importOrderTypeScriptVersion?: string;
+
+      /**
        * Format JSDoc comments, as `prettier-plugin-jsdoc` does.
        *
        * @default true
@@ -230,11 +328,18 @@ export namespace Options {
       objectWrap?: "preserve" | "collapse";
 
       /**
-       * Import sorters to follow: `@trivago/prettier-plugin-sort-imports`,
-       * `@ianvs/prettier-plugin-sort-imports` or
-       * `prettier-plugin-organize-imports`.
+       * Keep the imports that are not used. Only with `sortImports` set to
+       * `"organize-imports"`.
+       *
+       * @default false
        */
-      plugins?: string[];
+      organizeImportsSkipDestructiveCodeActions?: boolean;
+
+      /**
+       * Where type imports go among the names inside braces. Default: as
+       * TypeScript does. Only with `sortImports` set to `"organize-imports"`.
+       */
+      organizeImportsTypeOrder?: "last" | "inline" | "first";
 
       /**
        * When to quote the keys of an object.
@@ -251,11 +356,16 @@ export namespace Options {
       semi?: boolean;
 
       /**
-       * Sort imports, with oxfmt's sorter.
+       * Sort imports: `true` as `bun fmt` does, or as `"trivago"`
+       * (`@trivago/prettier-plugin-sort-imports`), `"ianvs"`
+       * (`@ianvs/prettier-plugin-sort-imports`) or `"organize-imports"`
+       * (`prettier-plugin-organize-imports`) does. `true` never moves an import
+       * across a side-effect import.
        *
        * @default false
        */
-      sortImports?: boolean;
+      sortImports?:
+        boolean | "trivago" | "ianvs" | "organize-imports" | SortImports;
 
       /**
        * Where to leave a trailing comma.
@@ -506,6 +616,104 @@ export namespace Options {
        */
       wrap?: "preserve" | "always" | "never";
     };
+  };
+
+  /** Sort as `true` does, with these options. */
+  export type SortImports = {
+    /**
+     * Groups of your own, which `groups` can name. An import goes to the first
+     * group it matches, before the predefined ones.
+     */
+    customGroups?: CustomGroup[];
+
+    /**
+     * The groups, in order: predefined ones, such as `builtin`, `external`,
+     * `internal`, `parent`, `sibling`, `index`, `style` and `unknown`, or the
+     * names of `customGroups`. An array sorts its groups as one. A
+     * `newlinesBetween` object between two groups overrides `newlinesBetween`
+     * there.
+     *
+     * @default ["builtin", "external", ["internal", "subpath"], ["parent", "sibling", "index"], "style", "unknown"]
+     */
+    groups?: (string | string[] | { newlinesBetween?: boolean })[];
+
+    /**
+     * Ignore case when sorting.
+     *
+     * @default true
+     */
+    ignoreCase?: boolean;
+
+    /**
+     * The prefixes of internal modules.
+     *
+     * @default ["~/", "@/", "#"]
+     */
+    internalPattern?: string[];
+
+    /**
+     * A blank line between groups.
+     *
+     * @default true
+     */
+    newlinesBetween?: boolean;
+
+    /**
+     * Sort up or down.
+     *
+     * @default "asc"
+     */
+    order?: "asc" | "desc";
+
+    /**
+     * Sort the imports between comments apart.
+     *
+     * @default false
+     */
+    partitionByComment?: boolean;
+
+    /**
+     * Sort the imports between blank lines apart.
+     *
+     * @default false
+     */
+    partitionByNewline?: boolean;
+
+    /**
+     * Sort side-effect imports too. Otherwise, no import moves across one.
+     *
+     * @default false
+     */
+    sortSideEffects?: boolean;
+  };
+
+  /** A group of your own. */
+  export type CustomGroup = {
+    /** Globs that the module name must match. */
+    elementNamePattern?: string[];
+
+    /** The name that `groups` gives the group. */
+    groupName?: string;
+
+    /** Properties that the import must all have. */
+    modifiers?: (
+      "side_effect" | "type" | "value" | "default" | "wildcard" | "named"
+    )[];
+
+    /** The kind of import. */
+    selector?:
+      | "type"
+      | "side_effect_style"
+      | "side_effect"
+      | "style"
+      | "index"
+      | "sibling"
+      | "parent"
+      | "subpath"
+      | "internal"
+      | "builtin"
+      | "external"
+      | "import";
   };
 }
 
