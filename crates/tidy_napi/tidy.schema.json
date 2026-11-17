@@ -20,7 +20,7 @@
     },
     "css": {
       "additionalProperties": false,
-      "description": "Options for css only.",
+      "description": "Options for CSS, SCSS and Less only.",
       "properties": {
         "bracketSameLine": {
           "default": false,
@@ -92,7 +92,7 @@
     },
     "dockerfile": {
       "additionalProperties": false,
-      "description": "Options for dockerfile only.",
+      "description": "Options for Dockerfiles only.",
       "properties": {
         "bracketSameLine": {
           "default": false,
@@ -185,7 +185,7 @@
     },
     "graphql": {
       "additionalProperties": false,
-      "description": "Options for graphql only.",
+      "description": "Options for GraphQL only.",
       "properties": {
         "bracketSameLine": {
           "default": false,
@@ -257,7 +257,7 @@
     },
     "handlebars": {
       "additionalProperties": false,
-      "description": "Options for handlebars only.",
+      "description": "Options for Handlebars only.",
       "properties": {
         "bracketSameLine": {
           "default": false,
@@ -335,7 +335,7 @@
     },
     "html": {
       "additionalProperties": false,
-      "description": "Options for html only.",
+      "description": "Options for HTML only.",
       "properties": {
         "bracketSameLine": {
           "default": false,
@@ -418,7 +418,7 @@
     },
     "ini": {
       "additionalProperties": false,
-      "description": "Options for ini only.",
+      "description": "Options for INI only.",
       "properties": {
         "bracketSameLine": {
           "default": false,
@@ -495,7 +495,7 @@
     },
     "js": {
       "additionalProperties": false,
-      "description": "Options for js only.",
+      "description": "Options for JavaScript and TypeScript only.",
       "properties": {
         "arrowParens": {
           "default": "always",
@@ -548,7 +548,7 @@
         },
         "jsdoc": {
           "default": true,
-          "description": "Format JSDoc comments, as prettier-plugin-jsdoc does.",
+          "description": "Format JSDoc comments, as `prettier-plugin-jsdoc` does.",
           "type": "boolean"
         },
         "jsxSingleQuote": {
@@ -564,7 +564,7 @@
         },
         "plugins": {
           "default": [],
-          "description": "Import sorters to follow: @trivago/prettier-plugin-sort-imports, @ianvs/prettier-plugin-sort-imports or prettier-plugin-organize-imports.",
+          "description": "Import sorters to follow: `@trivago/prettier-plugin-sort-imports`, `@ianvs/prettier-plugin-sort-imports` or `prettier-plugin-organize-imports`.",
           "items": {
             "type": "string"
           },
@@ -631,7 +631,7 @@
     },
     "json": {
       "additionalProperties": false,
-      "description": "Options for json only.",
+      "description": "Options for JSON only.",
       "properties": {
         "bracketSameLine": {
           "default": false,
@@ -715,7 +715,7 @@
     },
     "markdown": {
       "additionalProperties": false,
-      "description": "Options for markdown only.",
+      "description": "Options for Markdown only.",
       "properties": {
         "bracketSameLine": {
           "default": false,
@@ -857,7 +857,7 @@
     },
     "toml": {
       "additionalProperties": false,
-      "description": "Options for toml only.",
+      "description": "Options for TOML only.",
       "properties": {
         "alignComments": {
           "default": true,
@@ -1015,7 +1015,7 @@
     },
     "vue": {
       "additionalProperties": false,
-      "description": "Options for vue only.",
+      "description": "Options for Vue only.",
       "properties": {
         "bracketSameLine": {
           "default": false,
@@ -1104,7 +1104,7 @@
     },
     "xml": {
       "additionalProperties": false,
-      "description": "Options for xml only.",
+      "description": "Options for XML only.",
       "properties": {
         "attributeQuotes": {
           "default": "preserve",
@@ -1192,7 +1192,7 @@
     },
     "yaml": {
       "additionalProperties": false,
-      "description": "Options for yaml only.",
+      "description": "Options for YAML only.",
       "properties": {
         "bracketSameLine": {
           "default": false,

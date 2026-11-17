@@ -120,13 +120,13 @@ pub fn section(name: &str) -> Vec<Opt> {
         "end",
         "Which side of a line break a binary operator sits on.",
       ),
-      flag("jsdoc", true, "Format JSDoc comments, as prettier-plugin-jsdoc does."),
+      flag("jsdoc", true, "Format JSDoc comments, as `prettier-plugin-jsdoc` does."),
       flag("sortImports", false, "Sort imports, with oxfmt's sorter."),
       opt(
         "plugins",
         Kind::List,
         json!([]),
-        "Import sorters to follow: @trivago/prettier-plugin-sort-imports, @ianvs/prettier-plugin-sort-imports or prettier-plugin-organize-imports.",
+        "Import sorters to follow: `@trivago/prettier-plugin-sort-imports`, `@ianvs/prettier-plugin-sort-imports` or `prettier-plugin-organize-imports`.",
       ),
     ],
     "json" => vec![
@@ -243,6 +243,26 @@ pub const SECTIONS: &[&str] = &[
   "js",
 ];
 
+/// What a section formats, as its description names it.
+fn title(section: &str) -> &str {
+  match section {
+    "html" => "HTML",
+    "vue" => "Vue",
+    "handlebars" => "Handlebars",
+    "css" => "CSS, SCSS and Less",
+    "json" => "JSON",
+    "yaml" => "YAML",
+    "toml" => "TOML",
+    "xml" => "XML",
+    "markdown" => "Markdown",
+    "dockerfile" => "Dockerfiles",
+    "ini" => "INI",
+    "graphql" => "GraphQL",
+    "js" => "JavaScript and TypeScript",
+    other => other,
+  }
+}
+
 fn property(option: &Opt) -> Value {
   let mut schema = Map::new();
   match &option.kind {
@@ -305,7 +325,7 @@ pub fn schema() -> String {
       (*name).to_owned(),
       json!({
         "type": "object",
-        "description": format!("Options for {name} only."),
+        "description": format!("Options for {} only.", title(name)),
         "properties": inner,
         "additionalProperties": false,
       }),
