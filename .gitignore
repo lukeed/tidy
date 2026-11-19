@@ -9,3 +9,5 @@ target/
 www/public
 www/.wrangler
 www/assets/wasm
+crates/.napi-rs-filesystem-*
+crates/.*.napi-stage-*/
