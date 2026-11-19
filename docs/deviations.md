@@ -87,7 +87,7 @@ Most entries come from bun's ports, which correct the places where Prettier's ou
 | [js-jsdoc](#js-jsdoc)                                                                     | babel/typescript             | approved 2026-11-02 |
 | [js-markdown-fence-length](#js-markdown-fence-length)                                     | babel/typescript             | approved 2026-11-02 |
 | [js-stable-output](#js-stable-output)                                                     | babel/typescript             | approved 2026-11-02 |
-| [ignore-tools](#ignore-tools)                                                             | all                          | proposed            |
+| [ignore-tools](#ignore-tools)                                                             | all                          | approved 2026-11-18 |
 | [the rule in step 2](#process)                                                            | all                          | proposed            |
 | [tempura and text mode](#beyond-prettier)                                                 | handlebars                   | approved 2026-10-31 |
 
@@ -1114,7 +1114,7 @@ tidy:     "x = a ? b : c; /* a */\n"
 
 ### ignore-tools
 
-- Status: proposed
+- Status: approved 2026-11-18
 - Why: The ignore directive can name the tools it applies to, as `starship-ignore format,lint`, so that one comment can serve a formatter and a linter. It applies when `format` is one of them. Prettier only recognizes the name alone, so `prettier-ignore format` ignores the next node in tidy and not in Prettier.
 - Where: crates/tidy/src/directive.rs (`is`), markdown/directive.rs (`parse`)
 - Parser: all
