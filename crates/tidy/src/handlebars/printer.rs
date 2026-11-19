@@ -285,7 +285,7 @@ impl<'a> Printer<'a, '_> {
 
   /// `isPrettierIgnoreNode`
   fn is_prettier_ignore(&self, node: NodeId) -> bool {
-    matches!(self.tree.kind(node), Kind::MustacheComment { value } if strings::trim_js_whitespace(self.text(value)) == self.ignore)
+    matches!(self.tree.kind(node), Kind::MustacheComment { value } if crate::directive::is(strings::trim_js_whitespace(self.text(value)), self.ignore))
   }
 
   /// Prints the node's source text.

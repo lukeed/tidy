@@ -38,6 +38,7 @@ pub(crate) fn format<'a>(
       has_babel_tree,
       experimental_ternaries: options.experimental_ternaries,
       flavor: options.flavor,
+      ignore: &options.ignore,
     };
     let cast_parens = comments::cast_parens(file, options.flavor, has_babel_tree);
     crate::js::attach::list(file, &cast_parens, attach_options, out);

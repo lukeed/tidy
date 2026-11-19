@@ -472,7 +472,7 @@ impl<'a> Printer<'_, 'a> {
     let name = self.options.ignore.as_str();
     self.comments.of(id).iter().any(|it| {
       let value = self.comment(it).value(self.text);
-      strings::trim_js_whitespace(value.as_bytes()) == name.as_bytes()
+      crate::directive::is(strings::trim_js_whitespace(value.as_bytes()), name.as_bytes())
     })
   }
 

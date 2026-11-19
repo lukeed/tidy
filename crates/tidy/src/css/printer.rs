@@ -366,7 +366,10 @@ impl<'a> Printer<'a, '_> {
     let start = (raw.start as usize).min(text.len());
     if previous.is_some_and(|it| {
       it.kind == Kind::Comment
-        && crate::strings::trim_js_whitespace(self.context.of(it.text)) == self.ignore
+        && crate::directive::is(
+          crate::strings::trim_js_whitespace(self.context.of(it.text)),
+          self.ignore,
+        )
     }) {
       let end = self.context.end_of(tree, id, parsed);
       return self.sink.text(text.get(start..end).unwrap_or_default());

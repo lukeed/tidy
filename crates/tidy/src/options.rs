@@ -327,6 +327,7 @@ impl Shared {
   #[cfg(feature = "js")]
   pub fn js(&self, options: &mut js::Options) {
     set(&mut options.width, self.width);
+    set(&mut options.ignore, self.ignore.clone());
     set(&mut options.tab_width, self.indent);
     set(&mut options.tabs, self.tabs);
     set(&mut options.eol, self.eol);

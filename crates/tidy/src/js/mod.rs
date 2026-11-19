@@ -197,6 +197,8 @@ pub struct Options {
   pub format_embedded: bool,
   /// Format JSDoc comments as prettier-plugin-jsdoc does.
   pub jsdoc: bool,
+  /// The ignore directive, `prettier-ignore` by default.
+  pub ignore: String,
   /// `proseWrap` of the Markdown in templates. [`crate::Formatter`] takes it from the Markdown options.
   pub wrap: crate::Wrap,
   /// `htmlWhitespaceSensitivity` of the HTML in templates. [`crate::Formatter`] takes it from the HTML options.
@@ -227,6 +229,7 @@ impl Default for Options {
       experimental_operator_position: OperatorPosition::End,
       format_embedded: true,
       jsdoc: true,
+      ignore: "prettier-ignore".into(),
       single_attribute_per_line: false,
       wrap: crate::Wrap::Preserve,
       whitespace: crate::Whitespace::Auto,
@@ -285,6 +288,7 @@ impl From<&Options> for FormatOptions {
         false => EmbeddedLanguageFormatting::Off,
       },
       jsdoc: options.jsdoc.then(crate::js::options::JsdocOptions::default),
+      ignore: crate::js::options::Ignore(options.ignore.as_str().into()),
       attribute_position: match options.single_attribute_per_line {
         true => crate::js::options::AttributePosition::Multiline,
         false => crate::js::options::AttributePosition::Auto,

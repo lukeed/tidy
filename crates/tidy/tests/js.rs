@@ -110,6 +110,20 @@ fn formats_what_prettier_parsers_recover_from() {
 }
 
 #[test]
+fn honors_the_ignore_directive_of_the_options() {
+  let options = Options { ignore: "starship-ignore".into(), ..Options::default() };
+  for directive in ["starship-ignore", "starship-ignore format", "starship-ignore lint,format"] {
+    let text = format!("// {directive}\nconst  a = [\n  1, 0,\n];\nconst  b = 1\n");
+    let expected = format!("// {directive}\nconst  a = [\n  1, 0,\n];\nconst b = 1;\n");
+    assert_eq!(format(&text, "a.js", &options), expected, "{directive}");
+  }
+  for directive in ["starship-ignore lint", "prettier-ignore"] {
+    let text = format!("// {directive}\nconst  a = 1\n");
+    assert_eq!(format(&text, "a.js", &options), format!("// {directive}\nconst a = 1;\n"));
+  }
+}
+
+#[test]
 fn rejects_what_the_tree_cannot_hold() {
   let options = Options { dialect: Dialect::Ts, ..Options::default() };
   assert!(js::format("class C { declare accessor a: number }\n", "a.ts", &options).is_err());

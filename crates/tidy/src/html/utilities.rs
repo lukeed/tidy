@@ -104,7 +104,8 @@ pub(crate) fn is_script_like_tag(node: &Node<'_>, options: &Context<'_>) -> bool
 
 /// `isPrettierIgnore`
 fn is_prettier_ignore(node: &Node<'_>, ignore: &[u8]) -> bool {
-  node.kind == Kind::Comment && strings::trim_js_whitespace(&node.value) == ignore
+  node.kind == Kind::Comment
+    && crate::directive::is(strings::trim_js_whitespace(&node.value), ignore)
 }
 
 /// `unescapeQuoteEntities`

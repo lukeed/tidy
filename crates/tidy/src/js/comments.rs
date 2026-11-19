@@ -14,7 +14,7 @@ use super::owners::Owners;
 use crate::js::ast::Span;
 pub(crate) use crate::js::ast::comments::Comment;
 use crate::js::ast::{File, Node};
-use crate::js::options::{Flavor, FormatOptions};
+use crate::js::options::{Flavor, FormatOptions, Ignore};
 use std::cell::Cell;
 
 /// Checks on a comment's text that only the formatter needs.
@@ -25,9 +25,9 @@ pub(crate) trait CommentExt {
   fn is_indentable_block(self) -> bool;
   /// Prettier's `isTypeCastComment`: a JSDoc comment with `@type` or `@satisfies`.
   fn looks_like_type_cast(self) -> bool;
-  /// `prettier-ignore`, or `oxfmt-ignore` in that flavor.
+  /// The ignore directive, or `oxfmt-ignore` in that flavor.
   #[allow(clippy::wrong_self_convention, reason = "handles and comments are Copy")]
-  fn is_ignore_comment(self, flavor: Flavor) -> bool;
+  fn is_ignore_comment(self, ignore: &Ignore, flavor: Flavor) -> bool;
 }
 
 impl CommentExt for Comment<'_> {
@@ -39,12 +39,14 @@ impl CommentExt for Comment<'_> {
     self.is_block() && self.content().starts_with(b"*") && is_type_cast_text(self.content())
   }
 
-  fn is_ignore_comment(self, flavor: Flavor) -> bool {
+  fn is_ignore_comment(self, ignore: &Ignore, flavor: Flavor) -> bool {
     // Like JavaScript's `trim()`, this also strips no-break spaces.
     let content = crate::js::strings::trim_js_whitespace_start(self.content());
     // Few comments get past this.
-    matches!(content.first(), Some(b'p' | b'o'))
-      && flavor.is_ignore_comment(crate::js::strings::trim_js_whitespace(content))
+    content
+      .first()
+      .is_some_and(|first| ignore.0.as_bytes().first() == Some(first) || *first == b'o')
+      && ignore.is(crate::js::strings::trim_js_whitespace(content), flavor)
   }
 }
 
@@ -307,6 +309,7 @@ pub(crate) fn for_file<'a>(file: &'a File<'a>, options: &FormatOptions) -> &'a F
       has_babel_tree,
       experimental_ternaries: options.experimental_ternaries,
       flavor: options.flavor,
+      ignore: &options.ignore,
     };
     let attached = attach::attach(file, &cast_parens, attach_options);
     let attachments = (attached.attachments.iter())
@@ -339,6 +342,7 @@ pub(crate) struct Comments<'a> {
   /// `None` if the document isn't JavaScript, in which case there are no comments.
   file: Option<&'a File<'a>>,
   flavor: Flavor,
+  ignore: Ignore,
   file_comments: &'a FileComments,
   /// The result of the last search by offset. Nodes are mostly printed in source order, so the next search starts
   /// here.
@@ -356,11 +360,13 @@ impl<'a> Comments<'a> {
   pub(crate) fn new(
     file: Option<&'a File<'a>>,
     flavor: Flavor,
+    ignore: Ignore,
     file_comments: &'a FileComments,
   ) -> Self {
     Comments {
       file,
       flavor,
+      ignore,
       file_comments,
       search_hint: Cell::new(0),
       searched_offsets: Cell::new((1, 0)),
@@ -566,7 +572,7 @@ impl<'a> Comments<'a> {
 
   #[inline]
   pub(crate) fn is_suppression_comment(&self, comment: Comment<'_>) -> bool {
-    self.file_comments.has_ignore_comments && comment.is_ignore_comment(self.flavor)
+    self.file_comments.has_ignore_comments && comment.is_ignore_comment(&self.ignore, self.flavor)
   }
 
   // ───────────────────────────── printed comments ─────────────────────────────

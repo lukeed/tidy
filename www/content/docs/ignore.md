@@ -86,6 +86,20 @@ $ tidy up . --ignore tidy-ignore
 
 The name is per language too, so `"markdown": { "ignore": "tidy-ignore" }` changes it for Markdown alone.
 
+## Sharing a directive with a linter
+
+A directive can also name the tools it's for. tidy honors it when `format` is one of them, so one comment can quiet your formatter and your linter at once:
+
+```js
+// prettier-ignore format,lint
+const matrix = [
+  1,0,0,
+  0,1,0,
+];
+```
+
+Commas or spaces both work. A directive that only names other tools, like `prettier-ignore lint`, leaves formatting alone. Prettier itself only honors the name alone, so it formats what follows `prettier-ignore format`.
+
 ## Leaving paths out
 
 When tidy walks a folder, it skips `node_modules` and every folder whose name starts with `.`. Inside a git repository it also skips what git ignores: the `.gitignore` files, `.git/info/exclude` and your global excludes file, by git's rules. `--no-gitignore` turns that off. tidy does not read `.prettierignore`.

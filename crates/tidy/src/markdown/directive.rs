@@ -7,10 +7,16 @@ pub(crate) enum Directive {
   File,
 }
 
-/// Read `html` as `<!-- name -->`, `<!-- name-start -->`, `<!-- name-end -->`, or `<!-- name-file -->`.
+/// Read `html` as `<!-- name -->`, `<!-- name-start -->`, `<!-- name-end -->`, or `<!-- name-file -->`. Each can
+/// also name the tools it applies to, one of which is `format`, as `<!-- name-file format,lint -->`.
 pub(crate) fn parse(html: &str, name: &str) -> Option<Directive> {
   let body = html.trim().strip_prefix("<!--")?.strip_suffix("-->")?.trim();
-  match body.strip_prefix(name)? {
+  let rest = body.strip_prefix(name)?;
+  let (kind, tools) = rest.split_once(|it: char| it.is_ascii_whitespace()).unwrap_or((rest, ""));
+  if !tools.is_empty() && !crate::directive::is_formatting(tools.as_bytes()) {
+    return None;
+  }
+  match kind {
     "" => Some(Directive::Next),
     "-start" => Some(Directive::Start),
     "-end" => Some(Directive::End),
@@ -58,6 +64,9 @@ mod tests {
     assert_eq!(parse("<!-- x -->\n", "x"), Some(Directive::Next));
     assert_eq!(parse("<!--x-start-->", "x"), Some(Directive::Start));
     assert_eq!(parse("<!--  x-end  -->", "x"), Some(Directive::End));
+    assert_eq!(parse("<!-- x format -->", "x"), Some(Directive::Next));
+    assert_eq!(parse("<!-- x-file lint,format -->", "x"), Some(Directive::File));
+    assert_eq!(parse("<!-- x lint -->", "x"), None);
     assert_eq!(parse("<!-- x-file -->", "x"), Some(Directive::File));
     assert_eq!(parse("<!-- x-other -->", "x"), None);
     assert_eq!(parse("<!-- y -->", "x"), None);

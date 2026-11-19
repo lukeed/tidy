@@ -96,6 +96,20 @@ describe("format", () => {
     ).toBe("a {\n  content: 'x';\n}\n");
   });
 
+  test("honors the ignore directive in every language", () => {
+    let cases = [
+      ["js", "// x-ignore\nconst  a = 1;\n"],
+      ["js", "// x-ignore lint,format\nconst  a = 1;\n"],
+      ["css", "a {\n  /* x-ignore format */\n  color:red;\n}\n"],
+      ["yaml", "# x-ignore\na:   1\n"],
+    ] as const;
+    for (let [lang, text] of cases)
+      expect(check(text, { lang, ignore: "x-ignore" })).toBe(true);
+    expect(
+      check("// x-ignore lint\nconst  a = 1;\n", { ...js, ignore: "x-ignore" }),
+    ).toBe(false);
+  });
+
   test("throws on code that doesn't parse", () => {
     expect(() => format("let = ;", js)).toThrow("Unexpected token");
   });

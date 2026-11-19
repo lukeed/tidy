@@ -103,11 +103,12 @@ pub(crate) struct Attached<'a> {
 }
 
 #[derive(Copy, Clone)]
-pub(crate) struct Options {
+pub(crate) struct Options<'a> {
   /// Prettier would parse this file with Babel instead of typescript-estree. Their trees differ in a few places.
   pub(crate) has_babel_tree: bool,
   pub(crate) experimental_ternaries: bool,
   pub(crate) flavor: Flavor,
+  pub(crate) ignore: &'a crate::js::options::Ignore,
 }
 
 /// Prettier's `comment.placement`.
@@ -298,7 +299,7 @@ pub(crate) fn attach<'a>(
       && comment.has_newline_before()
       && let Some(following_node) = nodes[id].following_node
     {
-      let ignores_owner = comment.is_ignore_comment(options.flavor);
+      let ignores_owner = comment.is_ignore_comment(options.ignore, options.flavor);
       attached.has_ignore_comments |= ignores_owner;
       attached.attachments[id] =
         Attachment { ignores_owner, ..Attachment::leading(following_node) };
@@ -306,7 +307,7 @@ pub(crate) fn attach<'a>(
     }
     let context = CommentContext {
       comment,
-      is_ignore_comment: comment.is_ignore_comment(options.flavor),
+      is_ignore_comment: comment.is_ignore_comment(options.ignore, options.flavor),
       text_position: text_positions.of(file, &nodes, id),
       nodes: nodes[id],
       is_last_comment: id + 1 == nodes.len(),

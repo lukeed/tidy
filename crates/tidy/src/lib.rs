@@ -3,6 +3,7 @@
 #[cfg(feature = "config")]
 pub mod config;
 pub mod css;
+mod directive;
 pub mod doc;
 pub mod dockerfile;
 pub mod embed;

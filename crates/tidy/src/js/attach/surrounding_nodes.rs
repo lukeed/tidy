@@ -34,7 +34,7 @@ pub(super) struct SurroundingNodes<'a> {
 pub(super) struct AttachContext<'a, 'c> {
   pub(super) file: &'a File<'a>,
   pub(super) source: SourceText<'a>,
-  pub(super) options: Options,
+  pub(super) options: Options<'c>,
   /// See [`crate::js::comments::cast_parens`].
   cast_parens: &'c [u32],
   /// The last two results of [`AttachContext::comments_between_same_tokens`].
@@ -417,7 +417,7 @@ fn account_for_names_of_meta_property(nodes: &mut SurroundingNodes<'_>) {
 }
 
 impl<'a, 'c> AttachContext<'a, 'c> {
-  pub(super) fn new(file: &'a File<'a>, cast_parens: &'c [u32], options: Options) -> Self {
+  pub(super) fn new(file: &'a File<'a>, cast_parens: &'c [u32], options: Options<'c>) -> Self {
     AttachContext {
       file,
       source: SourceText::new(file.text()),

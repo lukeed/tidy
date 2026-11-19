@@ -185,7 +185,10 @@ impl<'p, 'a> Printer<'p, 'a> {
       }
       _ => node.leading_comments().last().copied(),
     };
-    last.is_some_and(|comment| self.node(comment).value().trim() == self.options.ignore)
+    let ignore = self.options.ignore.as_bytes();
+    last.is_some_and(|comment| {
+      crate::directive::is(self.node(comment).value().trim().as_bytes(), ignore)
+    })
   }
 
   /// `replaceEndOfLine`

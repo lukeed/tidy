@@ -168,7 +168,10 @@ impl<'t, 'a> Printer<'t, 'a> {
   fn ignored(&self, comments: &[Attached]) -> bool {
     comments.iter().any(|it| {
       let comment = self.slice(self.comment_span(it)).as_bytes();
-      trim_js_whitespace(comment.get(1..).unwrap_or_default()) == self.options.ignore.as_bytes()
+      crate::directive::is(
+        trim_js_whitespace(comment.get(1..).unwrap_or_default()),
+        self.options.ignore.as_bytes(),
+      )
     })
   }
 

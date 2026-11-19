@@ -2680,5 +2680,19 @@
         "tidy": "x = a ? b : c; /* a */\n"
       }
     ]
+  },
+  {
+    "id": "ignore-tools",
+    "rows": [
+      {
+        "parsers": [
+          "babel",
+          "typescript"
+        ],
+        "input": "// prettier-ignore format\nconst  a = 1\n",
+        "prettier": "// prettier-ignore format\nconst a = 1;\n",
+        "tidy": "// prettier-ignore format\nconst  a = 1;\n"
+      }
+    ]
   }
 ]

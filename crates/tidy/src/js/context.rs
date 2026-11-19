@@ -57,7 +57,7 @@ impl<'a> JsFormatContext<'a> {
     Self {
       file: Some(file),
       has_babel_tree: has_babel_tree(file, &options),
-      comments: Comments::new(Some(file), options.flavor, comments),
+      comments: Comments::new(Some(file), options.flavor, options.ignore.clone(), comments),
       ..Self::without_file(options, comments)
     }
   }
@@ -67,7 +67,7 @@ impl<'a> JsFormatContext<'a> {
     Self {
       file: None,
       has_babel_tree: false,
-      comments: Comments::new(None, options.flavor, comments),
+      comments: Comments::new(None, options.flavor, options.ignore.clone(), comments),
       options,
       skip_trailing_comments: false,
       cached_elements: FxHashMap::default(),

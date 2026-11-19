@@ -67,6 +67,8 @@ pub struct FormatOptions {
   pub sort_imports: Option<std::sync::Arc<crate::js::sort_imports::SortImports>>,
   /// oxfmt's `jsdoc`: how to format JSDoc comments, if at all.
   pub jsdoc: Option<JsdocOptions>,
+  /// The ignore directive.
+  pub ignore: Ignore,
   /// For tests: what to output instead of the formatted text.
   pub debug_comments: DebugComments,
 }
@@ -249,11 +251,22 @@ impl Flavor {
   pub const fn is_oxfmt(self) -> bool {
     matches!(self, Flavor::Oxfmt)
   }
+}
 
-  /// True if a comment that contains only `text` means that the code after it is left as is. oxfmt also recognizes
-  /// Prettier's comment. Prettier only recognizes its own.
-  pub fn is_ignore_comment(self, text: &[u8]) -> bool {
-    text == b"prettier-ignore" || (text == b"oxfmt-ignore" && self.is_oxfmt())
+/// The ignore directive, `prettier-ignore` by default. oxfmt also recognizes `oxfmt-ignore`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Ignore(pub Box<str>);
+
+impl Default for Ignore {
+  fn default() -> Self {
+    Ignore("prettier-ignore".into())
+  }
+}
+
+impl Ignore {
+  /// True if a comment whose trimmed text is `text` means that the code after it is left as is.
+  pub fn is(&self, text: &[u8], flavor: Flavor) -> bool {
+    crate::directive::is(text, self.0.as_bytes()) || (flavor.is_oxfmt() && text == b"oxfmt-ignore")
   }
 }
 
