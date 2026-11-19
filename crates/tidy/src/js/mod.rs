@@ -519,6 +519,8 @@ fn is_recoverable(error: &oxc_diagnostics::OxcDiagnostic, typescript: bool) -> b
       | "Unexpected new.target expression"
   ) || (message.starts_with("Identifier `") && message.ends_with("` has already been declared"))
     || message.starts_with("Duplicated export '")
+    // Babel's `ModuleAttributesWithDuplicateKeys`.
+    || message.starts_with("Duplicate import attribute key `")
     || (!typescript && message == "Bad escape sequence in untagged template literal")
 }
 

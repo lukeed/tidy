@@ -105,6 +105,8 @@ fn formats_what_prettier_parsers_recover_from() {
     format("const a\nlet b; let b\n", "a.js", &Options::default()),
     "const a;\nlet b;\nlet b;\n"
   );
+  let text = "import a from \"./a.json\" with { type: \"json\", type: \"b\" };\n";
+  assert_eq!(format(text, "a.js", &Options::default()), text);
 }
 
 #[test]
