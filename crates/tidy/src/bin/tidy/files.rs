@@ -173,7 +173,7 @@ fn pick(scope: &Scope, paths: &[PathBuf]) -> Result<Option<Vec<PathBuf>>, String
 
 /// Whether to format a file found in a folder: whether its language is known.
 fn wanted(_: &Path, name: &std::ffi::OsStr) -> bool {
-  Language::of_path(&name.to_string_lossy()).is_some()
+  Language::file(&name.to_string_lossy()).is_some()
 }
 
 /// Formats `paths`, rewriting them for `up`, and reports what needed it. `implicit` is the folder tidy took when

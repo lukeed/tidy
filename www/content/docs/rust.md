@@ -7,7 +7,7 @@ order: 2
 
 ```toml [Cargo.toml]
 [dependencies]
-tidy = "0"
+tidy = "2"
 ```
 
 ## format
@@ -15,7 +15,7 @@ tidy = "0"
 ```rust
 use tidy::{Language, Options, embed::Verbatim};
 
-let language = Language::of_path("App.vue").unwrap();
+let language = Language::file("App.vue").unwrap();
 let output = tidy::format(source, language, &Options::default(), Some("App.vue"), &mut Verbatim)?;
 ```
 
@@ -29,7 +29,7 @@ pub fn format(
 ) -> Result<String, Error>
 ```
 
-`path` is optional, and only decides details a name settles — whether a `.hbs` file is HTML, for instance. `Language::of_path` returns `None` for a name tidy does not format.
+`path` is optional, and only decides details a name settles — whether a `.hbs` file is HTML, for instance. `Language::file` returns `None` for a name tidy does not format.
 
 ## Formatter
 
@@ -43,7 +43,7 @@ let options = Options::default();
 
 for path in paths {
     let source = std::fs::read_to_string(&path)?;
-    let Some(language) = Language::of_path(&path) else { continue };
+    let Some(language) = Language::file(&path) else { continue };
     let output = formatter.format(&source, language, &options, Some(&path), &mut Verbatim)?;
     std::fs::write(&path, output)?;
 }
@@ -65,11 +65,13 @@ options.share(&tidy::Shared { width: Some(100), ..Default::default() });
 options.js.semi = false;
 ```
 
+An options struct can gain fields in a minor release, so build one from its default, as above, not with every field written out.
+
 To read a project's config instead, use `tidy::config`, which needs the `config` feature:
 
 ```toml [Cargo.toml]
 [dependencies]
-tidy = { version = "0", features = ["config"] }
+tidy = { version = "2", features = ["config"] }
 ```
 
 ```rust
@@ -130,20 +132,13 @@ pub enum Error {
 | `js`     | on      | oxc's parser, for JavaScript and TypeScript. Without it, scripts go to the embed hook instead.        |
 | `config` | off     | `tidy::config`: reading `tidy.json`, `tidy.toml` and `.editorconfig`.                                 |
 | `walk`   | off     | `tidy::walk`: a parallel walk that reads each file under some paths, works on it, and writes it back. |
-| `cli`    | on      | The `tidy` binary. It turns on `js`, `config` and `walk`.                                             |
+| `cli`    | off     | The `tidy` binary. It turns on `js`, `config` and `walk`. `cargo binstall tidy` installs its build.   |
 
-A library doesn't need `cli`. To leave it out and keep `js`:
-
-```toml [Cargo.toml]
-[dependencies]
-tidy = { version = "0", default-features = false, features = ["js"] }
-```
-
-Markup, style sheets, data formats and Markdown are always built in. Turning `js` off too makes the crate smaller and much faster to build:
+Markup, style sheets, data formats and Markdown are always built in. Turning `js` off makes the crate smaller and much faster to build:
 
 ```toml [Cargo.toml]
 [dependencies]
-tidy = { version = "0", default-features = false }
+tidy = { version = "2", default-features = false }
 ```
 
 ## The command

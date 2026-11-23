@@ -1,7 +1,7 @@
 //! YAML, with outputs that Prettier 3.9.9 prints. `tests/oracle/yaml` compares the rest with Prettier.
 
 use tidy::embed::Verbatim;
-use tidy::yaml::{Options, format, is_yaml_path};
+use tidy::yaml::{Options, format};
 use tidy::{Language, Wrap};
 
 #[test]
@@ -15,10 +15,10 @@ fn knows_yaml_paths() {
     "CITATION.cff",
     "a.sublime-syntax",
   ] {
-    assert!(is_yaml_path(path), "{path}");
+    assert_eq!(Language::file(path), Some(Language::Yaml), "{path}");
   }
   for path in ["a.json", "yaml", "a.yml.bak", ".prettierrc.json"] {
-    assert!(!is_yaml_path(path), "{path}");
+    assert_ne!(Language::file(path), Some(Language::Yaml), "{path}");
   }
 }
 
@@ -72,14 +72,4 @@ fn formats_yaml_in_other_languages() {
     let printed = tidy::format(text, language, &options, None, &mut Verbatim).unwrap();
     assert_eq!(printed, expected, "{language:?}");
   }
-}
-
-#[test]
-fn parses_the_tree_prettier_prints() {
-  let root = tidy::yaml::parse("# head\na: 1 # one\n").unwrap();
-  let document = root.node(root.root).children()[0];
-  let body = root.node(document).children()[1];
-  let mapping = root.node(body).children()[0];
-  assert_eq!(root.node(mapping).kind, tidy::yaml::Kind::Mapping);
-  assert_eq!(root.comments.len(), 2);
 }

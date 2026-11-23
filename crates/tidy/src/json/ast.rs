@@ -95,6 +95,7 @@ pub struct Tree {
 }
 
 impl Tree {
+  #[cfg(any(test, tidy_bench))]
   /// The value of the text, or `None` if it only has comments.
   pub fn root(&self) -> Option<NodeId> {
     self.root
@@ -108,11 +109,13 @@ impl Tree {
     &self.items[items.start as usize..items.end as usize]
   }
 
+  #[cfg(any(test, tidy_bench))]
   /// In the order of the text.
   pub fn comments(&self) -> &[Comment] {
     &self.comments
   }
 
+  #[cfg(any(test, tidy_bench))]
   /// A tree with room for a text of `bytes`, which has a node in about each 8.
   pub(crate) fn sized(bytes: usize) -> Tree {
     let nodes = bytes / 8;

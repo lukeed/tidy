@@ -1,8 +1,8 @@
 //! Edge cases of TOML, each with what taplo 0.14.0 prints for it, recorded by `tests/oracle/toml`.
 
 use serde_json::Value;
-use tidy::doc::Eol;
-use tidy::toml::{Options, format, is_toml_path};
+use tidy::Eol;
+use tidy::toml::{Options, format};
 
 /// The option sets of the oracle, by name.
 fn options_of(set: &str) -> Options {
@@ -58,10 +58,10 @@ fn prints_what_taplo_prints() {
 #[test]
 fn knows_toml_paths() {
   for path in ["Cargo.toml", "x/pyproject.toml", "A.TOML", "dir\\taplo.toml"] {
-    assert!(is_toml_path(path), "{path}");
+    assert_eq!(tidy::Language::file(path), Some(tidy::Language::Toml), "{path}");
   }
   for path in [".toml", "Cargo.lock", "toml", "a.toml.bak"] {
-    assert!(!is_toml_path(path), "{path}");
+    assert_ne!(tidy::Language::file(path), Some(tidy::Language::Toml), "{path}");
   }
 }
 

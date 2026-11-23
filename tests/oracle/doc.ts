@@ -52,7 +52,6 @@ function generate(depth: number, defs: number): Json {
     if (r < 0.84) return { t: "hardline" };
     if (r < 0.86) return { t: "literalline" };
     if (r < 0.88) return { t: "bp" };
-    if (r < 0.9) return { t: "trim" };
     if (r < 0.92) return { t: "lsb" };
     if (defs > 0) return { t: "ref", i: Math.floor(random() * defs) };
     return pick(WORDS);
@@ -88,15 +87,7 @@ function generate(depth: number, defs: number): Json {
   if (r < 0.74)
     return {
       t: "align",
-      n: pick<Json | number>([
-        1,
-        2,
-        3,
-        -1,
-        "root",
-        "dedentToRoot",
-        "> ",
-      ]) as Json,
+      n: pick<Json | number>([-1, "root", "dedentToRoot", "> "]) as Json,
       c: next(),
     };
   if (r < 0.84) {
@@ -215,8 +206,8 @@ for (let i = 0; i < count; i++) {
 
 let root = new URL("../..", import.meta.url).pathname;
 let actual: string[] =
-  await $`cargo run -q -p tidy --example doc < ${new Response(JSON.stringify(cases))}`
-    .cwd(root)
+  await $`cargo run -q --release < ${new Response(JSON.stringify(cases))}`
+    .cwd(`${root}tests/oracle/doc`)
     .env({ ...process.env, CARGO_TARGET_DIR: `${root}target` })
     .json();
 

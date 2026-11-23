@@ -13,7 +13,7 @@ use crate::doc::Eol;
 use crate::stack::Stack;
 
 /// True if tidy formats the file at `path` as GraphQL: `.graphql`, `.gql` and `.graphqls`, as Prettier does.
-pub fn is_graphql_path(path: &str) -> bool {
+pub(crate) fn is_graphql_path(path: &str) -> bool {
   let lower = path.to_ascii_lowercase();
   [".graphql", ".gql", ".graphqls"].iter().any(|extension| lower.ends_with(extension))
 }

@@ -26,6 +26,7 @@ use std::borrow::Cow;
 
 /// The language of a style sheet.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+#[non_exhaustive]
 pub enum Dialect {
   #[default]
   Css,

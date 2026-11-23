@@ -1,4 +1,5 @@
-//! Prints docs given as JSON on stdin, for `tests/oracle/doc.ts`.
+//! Prints docs given as JSON on stdin, for `tests/oracle/doc.ts`. tidy's doc printer is public only with
+//! `--cfg tidy_bench`, which `.cargo/config.toml` sets.
 
 use std::io::Read;
 
@@ -76,7 +77,6 @@ impl<'a> Builder<'a, '_> {
           Value::String(text) if text == "dedentToRoot" => Align::Root,
           Value::String(text) => Align::Text(self.bump.alloc_str(text)),
           Value::Number(n) if n.as_i64() == Some(-1) => Align::Dedent,
-          Value::Number(n) => Align::Width(n.as_u64().unwrap() as usize),
           other => panic!("align {other}"),
         };
         let mark = self.docs.align(align);
@@ -109,7 +109,6 @@ impl<'a> Builder<'a, '_> {
       "hardline" => self.docs.hardline(),
       "literalline" => self.docs.literalline(),
       "bp" => self.docs.break_parent(),
-      "trim" => self.docs.trim(),
       other => panic!("unknown doc {other}"),
     }
   }

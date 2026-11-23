@@ -3,7 +3,7 @@
 use serde_json::Value;
 use tidy::Whitespace;
 use tidy::embed::Verbatim;
-use tidy::xml::{Options, Quotes, format, is_xml_path};
+use tidy::xml::{Options, Quotes, format};
 
 fn options_of(options: &Value) -> Options {
   let flag = |name: &str| options.get(name).and_then(Value::as_bool);
@@ -57,10 +57,10 @@ fn knows_xml_paths() {
   for path in
     ["a.xml", "icons/b.svg", "Info.plist", "app.csproj", "x/pom.xml", "Web.config", "a.xml.dist"]
   {
-    assert!(is_xml_path(path), "{path}");
+    assert_eq!(tidy::Language::file(path), Some(tidy::Language::Xml), "{path}");
   }
   for path in ["main.rs", "a.html", "a.mjml", "xml", ".xml", "pom.xml.bak"] {
-    assert!(!is_xml_path(path), "{path}");
+    assert_ne!(tidy::Language::file(path), Some(tidy::Language::Xml), "{path}");
   }
 }
 

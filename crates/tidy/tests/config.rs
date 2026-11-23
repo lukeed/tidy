@@ -2,7 +2,7 @@
 
 use tidy::config::{Config, Resolver};
 use tidy::embed::Verbatim;
-use tidy::{Language, Options, Whitespace, doc, handlebars, xml};
+use tidy::{Eol, Language, Options, Whitespace, handlebars, xml};
 
 fn options(config: &Config) -> Options {
   let mut options = Options::default();
@@ -56,7 +56,7 @@ fn sets_each_language_on_its_own() {
   assert!(!options.css.trailing_comma);
   assert!(!options.xml.self_closing_space);
   assert_eq!(options.xml.quotes, xml::Quotes::Double);
-  assert_eq!((options.xml.eol, options.html.eol), (doc::Eol::Crlf, doc::Eol::Lf));
+  assert_eq!((options.xml.eol, options.html.eol), (Eol::Crlf, Eol::Lf));
   assert_eq!(options.css.ignore, "tidy-ignore");
 }
 
@@ -237,12 +237,12 @@ fn formats_by_language() {
     ("a.hbs", "{{#if a}}<b/>{{/if}}", "{{#if a}}<b />{{/if}}"),
   ];
   for (path, text, expected) in cases {
-    let language = Language::of_path(path).unwrap();
+    let language = Language::file(path).unwrap();
     let printed = formatter.format(text, language, &options, Some(path), &mut Verbatim).unwrap();
     assert_eq!(printed, expected, "{path}");
   }
-  assert_eq!(Language::of_path("a.rs"), None);
-  assert_eq!(Language::of_path("icons/a.svg"), Some(Language::Xml));
+  assert_eq!(Language::file("a.rs"), None);
+  assert_eq!(Language::file("icons/a.svg"), Some(Language::Xml));
 }
 
 #[test]

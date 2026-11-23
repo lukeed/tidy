@@ -219,28 +219,9 @@ fn section_of(pattern: &str) -> Option<&'static str> {
   };
   let sections: Vec<&str> = extensions
     .iter()
-    .map(|it| Language::of_path(&format!("file.{it}")).map(section))
+    .map(|it| Language::file(&format!("file.{it}")).map(tidy::schema::of))
     .collect::<Option<_>>()?;
   sections.first().copied().filter(|first| sections.iter().all(|it| it == first))
-}
-
-fn section(language: Language) -> &'static str {
-  match language {
-    Language::Html | Language::Mjml => "html",
-    Language::Vue => "vue",
-    Language::Handlebars => "handlebars",
-    Language::Css(_) => "css",
-    Language::Json(_) => "json",
-    Language::Toml => "toml",
-    Language::Xml => "xml",
-    Language::Yaml => "yaml",
-    Language::Markdown => "markdown",
-    Language::Dockerfile => "dockerfile",
-    Language::Ini(_) => "ini",
-    Language::Graphql => "graphql",
-    #[cfg(feature = "js")]
-    Language::Js(_) => "js",
-  }
 }
 
 /// A string, or an array of strings.

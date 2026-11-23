@@ -45,6 +45,7 @@ pub(crate) const NONE: Id = u32::MAX;
 
 impl Tree {
   /// A tree with room for a text of `bytes`, which has an element in about each 4.
+  #[cfg(any(tidy_bench, feature = "config"))]
   pub(crate) fn sized(bytes: usize) -> Tree {
     let elements = bytes / 4;
     Tree { elements: Vec::with_capacity(elements), children: Vec::with_capacity(elements) }

@@ -1,8 +1,8 @@
 //! GraphQL, with outputs that Prettier 3.9.9 prints, where tidy agrees with it. `tests/oracle/graphql.ts` compares the
 //! rest with Prettier.
 
-use tidy::doc::Eol;
-use tidy::graphql::{Options, format, is_graphql_path};
+use tidy::graphql::{Options, format};
+use tidy::{Eol, Language};
 
 fn tidy(text: &str) -> String {
   tidy_with(text, &Options::default())
@@ -17,10 +17,10 @@ fn tidy_with(text: &str, options: &Options) -> String {
 #[test]
 fn knows_graphql_paths() {
   for path in ["a/schema.graphql", "Query.GQL", "api.graphqls"] {
-    assert!(is_graphql_path(path), "{path}");
+    assert_eq!(Language::file(path), Some(Language::Graphql), "{path}");
   }
   for path in ["graphql.json", "a.graphql.md", "gql"] {
-    assert!(!is_graphql_path(path), "{path}");
+    assert_ne!(Language::file(path), Some(Language::Graphql), "{path}");
   }
 }
 

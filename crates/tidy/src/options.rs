@@ -11,6 +11,7 @@ use crate::{
 
 /// A language that tidy formats.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Language {
   Html,
   Vue,
@@ -37,7 +38,7 @@ impl Language {
   /// # Example
   /// ```
   /// use tidy::Language;
-  /// assert_eq!(Language::hint("yml"), Language::of_path("a.yaml"));
+  /// assert_eq!(Language::hint("yml"), Language::file("a.yaml"));
   /// assert_eq!(Language::hint("cobol"), None);
   /// ```
   pub fn hint(name: &str) -> Option<Language> {
@@ -68,11 +69,11 @@ impl Language {
       "markdown" => Some(Language::Markdown),
       _ => None,
     });
-    named.or_else(|| Language::of_path(&format!("stdin.{name}")))
+    named.or_else(|| Language::file(&format!("stdin.{name}")))
   }
 
   /// The language of the file at `path`, by its name, or `None` if tidy doesn't format it.
-  pub fn of_path(path: &str) -> Option<Language> {
+  pub fn file(path: &str) -> Option<Language> {
     if let Some(dialect) = css::Dialect::of_path(path) {
       return Some(Language::Css(dialect));
     }

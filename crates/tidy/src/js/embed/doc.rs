@@ -118,7 +118,6 @@ impl<'d, 'x> Writer<'d, 'x> {
         }
         Element::Line(line) => self.line(line, f),
         Element::LineSuffixBoundary => f.write_element(FormatElement::LineSuffixBoundary),
-        Element::Trim => {}
         Element::Group { end, id, broken, states } => {
           let mode = if broken { GroupMode::Expand } else { GroupMode::Flat };
           let id = (id != NONE).then(|| self.id(id, f));
@@ -196,7 +195,6 @@ impl<'d, 'x> Writer<'d, 'x> {
   fn align(&mut self, end: u32, margin: Margin, f: &mut Formatter<'_>) {
     let tag = |tag: Tag, f: &mut Formatter<'_>| f.write_element(FormatElement::Tag(tag));
     let width = match margin {
-      Margin::Width(width) => width,
       Margin::Text(index) => self.docs.text_at(index).1,
       Margin::Dedent => {
         tag(Tag::StartDedent(DedentMode::Level), f);

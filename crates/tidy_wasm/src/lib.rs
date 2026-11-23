@@ -23,7 +23,7 @@ fn describe(error: &Error, source: &str) -> String {
       let column = before.rsplit('\n').next().unwrap_or_default().chars().count() + 1;
       format!("{line}:{column}: {message}")
     }
-    Error::TooDeep => error.to_string(),
+    _ => error.to_string(),
   }
 }
 

@@ -1,6 +1,6 @@
 //! The formatting options the flags choose.
 
-use tidy::{Shared, Whitespace, doc};
+use tidy::{Eol, Shared, Whitespace};
 
 /// The shared choices that the flags make.
 pub(crate) fn shared(args: &mut pico_args::Arguments) -> Result<Shared, String> {
@@ -24,9 +24,9 @@ pub(crate) fn shared(args: &mut pico_args::Arguments) -> Result<Shared, String> 
     indent: args.opt_value_from_str("--indent").map_err(error)?,
     tabs: flag(args, "--tabs"),
     eol: eol.map(|eol| match eol.as_str() {
-      "crlf" => doc::Eol::Crlf,
-      "cr" => doc::Eol::Cr,
-      _ => doc::Eol::Lf,
+      "crlf" => Eol::Crlf,
+      "cr" => Eol::Cr,
+      _ => Eol::Lf,
     }),
     whitespace: whitespace.map(|how| match how.as_str() {
       "strict" => Whitespace::Strict,

@@ -1,8 +1,8 @@
 //! Dockerfiles, with outputs that dprint-plugin-dockerfile 0.7.0 prints, where tidy agrees with it.
 //! `tests/oracle/dockerfile` compares the rest with dprint.
 
-use tidy::doc::Eol;
-use tidy::dockerfile::{Options, format, is_dockerfile_path};
+use tidy::dockerfile::{Options, format};
+use tidy::{Eol, Language};
 
 fn tidy(text: &str) -> String {
   tidy_with(text, &Options::default())
@@ -19,7 +19,7 @@ fn knows_dockerfile_paths() {
   for path in
     ["Dockerfile", "x/Containerfile", "Dockerfile.dev", "a/app.dockerfile", "web.Containerfile"]
   {
-    assert!(is_dockerfile_path(path), "{path}");
+    assert_eq!(Language::file(path), Some(Language::Dockerfile), "{path}");
   }
   for path in [
     "Dockerfile.json",
@@ -28,7 +28,7 @@ fn knows_dockerfile_paths() {
     "dockerfile-notes.txt",
     "x.dockerfile/a",
   ] {
-    assert!(!is_dockerfile_path(path), "{path}");
+    assert_ne!(Language::file(path), Some(Language::Dockerfile), "{path}");
   }
 }
 

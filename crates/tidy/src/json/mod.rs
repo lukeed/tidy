@@ -17,8 +17,13 @@ mod print;
 #[cfg(feature = "config")]
 mod value;
 
+#[cfg(tidy_bench)]
 pub use ast::{Comment, Items, Kind, Node, NodeId, Span, Tree};
+#[cfg(not(tidy_bench))]
+#[allow(unused_imports)]
+pub(crate) use ast::{Comment, Items, Kind, Node, NodeId, Span, Tree};
 #[cfg(feature = "config")]
+#[doc(hidden)]
 pub use value::value;
 
 use crate::Error;
@@ -34,6 +39,7 @@ enum Abort {
 
 /// How a JSON text prints: one of Prettier's JSON parsers.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+#[non_exhaustive]
 pub enum Dialect {
   /// `json`: keys in double quotes, and no trailing commas.
   #[default]
@@ -201,11 +207,14 @@ pub fn format(text: &str, options: &Options) -> Result<String, Error> {
   Formatter::default().format(text, options).map(str::to_owned)
 }
 
+bench_pub! {
+#[cfg(any(test, tidy_bench))]
 /// Parses `text` as any dialect does: comments, and an empty text, are allowed.
-pub fn parse(text: &str) -> Result<Tree, Error> {
+fn parse(text: &str) -> Result<Tree, Error> {
   let mut tree = Tree::sized(text.len());
   parse_into(text, &mut tree, &mut Vec::with_capacity(text.len() / 16))?;
   Ok(tree)
+}
 }
 
 fn parse_into(text: &str, tree: &mut Tree, pending: &mut Vec<Option<NodeId>>) -> Result<(), Error> {
@@ -325,5 +334,19 @@ impl Formatter {
     };
     self.docs = docs.into_scratch();
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  #[test]
+  fn parses_what_any_dialect_reads() {
+    let tree = super::parse("// c\n{a: [1, , 'b'], \"c\": -Infinity}").unwrap();
+    assert_eq!(tree.comments().len(), 1);
+    let root = tree.node(tree.root().unwrap());
+    let super::Kind::Object(items) = root.kind else { panic!("{root:?}") };
+    assert_eq!(tree.items(items).len(), 2);
+    assert!(super::parse("// only a comment").unwrap().root().is_none());
+    assert!(super::parse("{a: b}").is_err());
   }
 }

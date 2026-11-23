@@ -171,7 +171,7 @@ const NAMES: &[&str] = &[
 ];
 
 /// True if the plugin formats the file at `path`.
-pub fn is_xml_path(path: &str) -> bool {
+pub(crate) fn is_xml_path(path: &str) -> bool {
   let name = path.rsplit(['/', '\\']).next().unwrap_or(path).to_ascii_lowercase();
   NAMES.contains(&name.as_str())
     || EXTENSIONS.iter().any(|extension| {

@@ -30,6 +30,7 @@ use std::sync::atomic::AtomicBool;
 /// The stack of each walk thread. oxc's parser recurses without a limit on nested text, and a stack overflow aborts
 /// the whole process: bun's fixtures need up to 12 MiB, where a spawned thread has 2 MiB. Only the pages a thread
 /// touches take memory, so the room costs nothing on ordinary files.
+#[doc(hidden)]
 pub const STACK: usize = 64 << 20;
 
 /// How to walk.
@@ -103,6 +104,7 @@ pub struct Entry<'e> {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Kind {
   File,
   Folder,
@@ -111,6 +113,7 @@ pub enum Kind {
 }
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum Error {
   Io(std::io::Error),
   /// The work, or one of the callbacks, panicked. The panic's message.

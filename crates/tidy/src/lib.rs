@@ -1,10 +1,27 @@
 //! A fast formatter for markup, style sheets, data and Markdown, with Prettier's style by default.
+//!
+//! Each `Options` struct can gain fields in a minor release, so build one from its default:
+//! `tidy::Shared { width: Some(100), ..tidy::Shared::default() }`.
+
+/// Declares a function that `--cfg tidy_bench` makes public, for `bench/parse` and the oracles. It is crate-private
+/// otherwise.
+macro_rules! bench_pub {
+  ($(#[$meta:meta])* fn $name:ident $($rest:tt)*) => {
+    #[cfg(tidy_bench)]
+    $(#[$meta])* pub fn $name $($rest)*
+    #[cfg(not(tidy_bench))]
+    $(#[$meta])* pub(crate) fn $name $($rest)*
+  };
+}
 
 #[cfg(feature = "config")]
 pub mod config;
 pub mod css;
 mod directive;
+#[cfg(tidy_bench)]
 pub mod doc;
+#[cfg(not(tidy_bench))]
+pub(crate) mod doc;
 pub mod dockerfile;
 pub mod embed;
 mod front_matter;
@@ -19,6 +36,7 @@ mod languages;
 pub mod markdown;
 mod options;
 #[cfg(feature = "config")]
+#[doc(hidden)]
 pub mod schema;
 mod stack;
 mod strings;
@@ -30,6 +48,7 @@ pub mod walk;
 pub mod xml;
 pub mod yaml;
 
+pub use doc::Eol;
 pub use options::{Formatter, Language, Options, Shared, format};
 
 /// Where whitespace is significant, with the same names in each language. Each language has its own default: `Auto`
@@ -61,6 +80,7 @@ pub enum Wrap {
 
 /// Why a text can't be formatted.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Error {
   /// A syntax error: its message, and the byte offset where it is.
   Syntax { message: String, at: usize },

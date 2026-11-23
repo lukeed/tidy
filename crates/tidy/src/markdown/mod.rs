@@ -54,8 +54,3 @@ pub fn format_with(
 ) -> String {
   writer::format(source, options, &mut code)
 }
-
-/// Whether `source` is already formatted.
-pub fn check(source: &str, options: &Options) -> bool {
-  format(source, options) == source
-}

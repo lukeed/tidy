@@ -2,6 +2,7 @@
 
 /// What a piece of embedded code is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Kind {
   /// A whole script, style sheet or document: a `<script>`, a `<style>`, a block of a Vue file, a code block.
   Block,
@@ -19,6 +20,22 @@ pub enum Kind {
   Directive,
   /// The front matter of a file.
   FrontMatter,
+}
+
+impl Kind {
+  /// The name a JavaScript hook sees, as in `Embed.Request`'s `kind`.
+  pub fn name(self) -> &'static str {
+    match self {
+      Kind::Block => "block",
+      Kind::Expression => "expression",
+      Kind::Event => "event",
+      Kind::Bindings => "bindings",
+      Kind::For => "for",
+      Kind::Generic => "generic",
+      Kind::Directive => "directive",
+      Kind::FrontMatter => "frontmatter",
+    }
+  }
 }
 
 /// Where tidy's printers find a piece of code, before its parser tells what it is.

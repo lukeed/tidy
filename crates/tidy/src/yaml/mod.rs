@@ -17,8 +17,13 @@ mod transform;
 #[cfg(feature = "config")]
 mod value;
 
+#[cfg(tidy_bench)]
 pub use ast::{Chomping, Id, Kind, Node, Point, Position, Root};
+#[cfg(not(tidy_bench))]
+#[allow(unused_imports)]
+pub(crate) use ast::{Chomping, Id, Kind, Node, Point, Position, Root};
 #[cfg(feature = "config")]
+#[doc(hidden)]
 pub use value::value;
 
 use crate::Error;
@@ -31,11 +36,14 @@ enum Abort {
   TooDeep,
 }
 
+bench_pub! {
+#[cfg(any(test, tidy_bench, feature = "config"))]
 /// Parses `text` into the tree that Prettier prints, with each comment attached to a node.
-pub fn parse(text: &str) -> Result<Root, Error> {
+fn parse(text: &str) -> Result<Root, Error> {
   let mut parser = Parser::default();
   parser.parse(text)?;
   Ok(parser.root)
+}
 }
 
 /// The buffers of parsing, reused from one text to the next.
@@ -125,7 +133,7 @@ impl Default for Options {
 }
 
 /// True if Prettier formats the file at `path` as YAML.
-pub fn is_yaml_path(path: &str) -> bool {
+pub(crate) fn is_yaml_path(path: &str) -> bool {
   let name = path.rsplit(['/', '\\']).next().unwrap_or(path).to_ascii_lowercase();
   NAMES.contains(&name.as_str()) || EXTENSIONS.iter().any(|extension| name.ends_with(extension))
 }
@@ -250,5 +258,18 @@ impl Formatter {
     };
     self.docs = docs.into_scratch();
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  #[test]
+  fn parses_the_tree_prettier_prints() {
+    let root = super::parse("# head\na: 1 # one\n").unwrap();
+    let document = root.node(root.root).children()[0];
+    let body = root.node(document).children()[1];
+    let mapping = root.node(body).children()[0];
+    assert_eq!(root.node(mapping).kind, super::Kind::Mapping);
+    assert_eq!(root.comments.len(), 2);
   }
 }

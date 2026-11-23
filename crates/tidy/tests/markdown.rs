@@ -621,9 +621,3 @@ fn hands_code_to_the_caller() {
   assert_eq!(output, "- ```js\n  A\n  ```\n");
   assert_eq!(seen, [("js".to_string(), 78)]);
 }
-
-#[test]
-fn checks() {
-  assert!(tidy::markdown::check("- a\n", &Options::default()));
-  assert!(!tidy::markdown::check("* a\n", &Options::default()));
-}

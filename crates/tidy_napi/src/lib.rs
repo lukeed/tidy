@@ -3,7 +3,7 @@ use napi::{Env, ValueType};
 use napi_derive::napi;
 use serde_json::{Map, Value, json};
 use tidy::config::Config;
-use tidy::embed::{Kind, Request};
+use tidy::embed::Request;
 use tidy::{Formatter, Language, Options};
 
 /// Called with each piece of embedded code, as an `Embed.Request`; returns its formatted text, or `undefined`.
@@ -98,16 +98,7 @@ pub fn check(env: Env, source: String, options: Option<Object<'_>>) -> napi::Res
 
 /// The request as the hook gets it, an `Embed.Request`, without `host` where there is none.
 fn request_json(request: &Request<'_>) -> Value {
-  let kind = match request.kind {
-    Kind::Block => "block",
-    Kind::Expression => "expression",
-    Kind::Event => "event",
-    Kind::Bindings => "bindings",
-    Kind::For => "for",
-    Kind::Generic => "generic",
-    Kind::Directive => "directive",
-    Kind::FrontMatter => "frontmatter",
-  };
+  let kind = request.kind.name();
   let mut value = json!({
     "code": request.code,
     "lang": request.lang,
@@ -135,7 +126,7 @@ fn language(input: &Input<'_>) -> napi::Result<(Language, Option<tidy::handlebar
     (Some(name), _) => Language::hint(name)
       .map(|it| (it, None))
       .ok_or_else(|| fail(format!("unknown language: {name}"))),
-    (None, Some(path)) => Language::of_path(path)
+    (None, Some(path)) => Language::file(path)
       .map(|it| (it, None))
       .ok_or_else(|| fail(format!("{path}: can't tell the language of this file, pass `lang`"))),
     (None, None) => Err(fail("can't tell the language: pass `lang` or `filepath`".into())),

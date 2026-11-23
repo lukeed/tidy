@@ -1,7 +1,7 @@
 //! INI files, with outputs that prettier-plugin-ini 1.3.0 prints, where tidy agrees with it. `tests/oracle/ini.ts`
 //! compares the rest with the plugin.
 
-use tidy::doc::Eol;
+use tidy::Eol;
 use tidy::ini::{Dialect, Options, format};
 
 fn tidy(text: &str) -> String {

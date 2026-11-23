@@ -443,6 +443,27 @@ fn properties(options: &[Opt]) -> Map<String, Value> {
   options.iter().map(|option| (option.name.to_owned(), property(option))).collect()
 }
 
+/// The `tidy.json` section that configures `language`.
+pub fn of(language: crate::Language) -> &'static str {
+  use crate::Language;
+  match language {
+    Language::Html | Language::Mjml => "html",
+    Language::Vue => "vue",
+    Language::Handlebars => "handlebars",
+    Language::Css(_) => "css",
+    Language::Json(_) => "json",
+    Language::Toml => "toml",
+    Language::Xml => "xml",
+    Language::Yaml => "yaml",
+    Language::Markdown => "markdown",
+    Language::Dockerfile => "dockerfile",
+    Language::Ini(_) => "ini",
+    Language::Graphql => "graphql",
+    #[cfg(feature = "js")]
+    Language::Js(_) => "js",
+  }
+}
+
 /// Where this version's schema lives. `https://tidy.lukeed.com/schema.json` redirects to the latest.
 pub fn url() -> String {
   format!("https://tidy.lukeed.com/{}/schema.json", env!("CARGO_PKG_VERSION"))

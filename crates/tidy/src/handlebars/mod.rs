@@ -33,7 +33,7 @@ enum Abort {
 }
 
 /// True if Prettier treats the file at `path` as Handlebars.
-pub fn is_handlebars_path(path: &str) -> bool {
+pub(crate) fn is_handlebars_path(path: &str) -> bool {
   let path = path.to_ascii_lowercase();
   path.ends_with(".hbs") || path.ends_with(".handlebars")
 }
@@ -50,7 +50,7 @@ fn is_text(path: &str) -> bool {
 
 /// Allocations that are reused for the next file.
 #[derive(Default)]
-pub struct Scratch {
+pub(crate) struct Scratch {
   tokens: Vec<lexer::Token>,
   statements: Vec<parser::Statement>,
   tree: ast::Tree,
@@ -58,6 +58,7 @@ pub struct Scratch {
 
 /// The template language of a file.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
+#[non_exhaustive]
 pub enum Dialect {
   /// Tempura if the template uses syntax that only tempura has, or if its tags aren't Handlebars. Otherwise
   /// Handlebars.

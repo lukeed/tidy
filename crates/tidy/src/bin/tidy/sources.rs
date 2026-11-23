@@ -34,7 +34,7 @@ impl Sources {
   /// The language of the text at `path`, or of text with no path. `None` when tidy can't tell
   /// and `--skip-unknown` says to leave the text as it is.
   fn language(&self, path: Option<&str>) -> Result<Option<Language>, String> {
-    match self.language.or_else(|| path.and_then(Language::of_path)) {
+    match self.language.or_else(|| path.and_then(Language::file)) {
       Some(language) => Ok(Some(language)),
       None if self.skip_unknown => Ok(None),
       None => Err(match path {
@@ -99,6 +99,6 @@ fn describe(error: &Error, source: &str, name: &str) -> String {
       let column = before.rsplit('\n').next().unwrap_or_default().chars().count() + 1;
       format!("{name}:{line}:{column}: {message}")
     }
-    Error::TooDeep => format!("{name}: {error}"),
+    _ => format!("{name}: {error}"),
   }
 }

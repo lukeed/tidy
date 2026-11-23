@@ -15,7 +15,7 @@ use crate::doc::Eol;
 
 /// True if tidy formats the file at `path` as a Dockerfile: `Dockerfile`, `Containerfile`, a variant of them such as
 /// `Dockerfile.dev`, or a name that ends with `.dockerfile` or `.containerfile`.
-pub fn is_dockerfile_path(path: &str) -> bool {
+pub(crate) fn is_dockerfile_path(path: &str) -> bool {
   let name = path.rsplit(['/', '\\']).next().unwrap_or(path);
   let lower = name.to_ascii_lowercase();
   let variant = |base: &str| {
@@ -33,7 +33,7 @@ pub fn is_dockerfile_path(path: &str) -> bool {
 fn is_suffix(suffix: &str) -> bool {
   !suffix.is_empty()
     && !suffix.contains('.')
-    && crate::Language::of_path(&format!("x.{suffix}")).is_none()
+    && crate::Language::file(&format!("x.{suffix}")).is_none()
 }
 
 /// Options of the Dockerfile formatter, dprint-plugin-dockerfile's by default.

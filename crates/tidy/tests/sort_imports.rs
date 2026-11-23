@@ -202,7 +202,7 @@ fn matches_hosts(name: &str, skips: &[&str]) {
   let mut failures = Vec::new();
   for (file, case) in files.iter().filter(|(file, _)| !skips.contains(&file.as_str())) {
     let (input, expected) = (case[0].as_str().unwrap(), case[1].as_str().unwrap());
-    let Some(language) = tidy::Language::of_path(file) else { continue };
+    let Some(language) = tidy::Language::file(file) else { continue };
     let mut formatter = tidy::Formatter::default();
     let printed =
       formatter.format(input, language, &options, Some(file), &mut tidy::embed::Verbatim).unwrap();

@@ -228,6 +228,7 @@ impl Root {
     self.entries.len()
   }
 
+  #[cfg(tidy_bench)]
   pub fn is_empty(&self) -> bool {
     self.entries.is_empty()
   }

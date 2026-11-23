@@ -12,9 +12,18 @@ mod tree;
 #[cfg(feature = "config")]
 mod value;
 
+#[cfg(tidy_bench)]
 pub use lexer::Token;
+#[cfg(not(tidy_bench))]
+#[allow(unused_imports)]
+pub(crate) use lexer::Token;
+#[cfg(tidy_bench)]
 pub use tree::{Id, Kind, Tree};
+#[cfg(not(tidy_bench))]
+#[allow(unused_imports)]
+pub(crate) use tree::{Id, Kind, Tree};
 #[cfg(feature = "config")]
+#[doc(hidden)]
 pub use value::value;
 
 use crate::Error;
@@ -29,7 +38,7 @@ enum Abort {
 }
 
 /// True if tidy formats the file at `path` as TOML: its name ends with `.toml`.
-pub fn is_toml_path(path: &str) -> bool {
+pub(crate) fn is_toml_path(path: &str) -> bool {
   let name = path.rsplit(['/', '\\']).next().unwrap_or(path);
   name.len() > ".toml".len() && name.to_ascii_lowercase().ends_with(".toml")
 }
@@ -112,11 +121,14 @@ pub fn format(text: &str, options: &Options) -> Result<String, Error> {
   Formatter::default().format(text, options).map(str::to_owned)
 }
 
+bench_pub! {
+#[cfg(any(tidy_bench, feature = "config"))]
 /// Parses `text` into taplo's syntax tree.
-pub fn parse(text: &str) -> Result<Tree, Error> {
+fn parse(text: &str) -> Result<Tree, Error> {
   let mut tree = Tree::sized(text.len());
   parse_into(text, &mut tree, &mut Vec::with_capacity(text.len() / 8), &mut Vec::new())?;
   Ok(tree)
+}
 }
 
 fn parse_into(

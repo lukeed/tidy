@@ -79,7 +79,7 @@ check(output, { filepath: "index.html" });
 ```rust
 use tidy::{Language, Options, embed::Verbatim};
 
-let language = Language::of_path("App.vue").unwrap();
+let language = Language::file("App.vue").unwrap();
 let output = tidy::format(source, language, &Options::default(), Some("App.vue"), &mut Verbatim)?;
 ```
 

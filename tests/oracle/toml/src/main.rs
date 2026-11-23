@@ -132,7 +132,7 @@ fn sets() -> Vec<(&'static str, Taplo, Tidy)> {
     (
       "no blank lines, no trailing newline, crlf",
       Taplo { allowed_blank_lines: 0, trailing_newline: false, crlf: true, ..taplo },
-      Tidy { allowed_blank_lines: 0, trailing_newline: false, eol: tidy::doc::Eol::Crlf, ..tidy },
+      Tidy { allowed_blank_lines: 0, trailing_newline: false, eol: tidy::Eol::Crlf, ..tidy },
     ),
   ]
 }

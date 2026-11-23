@@ -9,16 +9,7 @@ use tidy::{Language, Options};
 fn seen(text: &str, path: &str) -> Vec<String> {
   let mut seen: Vec<String> = Vec::new();
   let mut hook = |request: Request<'_>| -> Option<String> {
-    let kind = match request.kind {
-      Kind::Block => "block",
-      Kind::Expression => "expression",
-      Kind::Event => "event",
-      Kind::Bindings => "bindings",
-      Kind::For => "for",
-      Kind::Generic => "generic",
-      Kind::Directive => "directive",
-      Kind::FrontMatter => "frontmatter",
-    };
+    let kind = request.kind.name();
     let mut name = format!("{}/{kind}", request.lang);
     if let Some(host) = request.host {
       name = format!("{name}/{host}");
@@ -31,7 +22,7 @@ fn seen(text: &str, path: &str) -> Vec<String> {
     }
     Some(request.code.to_owned())
   };
-  let language = Language::of_path(path).expect("a known language");
+  let language = Language::file(path).expect("a known language");
   let _ = tidy::format(text, language, &Options::default(), Some(path), &mut hook);
   seen
 }
@@ -118,7 +109,7 @@ fn never_asks_the_hook_when_embedded_formatting_is_off() {
       asked.push(request.code.to_owned());
       None
     };
-    let language = Language::of_path(path).expect("a known language");
+    let language = Language::file(path).expect("a known language");
     let output = tidy::format(text, language, options, Some(path), &mut hook);
     assert!(output.is_ok(), "{path}: {output:?}");
     asked

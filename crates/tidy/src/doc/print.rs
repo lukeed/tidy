@@ -57,7 +57,6 @@ impl Command {
 enum Step<'a> {
   Indent,
   Dedent,
-  Width(usize),
   Text(&'a str),
 }
 
@@ -102,7 +101,6 @@ impl<'a> Indents<'a> {
 
   fn align(&mut self, indent: u32, margin: Margin, docs: &Docs<'a>) -> u32 {
     match margin {
-      Margin::Width(0) => indent,
       Margin::Mark => {
         let parent = self.get(indent);
         let marked = Indent {
@@ -117,7 +115,6 @@ impl<'a> Indents<'a> {
       }
       Margin::Root => self.get(indent).root,
       Margin::Dedent => self.make(indent, Step::Dedent),
-      Margin::Width(width) => self.make(indent, Step::Width(width as usize)),
       Margin::Text(index) => self.make(indent, Step::Text(docs.text_at(index).0)),
     }
   }
@@ -174,10 +171,6 @@ impl<'a> Indents<'a> {
           flush(&mut value, &mut length, &mut tabs, &mut spaces, self.tabs);
           value.push_str(text);
           length += text.len();
-        }
-        Step::Width(width) => {
-          tabs += 1;
-          spaces += width;
         }
         Step::Dedent => unreachable!(),
       }
@@ -362,7 +355,6 @@ fn run(
           }
           position += width as isize;
         }
-        Element::Trim => position -= output.trim() as isize,
         Element::LineSuffixBoundary => {
           if !suffix.is_empty() {
             commands.push(command);
@@ -581,7 +573,6 @@ fn fits(
 ) -> bool {
   let mut rest_index = rest.len();
   let mut space = false;
-  let mut trailing = 0usize;
   frames.clear();
   frames.extend(next.iter().map(|command| (command.mode, command.pos, command.end)));
   while remaining >= 0 {
@@ -601,24 +592,12 @@ fn fits(
     }
     frame.1 += 1;
     match docs.element(pos) {
-      Element::Text { start, count, width } => {
+      Element::Text { width, .. } => {
         if space {
           remaining -= 1;
           space = false;
-          trailing += 1;
         }
         remaining -= width as isize;
-        if docs.trims {
-          for index in start..start + count {
-            let (text, _) = docs.text_at(index);
-            let kept = text.trim_end_matches([' ', '\t']).len();
-            trailing = if kept == 0 { trailing + text.len() } else { text.len() - kept };
-          }
-        }
-      }
-      Element::Trim => {
-        remaining += trailing as isize;
-        trailing = 0;
       }
       Element::Line(line) => {
         if mode == Mode::Break || matches!(line, Line::Hard | Line::Literal) {

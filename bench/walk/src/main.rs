@@ -87,7 +87,7 @@ fn work(state: &mut State, path: &Path, bytes: &[u8], settings: &Settings) -> us
     Real::Tidy => {
       let Ok(text) = std::str::from_utf8(bytes) else { return 0 };
       let name = path.to_string_lossy();
-      let Some(language) = tidy::Language::of_path(&name) else { return 0 };
+      let Some(language) = tidy::Language::file(&name) else { return 0 };
       let options = tidy::Options::default();
       let mut changed = 0;
       for _ in 0..settings.work.max(1) {

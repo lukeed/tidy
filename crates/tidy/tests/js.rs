@@ -3,7 +3,7 @@
 use tidy::embed::Verbatim;
 use tidy::js::{self, ArrowParens, Dialect, Options, TrailingComma};
 use tidy::json::QuoteProps;
-use tidy::{Language, doc};
+use tidy::{Eol, Language};
 
 fn format(text: &str, path: &str, options: &Options) -> String {
   js::format(text, path, options).unwrap()
@@ -63,13 +63,13 @@ fn keeps_the_bom_and_prints_nothing_for_white_space() {
   let options = Options::default();
   assert_eq!(format("\u{FEFF} let  x = 1\r\n", "a.js", &options), "\u{FEFF}let x = 1;\n");
   assert_eq!(format("  \n\n ", "a.js", &options), "");
-  let options = Options { eol: doc::Eol::Crlf, ..options };
+  let options = Options { eol: Eol::Crlf, ..options };
   assert_eq!(format("a\nb\n", "a.js", &options), "a;\r\nb;\r\n");
 }
 
 #[test]
 fn finds_scripts_by_name() {
-  let of = |path| Language::of_path(path);
+  let of = |path| Language::file(path);
   assert_eq!(of("src/a.mjs"), Some(Language::Js(Dialect::Js)));
   assert_eq!(of("Jakefile"), Some(Language::Js(Dialect::Js)));
   assert_eq!(of("a.start.frag"), Some(Language::Js(Dialect::Js)));

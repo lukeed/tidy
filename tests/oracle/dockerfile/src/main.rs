@@ -7,7 +7,7 @@
 
 use dprint_plugin_dockerfile::configuration::{Configuration, ConfigurationBuilder};
 use std::path::{Path, PathBuf};
-use tidy::doc::Eol;
+use tidy::Eol;
 use tidy::dockerfile::Options;
 
 fn main() {

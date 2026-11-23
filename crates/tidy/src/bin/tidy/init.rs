@@ -93,7 +93,7 @@ pub(crate) fn run(args: Args) -> Result<(), String> {
     Format::Toml => toml(&url, &draft),
   };
   let name = args.format.name();
-  let language = Language::of_path(name).ok_or_else(|| format!("{name}: no language"))?;
+  let language = Language::file(name).ok_or_else(|| format!("{name}: no language"))?;
   // The file is formatted as the options in it say, as `tidy check` will read it.
   let mut options = Options::default();
   tidy::config::Config::from_value(&draft.to_value())

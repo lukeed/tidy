@@ -81,6 +81,7 @@ pub(crate) fn is_too_long(len: usize) -> bool {
 
 /// JavaScript or TypeScript: what Prettier's `babel` and `typescript` parsers read.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Dialect {
   #[default]
   Js,

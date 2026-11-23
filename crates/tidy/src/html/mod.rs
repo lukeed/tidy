@@ -25,6 +25,7 @@ const MAX_DEPTH: u32 = 1000;
 
 /// Prettier's `parser` option.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Parser {
   Html,
   Vue,

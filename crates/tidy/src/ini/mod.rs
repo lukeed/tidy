@@ -14,6 +14,7 @@ use crate::doc::Eol;
 
 /// How a file reads its lines.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Dialect {
   #[default]
   Ini,

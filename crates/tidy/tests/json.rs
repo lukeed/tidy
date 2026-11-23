@@ -83,17 +83,6 @@ fn takes_another_ignore_directive() {
 }
 
 #[test]
-fn parses_what_any_dialect_reads() {
-  let tree = tidy::json::parse("// c\n{a: [1, , 'b'], \"c\": -Infinity}").unwrap();
-  assert_eq!(tree.comments().len(), 1);
-  let root = tree.node(tree.root().unwrap());
-  let tidy::json::Kind::Object(items) = root.kind else { panic!("{root:?}") };
-  assert_eq!(tree.items(items).len(), 2);
-  assert!(tidy::json::parse("// only a comment").unwrap().root().is_none());
-  assert!(tidy::json::parse("{a: b}").is_err());
-}
-
-#[test]
 fn formats_json_in_other_languages() {
   use tidy::{Language, embed::Verbatim};
   let cases = [

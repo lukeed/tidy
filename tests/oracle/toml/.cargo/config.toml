@@ -1,0 +1,3 @@
+# The parsers that tidy keeps private, which only this build makes public.
+[build]
+rustflags = ["--cfg", "tidy_bench"]

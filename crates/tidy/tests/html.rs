@@ -85,7 +85,7 @@ fn tells_the_host_whether_a_script_is_a_module() {
 
 #[test]
 fn formats_mjml_by_name() {
-  assert_eq!(tidy::Language::of_path("mail.mjml"), Some(tidy::Language::Mjml));
+  assert_eq!(tidy::Language::file("mail.mjml"), Some(tidy::Language::Mjml));
   let text = "<mjml><mj-head><mj-style>.a{color:red}</mj-style></mj-head><mj-body><mj-text>Hi</mj-text></mj-body></mjml>\n";
   let expected = "<mjml\n  ><mj-head\n    ><mj-style>\n      .a {\n        color: red;\n      }\n    </mj-style></mj-head\n  ><mj-body><mj-text>Hi</mj-text></mj-body></mjml\n>\n";
   let options = tidy::Options::default();

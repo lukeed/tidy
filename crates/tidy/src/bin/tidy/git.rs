@@ -30,7 +30,7 @@ pub(crate) fn git_listed(lists: &[&[&str]]) -> Result<Vec<PathBuf>, String> {
   let mut paths = Vec::new();
   for args in lists {
     for line in git(args)?.lines() {
-      if line.is_empty() || Language::of_path(line).is_none() {
+      if line.is_empty() || Language::file(line).is_none() {
         continue;
       }
       // Name it as it was typed when it is below this folder, else from the root.

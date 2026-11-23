@@ -31,7 +31,6 @@ pub enum Line {
 
 #[derive(Clone, Copy, Debug)]
 pub enum Align<'a> {
-  Width(usize),
   Text(&'a str),
   /// `dedent`: drops the innermost indent.
   Dedent,
@@ -53,7 +52,6 @@ pub enum Branch {
 /// `align`'s argument, with a text as an index into the texts.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Margin {
-  Width(u32),
   Text(u32),
   Dedent,
   Root,
@@ -75,7 +73,6 @@ pub(crate) enum Element {
   },
   Line(Line),
   LineSuffixBoundary,
-  Trim,
   /// `id` is [`NONE`] if there's none. A conditional group's contents are its states, each a [`Element::Part`].
   Group {
     end: u32,
@@ -146,14 +143,13 @@ pub struct Docs<'a> {
   /// The last element, if it is a text that more texts can join.
   run: u32,
   groups: u32,
-  /// Whether a `trim` was emitted, which `fits` then has to account for.
-  pub(crate) trims: bool,
 }
 
 impl<'a> Docs<'a> {
   /// The element the printer uses for the line break a line suffix boundary asks for.
   pub(crate) const HARD: u32 = 0;
 
+  #[cfg(feature = "js")]
   pub fn new(bump: &'a Bump) -> Self {
     Self::reuse(bump, &mut Scratch::default())
   }
@@ -166,7 +162,7 @@ impl<'a> Docs<'a> {
     let mut open = std::mem::take(&mut scratch.open);
     open.clear();
     let texts = recycle(std::mem::take(&mut scratch.texts));
-    Self { bump, elements, texts, open, run: NONE, groups: 0, trims: false }
+    Self { bump, elements, texts, open, run: NONE, groups: 0 }
   }
 
   /// The buffers of this stream, for the next one.
@@ -263,10 +259,6 @@ impl<'a> Docs<'a> {
     self.break_parent();
   }
 
-  pub fn hardline_without_break_parent(&mut self) {
-    self.emit(Element::Line(Line::Hard));
-  }
-
   pub fn literalline_without_break_parent(&mut self) {
     self.emit(Element::Line(Line::Literal));
   }
@@ -277,11 +269,6 @@ impl<'a> Docs<'a> {
     if let Element::Group { broken, states: false, .. } = &mut self.elements[group as usize] {
       *broken = true;
     }
-  }
-
-  pub fn trim(&mut self) {
-    self.trims = true;
-    self.emit(Element::Trim);
   }
 
   pub fn line_suffix_boundary(&mut self) {
@@ -323,7 +310,6 @@ impl<'a> Docs<'a> {
 
   pub fn align(&mut self, align: Align<'a>) -> Mark {
     let margin = match align {
-      Align::Width(width) => Margin::Width(width as u32),
       Align::Text(text) => {
         self.texts.push((text, width(text) as u32));
         Margin::Text(self.texts.len() as u32 - 1)

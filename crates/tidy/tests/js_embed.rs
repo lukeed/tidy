@@ -83,6 +83,6 @@ fn formats_angular_microsyntax() {
 fn keeps_line_breaks_in_texts_apart_with_crlf() {
   let text = "function f() {\r\n  return html`<pre>\r\n  a\r\n</pre><script>\r\n  const a = \\`x\r\ny\\`; foo(aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb)\r\n</script>`;\r\n}\r\n";
   let expected = "function f() {\r\n  return html`<pre>\r\n  a\r\n</pre>\r\n    <script>\r\n      const a = \\`x\r\ny\\`;\r\n      foo(\r\n        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,\r\n        bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,\r\n      );\r\n    </script>`;\r\n}\r\n";
-  let options = Options { jsdoc: false, eol: tidy::doc::Eol::Crlf, ..Options::default() };
+  let options = Options { jsdoc: false, eol: tidy::Eol::Crlf, ..Options::default() };
   assert_eq!(js::format(text, "a.js", &options).unwrap(), expected);
 }
