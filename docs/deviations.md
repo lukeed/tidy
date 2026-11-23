@@ -5,7 +5,7 @@ tidy prints what Prettier 3.9.9 prints, XML what `@prettier/plugin-xml` 3.4.2 pr
 ## Process
 
 1. A change that makes tidy print something other than Prettier is a deviation. It is never shipped silently: add an entry here with status `proposed`, add its rows to `tests/deviations.json`, and raise it with Luke for sign-off.
-2. Proposed rule, which itself needs sign-off: keep a deviation only where Prettier's output changes what the code means (it loses text, changes a value that a program reads, or no longer parses). Where the difference is only layout, print what Prettier prints.
+2. Keep a deviation only where Prettier's output changes what the code means (it loses text, changes a value that a program reads, or no longer parses), or where it changes again when formatted again. Where the difference is only layout, print what Prettier prints.
 3. Each entry is `proposed` (in the code, awaiting sign-off) or `approved` (with the date). A rejected entry is removed from the code and from this file, and its rows from the test. A deviation that is raised but not yet in the code is listed under [Raised, not in the code](#raised-not-in-the-code).
 
 Most entries come from bun's ports, which correct the places where Prettier's output changes the meaning of the code. When HTML was ported, the corrections that are only layout (an SVG `<text>`, `<script>` and `<dialog>` on their own lines, classes split at ASCII whitespace only) were removed, so HTML prints what Prettier prints there.
@@ -61,34 +61,34 @@ Most entries come from bun's ports, which correct the places where Prettier's ou
 | [html-ignored-void-without-slash](#html-ignored-void-without-slash)                       | html                         | approved 2026-11-01 |
 | [html-text-after-nul](#html-text-after-nul)                                               | html/vue                     | approved 2026-11-01 |
 | [vue-v-pre-interpolation](#vue-v-pre-interpolation)                                       | vue                          | approved 2026-11-01 |
-| [xml-embed-by-name](#xml-embed-by-name)                                                   | xml                          | proposed            |
-| [xml-hex-character-reference](#xml-hex-character-reference)                               | xml                          | proposed            |
-| [xml-ignore-trims-xml-whitespace](#xml-ignore-trims-xml-whitespace)                       | xml                          | proposed            |
+| [xml-embed-by-name](#xml-embed-by-name)                                                   | xml                          | approved 2026-11-23 |
+| [xml-hex-character-reference](#xml-hex-character-reference)                               | xml                          | approved 2026-11-23 |
+| [xml-ignore-trims-xml-whitespace](#xml-ignore-trims-xml-whitespace)                       | xml                          | approved 2026-11-23 |
 | [html-borrowed-markers-once](#html-borrowed-markers-once)                                 | html                         | approved 2026-11-01 |
 | [toml-byte-order-mark](#toml-byte-order-mark)                                             | toml                         | approved 2026-11-01 |
 | [toml-embedded](#toml-embedded)                                                           | markdown/css/html/handlebars | approved 2026-11-01 |
-| [dockerfile-bare-continuation](#dockerfile-bare-continuation)                             | dockerfile                   | proposed            |
-| [dockerfile-empty-continuation-lines](#dockerfile-empty-continuation-lines)               | dockerfile                   | proposed            |
-| [dockerfile-quoted-env-value](#dockerfile-quoted-env-value)                               | dockerfile                   | proposed            |
-| [dockerfile-env-value-with-tab](#dockerfile-env-value-with-tab)                           | dockerfile                   | proposed            |
-| [dockerfile-glued-keyword](#dockerfile-glued-keyword)                                     | dockerfile                   | proposed            |
-| [dockerfile-unparsed-continuation](#dockerfile-unparsed-continuation)                     | dockerfile                   | proposed            |
-| [dockerfile-read-back](#dockerfile-read-back)                                             | dockerfile                   | proposed            |
-| [dockerfile-byte-order-mark](#dockerfile-byte-order-mark)                                 | dockerfile                   | proposed            |
-| [dockerfile-embedded](#dockerfile-embedded)                                               | markdown                     | proposed            |
+| [dockerfile-bare-continuation](#dockerfile-bare-continuation)                             | dockerfile                   | approved 2026-11-23 |
+| [dockerfile-empty-continuation-lines](#dockerfile-empty-continuation-lines)               | dockerfile                   | approved 2026-11-23 |
+| [dockerfile-quoted-env-value](#dockerfile-quoted-env-value)                               | dockerfile                   | approved 2026-11-23 |
+| [dockerfile-env-value-with-tab](#dockerfile-env-value-with-tab)                           | dockerfile                   | approved 2026-11-23 |
+| [dockerfile-glued-keyword](#dockerfile-glued-keyword)                                     | dockerfile                   | approved 2026-11-23 |
+| [dockerfile-unparsed-continuation](#dockerfile-unparsed-continuation)                     | dockerfile                   | approved 2026-11-23 |
+| [dockerfile-read-back](#dockerfile-read-back)                                             | dockerfile                   | approved 2026-11-23 |
+| [dockerfile-byte-order-mark](#dockerfile-byte-order-mark)                                 | dockerfile                   | approved 2026-11-23 |
+| [dockerfile-embedded](#dockerfile-embedded)                                               | markdown                     | approved 2026-11-23 |
 | [ini-space-around-equals](#ini-space-around-equals)                                       | ini                          | approved 2026-11-01 |
 | [ini-git-config](#ini-git-config)                                                         | ini                          | approved 2026-11-01 |
-| [ini-kept-mode](#ini-kept-mode)                                                           | ini                          | proposed            |
-| [ini-empty-section](#ini-empty-section)                                                   | ini                          | proposed            |
-| [ini-empty-list](#ini-empty-list)                                                         | ini                          | proposed            |
-| [ini-embedded](#ini-embedded)                                                             | markdown                     | proposed            |
+| [ini-kept-mode](#ini-kept-mode)                                                           | ini                          | approved 2026-11-23 |
+| [ini-empty-section](#ini-empty-section)                                                   | ini                          | approved 2026-11-23 |
+| [ini-empty-list](#ini-empty-list)                                                         | ini                          | approved 2026-11-23 |
+| [ini-embedded](#ini-embedded)                                                             | markdown                     | approved 2026-11-23 |
 | [graphql-block-string-padding](#graphql-block-string-padding)                             | graphql                      | approved 2026-11-02 |
 | [graphql-block-string-trailing-space](#graphql-block-string-trailing-space)               | graphql                      | approved 2026-11-02 |
 | [js-jsdoc](#js-jsdoc)                                                                     | babel/typescript             | approved 2026-11-02 |
 | [js-markdown-fence-length](#js-markdown-fence-length)                                     | babel/typescript             | approved 2026-11-02 |
 | [js-stable-output](#js-stable-output)                                                     | babel/typescript             | approved 2026-11-02 |
 | [ignore-tools](#ignore-tools)                                                             | all                          | approved 2026-11-18 |
-| [the rule in step 2](#process)                                                            | all                          | proposed            |
+| [the rule in step 2](#process)                                                            | all                          | approved 2026-11-23 |
 | [tempura and text mode](#beyond-prettier)                                                 | handlebars                   | approved 2026-10-31 |
 
 ## Handlebars
@@ -739,7 +739,7 @@ Only visible when the embed hook formats JavaScript, so `tests/deviations.json` 
 
 ### xml-embed-by-name
 
-- Status: proposed
+- Status: approved 2026-11-23
 - Why: The plugin formats the content of any element that is named after one of Prettier's parsers as code in that language: `<remark>` as Markdown, `<yaml>`, `<json>`, `<html>`, `<css>`. These are ordinary elements whose text is data, such as DocBook's `<remark>`, and formatting it changes the text. tidy formats code only in `<style>` and `<script>` with a `type` of `text/...`, as the plugin does there.
 - Where: crates/tidy/src/xml/print.rs:392 (`embedded_language`)
 - Parser: xml
@@ -754,7 +754,7 @@ Found in `docbook/xslt10-stylesheets`, where these are the only files that `test
 
 ### xml-hex-character-reference
 
-- Status: proposed
+- Status: approved 2026-11-23
 - Why: The plugin's lexer reads only the first digit of a hexadecimal character reference (`&#x[a-fA-F0-9]`), so `&#x41;` is the reference `&#x4` and then the text `1;`. With `--whitespace ignore`, a space goes between them, and the output is no longer well-formed XML. tidy reads `&#x41;` as one reference. A reference without `;` is read as the plugin reads it, so the same files parse. With `--whitespace preserve`, an element that only holds such a reference now has no text, and prints as the plugin prints one that holds `&#65;`.
 - Where: crates/tidy/src/xml/lexer.rs:120
 - Parser: xml, with `--whitespace ignore` or `preserve`
@@ -777,7 +777,7 @@ In the corpus of `tests/oracle/xml.ts`, this changes 67 files with `--whitespace
 
 ### xml-ignore-trims-xml-whitespace
 
-- Status: proposed
+- Status: approved 2026-11-23
 - Why: With `--whitespace ignore`, the plugin trims text with JavaScript's `\s`, which also matches a no-break space and other characters that XML doesn't count as whitespace. An element that holds only a no-break space loses it. tidy trims only space, tab and line feed.
 - Where: crates/tidy/src/xml/print.rs:204 (`words`)
 - Parser: xml, with `--whitespace ignore`
@@ -828,7 +828,7 @@ dprint-plugin-dockerfile's output often reads back differently: on 202 of 342 co
 
 ### dockerfile-bare-continuation
 
-- Status: proposed
+- Status: approved 2026-11-23
 - Why: dprint's parser ends an instruction at a line with only a line continuation, so the lines after it become instructions of their own. Docker continues the instruction. dprint's first pass writes such lines itself, from lines of only whitespace, so its second pass breaks official images such as `httpd` and `buildpack-deps`.
 - Where: crates/tidy/src/dockerfile/parse.rs (`breakable`)
 - Parser: dockerfile
@@ -841,7 +841,7 @@ tidy:   "RUN a \\\n\\\n  b\n"
 
 ### dockerfile-empty-continuation-lines
 
-- Status: proposed
+- Status: approved 2026-11-23
 - Why: Docker skips the empty lines after a line continuation, so the instruction goes on. dprint ends it there, drops the continuation, and the next lines become instructions of their own. tidy keeps one instruction, without the empty lines that Docker ignores. A continuation at the end of the file still drops, as dprint drops it.
 - Where: crates/tidy/src/dockerfile/parse.rs (`breakable`)
 - Parser: dockerfile
@@ -854,7 +854,7 @@ tidy:   "RUN a \\\n  b\n"
 
 ### dockerfile-quoted-env-value
 
-- Status: proposed
+- Status: approved 2026-11-23
 - Why: dprint quotes an `ENV` value that has a space again, from its content without escapes: `'a $HOME b'` becomes `"a $HOME b"`, which expands `$HOME`, and `"say \"hi\" now"` loses its escapes, so its quotes no longer match. A quoted value over lines is joined into one line, and a comment line in it becomes part of the value. tidy keeps a quoted value as it is written.
 - Where: crates/tidy/src/dockerfile/print.rs (`breakable`)
 - Parser: dockerfile
@@ -873,7 +873,7 @@ tidy:   "ENV A=\"a \\\n  b\"\n"
 
 ### dockerfile-env-value-with-tab
 
-- Status: proposed
+- Status: approved 2026-11-23
 - Why: dprint quotes the value of `ENV name value` when it has a space, but not when it has a tab only. Without quotes, the tab separates two variables.
 - Where: crates/tidy/src/dockerfile/print.rs (`breakable`)
 - Parser: dockerfile
@@ -886,7 +886,7 @@ tidy:   "ENV A=\"a\tb\"\n"
 
 ### dockerfile-glued-keyword
 
-- Status: proposed
+- Status: approved 2026-11-23
 - Why: dprint reads a keyword glued to its text, as in `RUN-script` or `bzip2`, as an instruction without a grammar, and puts a space after the keyword. That turns an invalid line into a different instruction, `RUN -script`, and splits words such as `bzip2` in template lines. tidy keeps the line as it is written.
 - Where: crates/tidy/src/dockerfile/parse.rs (`misc`)
 - Parser: dockerfile
@@ -899,7 +899,7 @@ tidy:   "RUN-script is not one\n"
 
 ### dockerfile-unparsed-continuation
 
-- Status: proposed
+- Status: approved 2026-11-23
 - Why: dprint keeps a line that doesn't parse as it is written, but parses the lines it continues to on their own, so they lose their indent and can become instructions. tidy keeps the line with the lines it continues to.
 - Where: crates/tidy/src/dockerfile/parse.rs (`unknown_line`), crates/tidy/src/dockerfile/print.rs (`instruction`)
 - Parser: dockerfile
@@ -912,7 +912,7 @@ tidy:   "COPY --from=build \\\n  only-one\n"
 
 ### dockerfile-read-back
 
-- Status: proposed
+- Status: approved 2026-11-23
 - Why: Some of dprint's choices depend on whitespace that its own output changes, so formatting again moves the text. tidy makes each choice from what reads back the same: a comment takes its indent from the nearest line with text, but not from the first line, whose whitespace is the gap after the keyword; a first line of only whitespace prints as a bare continuation; a comment inside a quote keeps its indent; and with `indentStages`, the indent that a stage adds isn't read back as content. These change dprint's first pass only where dprint would change its own output.
 - Where: crates/tidy/src/dockerfile/print.rs (`breakable`, `indent_around`)
 - Parser: dockerfile
@@ -927,7 +927,7 @@ tidy:   "RUN set -x \\\n            && tempDir=1 \\\n            # (note)\n \\\n
 
 ### dockerfile-byte-order-mark
 
-- Status: proposed
+- Status: approved 2026-11-23
 - Why: dprint drops a byte order mark. tidy keeps it, as it does in every other language.
 - Where: crates/tidy/src/dockerfile/mod.rs (`Formatter::format`)
 - Parser: dockerfile
@@ -940,7 +940,7 @@ tidy:   "﻿FROM a\n"
 
 ### dockerfile-embedded
 
-- Status: proposed
+- Status: approved 2026-11-23
 - Why: Prettier has no Dockerfile formatter, so it leaves ` ```dockerfile ` code blocks as they are written. tidy formats them as it formats a Dockerfile, at the start of a line only, since indenting a heredoc would change it.
 - Where: crates/tidy/src/embed.rs (`own`, `builtin`)
 - Parser: markdown
@@ -983,7 +983,7 @@ tidy:   "[core]\n\tbare = false\n"
 
 ### ini-kept-mode
 
-- Status: proposed
+- Status: approved 2026-11-23
 - Why: The plugin rejects a file with a line that isn't a key, a section, a comment or a value of a list: a bare key, `key: value`, a comment after a section, a `]` in a section's name, or a value over lines. tidy formats the file, but keeps the indent of each line, since in such files the indent can carry meaning, as in web-platform-tests metadata. A line indented deeper than the key above it continues that key's value, as in Python's configparser, and stays as written. Keys get the spaces around `=`, sections and comments lose the spaces at their ends, and runs of blank lines become one. This replaces the plan to print these lines in the plugin's style: the plugin removes indents, so a file it can't read would change its meaning.
 - Where: crates/tidy/src/ini/parse.rs (`kept`)
 - Parser: ini
@@ -1002,7 +1002,7 @@ tidy:   "[*.out] # editor\nindent_size = 4\n"
 
 ### ini-empty-section
 
-- Status: proposed
+- Status: approved 2026-11-23
 - Why: The plugin ends an empty section with a line break of its own, so a blank line before the next section becomes two, and each pass adds one more. tidy prints one blank line after an empty section. Where the next line follows directly, this is the plugin's output.
 - Where: crates/tidy/src/ini/print.rs (`nodes`)
 - Parser: ini
@@ -1015,7 +1015,7 @@ tidy:   "[a]\n\n[b]\nx = 1\n"
 
 ### ini-empty-list
 
-- Status: proposed
+- Status: approved 2026-11-23
 - Why: After `key =`, the plugin reads a line of only white space as the start of a list without values, and prints a blank line after it that it reads back as the end of the section. tidy prints a key with an empty value, so a second pass doesn't change the file.
 - Where: crates/tidy/src/ini/parse.rs (`plugin`)
 - Parser: ini
@@ -1028,7 +1028,7 @@ tidy:   "a =\n\nb = 1\n"
 
 ### ini-embedded
 
-- Status: proposed
+- Status: approved 2026-11-23
 - Why: Prettier has no INI formatter of its own, so it leaves ` ```ini ` code blocks as they are written. tidy formats them as it formats an INI file, at the start of a line only, since an indent can continue a value.
 - Where: crates/tidy/src/embed.rs (`own`, `builtin`)
 - Parser: markdown
