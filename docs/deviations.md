@@ -1075,7 +1075,7 @@ tidy:     "\"\"\"\nends in a space \nlast\n\"\"\"\nscalar A\n"
 ### js-jsdoc
 
 - Status: approved 2026-11-02
-- Why: Luke decided JSDoc comments are formatted by default, as prettier-plugin-jsdoc does; `js.jsdoc: false` turns it off. The output is oxfmt's with `jsdoc: true`, which follows prettier-plugin-jsdoc. Prettier without the plugin keeps the comments as written. oxfmt and the plugin wrap a comment for the indent it has in the input; a comment that moves to another indent is wrapped again on the next run. tidy wraps it for the indent it has in the output, as in [js-stable-output](#js-stable-output), and keeps the indents of an `@example` object with quoted keys, which oxfmt flattens on the next run.
+- Why: Luke decided JSDoc comments are formatted by default, as prettier-plugin-jsdoc does; `js.jsdoc: false` turns it off. The output is oxfmt's with `jsdoc: true`, which follows prettier-plugin-jsdoc. Prettier without the plugin keeps the comments as written. oxfmt and the plugin wrap a comment for the indent it has in the input; a comment that moves to another indent is wrapped again on the next run. tidy wraps it for the indent it has in the output, as in [js-stable-output](#js-stable-output), and keeps the indents of an `@example` object with quoted keys, which oxfmt flattens on the next run. It also indents the lines inside a template literal of a fenced `@example`, which oxfmt leaves at the start of the line, so that the next run finds no fence.
 - Where: crates/tidy/src/js/jsdoc/ (`write_comment`), crates/tidy/src/js/mod.rs (`Options::jsdoc`)
 - Parser: babel, typescript
 

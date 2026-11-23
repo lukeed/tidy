@@ -142,3 +142,12 @@ fn joins_the_lines_of_a_link() {
   assert!(once.contains("{@link TransformOptions}"), "{once}");
   assert_eq!(format(&once, "a.ts", &Options::default()), once);
 }
+
+#[test]
+fn indents_a_template_literal_in_a_fenced_example() {
+  let input =
+    "/**\n * @example\n * ```ts\n * let a = css`\n *   color: red;\n * `;\n * ```\n */\nlet a;\n";
+  let once = format(input, "a.ts", &Options::default());
+  assert!(once.contains(" *   let a = css`\n *     color: red;\n *   `;\n"), "{once}");
+  assert_eq!(format(&once, "a.ts", &Options::default()), once);
+}

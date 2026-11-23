@@ -125,6 +125,17 @@ impl JsdocFormatter<'_> {
     }
   }
 
+  /// Pushes the lines of fenced code, each indented, so that the next format reads back the same code.
+  fn push_fenced_code_lines(&mut self, code: &[u8], indent: &[u8]) {
+    for line in lines(code) {
+      let out = self.content_lines.begin_line();
+      if !line.is_empty() {
+        out.extend_from_slice(indent);
+        out.extend_from_slice(line);
+      }
+    }
+  }
+
   /// Pushes the lines of `code` as written, without the indent that the lines after the first share.
   fn push_kept_code_lines(&mut self, code: &[u8], indent: &[u8]) {
     for line in lines(&dedent_rest(code)) {
@@ -212,7 +223,7 @@ impl JsdocFormatter<'_> {
         false => None,
       };
       match formatted {
-        Some(formatted) => self.push_formatted_code_lines(&formatted, indent),
+        Some(formatted) => self.push_fenced_code_lines(&formatted, indent),
         None => self.push_raw_code_lines(inner_code, indent),
       }
     }
