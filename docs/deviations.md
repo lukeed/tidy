@@ -87,6 +87,7 @@ Most entries come from bun's ports, which correct the places where Prettier's ou
 | [js-jsdoc](#js-jsdoc)                                                                     | babel/typescript             | approved 2026-11-02 |
 | [js-markdown-fence-length](#js-markdown-fence-length)                                     | babel/typescript             | approved 2026-11-02 |
 | [js-stable-output](#js-stable-output)                                                     | babel/typescript             | approved 2026-11-02 |
+| [ts-as-const-comment](#ts-as-const-comment)                                               | typescript                   | approved 2026-11-23 |
 | [ignore-tools](#ignore-tools)                                                             | all                          | approved 2026-11-18 |
 | [the rule in step 2](#process)                                                            | all                          | approved 2026-11-23 |
 | [tempura and text mode](#beyond-prettier)                                                 | handlebars                   | approved 2026-10-31 |
@@ -1074,7 +1075,7 @@ tidy:     "\"\"\"\nends in a space \nlast\n\"\"\"\nscalar A\n"
 ### js-jsdoc
 
 - Status: approved 2026-11-02
-- Why: Luke decided JSDoc comments are formatted by default, as prettier-plugin-jsdoc does; `js.jsdoc: false` turns it off. The output is oxfmt's with `jsdoc: true`, which follows prettier-plugin-jsdoc. Prettier without the plugin keeps the comments as written.
+- Why: Luke decided JSDoc comments are formatted by default, as prettier-plugin-jsdoc does; `js.jsdoc: false` turns it off. The output is oxfmt's with `jsdoc: true`, which follows prettier-plugin-jsdoc. Prettier without the plugin keeps the comments as written. oxfmt and the plugin wrap a comment for the indent it has in the input; a comment that moves to another indent is wrapped again on the next run. tidy wraps it for the indent it has in the output, as in [js-stable-output](#js-stable-output), and keeps the indents of an `@example` object with quoted keys, which oxfmt flattens on the next run.
 - Where: crates/tidy/src/js/jsdoc/ (`write_comment`), crates/tidy/src/js/mod.rs (`Options::jsdoc`)
 - Parser: babel, typescript
 
@@ -1100,14 +1101,27 @@ tidy:     "md`\n~~~~js\nmarkdown\\`\n  ~~~js\n  console.log(\"hi\");\n  ~~~\n\\`
 ### js-stable-output
 
 - Status: approved 2026-11-02
-- Why: Luke decided tidy's output must not change when it is formatted again, so that a formatted file passes `tidy check` in CI. Where Prettier's output changes when formatted again, tidy prints Prettier's fixed point: what Prettier prints when it formats its own output until that stays the same. A comment after an expression, inside parentheses around it, is printed after the parentheses; there the next formatting finds it before the `)` of the expression around it, or before the `;` of the statement, and moves it on. tidy places it where it ends up, in one pass.
-- Where: crates/tidy/src/js/ast/comments.rs (`decorate`, `keeps_comments_in_parentheses`, `lead_left_side`), trivia.rs (`lines_before`), print/template.rs (`write_tagged_template_expression`), attach/rules.rs (`handle_call_expression_comments`), print/type_parameters.rs (`FormatTypeArguments`), utils/member_chain/groups.rs and mod.rs, utils/conditional.rs (`write_comment_after_operator`), ir/printer/mod.rs (`Fallback::FlattestOnceExpanded`)
+- Why: Luke decided tidy's output must not change when it is formatted again, so that a formatted file passes `tidy check` in CI. Where Prettier's output changes when formatted again, tidy prints Prettier's fixed point: what Prettier prints when it formats its own output until that stays the same. A comment after an expression, inside parentheses around it, is printed after the parentheses; there the next formatting finds it before the `)` of the expression around it, or before the `;` of the statement, and moves it on. tidy places it where it ends up, in one pass. Prettier attaches a comment by where it sits: on a line of its own, at the end of a line, or between code, and by whether a block comment spans lines. Where the output places a comment differently than the input did, as a comment on its own line after `satisfies` that is printed after it, tidy formats its output once more and prints that. A one-line block comment before the first `|` of a union that breaks is printed after the `|`, where the next formatting puts it.
+- Where: crates/tidy/src/js/settle.rs and mod.rs (`Formatter::format`), print/union_type.rs (`write_ts_union_type_in`), ast/comments.rs (`decorate`, `keeps_comments_in_parentheses`, `lead_left_side`), trivia.rs (`lines_before`), print/template.rs (`write_tagged_template_expression`), attach/rules.rs (`handle_call_expression_comments`), print/type_parameters.rs (`FormatTypeArguments`), utils/member_chain/groups.rs and mod.rs, utils/conditional.rs (`write_comment_after_operator`), ir/printer/mod.rs (`Fallback::FlattestOnceExpanded`)
 - Parser: babel, typescript
 
 ```
 input:    "x = (a ? b : c /* a */);\n"
 Prettier: "x = a ? b : c /* a */;\n"
 tidy:     "x = a ? b : c; /* a */\n"
+```
+
+### ts-as-const-comment
+
+- Status: approved 2026-11-23
+- Why: `const` in `a as const` isn't a node, so a multiline comment before it trails the whole expression, and Prettier prints it after `const`. Formatted again, the comment trails the statement and moves past the `;`, so Prettier's output changes when it is formatted again. tidy prints the comment before `const`, where it was written, as it does before a type; that stays.
+- Where: crates/tidy/src/js/print/as_or_satisfies_expression.rs (`write_const`)
+- Parser: typescript
+
+```
+input:    "1 as /*\ncomment\n*/const;\n"
+Prettier: "1 as const /*\ncomment\n*/;\n"
+tidy:     "1 as /*\ncomment\n*/ const;\n"
 ```
 
 ## All languages

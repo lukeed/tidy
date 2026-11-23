@@ -219,3 +219,30 @@ fn follows_the_options_of_other_languages() {
     "<a\n  b=\"1\"\n  c=\"2\"\n  d=\"333333333333333333333333333333\"\n  e=\"444444444444444444444444444\"\n/>;\n"
   );
 }
+
+/// Inputs from Prettier's tests whose Prettier output changes when it is formatted again.
+#[test]
+fn formats_to_output_that_stays() {
+  let inputs = [
+    ("a.ts", "const t = {\n    prop1: 1,\n} satisfies\n// Comment\nRecord<string, number>;\n"),
+    ("a.js", "for (x\n/*1a*/\nin //1b\ny) //1c\n;\n\nfor (x in //4a\ny);\n"),
+    (
+      "a.jsx",
+      "<div attr=/* comment */\n\"foo\"></div>;\n\n<div attr=// comment\n\"foo\"></div>;\n",
+    ),
+    (
+      "a.ts",
+      "type A = {\n  \"prefer-destructuring3\": // comment\n  typeof import(\"./long/long/long/long/long/path/to/rules/prefer-destructuring\");\n};\n",
+    ),
+    ("a.ts", "type A = {\n  [\n    A in // prettier-ignore\n    B\n  ]: C | D;\n};\n"),
+    ("a.ts", "export const foo = (\n  // prettier-ignore\n  bar as Baz\n).qux;\n"),
+    ("a.ts", "1 as /*\ncomment\n*/const;\n"),
+    ("a.ts", "type A =\n  /*1*/ | (\n    | A\n    // force\n    | B\n  );\n"),
+  ];
+  for (path, input) in inputs {
+    let dialect = js::Dialect::of_path(path).unwrap();
+    let options = js::Options { dialect, ..js::Options::default() };
+    let once = js::format(input, path, &options).unwrap();
+    assert_eq!(js::format(&once, path, &options).unwrap(), once, "{input}");
+  }
+}

@@ -175,6 +175,28 @@ fn format_in(
   root: Root,
   buffers: &mut Buffers,
 ) -> Option<String> {
+  let (mut text, mut unsettled) = format_once(request, options, host, root, buffers)?;
+  // As in `js::Formatter::format`: the output would format differently again, so that next output stays.
+  for _ in 0..2 {
+    if !unsettled {
+      break;
+    }
+    let again = Request { code: &text, ..*request };
+    (text, unsettled) = format_once(&again, options, host, root, buffers)?;
+  }
+  Some(text)
+}
+
+/// Formats `request` once. Also returns true if a comment sits differently in the output. See [`settle`].
+///
+/// [`settle`]: crate::js::settle
+fn format_once(
+  request: &Request<'_>,
+  options: &crate::js::Options,
+  host: Host,
+  root: Root,
+  buffers: &mut Buffers,
+) -> Option<(String, bool)> {
   let Buffers { allocator, scratch } = buffers;
   allocator.reset();
   let is_script =
@@ -211,6 +233,9 @@ fn format_in(
     _ => options,
   };
   run::print(document, file.text(), &options, scratch, &mut out).ok()?;
+  let tab_width = options.jsdoc.is_some().then(|| options.indent_width.value() as usize);
+  let unsettled =
+    crate::js::settle::is_unsettled(file.text(), &out, scratch.printed_comments(), tab_width);
   let text = text_of(out, host)?;
   if !errors.is_empty() {
     // Where oxc's tree has no room for what an error is about, the printer drops it. See `js::keeps_errors`.
@@ -218,7 +243,7 @@ fn format_in(
     let (_, again) = parse_root(&allocator, &text, root, request.module)?;
     crate::js::same_errors(&errors, &again).then_some(())?;
   }
-  Some(text)
+  Some((text, unsettled))
 }
 
 fn format_for_in(

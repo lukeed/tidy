@@ -119,6 +119,19 @@ fn write_with_comments_in_place<'a>(
   }
 }
 
+/// The `const` of `a as const`. `const` isn't a node, so a multiline comment before it trails the whole expression,
+/// and Prettier prints it after `const`: `a as const /*⏎*/;`. Formatted again, the comment trails the statement and moves
+/// past the `;`. It's printed before `const`, as before a type, which stays.
+fn write_const<'a>(cast: Expr<'a>, f: &mut Formatter<'a>) {
+  if !f.is_quiet() {
+    let trailing = f.comments().of_node(cast.as_ast_nodes()).trailing;
+    let inside =
+      trailing.iter().take_while(|comment| comment.span().end <= cast.span().end).count();
+    write!(f, FormatLeadingComments::Comments(trailing.slice(0, inside)));
+  }
+  write!(f, "const");
+}
+
 /// Not inlined, because `a as b as c` nests as deep as it is long, and inlining would add this function's stack usage
 /// to every level.
 #[inline(never)]
@@ -148,7 +161,7 @@ pub(crate) fn write_as_or_satisfies_expression<'a>(e: Expr<'a>, f: &mut Formatte
     }
     match type_annotation {
       Some(ty) => write!(f, ty),
-      None => write!(f, "const"),
+      None => write_const(e, f),
     }
   });
 

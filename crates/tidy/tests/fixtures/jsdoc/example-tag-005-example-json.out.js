@@ -1,7 +1,7 @@
 /**
  * Then this man came to realize the truth: Besides six pence, there is the
- * moon. Besides bread and butter, there is the bug. And... Besides women,
- * there is the code.
+ * moon. Besides bread and butter, there is the bug. And... Besides women, there
+ * is the code.
  *
  * @example
  *   {

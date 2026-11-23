@@ -1,7 +1,8 @@
 #![cfg(feature = "js")]
 
 //! JSDoc comments, formatted by default as prettier-plugin-jsdoc does. `fixtures/jsdoc` is a part of oxc's
-//! `crates/oxc_formatter/tests/jsdoc/fixtures` (MIT): each input next to oxfmt's output with `jsdoc: true`.
+//! `crates/oxc_formatter/tests/jsdoc/fixtures` (MIT): each input next to oxfmt's output with `jsdoc: true`, except where
+//! that output changes when formatted again (`descriptions-005`, `example-tag-005`), which holds tidy's.
 
 use std::path::Path;
 use tidy::js::{self, Dialect, Options};
@@ -112,6 +113,19 @@ fn reads_a_type_tag_broken_by_any_line_terminator_as_on_many_lines() {
 fn keeps_the_indents_of_an_example_object_with_quoted_keys() {
   let input = "/**\n * @example\n *   {\n *     \"a\": 1, // one\n *     \"b\": {\n *       \"c\": 2\n *     }\n *   }\n */\nlet a;\n";
   assert_eq!(format(input, "a.js", &Options::default()), input);
+}
+
+#[test]
+fn wraps_a_comment_for_the_indent_it_gets() {
+  let input = "export namespace N {\nexport type A = {\n/**\n * Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.\n */\na?: string;\n};\n}\n";
+  let once = format(input, "a.ts", &Options::default());
+  assert_eq!(format(&once, "a.ts", &Options::default()), once);
+  assert!(
+    once.contains(
+      "     * Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for\n     * XML.\n"
+    ),
+    "{once}"
+  );
 }
 
 #[test]

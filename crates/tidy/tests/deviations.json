@@ -2650,6 +2650,14 @@
         "input": "/**\n * @param {string}   a   the thing\n */\nfunction f(a) {}\n",
         "prettier": "/**\n * @param {string}   a   the thing\n */\nfunction f(a) {}\n",
         "tidy": "/** @param {string} a The thing */\nfunction f(a) {}\n"
+      },
+      {
+        "parsers": [
+          "typescript"
+        ],
+        "input": "export namespace N {\nexport type A = {\n/**\n * Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.\n */\na?: string;\n};\n}\n",
+        "prettier": "export namespace N {\n  export type A = {\n    /**\n     * Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for XML.\n     */\n    a?: string;\n  };\n}\n",
+        "tidy": "export namespace N {\n  export type A = {\n    /**\n     * Whitespace sensitivity in HTML, Vue, Handlebars and XML. `strict` for\n     * XML.\n     */\n    a?: string;\n  };\n}\n"
       }
     ]
   },
@@ -2678,6 +2686,30 @@
         "input": "x = (a ? b : c /* a */);\n",
         "prettier": "x = a ? b : c /* a */;\n",
         "tidy": "x = a ? b : c; /* a */\n"
+      },
+      {
+        "parsers": [
+          "typescript"
+        ],
+        "input": "const t = {\n  a: 1,\n} satisfies\n// Comment\nRecord<string, number>;\n",
+        "prettier": "const t = {\n  a: 1,\n} satisfies // Comment\nRecord<string, number>;\n",
+        "tidy": "const t = {\n  a: 1,\n} satisfies Record<string, number>; // Comment\n"
+      },
+      {
+        "parsers": [
+          "typescript"
+        ],
+        "input": "export const foo = (\n  // prettier-ignore\n  bar as Baz\n).qux;\n",
+        "prettier": "export const foo = // prettier-ignore\n(bar as Baz).qux;\n",
+        "tidy": "export const foo = // prettier-ignore\n  (bar as Baz).qux;\n"
+      },
+      {
+        "parsers": [
+          "typescript"
+        ],
+        "input": "type A =\n  /*1*/ | (\n    | A\n    // force\n    | B\n  );\n",
+        "prettier": "type A =\n  /*1*/ | A\n  // force\n  | B;\n",
+        "tidy": "type A =\n  | /*1*/ A\n    // force\n  | B;\n"
       }
     ]
   },
@@ -2692,6 +2724,19 @@
         "input": "// prettier-ignore format\nconst  a = 1\n",
         "prettier": "// prettier-ignore format\nconst a = 1;\n",
         "tidy": "// prettier-ignore format\nconst  a = 1;\n"
+      }
+    ]
+  },
+  {
+    "id": "ts-as-const-comment",
+    "rows": [
+      {
+        "parsers": [
+          "typescript"
+        ],
+        "input": "1 as /*\ncomment\n*/const;\n",
+        "prettier": "1 as const /*\ncomment\n*/;\n",
+        "tidy": "1 as /*\ncomment\n*/ const;\n"
       }
     ]
   }

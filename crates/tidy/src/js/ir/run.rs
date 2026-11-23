@@ -19,6 +19,13 @@ pub struct Scratch {
   unprinted_comment_ids: Vec<u32>,
 }
 
+impl Scratch {
+  /// Where each comment that the last print printed from the source starts in its output, as `(source, output)`.
+  pub(crate) fn printed_comments(&self) -> &[(u32, u32)] {
+    &self.printer.comments
+  }
+}
+
 /// Formats `file` by printing the document that `write` writes, and appends the text to `out`.
 ///
 /// Every comment is owned by a node or a name, and the code that writes the owner has to write the comment. Prettier

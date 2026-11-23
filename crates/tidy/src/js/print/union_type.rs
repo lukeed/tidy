@@ -118,12 +118,26 @@ pub(crate) fn write_ts_union_type_in<'a>(
   }
 
   let members = UnionMembers { types, comments_after_first_operator: CommentList::empty() };
+  // Prettier prints `/* c */ | A` when the union breaks. Formatted again, a one-line comment before the first `|` is the
+  // first type's, and goes after the `|`. Those that go on the line of the first type go there now.
+  let own = match prints_own_comments {
+    true => f.comments().of_node(node).leading,
+    false => CommentList::empty(),
+  };
+  let inline = (own.iter().rev())
+    .take_while(|it| !it.is_line() && !it.is_multiline_block() && !it.has_newline_after())
+    .count();
+  let (before, after) = own.split_at(own.len() - inline);
   let printed = format_with(|f| {
     write!(
       f,
       [
-        own_leading_comments,
-        group(&format_args!(if_group_breaks(&"| "), members)),
+        FormatLeadingComments::Comments(before),
+        group(&format_args!(
+          if_group_breaks(&"| "),
+          FormatLeadingComments::Comments(after),
+          members
+        )),
         own_trailing_comments
       ]
     );

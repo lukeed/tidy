@@ -15,7 +15,7 @@ use self::measure::Measure;
 use self::output::Out;
 use super::element::{
   BestFitting, Condition, DedentMode, Fallback, Flat, FlatFlags, FormatElement, Group, GroupId,
-  GroupMode, Interned, LineMode, PrintMode, Tag, TextWidth,
+  GroupMode, Interned, LineMode, PrintMode, Tag, Text, TextWidth,
 };
 use super::formatter::{END_LINE_SUFFIX, REST_OF_INDENTED_LINE_GROUP, Storage, line_break};
 use crate::js::FormatError;
@@ -177,6 +177,8 @@ pub(crate) struct PrinterBuffers {
   measure_frames: Vec<Frame>,
   /// The state that [`Printer::try_expanded`] restores.
   before_try: BeforeTry,
+  /// Where each comment printed from the source starts in the output, as `(source, output)` offsets.
+  pub(crate) comments: Vec<(u32, u32)>,
 }
 
 /// Copies of the vectors that printing does more than append to, taken before the try. The others are just truncated to
@@ -250,6 +252,7 @@ pub(crate) fn print(
   buffers.line_suffixes.clear();
   buffers.group_modes.clear();
   buffers.before_try.unstable.clear();
+  buffers.comments.clear();
   let start = out.len();
   let mut printer = Printer {
     options,
@@ -430,7 +433,7 @@ impl<'d> Printer<'d> {
             self.has_empty_line = false;
           }
         }
-        FormatElement::SourceText(text) => self.print_text(self.source, text.range(), text.width),
+        FormatElement::SourceText(text) => self.print_source_text(*text),
         FormatElement::OwnedText(text) => self.print_text(self.text, text.range(), text.width),
         FormatElement::Line(line_mode) => self.print_line(*line_mode),
         FormatElement::IndentedLineGroup(id) => {
@@ -643,7 +646,7 @@ impl<'d> Printer<'d> {
             self.out.token(token);
             self.line_width += token.len();
           }
-          FormatElement::SourceText(text) => self.print_text(self.source, text.range(), text.width),
+          FormatElement::SourceText(text) => self.print_source_text(*text),
           FormatElement::OwnedText(text) => self.print_text(self.text, text.range(), text.width),
           FormatElement::Space
           | FormatElement::Line(LineMode::SoftOrSpace | LineMode::SoftOrSpaceEmpty)
@@ -952,6 +955,7 @@ impl<'d> Printer<'d> {
     let mode = self.mode;
     let buffers = &mut *self.buffers;
     let (queue_len, frames_len) = (buffers.queue.len(), buffers.frames.len());
+    let comments_len = buffers.comments.len();
     let before = &mut buffers.before_try;
     before.indentions.clone_from(&buffers.indentions);
     before.history.clone_from(&buffers.history);
@@ -977,6 +981,7 @@ impl<'d> Printer<'d> {
     let buffers = &mut *self.buffers;
     buffers.queue.truncate(queue_len);
     buffers.frames.truncate(frames_len);
+    buffers.comments.truncate(comments_len);
     let before = &mut buffers.before_try;
     buffers.indentions.clone_from(&before.indentions);
     buffers.history.clone_from(&before.history);
@@ -1122,6 +1127,19 @@ impl<'d> Printer<'d> {
 
   /// Prints `text[range]`.
   #[inline(always)]
+  /// Prints a range of the source, and notes where it starts in the output if it's a comment.
+  fn print_source_text(&mut self, text: Text) {
+    let range = text.range();
+    if range.len() >= 2
+      && matches!(self.source.get(range.start..range.start + 2), Some(b"//" | b"/*"))
+    {
+      self.print_pending();
+      let at = (self.out.len() - self.start) as u32;
+      self.buffers.comments.push((text.start, at));
+    }
+    self.print_text(self.source, range, text.width);
+  }
+
   fn print_text(&mut self, text: &[u8], range: std::ops::Range<usize>, width: TextWidth) {
     self.print_pending();
     self.has_empty_line = false;

@@ -15,6 +15,7 @@ pub(crate) mod options;
 pub(crate) mod owners;
 pub(crate) mod parentheses;
 pub(crate) mod print;
+pub(crate) mod settle;
 pub(crate) mod sort;
 pub(crate) mod sort_imports;
 pub(crate) mod source_text;
@@ -334,12 +335,22 @@ impl Formatter {
     self.output.clear();
     // Prettier's core prints nothing for a text of white space only.
     if !crate::strings::trim_js_whitespace(text.as_bytes()).is_empty() {
-      self.print(text, path, options)?;
+      let mut unsettled = self.print(text, path, options)?;
+      // The output would format differently again, so `check` would fail after `up`. That next output stays.
+      for _ in 0..2 {
+        if !unsettled {
+          break;
+        }
+        let first = std::mem::take(&mut self.output);
+        unsettled = self.print(&first, path, options)?;
+      }
     }
     Ok(crate::with_bom(bom, &mut self.output))
   }
 
-  fn print(&mut self, text: &str, path: &str, options: &Options) -> Result<(), crate::Error> {
+  /// Prints `text` to the output. Returns true if a comment sits differently in the output, so that formatting it again
+  /// could print something else. See [`settle`].
+  fn print(&mut self, text: &str, path: &str, options: &Options) -> Result<bool, crate::Error> {
     self.allocator.reset();
     let allocator = &self.allocator;
     let format_options =
@@ -366,9 +377,12 @@ impl Formatter {
       ir::run::format(&file, &format_options, &mut self.scratch, &mut out, format_file);
     self.output = String::from_utf8(out)
       .unwrap_or_else(|error| String::from_utf8_lossy(error.as_bytes()).into_owned());
+    let tab_width = options.jsdoc.then(|| format_options.indent_width.value() as usize);
+    let printed = self.scratch.printed_comments();
+    let unsettled = settle::is_unsettled(file.text(), self.output.as_bytes(), printed, tab_width);
     match formatted {
-      Ok(()) if recovered.is_empty() => Ok(()),
-      Ok(()) => keeps_errors(&recovered, &self.output, source_type),
+      Ok(()) if recovered.is_empty() => Ok(unsettled),
+      Ok(()) => keeps_errors(&recovered, &self.output, source_type).map(|()| unsettled),
       Err(FormatError::NestedTooDeeply) => Err(crate::Error::TooDeep),
       Err(error) => Err(crate::Error::Syntax { message: format!("{error:?}"), at: 0 }),
     }

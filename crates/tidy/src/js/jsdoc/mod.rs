@@ -63,7 +63,8 @@ fn write_formatted<'a>(
   let available_width = (f.options().line_width.value() as usize).saturating_sub(indent);
   let write_lines = |lines: &[u8], f: &mut Formatter<'a>| {
     // See `Comment::fmt`. Without the boundary, a pending line suffix comment would be printed after the `/**`.
-    write!(f, [line_suffix_boundary(), "/**"]);
+    // The `/**` of the source, so that the printer notes where the comment ends up.
+    write!(f, [line_suffix_boundary(), text(&content[..3])]);
     for line in strings::split(lines, b"\n") {
       write!(f, [hard_line_break(), " *"]);
       if !line.is_empty() {
@@ -89,7 +90,7 @@ fn write_formatted<'a>(
     None => return false,
     Some(FormattedJsdoc::Empty) => {}
     Some(FormattedJsdoc::SingleLine(line)) => {
-      write!(f, "/** ");
+      write!(f, [text(&content[..3]), " "]);
       f.write_text(&line, None);
       write!(f, " */");
     }
