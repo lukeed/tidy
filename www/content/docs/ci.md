@@ -27,13 +27,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo install --git https://github.com/lukeed/tidy tidy
+      - uses: cargo-bins/cargo-binstall@main
+      - run: cargo binstall --no-confirm tidy
       - run: tidy check .
 ```
 
-Once releases exist, the install script is faster than a cargo build:
+cargo-binstall installs the prebuilt archive of the latest release, so nothing is compiled. Without a Rust toolchain, the install script does the same:
 
 ```yaml
 - run: curl -fsSL https://tidy.lukeed.com | sh
@@ -66,10 +65,11 @@ tidy is one binary and one command, so it fits anywhere:
 
 ```yaml [.gitlab-ci.yml]
 format:
-  image: rust:latest
+  image: alpine:latest
   script:
-    - cargo install --git https://github.com/lukeed/tidy tidy
-    - tidy check .
+    - apk add --no-cache curl
+    - curl -fsSL https://tidy.lukeed.com | sh
+    - ~/.local/bin/tidy check .
 ```
 
 ```sh [Docker]

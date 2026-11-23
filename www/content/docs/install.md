@@ -5,18 +5,22 @@ group: Usage
 order: 1
 ---
 
-<!-- prettier-ignore -->
-> **tidy has not had its first tagged release yet.** Until it does, build the
-> command from source with cargo. The install script and the prebuilt binaries
-> below describe how it will work, and will start answering the moment a release
-> is tagged.
+## cargo-binstall
+
+If you use Rust, [cargo-binstall](https://github.com/cargo-bins/cargo-binstall) installs the command from the prebuilt archive of a release, with no build:
+
+```sh
+$ cargo binstall tidy
+```
+
+The binary is called `tidy`, and lands in `~/.cargo/bin`.
 
 ## From source
 
-Building needs a Rust toolchain. It takes a few minutes the first time.
+Building needs a Rust toolchain, and takes a few minutes the first time. The command is the `cli` feature of the `tidy` crate, which is off by default so that the library has no command line dependencies:
 
 ```sh
-$ cargo install --git https://github.com/lukeed/tidy tidy
+$ cargo install tidy --features cli
 ```
 
 Or from a clone of the repository:
@@ -24,10 +28,8 @@ Or from a clone of the repository:
 ```sh
 $ git clone https://github.com/lukeed/tidy
 $ cd tidy
-$ cargo install --path crates/tidy
+$ cargo install --path crates/tidy --features cli
 ```
-
-Either way the binary is called `tidy`, and lands in `~/.cargo/bin`.
 
 ## npm
 
@@ -44,7 +46,7 @@ format("<p   >hi</p>", { filepath: "index.html" });
 //=> "<p>hi</p>\n"
 ```
 
-It has no `bin`, so `npx tidy` does not work. Use the command from source, above.
+It has no `bin`, so `npx tidy` does not work. Install the command as above.
 
 ## Install script
 

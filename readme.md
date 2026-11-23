@@ -27,11 +27,13 @@ It's _fast_.<br>On a 12,000-file corpus of every language (except XML), tidy che
 
 ## Install
 
-Nothing is published yet. For now, build it from a clone of this repo:
-
 ```sh
-$ cargo install --path crates/tidy
+$ cargo binstall tidy    # command, from the release's prebuilt archive
+$ cargo add tidy         # library
+$ bun add tidyrs         # Node binding
 ```
+
+The command is the crate's `cli` feature, which is off by default. To build it from source, use `cargo install tidy --features cli`. See [Install](https://tidy.lukeed.com/docs/install/) for the install script and the prebuilt archives.
 
 ## Usage
 
