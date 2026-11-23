@@ -1,5 +1,5 @@
 {
-  "$id": "https://tidy.lukeed.com/2.0.0-rc.2/schema.json",
+  "$id": "https://tidy.lukeed.com/2.0.0-rc.3/schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "description": "Options for tidy, a code formatter with Prettier's style. https://tidy.lukeed.com/docs/options/",
