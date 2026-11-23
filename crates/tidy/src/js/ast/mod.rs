@@ -45,6 +45,8 @@ pub(crate) struct File<'a> {
   pub(crate) errors: bool,
   /// Values computed once per file, such as its attached comments.
   extension: std::cell::OnceCell<Box<dyn std::any::Any>>,
+  /// The text that JSDoc comments are read from, once a comment breaks a line with something other than `\n`.
+  jsdoc_text: std::cell::OnceCell<Box<[u8]>>,
   /// For the names that the source doesn't spell out, such as `1000` for the key `1e3`.
   allocator: &'a oxc_allocator::Allocator,
   pub(crate) program: &'a Program<'a>,
@@ -115,6 +117,7 @@ impl<'a> File<'a> {
       chains: Vec::new(),
       tags: Vec::new(),
       extension: std::cell::OnceCell::new(),
+      jsdoc_text: std::cell::OnceCell::new(),
       errors: false,
     };
     file.chains = vec![std::cell::Cell::new(0); file.kinds.len()];

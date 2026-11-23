@@ -287,8 +287,12 @@ impl JsdocFormatter<'_> {
     // The name and the default value.
     let mut name: Bytes<'_> = Cow::Borrowed(b"");
     let mut default_value: Option<&[u8]> = None;
-    if let Some(name_part) = &name_part {
-      let raw = name_part.raw();
+    // A multi-line `[name=default]` keeps its lines, without their `*`.
+    let raw = name_part.as_ref().map(|part| match strings::contains_char(part.raw(), b'\n') {
+      true => Cow::Owned(strip_jsdoc_stars_preserve_newlines(part.raw())),
+      false => Cow::Borrowed(part.raw()),
+    });
+    if let Some(raw) = raw.as_deref() {
       name = Cow::Borrowed(raw);
       if is_type_optional && !raw.starts_with(b"[") {
         name = Cow::Owned([b"[", raw, b"]"].concat());
@@ -318,7 +322,7 @@ impl JsdocFormatter<'_> {
       normalize_markdown_emphasis(strings::trim_unicode_whitespace(&desc_with_whitespace));
     let desc_raw = strings::trim_unicode_whitespace(&desc_normalized);
 
-    // After a multiline type, the description goes on its own lines.
+    // After a multiline type or name, the description goes on its own lines.
     if strings::contains_char(&tag_line, b'\n') {
       self.content_lines.push(tag_line);
       if !desc_raw.is_empty() {

@@ -68,7 +68,7 @@ impl JsdocFormatter<'_> {
         merged_description.extend_from_slice(parsed);
       }
     }
-    let is_single_line = !strings::contains_char(content, b'\n');
+    let is_single_line = !doc.is_multiline();
 
     // `/** @type */`
     if merged_description.is_empty()

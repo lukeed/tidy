@@ -30,11 +30,13 @@ pub(super) fn list_marker(line: &[u8]) -> Option<ListMarker> {
   }
 }
 
-/// True if `word` at the start of a line would start a list, a heading or a quote, so no line may break before it.
-/// That's `/^>|^(?:[*+-]|#{1,6}|\d+[).])$/` from Prettier's Markdown printer, plus `1-`.
+/// True if `word` at the start of a line would start a list, a heading, a quote or a JSDoc tag, so no line may
+/// break before it. That's `/^>|^(?:[*+-]|#{1,6}|\d+[).])$/` from Prettier's Markdown printer, plus `1-` and a tag
+/// as [`starts_block_tag`](crate::js::ast::jsdoc::starts_block_tag) reads it.
 pub(super) fn is_block_marker_token(word: &[u8]) -> bool {
   match word {
     [b'-' | b'+' | b'*'] | [b'>', ..] => true,
+    [b'@', ..] => crate::js::ast::jsdoc::starts_block_tag(word),
     [b'#', ..] => word.len() <= 6 && word.iter().all(|&byte| byte == b'#'),
     [digits @ .., b'.' | b')' | b'-'] => {
       !digits.is_empty() && digits.iter().all(u8::is_ascii_digit)

@@ -84,3 +84,26 @@ fn reads_the_config_key() {
   assert!(tidy::Options::default().js.jsdoc);
   assert!(tidy::config::Config::json(r#"{ "js": { "jsdoc": "no" } }"#).is_err());
 }
+
+#[test]
+fn reads_every_line_terminator_as_a_line_break() {
+  let lf = "/**\n * @param {{\n *   a: string,\n * }} x The x.\n * @returns {number}\n */\nfunction f(x) {}\n";
+  let expected = format(lf, "a.ts", &Options::default());
+  assert!(expected.contains("a: string;"), "{expected}");
+  for terminator in ["\r", "\u{2028}", "\u{2029}"] {
+    let comment_end = lf.find("*/").unwrap() + 2;
+    let input = format!("{}{}", lf[..comment_end].replace('\n', terminator), &lf[comment_end..]);
+    assert_eq!(format(&input, "a.ts", &Options::default()), expected, "{terminator:?}");
+  }
+}
+
+#[test]
+fn reads_a_type_tag_broken_by_any_line_terminator_as_on_many_lines() {
+  let input = |terminator: &str| {
+    format!("/**{terminator} * @type {{string}}{terminator} */{terminator}let a;\n")
+  };
+  let expected = format(&input("\n"), "a.js", &Options::default());
+  for terminator in ["\r", "\u{2028}"] {
+    assert_eq!(format(&input(terminator), "a.js", &Options::default()), expected, "{terminator:?}");
+  }
+}

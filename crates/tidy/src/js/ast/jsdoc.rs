@@ -14,6 +14,32 @@ impl<'a> File<'a> {
   pub(crate) fn jsdoc(&'a self) -> JSDocs<'a> {
     JSDocs { file: self }
   }
+
+  /// The file's text, with every line terminator other than `\n` and `\r\n` turned into a `\n`, padded to its
+  /// length so that offsets still hold. oxc_jsdoc splits lines at every line terminator; this reader only at `\n`.
+  fn jsdoc_text(&'a self) -> &'a [u8] {
+    self.jsdoc_text.get_or_init(|| {
+      let mut text = self.text().to_vec();
+      let mut at = 0;
+      while at < text.len() {
+        match &text[at..] {
+          [b'\r', next, ..] if *next != b'\n' => text[at] = b'\n',
+          [b'\r'] => text[at] = b'\n',
+          [0xE2, 0x80, 0xA8 | 0xA9, ..] => text[at..at + 3].copy_from_slice(b"\n  "),
+          _ => {}
+        }
+        at += 1;
+      }
+      text.into_boxed_slice()
+    })
+  }
+}
+
+/// Whether `comment` breaks a line with something other than `\n` and `\r\n`.
+fn has_other_line_terminator(comment: &[u8]) -> bool {
+  comment.windows(2).any(|pair| pair[0] == b'\r' && pair[1] != b'\n')
+    || comment.ends_with(b"\r")
+    || comment.windows(3).any(|it| matches!(it, [0xE2, 0x80, 0xA8 | 0xA9]))
 }
 
 /// Empty if `span` is out of bounds.
@@ -72,6 +98,10 @@ impl<'a> JSDocs<'a> {
     if comment.len() < 5 || !comment.starts_with(b"/**") || comment[3] == b'/' {
       return None;
     }
+    let text = match has_other_line_terminator(comment) {
+      true => self.file.jsdoc_text(),
+      false => text,
+    };
     let tags = match strings::contains_char(comment, b'@') {
       true => self.file.allocator.alloc_slice_copy(&read_tags(text, from, end)),
       false => &[][..],
@@ -90,7 +120,7 @@ fn read_tags(text: &[u8], start: usize, end: usize) -> Vec<Tag> {
   while let Some(found) = strings::index_of_char_usize(&text[pos..], b'@') {
     let at = pos + found;
     rule.advance(text, at);
-    if !rule.allows_tag() {
+    if !rule.allows_tag() || !starts_block_tag(&text[at..]) {
       pos = at + 1;
       continue;
     }
@@ -226,6 +256,13 @@ fn decode(text: &[u8]) -> (char, usize) {
   }
 }
 
+/// oxc_jsdoc's `starts_block_tag`: whether `text`, at a line start, opens a block tag. A `/` in the tag name, as in
+/// the npm scope `@scope/pkg`, keeps it prose; a `{` ends the name, so `@param{import('./a').B} x` stays a tag.
+pub(crate) fn starts_block_tag(text: &[u8]) -> bool {
+  text.starts_with(b"@")
+    && find_token_range(text).is_some_and(|name| !text[..name.end].contains(&b'/'))
+}
+
 /// oxc_jsdoc's `find_token_range`: the range of the first word in `text`. A `{` also ends it: `@kind{type}`.
 fn find_token_range(text: &[u8]) -> Option<std::ops::Range<usize>> {
   let mut start = None;
@@ -303,6 +340,11 @@ impl<'a> JSDoc<'a> {
   /// Includes the `/**` and `*/`.
   pub(crate) fn comment_span(self) -> Span {
     self.comment_span
+  }
+
+  /// Whether the comment spans more than one line, as `Comment::is_multiline_block` reads it.
+  pub(crate) fn is_multiline(self) -> bool {
+    strings::contains_char(slice(self.text, self.comment_span), b'\n')
   }
 
   /// `JSDoc::span`: everything between the `/**` and `*/`.
