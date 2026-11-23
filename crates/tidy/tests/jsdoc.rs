@@ -107,3 +107,24 @@ fn reads_a_type_tag_broken_by_any_line_terminator_as_on_many_lines() {
     assert_eq!(format(&input(terminator), "a.js", &Options::default()), expected, "{terminator:?}");
   }
 }
+
+#[test]
+fn keeps_the_indents_of_an_example_object_with_quoted_keys() {
+  let input = "/**\n * @example\n *   {\n *     \"a\": 1, // one\n *     \"b\": {\n *       \"c\": 2\n *     }\n *   }\n */\nlet a;\n";
+  assert_eq!(format(input, "a.js", &Options::default()), input);
+}
+
+#[test]
+fn keeps_a_fenced_example_through_a_second_format() {
+  let input = "/**\n * Removes it.\n *\n * @example\n *\n * ```sh\n * sb remove a\n * ```\n *\n * Becomes\n *\n * ```js\n * b();\n * ```\n *\n * It is based on others.\n */\nlet a;\n";
+  let once = format(input, "a.ts", &Options::default());
+  assert_eq!(format(&once, "a.ts", &Options::default()), once);
+}
+
+#[test]
+fn joins_the_lines_of_a_link() {
+  let input = "/**\n * @param options The options for the transformation. See {@link\n * TransformOptions} for more information.\n */\nfunction f(options) {}\n";
+  let once = format(input, "a.ts", &Options::default());
+  assert!(once.contains("{@link TransformOptions}"), "{once}");
+  assert_eq!(format(&once, "a.ts", &Options::default()), once);
+}

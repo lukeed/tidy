@@ -1,7 +1,7 @@
 //! Formatters for each kind of tag.
 
 use super::embedded::{
-  embedded_options, format_embedded_js, format_type_via_formatter, is_js_ts_lang,
+  embedded_options, format_embedded_js, format_type_via_formatter, is_js_ts_lang, is_quoted_object,
   update_template_depth,
 };
 use super::normalize::{
@@ -38,6 +38,27 @@ fn dedent_lines(text: &[u8], base_indent: usize) -> Vec<u8> {
       result.extend_from_slice(
         line.get(min_indent..).unwrap_or_else(|| strings::trim_unicode_whitespace_start(line)),
       );
+    }
+  }
+  result
+}
+
+/// `code` without the indent that its lines after the first share. The first line starts the code, so it has none.
+fn dedent_rest(code: &[u8]) -> Vec<u8> {
+  let base = (lines(code).skip(1))
+    .filter(|line| !strings::is_all_unicode_whitespace(line))
+    .map(|line| line.len() - strings::trim_unicode_whitespace_start(line).len())
+    .min()
+    .unwrap_or(0);
+  let mut result = Vec::with_capacity(code.len());
+  for (index, line) in lines(code).enumerate() {
+    if index > 0 {
+      result.push(b'\n');
+      result.extend_from_slice(
+        line.get(base..).unwrap_or_else(|| strings::trim_unicode_whitespace_start(line)),
+      );
+    } else {
+      result.extend_from_slice(line);
     }
   }
   result
@@ -104,6 +125,17 @@ impl JsdocFormatter<'_> {
     }
   }
 
+  /// Pushes the lines of `code` as written, without the indent that the lines after the first share.
+  fn push_kept_code_lines(&mut self, code: &[u8], indent: &[u8]) {
+    for line in lines(&dedent_rest(code)) {
+      let out = self.content_lines.begin_line();
+      if !strings::is_all_unicode_whitespace(line) {
+        out.extend_from_slice(indent);
+        out.extend_from_slice(strings::trim_unicode_whitespace_end(line));
+      }
+    }
+  }
+
   fn push_raw_code_lines(&mut self, code: &[u8], indent: &[u8]) {
     for line in lines(code) {
       let content = if self.options.keep_unparsable_example_indent {
@@ -123,7 +155,16 @@ impl JsdocFormatter<'_> {
     if code.is_empty() {
       return;
     }
-    // Three backticks also parse as JavaScript, so check for fences first.
+    // Three backticks also parse as JavaScript, so check for fences first. In formatted output the lines after the
+    // first are indented, which the closing fence can't be.
+    let dedented;
+    let code = match code.starts_with(b"```") {
+      true => {
+        dedented = dedent_rest(code);
+        &dedented[..]
+      }
+      false => code,
+    };
     if let Some((first_line, rest)) = strings::split_once_char(code, b'\n')
       && first_line.starts_with(b"```")
     {
@@ -143,6 +184,9 @@ impl JsdocFormatter<'_> {
       }
     }
     let indent = self.code_indent();
+    if is_quoted_object(code) {
+      return self.push_kept_code_lines(code, indent);
+    }
     let effective_width = self.wrap_width.saturating_sub(self.code_indent_width());
     // Text that isn't code can still parse as code. In that case the output has many more lines than the input.
     match format_embedded_js(code, effective_width, self.format_options)
@@ -172,7 +216,14 @@ impl JsdocFormatter<'_> {
         None => self.push_raw_code_lines(inner_code, indent),
       }
     }
-    self.content_lines.push([indent, closing_fence].concat());
+    // The text after the fence is still the example's, so it's indented like it, or the next format reads it so.
+    for line in lines(closing_fence) {
+      let out = self.content_lines.begin_line();
+      if !strings::is_all_unicode_whitespace(line) {
+        out.extend_from_slice(indent);
+        out.extend_from_slice(line);
+      }
+    }
   }
 
   /// Appends ` {type}` to `tag_line`.

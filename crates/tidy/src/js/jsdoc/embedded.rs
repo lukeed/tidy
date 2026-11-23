@@ -181,12 +181,8 @@ pub(super) fn format_embedded_js(
     return parse_and_build(TSX, code, &base_options)
       .or_else(|| parse_and_build(JSX, code, &base_options));
   }
-  // An object literal, which would parse as a block with labels. prettier-plugin-jsdoc formats it as JSON, which
-  // keeps quoted keys, so an object with quotes is left as is.
-  let has_quoted_keys = strings::index_of_char_usize(trimmed, b'"').is_some_and(|quote| {
-    strings::index_of_char_usize(trimmed, b'}').is_some_and(|brace| quote < brace)
-  });
-  if has_quoted_keys {
+  // An object literal, which would parse as a block with labels.
+  if is_quoted_object(trimmed) {
     return None;
   }
   let wrapped = [b"(", trimmed, b")"].concat();
@@ -201,6 +197,16 @@ pub(super) fn format_embedded_js(
     strings::trim_unicode_whitespace(inner).ends_with(b"}").then(|| inner.to_vec())
   };
   format_object(JSX).or_else(|| format_object(TSX))
+}
+
+/// An object literal with a quoted key. prettier-plugin-jsdoc formats it as JSON, which keeps quoted keys, so it's kept
+/// as written.
+pub(super) fn is_quoted_object(code: &[u8]) -> bool {
+  let trimmed = strings::trim_unicode_whitespace(code);
+  trimmed.starts_with(b"{")
+    && strings::index_of_char_usize(trimmed, b'"').is_some_and(|quote| {
+      strings::index_of_char_usize(trimmed, b'}').is_some_and(|brace| quote < brace)
+    })
 }
 
 /// prettier-plugin-jsdoc's `formatType`: formats the type as the right side of `type __t = ..;`. Returns `None` if that

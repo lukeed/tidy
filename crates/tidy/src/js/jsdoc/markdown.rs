@@ -168,8 +168,10 @@ fn convert_star_list_markers(text: &[u8]) -> Bytes<'_> {
   })
 }
 
-/// Replaces each `{@link ...}` with a placeholder of the same length. Also returns the links that were replaced.
-fn protect_jsdoc_links(text: &[u8]) -> (Bytes<'_>, Vec<&[u8]>) {
+/// Replaces each `{@link ...}` with a placeholder of the same length. Also returns the links that were replaced, with
+/// each run of white space in them as one space: a line break kept inside a link would be indented again on the next
+/// format.
+fn protect_jsdoc_links(text: &[u8]) -> (Bytes<'_>, Vec<Bytes<'_>>) {
   if !strings::contains(text, b"{@") {
     return (Cow::Borrowed(text), Vec::new());
   }
@@ -201,12 +203,24 @@ fn protect_jsdoc_links(text: &[u8]) -> (Bytes<'_>, Vec<&[u8]>) {
     result.extend_from_slice(PLACEHOLDER_PREFIX);
     push_number(&mut result, placeholders.len());
     result.resize(result.len().max(placeholder_start + i - start), 0x01);
-    placeholders.push(&text[start..i]);
+    placeholders.push(one_line(&text[start..i]));
   }
   (Cow::Owned(result), placeholders)
 }
 
-fn restore_placeholders(text: Vec<u8>, placeholders: &[&[u8]]) -> Vec<u8> {
+/// `link` with each run of white space as one space.
+fn one_line(link: &[u8]) -> Bytes<'_> {
+  let is_spaced = |pair: &[u8]| pair[0].is_ascii_whitespace() && pair[1].is_ascii_whitespace();
+  if !link.iter().any(|&byte| matches!(byte, b'\n' | b'\r' | b'\t'))
+    && !link.windows(2).any(is_spaced)
+  {
+    return Cow::Borrowed(link);
+  }
+  let words = link.split(u8::is_ascii_whitespace).filter(|word| !word.is_empty());
+  Cow::Owned(words.collect::<Vec<_>>().join(&b' '))
+}
+
+fn restore_placeholders(text: Vec<u8>, placeholders: &[Bytes<'_>]) -> Vec<u8> {
   if placeholders.is_empty() || !strings::contains(&text, PLACEHOLDER_PREFIX) {
     return text;
   }
