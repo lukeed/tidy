@@ -1,7 +1,7 @@
 //! The name of a property, a member or a JSX attribute: bun's `Key` from `src/lint/ast/decl.rs` (MIT).
 
 use super::{Expr, File, Name, Span, expression_id, skip_trivia};
-use oxc_ast::ast::{Expression, JSXAttributeName, PropertyKey};
+use oxc_ast::ast::{Expression, JSXAttributeName, NumericLiteral, PropertyKey, StringLiteral};
 use oxc_span::GetSpan;
 
 #[derive(Copy, Clone, Debug)]
@@ -33,22 +33,23 @@ pub(crate) enum KeyKind<'a> {
 
 impl<'a> Key<'a> {
   /// The key `key` of a property or a member, which is in brackets if `computed`.
-  pub(crate) fn of(file: &'a File<'a>, key: &'a PropertyKey<'a>, computed: bool) -> Key<'a> {
+  pub(crate) fn of(file: &'a File<'a>, key: &'a PropertyKey<'a>) -> Key<'a> {
     let inner = span(key.span());
     let kind = match key {
       PropertyKey::StaticIdentifier(it) => KeyKind::Ident(Name(it.name.as_str())),
       PropertyKey::PrivateIdentifier(_) => KeyKind::Private(Name(file.str(inner))),
-      _ => match key.as_expression().map(|it| literal(file, it)) {
-        Some(Some(Literal::String(name))) if computed => KeyKind::ComputedString(name),
-        Some(Some(Literal::Number(name))) if computed => KeyKind::ComputedNumber(name),
-        Some(Some(Literal::String(name))) => KeyKind::String(name),
-        Some(Some(Literal::Number(name))) => KeyKind::Number(name),
-        _ => {
+      PropertyKey::StaticStringLiteral(it) => KeyKind::String(string(file, it)),
+      PropertyKey::StaticNumericLiteral(it) => KeyKind::Number(number(file, it)),
+      PropertyKey::StaticBigIntLiteral(it) => KeyKind::Number(Name(it.value.as_str())),
+      _ => match key.as_expression().and_then(|it| literal(file, it)) {
+        Some(Literal::String(name)) => KeyKind::ComputedString(name),
+        Some(Literal::Number(name)) => KeyKind::ComputedNumber(name),
+        None => {
           KeyKind::Computed(Expr::new(file, key.as_expression().map_or(super::NONE, expression_id)))
         }
       },
     };
-    let outer = match computed {
+    let outer = match key.is_computed() {
       true => {
         let text = file.text.as_bytes();
         let open =
@@ -138,24 +139,27 @@ enum Literal<'a> {
 /// The value of a string or numeric literal key, or a template without substitutions.
 fn literal<'a>(file: &'a File<'a>, expression: &'a Expression<'a>) -> Option<Literal<'a>> {
   match expression {
-    Expression::StringLiteral(it) => {
-      let text = file.str(span(it.span));
-      let quoted = text.get(1..text.len().saturating_sub(1)).unwrap_or_default();
-      Some(Literal::String(Name(it.value.as_str().unwrap_or(quoted))))
-    }
+    Expression::StringLiteral(it) => Some(Literal::String(string(file, it))),
     Expression::TemplateLiteral(it) if it.expressions.is_empty() => {
       let cooked = it.quasis.first()?.value.cooked?.as_str()?;
       Some(Literal::String(Name(cooked)))
     }
-    Expression::NumericLiteral(it) => {
-      Some(Literal::Number(Name(file.keep(&number_string(it.value)))))
-    }
-    Expression::BigIntLiteral(it) => {
-      let digits = it.value.as_str();
-      Some(Literal::Number(Name(digits)))
-    }
+    Expression::NumericLiteral(it) => Some(Literal::Number(number(file, it))),
+    Expression::BigIntLiteral(it) => Some(Literal::Number(Name(it.value.as_str()))),
     _ => None,
   }
+}
+
+/// The value of a string literal, or its text between the quotes when it has no value.
+fn string<'a>(file: &'a File<'a>, it: &'a StringLiteral<'a>) -> Name<'a> {
+  let text = file.str(span(it.span));
+  let quoted = text.get(1..text.len().saturating_sub(1)).unwrap_or_default();
+  Name(it.value.as_str().unwrap_or(quoted))
+}
+
+/// A numeric literal as JavaScript prints its value.
+fn number<'a>(file: &'a File<'a>, it: &NumericLiteral) -> Name<'a> {
+  Name(file.keep(&number_string(it.value)))
 }
 
 /// Where a computed key's expression ends, with the parentheses around it.

@@ -632,19 +632,19 @@ fn same_kind(file: &File, node: Node, rest: &[u32], max: usize) -> usize {
 /// brackets, a module specifier, the `#b` of `a.#b`.
 fn is_field(file: &File, parent: u32, child: u32) -> bool {
   use AstKind as K;
-  let key = |key: &PropertyKey, computed: bool| {
+  let key = |key: &PropertyKey| {
     key.node_id().index() as u32 == child
-      && (!computed || key.as_expression().is_some_and(super::key::is_literal))
+      && (!key.is_computed() || key.as_expression().is_some_and(super::key::is_literal))
   };
   match file.kind(parent) {
-    Some(K::ObjectProperty(it)) => key(&it.key, it.computed),
-    Some(K::MethodDefinition(it)) => key(&it.key, it.computed),
-    Some(K::PropertyDefinition(it)) => key(&it.key, it.computed),
-    Some(K::AccessorProperty(it)) => key(&it.key, it.computed),
-    Some(K::TSPropertySignature(it)) => key(&it.key, it.computed),
-    Some(K::TSMethodSignature(it)) => key(&it.key, it.computed),
-    Some(K::BindingProperty(it)) => key(&it.key, it.computed),
-    Some(K::AssignmentTargetPropertyProperty(it)) => key(&it.name, it.computed),
+    Some(K::ObjectProperty(it)) => key(&it.key),
+    Some(K::MethodDefinition(it)) => key(&it.key),
+    Some(K::PropertyDefinition(it)) => key(&it.key),
+    Some(K::AccessorProperty(it)) => key(&it.key),
+    Some(K::TSPropertySignature(it)) => key(&it.key),
+    Some(K::TSMethodSignature(it)) => key(&it.key),
+    Some(K::BindingProperty(it)) => key(&it.key),
+    Some(K::AssignmentTargetPropertyProperty(it)) => key(&it.name),
     Some(K::TSEnumMember(it)) => file.span_of(child).start == it.id.span().start,
     Some(K::ImportAttribute(it)) => {
       matches!(&it.key, ImportAttributeKey::StringLiteral(key) if key.node_id.get().index() as u32 == child)

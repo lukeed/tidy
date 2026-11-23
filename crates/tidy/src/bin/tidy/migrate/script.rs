@@ -99,7 +99,7 @@ impl<'a, 'p> Reader<'a, 'p> {
             self.notes.borrow_mut().push(self.unread(property.span().start, "a spread"));
             continue;
           };
-          let key = property.key.static_name().filter(|_| !property.computed);
+          let key = property.key.static_name();
           let Some(key) = key.as_ref().and_then(|it| it.as_str()) else {
             self.notes.borrow_mut().push(self.unread(property.span.start, "a computed key"));
             continue;

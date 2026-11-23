@@ -82,7 +82,7 @@ impl<'a> PatProp<'a> {
 
   /// `None` for `...rest`. For the shorthand `{ a }` it's the `a`.
   pub(crate) fn key(self) -> Option<Key<'a>> {
-    self.property().map(|it| Key::of(self.file, &it.key, it.computed))
+    self.property().map(|it| Key::of(self.file, &it.key))
   }
 
   /// `{ a }`, `{ a = 1 }`: the name is both the key and the binding.

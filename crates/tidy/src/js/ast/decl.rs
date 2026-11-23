@@ -573,11 +573,11 @@ impl<'a> Member<'a> {
   fn raw_key(self) -> Option<Key<'a>> {
     let file = self.file;
     match self.raw() {
-      K::MethodDefinition(it) => Some(Key::of(file, &it.key, it.computed)),
-      K::PropertyDefinition(it) => Some(Key::of(file, &it.key, it.computed)),
-      K::AccessorProperty(it) => Some(Key::of(file, &it.key, it.computed)),
-      K::TSPropertySignature(it) => Some(Key::of(file, &it.key, it.computed)),
-      K::TSMethodSignature(it) => Some(Key::of(file, &it.key, it.computed)),
+      K::MethodDefinition(it) => Some(Key::of(file, &it.key)),
+      K::PropertyDefinition(it) => Some(Key::of(file, &it.key)),
+      K::AccessorProperty(it) => Some(Key::of(file, &it.key)),
+      K::TSPropertySignature(it) => Some(Key::of(file, &it.key)),
+      K::TSMethodSignature(it) => Some(Key::of(file, &it.key)),
       _ => None,
     }
   }
@@ -857,8 +857,8 @@ impl<'a> Prop<'a> {
   pub(crate) fn key(self) -> Option<Key<'a>> {
     let file = self.file;
     match self.raw() {
-      K::ObjectProperty(it) => Some(Key::of(file, &it.key, it.computed)),
-      K::AssignmentTargetPropertyProperty(it) => Some(Key::of(file, &it.name, it.computed)),
+      K::ObjectProperty(it) => Some(Key::of(file, &it.key)),
+      K::AssignmentTargetPropertyProperty(it) => Some(Key::of(file, &it.name)),
       K::JSXAttribute(it) => Some(Key::jsx(file, &it.name)),
       K::AssignmentTargetPropertyIdentifier(it) => {
         let at = span(it.binding.span);
