@@ -165,7 +165,12 @@ pub fn shared() -> Vec<Opt> {
     ),
     flag("bracketSameLine", false, "Keep the `>` of a multi-line tag on the last line."),
     flag("singleAttributePerLine", false, "Put each attribute on its own line."),
-    opt("ignore", Kind::Text, Value::from("prettier-ignore"), "The name of the ignore directive."),
+    opt(
+      "ignore",
+      Kind::Text,
+      Value::from("prettier-ignore"),
+      "The name of the ignore directive. A comment with this name skips the next node. It can list the tools it applies to after the name, as `prettier-ignore format,lint`, and then applies only when `format` is one of them.",
+    ),
     flag("embedded", true, "Format the code of other languages inside a file."),
   ]
 }

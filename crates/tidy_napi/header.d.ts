@@ -79,7 +79,10 @@ export namespace Options {
     eol?: "lf" | "crlf" | "cr";
 
     /**
-     * The name of the ignore directive.
+     * The name of the ignore directive. A comment with this name skips the next
+     * node. It can list the tools it applies to after the name, as
+     * `prettier-ignore format,lint`, and then applies only when `format` is one
+     * of them.
      *
      * @default "prettier-ignore"
      */
