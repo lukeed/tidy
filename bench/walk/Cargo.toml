@@ -11,7 +11,7 @@ crossbeam-utils = "0.8"
 ignore = "0.4"
 libc = "0.2"
 mdtidy = { path = "../../../mdtidy/crates/mdtidy" }
-tidy = { path = "../../crates/tidy" }
+tidy = { path = "../../crates/tidy", features = ["walk"] }
 
 [profile.release]
 codegen-units = 1

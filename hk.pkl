@@ -35,8 +35,8 @@ steps {
       "*.svg",
       "*.html",
     )
-    check = "cargo run -q -p tidy -- check {{files}}"
-    fix = "cargo run -q -p tidy -- up {{files}}"
+    check = "cargo run -q -p tidy --features cli -- check {{files}}"
+    fix = "cargo run -q -p tidy --features cli -- up {{files}}"
   }
 
   // jactionlint is the maintained fork; mise warns that actionlint is deprecated.
@@ -52,7 +52,7 @@ steps {
       "crates/tidy/src/config.rs",
       "crates/tidy_napi/tidy.schema.json",
     )
-    check = "cargo run -q -p tidy -- schema | diff -u crates/tidy_napi/tidy.schema.json -"
+    check = "cargo run -q -p tidy --features cli -- schema | diff -u crates/tidy_napi/tidy.schema.json -"
     fix = "mise run schema"
   }
 
@@ -63,7 +63,7 @@ steps {
       "crates/tidy_napi/tidy.schema.json",
       "crates/tidy_napi/header.d.ts",
     )
-    check = "bun crates/tidy_napi/types.ts | cargo run -q -p tidy -- up --stdin=crates/tidy_napi/header.d.ts | diff -u crates/tidy_napi/header.d.ts -"
+    check = "bun crates/tidy_napi/types.ts | cargo run -q -p tidy --features cli -- up --stdin=crates/tidy_napi/header.d.ts | diff -u crates/tidy_napi/header.d.ts -"
     fix = "mise run types"
   }
 }

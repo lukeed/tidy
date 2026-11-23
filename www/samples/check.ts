@@ -16,7 +16,7 @@ let run = spawnSync(binary, ["up", "--no-config", `--stdin=${input}`], {
 });
 if (run.error) {
   console.error(
-    `cannot run ${binary} — build it first: cargo build --release -p tidy`,
+    `cannot run ${binary} — build it first: cargo build --release -p tidy --features cli`,
   );
   process.exit(2);
 }

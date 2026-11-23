@@ -19,15 +19,15 @@ CARGO_TARGET_DIR = "{{config_root}}/target"
 
 [tasks.build]
 description = "Build the library and CLI"
-run = "cargo build --workspace --exclude tidy_napi"
+run = "cargo build --workspace --exclude tidy_napi --features tidy/cli"
 
 [tasks.schema]
 description = "Write the JSON Schema of a tidy.json for npm and the site"
-run = "cargo run -q -p tidy -- schema > crates/tidy_napi/tidy.schema.json"
+run = "cargo run -q -p tidy --features cli -- schema > crates/tidy_napi/tidy.schema.json"
 
 [tasks.types]
 description = "Write the types that index.d.ts opens with, from the JSON Schema"
-run = "bun crates/tidy_napi/types.ts | cargo run -q -p tidy -- up --stdin=crates/tidy_napi/header.d.ts > crates/tidy_napi/header.d.ts"
+run = "bun crates/tidy_napi/types.ts | cargo run -q -p tidy --features cli -- up --stdin=crates/tidy_napi/header.d.ts > crates/tidy_napi/header.d.ts"
 depends = ["schema"]
 
 [tasks."build:wasm"]
@@ -48,14 +48,14 @@ run = "bunx napi build --platform --release --esm"
 description = "Check formatting and lint with warnings denied"
 run = [
   "hk check --all",
-  "cargo clippy --workspace --all-targets -- -D warnings",
+  "cargo clippy --workspace --all-targets --features tidy/cli -- -D warnings",
   "cargo clippy -p tidy --no-default-features --all-targets -- -D warnings",
 ]
 
 [tasks.test]
 description = "Run all tests"
 run = [
-  "cargo test --workspace",
+  "cargo test --workspace --features tidy/cli",
   "cargo test -p tidy --no-default-features",
   "bun test --cwd crates/tidy_napi",
   "bun check --cwd crates/tidy_napi",
@@ -79,7 +79,7 @@ depends = ["lint", "test"]
 description = "Format, and apply the lints that can be fixed"
 run = [
   "hk fix --all",
-  "cargo clippy --workspace --all-targets --fix --allow-dirty --allow-staged -- -D warnings",
+  "cargo clippy --workspace --all-targets --features tidy/cli --fix --allow-dirty --allow-staged -- -D warnings",
 ]
 
 [tasks.bench]

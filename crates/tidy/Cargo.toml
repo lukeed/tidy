@@ -47,7 +47,7 @@ workspace = true
 serde_json = "1"
 
 [features]
-default = ["js", "cli"]
+default = ["js"]
 # Formats JavaScript and TypeScript, and the scripts in markup and Markdown, with oxc's parser. Without it, they go to
 # the embed hook.
 js = [
@@ -67,5 +67,18 @@ js = [
 config = ["dep:serde_json", "dep:ec4rs"]
 # tidy::walk: a parallel walk that reads, works on and writes the files under the paths it is given.
 walk = ["dep:ignore"]
-# The tidy command line, which `cargo install tidy` builds.
+# The tidy command line. `cargo binstall tidy` installs its release build; `cargo install tidy --features cli` builds
+# it.
 cli = ["js", "walk", "config", "dep:pico-args"]
+
+# `cargo binstall tidy` downloads the command line from the GitHub release.
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }{ archive-suffix }"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-fmt = "zip"
+
+[package.metadata.binstall.overrides.aarch64-pc-windows-msvc]
+pkg-fmt = "zip"

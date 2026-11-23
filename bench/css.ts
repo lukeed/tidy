@@ -25,7 +25,7 @@ await $`cargo build --release`
   .cwd(join(root, "bench/css"))
   .env({ ...process.env, CARGO_TARGET_DIR: target })
   .quiet();
-await $`cargo build --release -p tidy`
+await $`cargo build --release -p tidy --features cli`
   .cwd(root)
   .env({ ...process.env, CARGO_TARGET_DIR: join(root, "target") })
   .quiet();
