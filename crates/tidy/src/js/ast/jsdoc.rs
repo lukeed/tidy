@@ -144,6 +144,11 @@ fn read_tags(text: &[u8], start: usize, end: usize) -> Vec<Tag> {
   tags
 }
 
+/// How many tags oxc_jsdoc reads in `comment`, a whole `/** */` comment.
+pub(crate) fn count_tags(comment: &[u8]) -> usize {
+  read_tags(comment, 0, comment.len()).len()
+}
+
 /// oxc_jsdoc's `parse_jsdoc_tag`, plus what its `type_name_comment` finds in the tag.
 fn parts(text: &[u8], tag: &mut Tag) {
   let slice_of = |from: usize, to: usize| text.get(from..to).unwrap_or_default();

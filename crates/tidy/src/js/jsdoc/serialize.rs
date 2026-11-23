@@ -8,7 +8,7 @@ use super::param_order::reorder_param_tags;
 use super::strings;
 use super::text::trim_end_matches;
 use crate::js::ast::File;
-use crate::js::ast::jsdoc::{JSDoc, JSDocTag};
+use crate::js::ast::jsdoc::{JSDoc, JSDocTag, count_tags};
 use crate::js::options::{
   CommentLineStrategy, FormatOptions, IndentStyle, JsdocOptions, QuoteStyle,
 };
@@ -78,6 +78,7 @@ impl JsdocFormatter<'_> {
       return None;
     }
 
+    let mut written = 0;
     if !merged_description.is_empty() {
       let description = format_description(
         &merged_description,
@@ -90,6 +91,7 @@ impl JsdocFormatter<'_> {
       let out = self.content_lines.begin_line();
       if self.options.description_tag {
         out.extend_from_slice(b"@description ");
+        written += 1;
       }
       out.extend_from_slice(&description);
     }
@@ -110,7 +112,10 @@ impl JsdocFormatter<'_> {
           if !self.content_lines.is_empty() && !self.content_lines.last_is_empty() {
             self.content_lines.push_empty();
           }
-          self.content_lines.push(import_lines.into_bytes());
+          let import_lines = import_lines.into_bytes();
+          written +=
+            strings::split(&import_lines, b"\n").filter(|line| line.starts_with(b"@")).count();
+          self.content_lines.push(import_lines);
           imports_emitted = true;
           prev_normalized_kind = Some(b"import");
         }
@@ -150,6 +155,7 @@ impl JsdocFormatter<'_> {
         }
       }
       first_non_import_tag_emitted = true;
+      written += 1;
       prev_normalized_kind = Some(normalized_kind);
       let source_has_trailing_blank =
         tag.comment().parsed_preserving_whitespace().ends_with(b"\n\n");
@@ -214,6 +220,10 @@ impl JsdocFormatter<'_> {
       full_comment.extend_from_slice(line);
     }
     full_comment.extend_from_slice(b"\n */");
+    // A quote ends at a line break and the code span or brace it hid doesn't, so rewrapped text can hide a tag.
+    if count_tags(&full_comment) != written {
+      return None;
+    }
     (full_comment != content).then(|| FormattedJsdoc::MultiLine(all.to_vec()))
   }
 

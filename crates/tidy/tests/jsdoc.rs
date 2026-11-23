@@ -151,3 +151,10 @@ fn indents_a_template_literal_in_a_fenced_example() {
   assert!(once.contains(" *   let a = css`\n *     color: red;\n *   `;\n"), "{once}");
   assert_eq!(format(&once, "a.ts", &Options::default()), once);
 }
+
+#[test]
+fn keeps_a_comment_whose_wrap_would_hide_a_tag() {
+  let input = "/**\n * A refused request to the service gets auth's\n * `401 { error: \"session\" }` and a header.\n *\n * @example\n * ```ts\n * x;\n * ```\n */\nlet a;\n";
+  let options = Options { width: 52, ..Options::default() };
+  assert_eq!(format(input, "a.ts", &options), input);
+}
