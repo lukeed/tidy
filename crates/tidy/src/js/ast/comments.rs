@@ -117,7 +117,7 @@ impl<'a> File<'a> {
           .find(|paren| paren.start < span.start && span.end <= paren.end && at < paren.end)
         // The parentheses around an expression of a template aren't in its source.
         && !(paren.start == 0 && self.path.first() == Some(&0))
-        && !keeps_comments_in_parentheses(self, e.id)
+        && !keeps_comments_in_parentheses(self, e.id, comment.is_line())
       {
         let after = Span::new(paren.end, paren.end + 1);
         (next, at) = (self.token_after(paren.end), paren.end);
@@ -448,13 +448,18 @@ fn is_in_member_chain(mut e: Expr<'_>) -> bool {
 /// of `!` or `-` (Prettier's `printUnaryExpression`), JSX, which prints its own parentheses, and a sequence or an
 /// assignment that is the body of an arrow function, the value of a declaration or of an assignment, or what a `return`
 /// returns (`handleParenthesizedExpressionTrailingComment`). An assignment to the right of another loses its
-/// parentheses: `a = (b = c)` is `a = b = c`.
-fn keeps_comments_in_parentheses(file: &File, id: u32) -> bool {
+/// parentheses: `a = (b = c)` is `a = b = c`. A binary expression that a `return` or `throw` returns keeps a line
+/// comment, which breaks the group that prints its parentheses (`printReturnOrThrowArgument`).
+fn keeps_comments_in_parentheses(file: &File, id: u32, is_line: bool) -> bool {
   let parent = file.kind(file.parent_id(id));
   match (file.kind(id), parent) {
     (_, Some(AstKind::UnaryExpression(_))) => true,
     (Some(AstKind::JSXElement(_) | AstKind::JSXFragment(_)), _) => true,
     (Some(AstKind::AssignmentExpression(_)), Some(AstKind::AssignmentExpression(_))) => false,
+    (
+      Some(AstKind::BinaryExpression(_) | AstKind::LogicalExpression(_)),
+      Some(AstKind::ReturnStatement(_) | AstKind::ThrowStatement(_)),
+    ) => is_line,
     (Some(AstKind::SequenceExpression(_) | AstKind::AssignmentExpression(_)), _) => matches!(
       parent,
       Some(

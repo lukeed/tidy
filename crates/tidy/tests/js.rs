@@ -141,6 +141,18 @@ fn prints_prettier_fixed_point_for_comments_in_parentheses() {
     ("if ((0, 0 /* c */)) {\n}\n", "if ((0, 0) /* c */) {\n}\n"),
     ("!(x /* c */);\n", "!(x /* c */);\n"),
     ("const x = (a, b /* c */);\n", "const x = (a, b /* c */);\n"),
+    (
+      "function f() {\n  return (\n    a || // a\n    b // b\n  );\n}\n",
+      "function f() {\n  return (\n    a || // a\n    b // b\n  );\n}\n",
+    ),
+    (
+      "function f() {\n  throw (a + b // b\n  );\n}\n",
+      "function f() {\n  throw (\n    a + b // b\n  );\n}\n",
+    ),
+    (
+      "function f() {\n  return (a || b /* b */\n  );\n}\n",
+      "function f() {\n  return a || b; /* b */\n}\n",
+    ),
   ];
   for (text, expected) in cases {
     let once = format(text, "a.js", &Options::default());
