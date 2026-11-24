@@ -509,8 +509,21 @@ pub(super) fn format_default_value(value: &[u8], quote_style: QuoteStyle) -> Cow
   let mut result = Vec::with_capacity(len + 16);
   // The opening quote of the string we're inside, if any.
   let mut in_quote = None;
+  // In a regular expression, and whether in a `[...]` class of it.
+  let (mut in_regex, mut in_class) = (false, false);
   for (i, &byte) in trimmed.iter().enumerate() {
     let next = trimmed.get(i + 1).copied();
+    if in_regex {
+      result.push(byte);
+      match byte {
+        _ if is_escaped(trimmed, i) => {}
+        b'[' => in_class = true,
+        b']' => in_class = false,
+        b'/' if !in_class => in_regex = false,
+        _ => {}
+      }
+      continue;
+    }
     if let Some(quote) = in_quote {
       if byte == quote && !is_escaped(trimmed, i) {
         result.push(target_quote);
@@ -524,6 +537,15 @@ pub(super) fn format_default_value(value: &[u8], quote_style: QuoteStyle) -> Cow
       _ if byte == target_quote || byte == other_quote => {
         result.push(target_quote);
         in_quote = Some(byte);
+      }
+      b'/'
+        if matches!(
+          result.iter().rev().find(|&&it| it != b' '),
+          None | Some(b'[' | b'{' | b'(' | b',' | b':')
+        ) =>
+      {
+        result.push(byte);
+        in_regex = true;
       }
       b':' | b',' => {
         result.push(byte);

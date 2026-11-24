@@ -158,3 +158,9 @@ fn keeps_a_comment_whose_wrap_would_hide_a_tag() {
   let options = Options { width: 52, ..Options::default() };
   assert_eq!(format(input, "a.ts", &options), input);
 }
+
+#[test]
+fn keeps_a_regular_expression_in_a_default() {
+  let input = "/**\n * Modules left out.\n *\n * @default [/^node:/, { a: /b,c/ }]\n */\nlet a;\n";
+  assert_eq!(format(input, "a.ts", &Options::default()), input);
+}
