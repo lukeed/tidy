@@ -258,3 +258,36 @@ fn formats_to_output_that_stays() {
     assert_eq!(js::format(&once, path, &options).unwrap(), once, "{input}");
   }
 }
+
+#[test]
+fn preserves_breaks_when_asked() {
+  let ts = Options { dialect: Dialect::Ts, ..Options::default() };
+  let keep = Options { preserve_breaks: true, ..ts.clone() };
+  let cases = [
+    ("foo(\n  a,\n  b,\n);\n", "foo(a, b);\n"),
+    ("items.map(\n  (item) => item.id,\n);\n", "items.map((item) => item.id);\n"),
+    ("new Foo(\n  a,\n);\n", "new Foo(a);\n"),
+    ("function f(\n  a: string,\n  b: number,\n) {}\n", "function f(a: string, b: number) {}\n"),
+    ("let a = [\n  \"a\",\n  \"b\",\n];\n", "let a = [\"a\", \"b\"];\n"),
+    ("type A =\n  | \"a\"\n  | \"b\";\n", "type A = \"a\" | \"b\";\n"),
+    ("type A = \"a\" |\n  \"b\";\n", "type A = \"a\" | \"b\";\n"),
+  ];
+  for (text, prettier) in cases {
+    assert_eq!(format(text, "a.ts", &ts), prettier, "default: {text}");
+    let once = format(text, "a.ts", &keep);
+    let expected = match text {
+      "type A = \"a\" |\n  \"b\";\n" => "type A =\n  | \"a\"\n  | \"b\";\n",
+      _ => text,
+    };
+    assert_eq!(once, expected, "preserve: {text}");
+    assert_eq!(format(&once, "a.ts", &keep), once, "stable: {text}");
+  }
+  for text in [
+    "foo(a, b);\n",
+    "foo(() => {\n  a();\n});\n",
+    "type A =\n  \"aaaaaaaaaaaaaaaaaaaa\" | \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\";\n",
+    "let a = [1, 2];\n",
+  ] {
+    assert_eq!(format(text, "a.ts", &keep), format(text, "a.ts", &ts), "unbroken: {text}");
+  }
+}

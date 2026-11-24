@@ -81,12 +81,25 @@ fn write_formal_parameters<'a>(func: Func<'a>, f: &mut Formatter<'a>) {
   match layout {
     ParameterLayout::Hug => write!(f, ParameterList::with_layout(func, layout)),
     ParameterLayout::Default => {
-      write!(f, soft_block_indent(&ParameterList::with_layout(func, layout)))
+      write!(f, soft_block_indent(&ParameterList::with_layout(func, layout)));
+      if is_broken_after_opener(func, f) {
+        write!(f, expand_parent());
+      }
     }
   }
   if !parentheses_not_needed {
     write!(f, ")");
   }
+}
+
+/// With `preserveBreaks`, parameters that the source breaks after the `(` stay broken.
+fn is_broken_after_opener(func: Func<'_>, f: &Formatter<'_>) -> bool {
+  let first =
+    func.this_param().map(|it| it.span()).or_else(|| func.params().first().map(|it| it.span()));
+  f.options().preserve_breaks
+    && first.is_some_and(|first| {
+      f.source_text().has_line_terminator_before_skipping_comments(first.start)
+    })
 }
 
 /// The node whose parameters Prettier prints for `func`. It owns the comments in empty parentheses. Babel has no

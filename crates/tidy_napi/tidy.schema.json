@@ -649,6 +649,11 @@
           "enum": ["last", "inline", "first"],
           "type": "string"
         },
+        "preserveBreaks": {
+          "default": false,
+          "description": "Keep argument lists, parameter lists, arrays and union types broken where the source breaks them.",
+          "type": "boolean"
+        },
         "quote": {
           "default": "double",
           "description": "Quotes in Handlebars, style sheets, JSON5, YAML and JS.",

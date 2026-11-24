@@ -19,12 +19,18 @@ pub(crate) fn write_array_expression<'a>(
     let content = format_args!(ArrayElementList::new(elements, group_id), dangling_comments(node));
     write!(
       f,
-      group(&soft_block_indent(&content))
-        .with_group_id(Some(group_id))
-        .should_expand(has_dangling_line_comment || should_break(elements))
+      group(&soft_block_indent(&content)).with_group_id(Some(group_id)).should_expand(
+        has_dangling_line_comment || should_break(elements) || is_broken_after_opener(e, f)
+      )
     );
   }
   write!(f, "]");
+}
+
+/// With `preserveBreaks`, an array that the source breaks after the `[` stays broken.
+fn is_broken_after_opener(e: Expr<'_>, f: &Formatter<'_>) -> bool {
+  f.options().preserve_breaks
+    && f.source_text().has_line_terminator_after_skipping_comments(e.span().start + 1)
 }
 
 /// Prettier's `shouldBreak` for an array: there are at least two elements, all are arrays or all are objects, and each

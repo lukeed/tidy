@@ -213,6 +213,11 @@ pub fn section(name: &str) -> Vec<Opt> {
         "Which side of a line break a binary operator sits on.",
       ),
       flag("jsdoc", true, "Format JSDoc comments, as `prettier-plugin-jsdoc` does."),
+      flag(
+        "preserveBreaks",
+        false,
+        "Keep argument lists, parameter lists, arrays and union types broken where the source breaks them.",
+      ),
       sort_imports(),
       opt(
         "importOrder",

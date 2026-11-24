@@ -126,6 +126,8 @@ pub struct Js {
   pub arrow_parens: Option<crate::js::ArrowParens>,
   /// `objectWrap`
   pub object_wrap: Option<json::ObjectWrap>,
+  /// `preserveBreaks`
+  pub preserve_breaks: Option<bool>,
   /// `experimentalTernaries`
   pub experimental_ternaries: Option<bool>,
   /// `experimentalOperatorPosition`
@@ -424,6 +426,7 @@ fn js(map: &Map<String, Value>) -> Result<Js, String> {
       "objectWrap" => options.object_wrap = Some(object_wrap(value, &name)?),
       "experimentalTernaries" => options.experimental_ternaries = Some(flag(value, &name)?),
       "jsdoc" => options.jsdoc = Some(flag(value, &name)?),
+      "preserveBreaks" => options.preserve_breaks = Some(flag(value, &name)?),
       "experimentalOperatorPosition" => {
         options.experimental_operator_position = Some(match text(value, &name)? {
           "start" => OperatorPosition::Start,
@@ -454,6 +457,7 @@ impl Js {
     set(&mut options.experimental_ternaries, self.experimental_ternaries);
     set(&mut options.experimental_operator_position, self.experimental_operator_position);
     set(&mut options.jsdoc, self.jsdoc);
+    set(&mut options.preserve_breaks, self.preserve_breaks);
     set(&mut options.sort_imports, self.sort_imports.clone());
   }
 }

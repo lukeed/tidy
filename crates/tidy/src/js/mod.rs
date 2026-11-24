@@ -193,6 +193,9 @@ pub struct Options {
   pub single_attribute_per_line: bool,
   pub arrow_parens: ArrowParens,
   pub object_wrap: ObjectWrap,
+  /// `preserveBreaks`: argument lists, parameter lists, arrays and union types that the source breaks stay broken, as
+  /// `objectWrap: "preserve"` keeps objects. Prettier has no such option, so it's off by default.
+  pub preserve_breaks: bool,
   pub experimental_ternaries: bool,
   pub experimental_operator_position: OperatorPosition,
   /// `embeddedLanguageFormatting`: format the code in templates, such as `css` and `graphql` tags.
@@ -227,6 +230,7 @@ impl Default for Options {
       bracket_same_line: false,
       arrow_parens: ArrowParens::Always,
       object_wrap: ObjectWrap::Preserve,
+      preserve_breaks: false,
       experimental_ternaries: false,
       experimental_operator_position: OperatorPosition::End,
       format_embedded: true,
@@ -280,6 +284,7 @@ impl From<&Options> for FormatOptions {
         ObjectWrap::Preserve => Expand::Auto,
         ObjectWrap::Collapse => Expand::Never,
       },
+      preserve_breaks: options.preserve_breaks,
       experimental_ternaries: options.experimental_ternaries,
       experimental_operator_position: match options.experimental_operator_position {
         OperatorPosition::Start => Position::Start,

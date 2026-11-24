@@ -136,7 +136,8 @@ pub(crate) fn write_ts_union_type_in<'a>(
         group(&format_args!(
           if_group_breaks(&"| "),
           FormatLeadingComments::Comments(after),
-          members
+          members,
+          is_broken_between_members(types, f).then_some(expand_parent())
         )),
         own_trailing_comments
       ]
@@ -167,6 +168,14 @@ pub(crate) fn write_ts_union_type_in<'a>(
     && matches!(parent, AstNodes::TSConditionalType(it) if matches!(it.kind(), TypeKind::Cond { extends, .. } if extends.span().contains(ty.span())));
   let line = if is_after_line_break { soft_empty_line() } else { soft_line_break() };
   write!(f, group(&indent(&format_args!(line, printed))));
+}
+
+/// With `preserveBreaks`, a union whose source has a line break between two of its types stays broken.
+fn is_broken_between_members<'a>(types: List<'a, TypeNode<'a>>, f: &Formatter<'a>) -> bool {
+  f.options().preserve_breaks
+    && types.iter().zip(types.iter().skip(1)).any(|(left, right)| {
+      f.source_text().has_newline_in_range(Span::new(left.span().end, right.span().start))
+    })
 }
 
 /// In oxfmt a `prettier-ignore` comment before a union applies to the whole union, as with any other node, and so does
@@ -302,6 +311,7 @@ fn write_union_one_per_line<'a>(
     let first_separator =
       format_args!(starts_with_line_break.then_some(soft_line_break_or_space()), "| ");
     write!(f, [if_group_breaks(&first_separator), members]);
+    write!(f, is_broken_between_members(types, f).then_some(expand_parent()));
   });
   let content = format_with(|f| {
     if needs_parentheses {

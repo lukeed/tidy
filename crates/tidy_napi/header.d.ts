@@ -345,6 +345,14 @@ export namespace Options {
       organizeImportsTypeOrder?: "last" | "inline" | "first";
 
       /**
+       * Keep argument lists, parameter lists, arrays and union types broken
+       * where the source breaks them.
+       *
+       * @default false
+       */
+      preserveBreaks?: boolean;
+
+      /**
        * When to quote the keys of an object.
        *
        * @default "as-needed"

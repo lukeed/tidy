@@ -39,6 +39,7 @@ pub(crate) fn scripts(options: &FormatOptions) -> crate::js::Options {
       Expand::Auto => crate::json::ObjectWrap::Preserve,
       Expand::Never => crate::json::ObjectWrap::Collapse,
     },
+    preserve_breaks: options.preserve_breaks,
     experimental_ternaries: options.experimental_ternaries,
     experimental_operator_position: match options.experimental_operator_position {
       OperatorPosition::Start => crate::js::OperatorPosition::Start,

@@ -185,6 +185,24 @@ impl<'a> SourceText<'a> {
     js_line_break_len(&after[start..]) != 0
   }
 
+  /// True if there's a line break between the token before `position` and `position`, which can be in a comment.
+  pub(crate) fn has_line_terminator_before_skipping_comments(self, position: u32) -> bool {
+    let mut rest = self.to(position);
+    loop {
+      match rest {
+        [head @ .., b' ' | b'\t'] => rest = head,
+        [head @ .., b'*', b'/'] => {
+          let start = head.windows(2).rposition(|it| it == b"/*").unwrap_or(0);
+          if has_line_terminator(&head[start..]) {
+            return true;
+          }
+          rest = &head[..start];
+        }
+        _ => return js_line_break_len_back(rest) != 0,
+      }
+    }
+  }
+
   /// True if there's a line break between `position` and the next token, which can be in or after a comment.
   pub(crate) fn has_line_terminator_after_skipping_comments(self, position: u32) -> bool {
     let mut rest = self.from(position);

@@ -38,6 +38,8 @@ pub struct FormatOptions {
   pub bracket_same_line: BracketSameLine,
   pub attribute_position: AttributePosition,
   pub expand: Expand,
+  /// Keep argument lists, parameter lists, arrays and union types broken where the source breaks them.
+  pub preserve_breaks: bool,
   pub experimental_operator_position: OperatorPosition,
   pub experimental_ternaries: bool,
   pub embedded_language_formatting: EmbeddedLanguageFormatting,

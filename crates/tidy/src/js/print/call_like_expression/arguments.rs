@@ -119,6 +119,7 @@ impl<'a> Format<'a> for FormatArguments<'a> {
     }
 
     if has_empty_line
+      || is_broken_after_opener(self.args, f)
       || (has & (kind(ExprTag::Fn) | kind(ExprTag::Call) | kind(ExprTag::NonNull)) != 0
         && is_function_composition_args(self.args, f)
         && !matches!(self.parent.parent(), AstNodes::Decorator(_)))
@@ -173,6 +174,15 @@ impl<'a> Format<'a> for FormatArguments<'a> {
       f.group_from(start, should_expand);
     }
   }
+}
+
+/// With `preserveBreaks`, arguments that the source breaks after the `(` stay broken.
+fn is_broken_after_opener<'a>(args: List<'a, Expr<'a>>, f: &Formatter<'a>) -> bool {
+  f.options().preserve_breaks
+    && args.first().is_some_and(|first| {
+      let start = first.parens().last().map_or(first.span().start, |paren| paren.start);
+      f.source_text().has_line_terminator_before_skipping_comments(start)
+    })
 }
 
 /// oxfmt counts the line breaks between two arguments, wherever the comma is. Prettier checks the line after the
