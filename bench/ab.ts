@@ -2,12 +2,12 @@ import { $ } from "bun";
 import { copyFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 
+import { timings } from "./hyperfine";
+
 // Usage: mise run bench:ab -- [--rev <rev>] [--runs <n>] <dir>...
 // Times the CLI built from the working tree against the one built from <rev> (HEAD by default),
 // both checking the given folders. Each pair runs in both orders, since the first command in a
 // pair is slower, and medians are compared, since means swing with machine load.
-
-type Result = { command: string; median: number; min: number };
 
 let args = Bun.argv.slice(2);
 let option = (name: string) =>
@@ -29,14 +29,17 @@ let { target_directory } = await $`cargo metadata --format-version 1 --no-deps`
 let bench = join(target_directory, "ab");
 await mkdir(bench, { recursive: true });
 
-await $`cargo build --release -p tidy`.cwd(root).quiet();
+await $`cargo build --release -p tidy --features cli`.cwd(root).quiet();
 await copyFile(join(target_directory, "release", "tidy"), join(bench, "new"));
 
 let tree = join(bench, "tree");
 await $`git worktree add --force --detach ${tree} ${rev}`.cwd(root).quiet();
 try {
   let env = { ...process.env, CARGO_TARGET_DIR: join(bench, "target") };
-  await $`cargo build --release -p tidy`.cwd(tree).env(env).quiet();
+  await $`cargo build --release -p tidy --features cli`
+    .cwd(tree)
+    .env(env)
+    .quiet();
   await copyFile(join(bench, "target", "release", "tidy"), join(bench, "old"));
 } finally {
   await $`git worktree remove --force ${tree}`.cwd(root).quiet();
@@ -54,11 +57,10 @@ for (let order of [
     `${join(bench, name)} check ${dirs.join(" ")}`,
   ]);
   await $`hyperfine -N --warmup 20 --runs ${runs} --ignore-failure --style none --export-json ${file} ${commands}`.quiet();
-  let { results } = (await Bun.file(file).json()) as { results: Result[] };
-  for (let { command, median, min } of results) {
-    medians[command].push(median);
+  for (let { name, median, min } of await timings(file)) {
+    medians[name].push(median);
     console.log(
-      `${command.padEnd(4)} median ${(median * 1000).toFixed(2)} ms, min ${(min * 1000).toFixed(2)} ms`,
+      `${name.padEnd(4)} median ${(median * 1000).toFixed(2)} ms, min ${(min * 1000).toFixed(2)} ms`,
     );
   }
 }

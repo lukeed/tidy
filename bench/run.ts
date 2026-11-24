@@ -35,6 +35,7 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, extname, join } from "node:path";
 import * as prettierApi from "prettier";
 import { format as tidyFormat } from "../crates/tidy_napi/index.js";
+import { timings } from "./hyperfine";
 import { crates, language, record, version } from "./results";
 
 let args = Bun.argv.slice(2);
@@ -51,7 +52,7 @@ let build = (dir: string, out: string) =>
     .cwd(join(root, dir))
     .env({ ...process.env, CARGO_TARGET_DIR: join(target, out) })
     .quiet();
-await $`cargo build --release -p tidy`
+await $`cargo build --release -p tidy --features cli`
   .cwd(root)
   .env({ ...process.env, CARGO_TARGET_DIR: target })
   .quiet();
@@ -437,8 +438,6 @@ let formats: Record<string, string[]> = {
   naive: markup,
 };
 
-type Result = { command: string; mean: number };
-
 async function time(
   names: string[],
   all: Record<string, string>,
@@ -449,9 +448,8 @@ async function time(
     let file = join(target, "bench.json");
     let list = order.flatMap((tool) => ["--command-name", tool, all[tool]]);
     await $`hyperfine --warmup ${Math.min(2, count)} --runs ${count} --ignore-failure --style none --export-json ${file} ${list}`.quiet();
-    let { results } = (await Bun.file(file).json()) as { results: Result[] };
-    for (let result of results)
-      (means[result.command] ??= []).push(result.mean);
+    for (let result of await timings(file))
+      (means[result.name] ??= []).push(result.mean);
   }
   return means;
 }

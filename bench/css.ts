@@ -11,6 +11,7 @@ import { cpSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, extname, join, relative } from "node:path";
 import * as prettier from "prettier";
+import { timings, type Timing } from "./hyperfine";
 import { crates, record, type Section, version } from "./results";
 
 let args = Bun.argv.slice(2);
@@ -154,15 +155,13 @@ async function matches(tool: string, dir: string): Promise<number | undefined> {
   return same;
 }
 
-type Result = { command: string; mean: number; user: number; system: number };
-
 let rows: string[] = [];
 let sections: Section[] = [];
 for (let name of Object.keys(sources)) {
   let dir = join(corpus, name);
   let [files, bytes] = size(dir);
   let commands = tools(dir, name);
-  let results: Record<string, Result[]> = {};
+  let results: Record<string, Timing[]> = {};
   for (let order of [Object.keys(commands), Object.keys(commands).reverse()]) {
     let file = join(target, "bench.json");
     let list = order.flatMap((tool) => [
@@ -171,10 +170,8 @@ for (let name of Object.keys(sources)) {
       commands[tool],
     ]);
     await $`hyperfine --warmup 2 --runs ${runs} --ignore-failure --style none --export-json ${file} ${list}`.quiet();
-    let { results: measured } = (await Bun.file(file).json()) as {
-      results: Result[];
-    };
-    for (let result of measured) (results[result.command] ??= []).push(result);
+    for (let result of await timings(file))
+      (results[result.name] ??= []).push(result);
   }
   let average = (values: number[]) =>
     (values.reduce((sum, value) => sum + value, 0) / values.length) * 1000;
