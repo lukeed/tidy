@@ -95,8 +95,16 @@ Covers JavaScript, TypeScript, JSX and TSX, and JavaScript wherever tidy formats
 | `experimentalTernaries`        | boolean                                     | `false`       | `experimentalTernaries`        |
 | `experimentalOperatorPosition` | `"start"`, `"end"`                          | `"end"`       | `experimentalOperatorPosition` |
 | `jsdoc`                        | boolean                                     | `true`        | —                              |
+| `preserveBreaks`               | boolean                                     | `false`       | —                              |
 
 `jsdoc` formats JSDoc comments the way `prettier-plugin-jsdoc` does. It is on by default, which is one of tidy's two departures from Prettier's defaults — see [Option philosophy](/docs/option-philosophy/). Turn it off with `"js": { "jsdoc": false }`.
+
+`preserveBreaks` keeps a list broken where the source breaks it, as `objectWrap: "preserve"` keeps an object: call and `new` arguments, parameters and arrays with a line break after the `(` or `[`, and a union type with a line break between two of its types. Prettier has no such option, so it is off by default and the output is then Prettier's.
+
+```ts
+// "js": { "preserveBreaks": true } keeps this as it is. Prettier joins it: items.map((item) => item.id);
+items.map((item) => item.id);
+```
 
 #### Sorting imports
 
