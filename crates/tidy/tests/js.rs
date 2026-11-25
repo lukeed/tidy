@@ -291,3 +291,27 @@ fn preserves_breaks_when_asked() {
     assert_eq!(format(text, "a.ts", &keep), format(text, "a.ts", &ts), "unbroken: {text}");
   }
 }
+
+#[test]
+fn keeps_type_cast_parentheses_around_the_object_of_a_member_access() {
+  let options = Options::default();
+  // Prettier 3.9.9 prints each of these as it is. Before, the outer cast lost its parentheses, so it no longer applied.
+  for text in [
+    "const a = /** @type {A} */ (/** @type {unknown} */ (b)).c;\n",
+    "const a = /** @type {A} */ (/** @type {B} */ (b))[0];\n",
+    "f(/** @type {A} */ (/** @type {B} */ (b.c)).d);\n",
+    "const a = /** @type {A} */ (/** @type {B} */ (b)).c + 1;\n",
+    "const a = /** @type {A} */ (/** @type {B} */ (b)).c.d();\n",
+  ] {
+    for path in ["a.js", "a.mjs"] {
+      assert_eq!(format(text, path, &options), text, "{path}: {text}");
+    }
+  }
+  // A plain comment in the cast's parentheses stays in them, and the parentheses around `b` go.
+  let text = "const a = /** @type {A} */ (/* note */ (b)).c;\n";
+  assert_eq!(format(text, "a.js", &options), "const a = /** @type {A} */ (/* note */ b).c;\n");
+  // In TypeScript the parentheses aren't a cast, and Prettier removes them.
+  let text = "const a = /** @type {A} */ (/** @type {B} */ (b)).c;\n";
+  let ts = Options { dialect: Dialect::Ts, ..Options::default() };
+  assert_eq!(format(text, "a.ts", &ts), "const a = /** @type {A} */ /** @type {B} */ b.c;\n");
+}
