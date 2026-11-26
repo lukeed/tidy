@@ -11,4 +11,6 @@ format("a{color:red}", { lang: "css" });
 //=> "a {\n  color: red;\n}\n"
 ```
 
+> **Note:** It's ~1.25 MB gzipped & about 2-3x slower than the native addon. Use `tidyrs` when you can.
+
 Docs: https://tidy.lukeed.com/docs/wasm/
