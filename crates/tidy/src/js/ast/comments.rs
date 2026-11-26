@@ -160,6 +160,7 @@ impl<'a> File<'a> {
       && 0 < start
       && start < record.span.start
       && !is_ignore(&self.text.as_bytes()[record.span.start as usize..record.span.end as usize])
+      && (typescript || !self.is_in_type_cast_parentheses(left, record.span))
     {
       if is_in_member_chain(e) {
         if is_link(left)
@@ -178,6 +179,30 @@ impl<'a> File<'a> {
       (record.enclosing, record.preceding, record.following) =
         self.surrounding(before, typescript, sorted);
     }
+  }
+
+  /// True if `comment` is inside type cast parentheses around `e`. Babel keeps them, so Prettier prints the comment
+  /// inside them rather than before the expression: `/** @type {A} */ (/** @type {B} */ (a)).b` keeps both casts.
+  fn is_in_type_cast_parentheses(&self, e: Expr<'_>, comment: Span) -> bool {
+    e.parens().any(|paren| {
+      paren.start < comment.start && comment.end <= paren.end && self.follows_type_cast(paren.start)
+    })
+  }
+
+  /// True if the `(` at `open` comes right after a type cast comment, with only white space between them. See
+  /// `crate::js::comments::cast_parens`.
+  fn follows_type_cast(&self, open: u32) -> bool {
+    let (text, comments) = (self.text.as_bytes(), &self.program.comments);
+    let index = comments.partition_point(|it| it.span.end <= open);
+    let Some(comment) = index.checked_sub(1).and_then(|at| comments.get(at)) else {
+      return false;
+    };
+    let span = Span::new(comment.span.start, comment.span.end);
+    let content = text.get(span.start as usize..span.end as usize).unwrap_or_default();
+    (span.end..open).all(|at| is_space(text, at))
+      && content.starts_with(b"/**")
+      && content.ends_with(b"*/")
+      && crate::js::comments::is_type_cast_text(&content[2..content.len() - 2])
   }
 
   /// The end of the token before `at`: white space and comments are skipped.
