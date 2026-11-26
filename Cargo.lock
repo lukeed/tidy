@@ -1059,7 +1059,7 @@ dependencies = [
 
 [[package]]
 name = "tidy"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "bitflags",
  "bumpalo",
@@ -1087,7 +1087,7 @@ dependencies = [
 
 [[package]]
 name = "tidy_napi"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "napi",
  "napi-build",
@@ -1098,7 +1098,7 @@ dependencies = [
 
 [[package]]
 name = "tidy_wasm"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "js-sys",
  "serde_json",

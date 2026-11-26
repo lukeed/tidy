@@ -1,6 +1,6 @@
 {
   "name": "tidyrs-wasm",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "tidy, a code formatter with Prettier's style, as WebAssembly: for browsers, Workers, Deno, and Node without a native addon",
   "license": "MIT",
   "homepage": "https://tidy.lukeed.com/",
