@@ -63,7 +63,7 @@ function format(source: string, options?: Options): string;
 function check(source: string, options?: Options): boolean;
 ```
 
-The same as in [`tidyrs`](/docs/node/#options): the keys of a `tidy.json`, plus `filepath`, `lang` and the [`embed`](/docs/node/#embedded-code) hook.
+The same as in [`tidyrs`](/docs/node/#options): the keys of a `tidy.json`, plus `filepath`, `lang` and the [`embed`](/docs/node/#embedded-code) hook. A syntax error has its position in `loc.start`, [as in `tidyrs`](/docs/node/#format).
 
 ## config
 
@@ -71,7 +71,7 @@ The same as in [`tidyrs`](/docs/node/#options): the keys of a `tidy.json`, plus 
 function config(text: string): Options;
 ```
 
-The options in the text of a `tidy.json`, `tidy.jsonc` or `tidy.toml`, for `format`. Text that starts with `{` or a comment is JSON; anything else is TOML. It throws on an option tidy doesn't know.
+The options in the text of a `tidy.json`, `tidy.jsonc` or `tidy.toml`, for `format`. Text that starts with `{` or a comment is JSON; anything else is TOML. It throws on an option tidy doesn't know, and on a syntax error, with its `loc`.
 
 ```js
 import { config, format } from "tidyrs-wasm";

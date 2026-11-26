@@ -26,7 +26,18 @@ let output = format("<p   >hi</p>", { filepath: "index.html" });
 function format(source: string, options?: Options): string;
 ```
 
-It throws if the source does not parse. The error message carries the line and column.
+It throws if the source does not parse. The error says where, as Prettier's errors do, in `loc.start`, from 1:
+
+```js
+try {
+  format("let = ;", { lang: "js" });
+} catch (error) {
+  error.message; //=> "Unexpected token"
+  error.loc; //=> { start: { line: 1, column: 7 } }
+}
+```
+
+The type is `TidyError`. Other errors, such as an unknown option, have no `loc`.
 
 ## check
 
