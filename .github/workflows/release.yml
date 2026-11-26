@@ -121,7 +121,7 @@ jobs:
 
       # Signs the archives and their digests with this workflow's identity, so
       # an installer can verify what it downloads instead of trusting a name.
-      - uses: jdx/packslip@e0340e0c1d10c90a434de2b90f3a1ba345923564 # v1.11.4
+      - uses: jdx/packslip@9d5b1c469ba90d26b6dbd0a0162e84a95da524d5 # v1.11.5
         with:
           artifacts: dist/*.tar.gz dist/*.zip
           bin: tidy
@@ -236,7 +236,7 @@ jobs:
           use-cache: false
       - run: rustup target add ${{ matrix.target }}
       - run: bun install --frozen-lockfile
-      - run: bunx napi build --platform --release --esm --target ${{ matrix.target }} ${{ matrix.flags }}
+      - run: bunx napi build --platform --release --js native.cjs --dts native.d.ts --target ${{ matrix.target }} ${{ matrix.flags }}
       - run: bun test
         if: matrix.test
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -248,14 +248,45 @@ jobs:
         if: matrix.target == 'x86_64-unknown-linux-gnu'
         with:
           name: loader
+          path: crates/tidy_napi/native.cjs
+          if-no-files-found: error
+
+  # tidyrs-wasm: the wasm-bindgen build, for browsers, Workers and Deno, and for tidyrs without its native addon.
+  wasm:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+        with:
+          cache: false
+      - name: Check the versions
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          for file in crates/tidy_napi/package.json crates/tidy_wasm/npm/package.json; do
+            version=$(jq -r .version "$file")
+            if [ "v$version" != "$TAG" ]; then
+              echo "::error file=$file::version $version doesn't match the tag $TAG"
+              exit 1
+            fi
+          done
+      - run: rustup target add wasm32-unknown-unknown
+      - run: mise run build:wasm
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: wasm
           path: |
-            crates/tidy_napi/index.js
-            crates/tidy_napi/index.d.ts
+            crates/tidy_wasm/npm/tidy.js
+            crates/tidy_wasm/npm/tidy.cjs
+            crates/tidy_wasm/npm/tidy_bg.wasm
           if-no-files-found: error
 
   publish:
     timeout-minutes: 15
-    needs: build
+    needs: [build, wasm]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -284,6 +315,10 @@ jobs:
         with:
           name: loader
           path: crates/tidy_napi
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: wasm
+          path: crates/tidy_wasm/npm
       - run: bunx napi create-npm-dirs
       - run: bunx napi artifacts --output-dir artifacts
       # A prerelease publishes under its identifier, as `rc`, for every package.
@@ -296,6 +331,8 @@ jobs:
           esac
       # npm authenticates from the job's OIDC token, so no long-lived secret.
       # Each platform package has its own trusted publisher, as tidyrs does.
+      - run: npm publish
+        working-directory: crates/tidy_wasm/npm
       - run: bunx napi pre-publish -t npm --no-gh-release
       - run: npm publish
 
