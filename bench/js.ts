@@ -12,6 +12,7 @@ import { cpSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import * as prettierApi from "prettier";
+import { timings } from "./hyperfine";
 import { record, version } from "./results";
 
 let args = Bun.argv.slice(2);
@@ -201,8 +202,6 @@ function list(path: string): string[] {
   return readdirSync(path).flatMap((name) => list(join(path, name)));
 }
 
-type Result = { command: string; mean: number };
-
 async function time(
   names: string[],
   all: Record<string, string>,
@@ -213,9 +212,8 @@ async function time(
     let file = join(base, "hyperfine.json");
     let flags = order.flatMap((tool) => ["--command-name", tool, all[tool]]);
     await $`hyperfine --warmup 1 --runs ${count} --ignore-failure --style none --export-json ${file} ${flags}`.quiet();
-    let { results } = (await Bun.file(file).json()) as { results: Result[] };
-    for (let result of results)
-      (means[result.command] ??= []).push(result.mean);
+    for (let result of await timings(file))
+      (means[result.name] ??= []).push(result.mean);
   }
   return means;
 }
