@@ -51,7 +51,8 @@ export function nav(pages: Template.PageInfo[], current: string): Group[] {
 }
 
 /**
- * The docs pages before and after the current one, in sidebar order.
+ * The docs pages before and after the current one, in sidebar order. A release
+ * page has the older and newer releases instead.
  *
  * @example
  *   $utils.pager($pages, "/docs/cli/"); //=> { prev: { title: 'Install', … }, next: { title: 'Ignoring code', … } }
@@ -60,10 +61,28 @@ export function pager(
   pages: Template.PageInfo[],
   current: string,
 ): { prev?: Link; next?: Link } {
-  let links = nav(pages, current).flatMap((group) => group.pages);
+  let links = current.startsWith("/docs/releases/v")
+    ? releases(pages)
+        .toReversed()
+        .map((page) => ({ title: page.title, path: page.path }))
+    : nav(pages, current).flatMap((group) => group.pages);
   let index = links.findIndex((link) => link.path === current);
   if (index === -1) return {};
   return { prev: links[index - 1], next: links[index + 1] };
+}
+
+/**
+ * The release pages, newest version first.
+ *
+ * @example
+ *   $utils.releases($pages).map((page) => page.title); //=> ['v2.1.0', 'v2.0.0']
+ */
+export function releases(pages: Template.PageInfo[]): Template.PageInfo[] {
+  return pages
+    .filter((page) => /^\/docs\/releases\/v[^/]+\/$/.test(page.path))
+    .toSorted((a, b) =>
+      b.title.localeCompare(a.title, "en", { numeric: true }),
+    );
 }
 
 /**

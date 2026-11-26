@@ -1,0 +1,121 @@
+/* ---------- the releases timeline ---------- */
+.prose .releases {
+  position: relative;
+  max-width: 740px;
+  margin-top: 30px;
+  padding-left: 34px;
+}
+
+.prose .releases::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 14px;
+  bottom: 30px;
+  border-left: 2px dashed var(--line);
+}
+
+.prose .releases [role="listitem"] {
+  position: relative;
+  margin: 0 0 22px;
+}
+
+.prose .releases [role="listitem"]::before {
+  content: "";
+  position: absolute;
+  left: -32px;
+  top: 18px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--card);
+}
+
+.prose .releases .latest::before {
+  background: var(--pop);
+}
+
+.prose .releases a {
+  display: grid;
+  gap: 8px;
+  padding: 14px 18px 16px;
+  color: var(--ink);
+  text-decoration: none;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: 4px 4px 0 var(--ink);
+  transition:
+    transform 0.4s var(--spring),
+    box-shadow 0.3s var(--spring);
+}
+
+.prose .releases a:hover,
+.prose .releases a:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: 6px 8px 0 var(--ink);
+}
+
+.rel-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rel-top b {
+  font: 800 22px/1.1 var(--display);
+  letter-spacing: -0.02em;
+}
+
+.rel-top em {
+  font: 600 11px/1 var(--mono);
+  font-style: normal;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: var(--pop);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  padding: 4px 6px;
+  transform: rotate(-3deg);
+}
+
+.rel-top time {
+  margin-left: auto;
+  font: 600 12.5px/1 var(--mono);
+  color: var(--ink-soft);
+}
+
+.rel-sum {
+  font-size: 16px;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.rel-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rel-parts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rel-parts span {
+  font: 600 11px/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: var(--tint);
+  border-radius: 6px;
+  padding: 5px 7px;
+}
+
+.rel-go {
+  margin-left: auto;
+  font: 700 13px/1 var(--mono);
+  white-space: nowrap;
+}

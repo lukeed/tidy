@@ -2,7 +2,7 @@
 title: Credits
 summary: The projects tidy ports code from, and the licenses they carry.
 group: Misc
-order: 3
+order: 4
 ---
 
 tidy is a port. Almost none of the hard thinking in it is original, and all of it is someone else's work under a license that allowed the port.

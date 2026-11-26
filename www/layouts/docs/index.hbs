@@ -30,7 +30,9 @@
 
   <main class="doc" id="main">
     <nav class="crumbs" aria-label="Breadcrumb"><a href="/docs/">Docs</a><span
-      >/</span><b>{{ $page.params.group }}</b></nav>
+      >/</span>{{#if $page.params.group === "Releases"}}<a
+          href="/docs/releases/"
+        >Releases</a>{{#else}}<b>{{ $page.params.group }}</b>{{/if}}</nav>
     <div class="doc-head">
       <h1>{{ $page.title }}<span class="dot" aria-hidden="true">.</span></h1>
       {{#if $utils.file($page.path).endsWith(".md")}}{{#partial

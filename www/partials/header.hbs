@@ -6,7 +6,9 @@
         src="wordmark"
         size=28
       }}<b>tidy</b></a>
-    <span class="ver">v{{ $data.release.version }}</span>
+    <a class="ver" href="/docs/releases/v{{ $data.release.version }}/">v{{
+        $data.release.version
+      }}</a>
     <nav aria-label="Main">
       <a href="/docs/" {{#if docs}} aria-current="true"{{/if}}>Docs</a>
       <a
