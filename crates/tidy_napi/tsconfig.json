@@ -8,5 +8,6 @@
     "types": ["bun"],
     "skipLibCheck": false
   },
-  "include": ["*.ts"]
+  "include": ["*.ts"],
+  "exclude": ["native.d.ts"]
 }

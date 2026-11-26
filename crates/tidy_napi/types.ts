@@ -1,5 +1,11 @@
-// Prints the types that napi puts before the bindings in index.d.ts: the options from tidy.schema.json, and the hook.
+// Prints the index.d.ts of `tidyrs` or of `tidyrs-wasm`: the options from tidy.schema.json, the hook, and the calls.
+//
+//   bun types.ts <tidyrs|tidyrs-wasm>
 import schema from "./tidy.schema.json" with { type: "json" };
+
+let target = process.argv[2];
+if (target !== "tidyrs" && target !== "tidyrs-wasm")
+  throw new Error("usage: bun types.ts <tidyrs|tidyrs-wasm>");
 
 type Property = {
   description?: string;
@@ -153,6 +159,31 @@ function hoisted(): string {
   return out.join("\n\n");
 }
 
+let calls = `
+/** Format a file. \`options.embed\` receives each piece of code in another language first. */
+export declare function format(source: string, options?: Options): string;
+
+/** Whether a file is formatted already, with the same options as \`format\`. */
+export declare function check(source: string, options?: Options): boolean;
+`;
+
+let wasm = `
+/** The options in the text of a \`tidy.json\`, \`tidy.jsonc\` or \`tidy.toml\`, to pass to \`format\`. */
+export declare function config(text: string): Options;
+
+/** The version of tidy this build came from. */
+export declare function version(): string;
+
+/** What \`init\` loads the wasm from: a URL or a response to fetch, its bytes, or a compiled module. */
+export type Source = string | URL | Request | Response | BufferSource | WebAssembly.Module;
+
+/**
+ * Loads the wasm, once, before the first call. Without \`module_or_path\`, it fetches \`tidy_bg.wasm\` next to this
+ * module. In Node, the wasm is loaded already.
+ */
+export default function init(input?: { module_or_path?: Source | Promise<Source> }): Promise<unknown>;
+`;
+
 let output = `// Generated from tidy.schema.json by types.ts: run \`mise run types\`.
 
 /** A language, by the name a code fence gives it, or by a file extension. */
@@ -227,4 +258,4 @@ export namespace Embed {
 }
 `;
 
-process.stdout.write(output);
+process.stdout.write(output + calls + (target === "tidyrs-wasm" ? wasm : ""));

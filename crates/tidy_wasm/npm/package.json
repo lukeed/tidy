@@ -1,0 +1,43 @@
+{
+  "name": "tidyrs-wasm",
+  "version": "2.0.0",
+  "description": "tidy, a code formatter with Prettier's style, as WebAssembly: for browsers, Workers, Deno, and Node without a native addon",
+  "license": "MIT",
+  "homepage": "https://tidy.lukeed.com/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lukeed/tidy.git",
+    "directory": "crates/tidy_wasm/npm"
+  },
+  "keywords": [
+    "formatter",
+    "prettier",
+    "wasm",
+    "webassembly"
+  ],
+  "type": "module",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "node": {
+        "import": "./node.js",
+        "require": "./tidy.cjs"
+      },
+      "default": "./tidy.js"
+    },
+    "./tidy_bg.wasm": "./tidy_bg.wasm",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.d.ts",
+    "node.js",
+    "tidy.js",
+    "tidy.cjs",
+    "tidy_bg.wasm",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

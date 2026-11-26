@@ -1,7 +1,10 @@
 *.node
 crates/tidy_napi/artifacts/
-crates/tidy_napi/index.d.ts
-crates/tidy_napi/index.js
+crates/tidy_napi/native.cjs
+crates/tidy_napi/native.d.ts
+crates/tidy_wasm/npm/tidy.js
+crates/tidy_wasm/npm/tidy.cjs
+crates/tidy_wasm/npm/tidy_bg.wasm
 crates/tidy_napi/npm/
 node_modules/
 target/

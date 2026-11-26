@@ -16,6 +16,7 @@
   "files": [
     "index.js",
     "index.d.ts",
+    "native.cjs",
     "tidy.schema.json"
   ],
   "keywords": [
@@ -32,7 +33,6 @@
   ],
   "napi": {
     "binaryName": "tidyrs",
-    "dtsHeaderFile": "header.d.ts",
     "targets": [
       "aarch64-apple-darwin",
       "x86_64-apple-darwin",
@@ -45,12 +45,13 @@
     ]
   },
   "scripts": {
-    "build": "napi build --platform --release --esm",
+    "build": "napi build --platform --release --js native.cjs --dts native.d.ts",
     "test": "bun test"
   },
   "devDependencies": {
     "@napi-rs/cli": "3.10.9",
-    "@types/bun": "1.4.4"
+    "@types/bun": "1.4.4",
+    "tidyrs-wasm": "file:../tidy_wasm/npm"
   },
   "publishConfig": {
     "access": "public"

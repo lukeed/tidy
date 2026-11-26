@@ -61,9 +61,10 @@ steps {
     glob = List(
       "crates/tidy_napi/types.ts",
       "crates/tidy_napi/tidy.schema.json",
-      "crates/tidy_napi/header.d.ts",
+      "crates/tidy_napi/index.d.ts",
+      "crates/tidy_wasm/npm/index.d.ts",
     )
-    check = "bun crates/tidy_napi/types.ts | cargo run -q -p tidy --features cli -- up --stdin=crates/tidy_napi/header.d.ts | diff -u crates/tidy_napi/header.d.ts -"
+    check = "bun crates/tidy_napi/types.ts tidyrs | cargo run -q -p tidy --features cli -- up --stdin=crates/tidy_napi/index.d.ts | diff -u crates/tidy_napi/index.d.ts - && bun crates/tidy_napi/types.ts tidyrs-wasm | cargo run -q -p tidy --features cli -- up --stdin=crates/tidy_wasm/npm/index.d.ts | diff -u crates/tidy_wasm/npm/index.d.ts -"
     fix = "mise run types"
   }
 }

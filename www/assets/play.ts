@@ -8,7 +8,7 @@ import { language as toml } from "@twinkleplop/toml";
 import { language as typescript } from "@twinkleplop/typescript";
 import { language as yaml } from "@twinkleplop/yaml";
 
-import init, { format, version } from "./wasm/tidy.js";
+import init, { config as readConfig, format, version } from "./wasm/tidy.js";
 
 /**
  * A grammar per language, by the names `--lang` takes; one tidy formats but
@@ -151,7 +151,8 @@ function run() {
     lang.value === "dockerfile" ? "Dockerfile" : `playground.${lang.value}`;
   let clock = performance.now();
   try {
-    let text = format(source, lang.value, config.value, filepath);
+    let options = readConfig(config.value);
+    let text = format(source, { ...options, lang: lang.value, filepath });
     let took = performance.now() - clock;
     output.innerHTML = paint(text, lang.value);
     output.classList.remove("failed");

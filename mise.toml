@@ -26,23 +26,29 @@ description = "Write the JSON Schema of a tidy.json for npm and the site"
 run = "cargo run -q -p tidy --features cli -- schema > crates/tidy_napi/tidy.schema.json"
 
 [tasks.types]
-description = "Write the types that index.d.ts opens with, from the JSON Schema"
-run = "bun crates/tidy_napi/types.ts | cargo run -q -p tidy --features cli -- up --stdin=crates/tidy_napi/header.d.ts > crates/tidy_napi/header.d.ts"
+description = "Write the index.d.ts of tidyrs and of tidyrs-wasm, from the JSON Schema"
+run = [
+  "bun crates/tidy_napi/types.ts tidyrs | cargo run -q -p tidy --features cli -- up --stdin=crates/tidy_napi/index.d.ts > crates/tidy_napi/index.d.ts",
+  "bun crates/tidy_napi/types.ts tidyrs-wasm | cargo run -q -p tidy --features cli -- up --stdin=crates/tidy_wasm/npm/index.d.ts > crates/tidy_wasm/npm/index.d.ts",
+]
 depends = ["schema"]
 
 [tasks."build:wasm"]
-description = "Build the playground's wasm into www/assets/wasm"
+description = "Build the tidyrs-wasm package in crates/tidy_wasm/npm, and the playground's copy in www/assets/wasm"
 tools = { "cargo:wasm-bindgen-cli" = "0.2.130", "aqua:WebAssembly/binaryen" = "133" }
 run = [
   "cargo build --profile wasm --target wasm32-unknown-unknown -p tidy_wasm",
-  '"$(mise where cargo:wasm-bindgen-cli)/bin/wasm-bindgen" --target web --out-dir www/assets/wasm --out-name tidy target/wasm32-unknown-unknown/wasm/tidy_wasm.wasm',
-  "wasm-opt --strip-debug --strip-producers --strip-target-features www/assets/wasm/tidy_bg.wasm -o www/assets/wasm/tidy_bg.wasm",
+  'for target in web nodejs; do "$(mise where cargo:wasm-bindgen-cli)/bin/wasm-bindgen" --target $target --out-dir target/wasm-bindgen/$target --out-name tidy target/wasm32-unknown-unknown/wasm/tidy_wasm.wasm; done',
+  "wasm-opt --strip-debug --strip-producers --strip-target-features target/wasm-bindgen/web/tidy_bg.wasm -o crates/tidy_wasm/npm/tidy_bg.wasm",
+  "cp target/wasm-bindgen/web/tidy.js crates/tidy_wasm/npm/tidy.js",
+  "cp target/wasm-bindgen/nodejs/tidy.js crates/tidy_wasm/npm/tidy.cjs",
+  "mkdir -p www/assets/wasm && cp crates/tidy_wasm/npm/tidy.js crates/tidy_wasm/npm/tidy_bg.wasm www/assets/wasm/ && cp crates/tidy_wasm/npm/index.d.ts www/assets/wasm/tidy.d.ts",
 ]
 
 [tasks."build:napi"]
 description = "Build the Node addon for this platform"
 dir = "crates/tidy_napi"
-run = "bunx napi build --platform --release --esm"
+run = "bunx napi build --platform --release --js native.cjs --dts native.d.ts"
 
 [tasks.lint]
 description = "Check formatting and lint with warnings denied"
@@ -58,9 +64,11 @@ run = [
   "cargo test --workspace --features tidy/cli",
   "cargo test -p tidy --no-default-features",
   "bun test --cwd crates/tidy_napi",
+  "bun install --cwd crates/tidy_napi --force --silent",
+  "TIDYRS_WASM=1 bun test --cwd crates/tidy_napi",
   "bun check --cwd crates/tidy_napi",
 ]
-depends = ["build:napi", "test:nvim", "test:vscode"]
+depends = ["build:napi", "build:wasm", "test:nvim", "test:vscode"]
 
 [tasks."test:nvim"]
 description = "Run the Neovim plugin in headless Neovim"
