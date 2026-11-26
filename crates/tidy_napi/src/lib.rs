@@ -1,10 +1,9 @@
 use napi::bindgen_prelude::{Function, JsObjectValue, Object, Unknown};
 use napi::{Env, ValueType};
 use napi_derive::napi;
-use serde_json::{Map, Value, json};
-use tidy::config::Config;
+use serde_json::{Map, Value};
 use tidy::embed::Request;
-use tidy::{Formatter, Language, Options};
+use tidy::{Formatter, host};
 
 /// Called with each piece of embedded code, as an `Embed.Request`; returns its formatted text, or `undefined`.
 type Hook<'a> = Function<'a, Unknown<'a>, Option<String>>;
@@ -59,21 +58,17 @@ impl<'a> Input<'a> {
 #[napi(ts_args_type = "source: string, options?: Options")]
 pub fn format(env: Env, source: String, options: Option<Object<'_>>) -> napi::Result<String> {
   let input = Input::read(&env, options)?;
-  let error = |error: &dyn std::fmt::Display| napi::Error::from_reason(error.to_string());
-  let (language, dialect) = language(&input)?;
-  let mut config = Config::from_value(&Value::Object(input.config)).map_err(|it| error(&it))?;
-  if dialect.is_some() {
-    config.handlebars.dialect = dialect;
-  }
-  let mut options = Options::default();
-  config.apply(&mut options);
+  let fail = napi::Error::from_reason;
+  let (language, dialect) =
+    host::language(input.lang.as_deref(), input.filepath.as_deref()).map_err(fail)?;
+  let options = host::options(input.config, dialect).map_err(fail)?;
   let mut failure = None;
   let mut hook = |request: Request<'_>| -> Option<String> {
     let embed = input.embed.as_ref()?;
     if failure.is_some() {
       return None;
     }
-    let result = env.to_js_value(&request_json(&request)).and_then(|it| embed.call(it));
+    let result = env.to_js_value(&host::request(&request)).and_then(|it| embed.call(it));
     result.unwrap_or_else(|error| {
       failure = Some(error);
       None
@@ -82,7 +77,7 @@ pub fn format(env: Env, source: String, options: Option<Object<'_>>) -> napi::Re
   let output = Formatter::default()
     .format(&source, language, &options, input.filepath.as_deref(), &mut hook)
     .map(str::to_owned)
-    .map_err(|it| error(&it))?;
+    .map_err(|error| fail(host::describe(&error, &source)))?;
   match failure {
     Some(error) => Err(error),
     None => Ok(output),
@@ -94,41 +89,4 @@ pub fn format(env: Env, source: String, options: Option<Object<'_>>) -> napi::Re
 pub fn check(env: Env, source: String, options: Option<Object<'_>>) -> napi::Result<bool> {
   let formatted = format(env, source.clone(), options)?;
   Ok(formatted == source)
-}
-
-/// The request as the hook gets it, an `Embed.Request`, without `host` where there is none.
-fn request_json(request: &Request<'_>) -> Value {
-  let kind = request.kind.name();
-  let mut value = json!({
-    "code": request.code,
-    "lang": request.lang,
-    "kind": kind,
-    "attribute": request.attribute,
-    "indent": request.indent,
-    "prefix": request.prefix,
-    "suffix": request.suffix,
-    "width": request.width,
-    "module": request.module,
-  });
-  if let (Some(host), Value::Object(map)) = (request.host, &mut value) {
-    map.insert("host".into(), host.into());
-  }
-  value
-}
-
-/// The language of `lang`, or of `filepath`, and the Handlebars dialect that `lang` asks for, as the command line
-/// reads `--lang`.
-fn language(input: &Input<'_>) -> napi::Result<(Language, Option<tidy::handlebars::Dialect>)> {
-  let fail = |message: String| napi::Error::from_reason(message);
-  match (input.lang.as_deref(), input.filepath.as_deref()) {
-    // A dialect of Handlebars, which tidy otherwise tells from the template.
-    (Some("tempura"), _) => Ok((Language::Handlebars, Some(tidy::handlebars::Dialect::Tempura))),
-    (Some(name), _) => Language::hint(name)
-      .map(|it| (it, None))
-      .ok_or_else(|| fail(format!("unknown language: {name}"))),
-    (None, Some(path)) => Language::file(path)
-      .map(|it| (it, None))
-      .ok_or_else(|| fail(format!("{path}: can't tell the language of this file, pass `lang`"))),
-    (None, None) => Err(fail("can't tell the language: pass `lang` or `filepath`".into())),
-  }
 }

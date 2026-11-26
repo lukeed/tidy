@@ -27,6 +27,9 @@ pub mod embed;
 mod front_matter;
 pub mod graphql;
 pub mod handlebars;
+#[cfg(feature = "config")]
+#[doc(hidden)]
+pub mod host;
 pub mod html;
 pub mod ini;
 #[cfg(feature = "js")]
