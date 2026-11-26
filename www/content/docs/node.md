@@ -112,6 +112,8 @@ The package picks a prebuilt addon for your platform through an optional depende
 
 macOS on Apple silicon and Intel; Linux on x86-64 and ARM64, against both glibc and musl; Windows on x86-64 and ARM64.
 
+Anywhere else, as in a WebContainer, `tidyrs` loads [`tidyrs-wasm`](/docs/wasm/), its WebAssembly build, if it is installed. The calls are the same, at about 2 to 3 times the time. Set `TIDYRS_WASM=1` to use the wasm on a platform with an addon too.
+
 ## In a formatter plugin
 
 Because `check` and `format` take a string and return a string, wrapping tidy for an editor or a bundler is a few lines:

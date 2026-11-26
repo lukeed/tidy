@@ -2,7 +2,7 @@
 title: Rust API
 summary: The tidy crate: format a string, reuse a formatter across files, and handle embedded code yourself.
 group: API
-order: 2
+order: 3
 ---
 
 ```toml [Cargo.toml]
