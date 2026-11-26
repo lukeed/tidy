@@ -11,6 +11,15 @@ fn fail(message: impl AsRef<str>) -> JsValue {
   JsError::new(message.as_ref()).into()
 }
 
+/// A JS error for `problem`, with its `loc` where it has one, as Prettier's errors have.
+fn throw(problem: host::Problem) -> JsValue {
+  let error = js_sys::Error::new(&problem.message);
+  if let Some(loc) = problem.loc().and_then(|it| JSON::parse(&it.to_string()).ok()) {
+    let _ = Reflect::set(&error, &"loc".into(), &loc);
+  }
+  error.into()
+}
+
 /// The options of a call: the language, the file, the hook, and the rest, which are a `tidy.json`'s.
 struct Input {
   lang: Option<String>,
@@ -82,7 +91,7 @@ pub fn format(source: &str, options: JsValue) -> Result<String, JsValue> {
   let output = Formatter::default()
     .format(source, language, &options, input.filepath.as_deref(), &mut hook)
     .map(str::to_owned)
-    .map_err(|error| fail(host::describe(&error, source)));
+    .map_err(|error| throw(host::Problem::of(&error, source)));
   match failure {
     Some(error) => Err(error),
     None => output,
@@ -98,7 +107,7 @@ pub fn check(source: &str, options: JsValue) -> Result<bool, JsValue> {
 /// The options in the text of a `tidy.json`, `tidy.jsonc` or `tidy.toml`, to pass to `format`.
 #[wasm_bindgen(skip_typescript)]
 pub fn config(text: &str) -> Result<JsValue, JsValue> {
-  let value = host::config(text).map_err(fail)?;
+  let value = host::config(text).map_err(throw)?;
   JSON::parse(&value.to_string())
 }
 

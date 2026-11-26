@@ -1,5 +1,5 @@
 //! What tidy's bindings for JavaScript share, so that `tidyrs` and `tidyrs-wasm` read a call the same way: its
-//! language, its options, the request a hook gets, and the text of an error.
+//! language, its options, the request a hook gets, and the errors it throws.
 
 use serde_json::{Map, Value, json};
 
@@ -58,30 +58,54 @@ pub fn request(request: &Request<'_>) -> Value {
   value
 }
 
-/// An error formatting `source`, with the line and column of a syntax error before its message, as the command line
-/// prints it.
-pub fn describe(error: &Error, source: &str) -> String {
-  match error {
-    Error::Syntax { message, at } => {
-      let before = &source[..(*at).min(source.len())];
-      let line = before.matches('\n').count() + 1;
-      let column = before.rsplit('\n').next().unwrap_or_default().chars().count() + 1;
-      format!("{line}:{column}: {message}")
-    }
-    _ => error.to_string(),
+/// What a binding throws: the message of an error, and for a syntax error, the line and column where it is, from 1.
+/// The column counts characters.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Problem {
+  pub message: String,
+  pub position: Option<(usize, usize)>,
+}
+
+impl Problem {
+  /// The problem of an error in `source`.
+  pub fn of(error: &Error, source: &str) -> Problem {
+    let position = match error {
+      Error::Syntax { at, .. } => {
+        let before = &source[..(*at).min(source.len())];
+        let line = before.matches('\n').count() + 1;
+        let column = before.rsplit('\n').next().unwrap_or_default().chars().count() + 1;
+        Some((line, column))
+      }
+      _ => None,
+    };
+    Problem { message: error.to_string(), position }
+  }
+}
+
+impl Problem {
+  /// Where the problem is, as Prettier puts it on a syntax error: `{ start: { line, column } }`.
+  pub fn loc(&self) -> Option<Value> {
+    let (line, column) = self.position?;
+    Some(json!({ "start": { "line": line, "column": column } }))
+  }
+}
+
+impl From<String> for Problem {
+  fn from(message: String) -> Problem {
+    Problem { message, position: None }
   }
 }
 
 /// The options in the text of a `tidy.json`, `tidy.jsonc` or `tidy.toml`, as a JSON object. JSON starts with `{` or
 /// a comment; anything else is TOML.
-pub fn config(text: &str) -> Result<Value, String> {
+pub fn config(text: &str) -> Result<Value, Problem> {
   let trimmed = text.trim_start();
   let is_json = ["{", "//", "/*"].iter().any(|start| trimmed.starts_with(start));
   let value = match is_json {
     true => crate::json::value(text),
     false => crate::toml::value(text),
   }
-  .map_err(|error| describe(&error, text))?;
+  .map_err(|error| Problem::of(&error, text))?;
   let value = match value {
     Value::Null => Value::Object(Map::new()),
     value => value,
@@ -110,13 +134,16 @@ mod tests {
     let toml = config("width = 100\n\n[js]\nsemi = false\n").unwrap();
     assert_eq!(toml, json);
     assert_eq!(config("").unwrap(), json!({}));
-    assert_eq!(config("{ \"width\": \"wide\" }").unwrap_err(), "`width` must be a whole number");
-    assert!(config("{ \"width\": ").unwrap_err().starts_with("1:"));
+    let wide = config("{ \"width\": \"wide\" }").unwrap_err();
+    assert_eq!(wide, Problem::from("`width` must be a whole number".to_owned()));
+    assert_eq!(config("{\n  \"width\": ").unwrap_err().position, Some((2, 12)));
   }
 
   #[test]
-  fn puts_the_line_and_column_before_a_syntax_error() {
+  fn says_where_a_syntax_error_is() {
     let error = Error::Syntax { message: "Unexpected token".into(), at: 4 };
-    assert_eq!(describe(&error, "a\nbc d"), "2:3: Unexpected token");
+    let problem = Problem::of(&error, "a\nbc d");
+    assert_eq!(problem, Problem { message: "Unexpected token".into(), position: Some((2, 3)) });
+    assert_eq!(Problem::of(&Error::TooDeep, "").position, None);
   }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { check, format, type Embed } from "./index.js";
+import { check, format, type Embed, type TidyError } from "./index.js";
 
 let js = { lang: "js" } as const;
 
@@ -110,8 +110,27 @@ describe("format", () => {
     ).toBe(false);
   });
 
-  test("throws on code that doesn't parse", () => {
-    expect(() => format("let = ;", js)).toThrow("Unexpected token");
+  test("throws on code that doesn't parse, and says where", () => {
+    let error: TidyError | undefined;
+    try {
+      format("let a = 1;\nlet = ;", js);
+    } catch (thrown) {
+      error = thrown as TidyError;
+    }
+    expect(error).toBeInstanceOf(Error);
+    expect(error?.message).toStartWith("Unexpected token");
+    expect(error?.loc).toEqual({ start: { line: 2, column: 7 } });
+  });
+
+  test("throws other errors without a position", () => {
+    let error: TidyError | undefined;
+    try {
+      format("x", { lang: "nope" });
+    } catch (thrown) {
+      error = thrown as TidyError;
+    }
+    expect(error?.message).toBe("unknown language: nope");
+    expect(error?.loc).toBeUndefined();
   });
 
   test("rejects unknown languages, keys and values", () => {

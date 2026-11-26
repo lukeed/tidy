@@ -189,6 +189,12 @@ let output = `// Generated from tidy.schema.json by types.ts: run \`mise run typ
 /** A language, by the name a code fence gives it, or by a file extension. */
 export type Lang = ${langs.map((it) => JSON.stringify(it)).join(" | ")} | (string & {});
 
+/**
+ * What a call throws. An error in the syntax of the source also says where, as Prettier's errors do: \`loc.start\` has
+ * its \`line\` and \`column\`, from 1. The column counts characters.
+ */
+export type TidyError = Error & { loc?: { start: { line: number; column: number } } };
+
 /** The options of \`format\` and \`check\`: those of a \`tidy.json\`, and what to format. */
 export type Options = Options.Common &
   Options.Languages & {

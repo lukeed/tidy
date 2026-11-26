@@ -28,6 +28,15 @@ export type Lang =
   | (string & {});
 
 /**
+ * What a call throws. An error in the syntax of the source also says where, as
+ * Prettier's errors do: `loc.start` has its `line` and `column`, from 1. The
+ * column counts characters.
+ */
+export type TidyError = Error & {
+  loc?: { start: { line: number; column: number } };
+};
+
+/**
  * The options of `format` and `check`: those of a `tidy.json`, and what to
  * format.
  */

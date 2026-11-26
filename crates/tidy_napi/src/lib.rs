@@ -1,4 +1,4 @@
-use napi::bindgen_prelude::{Function, JsObjectValue, Object, Unknown};
+use napi::bindgen_prelude::{Function, JsObjectValue, JsValue, Object, Unknown};
 use napi::{Env, ValueType};
 use napi_derive::napi;
 use serde_json::{Map, Value};
@@ -77,11 +77,23 @@ pub fn format(env: Env, source: String, options: Option<Object<'_>>) -> napi::Re
   let output = Formatter::default()
     .format(&source, language, &options, input.filepath.as_deref(), &mut hook)
     .map(str::to_owned)
-    .map_err(|error| fail(host::describe(&error, &source)))?;
+    .map_err(|error| throw(&env, host::Problem::of(&error, &source)))?;
   match failure {
     Some(error) => Err(error),
     None => Ok(output),
   }
+}
+
+/// A JS error for `problem`, with its `loc` where it has one, as Prettier's errors have.
+fn throw(env: &Env, problem: host::Problem) -> napi::Error {
+  let error = || -> napi::Result<napi::Error> {
+    let mut error = env.create_error(napi::Error::from_reason(problem.message.clone()))?;
+    if let Some(loc) = problem.loc() {
+      error.set_named_property("loc", env.to_js_value(&loc)?)?;
+    }
+    Ok(napi::Error::from(error.to_unknown()))
+  };
+  error().unwrap_or_else(|failure| failure)
 }
 
 /// Whether a file is formatted already, with the same options as `format`.

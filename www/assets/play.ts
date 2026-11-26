@@ -158,7 +158,11 @@ function run() {
     output.classList.remove("failed");
     outStat.textContent = `${took < 1 ? took.toFixed(2) : Math.round(took)} ms`;
   } catch (error) {
-    output.textContent = error instanceof Error ? error.message : String(error);
+    let start = (error as { loc?: { start: { line: number; column: number } } })
+      .loc?.start;
+    let where = start ? `${start.line}:${start.column}: ` : "";
+    output.textContent =
+      error instanceof Error ? `${where}${error.message}` : String(error);
     output.classList.add("failed");
     outStat.textContent = "error";
   }
